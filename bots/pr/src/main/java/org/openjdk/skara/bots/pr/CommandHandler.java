@@ -37,9 +37,15 @@ interface CommandHandler {
                         CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
     }
 
-    default void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
-                        List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
+    default void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath,
+                        CommandInvocation command, List<Comment> allComments, PrintWriter reply, PullRequestWorkItem workItem) {
         handle(bot, pr, censusInstance, scratchPath, command, allComments, reply);
+    }
+
+    default void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath,
+                        CommandInvocation command, List<Comment> allComments, PrintWriter reply,
+                        PullRequestWorkItem workItem, List<String> labelsToAdd, List<String> labelsToRemove) {
+        handle(bot, pr, censusInstance, scratchPath, command, allComments, reply, workItem);
     }
 
     default void handle(PullRequestBot bot, HostedCommit commit, LimitedCensusInstance censusInstance, Path scratchPath,

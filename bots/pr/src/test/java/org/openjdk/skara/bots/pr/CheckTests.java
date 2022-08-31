@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.junit.jupiter.api.*;
+import org.openjdk.skara.bot.ApprovalInfo;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Link;
@@ -39,6 +40,7 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.openjdk.skara.bots.pr.PullRequestCommandWorkItem.VALID_BOT_COMMAND_MARKER;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
 class CheckTests {
@@ -2199,6 +2201,465 @@ class CheckTests {
             assertFalse(pr.body().contains(backportIssue.title()));
             assertFalse(pr.body().contains(backportCsr.id()));
             assertFalse(pr.body().contains(backportCsr.title()));
+        }
+    }
+
+    @Test
+    void testUpdateChange(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var maintainer = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var census = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addReviewer(maintainer.forge().currentUser().id())
+                    .build();
+            var bot = PullRequestBot.newBuilder().repo(author)
+                    .censusRepo(census).issueProject(issueProject)
+                    .approvalInfos(List.of(new ApprovalInfo(author, Pattern.compile("test"),
+                                    "test-fix-request", "test-fix-yes", "test-fix-no", Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("master"),
+                                    "master-fix-request", "master-fix-yes", "master-fix-no", Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("jdk18"),
+                                    "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))))
+                    .build();
+
+            var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": " + issue.title());
+
+            // run the pr bot
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The update change suggestion should be added.
+            var commentSize = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .count();
+            assertEquals(1, commentSize);
+            // The progress about the update change should be added to the pr body.
+            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            // The pr shouldn't contain the `approval` label because the pr is not ready for approval
+            assertFalse(pr.labelNames().contains("approval"));
+            // The issue shouldn't contain the `master-fix-request`, `master-fix-yes` and `master-fix-no` label
+            assertFalse(issue.labelNames().contains("master-fix-request"));
+            assertFalse(issue.labelNames().contains("master-fix-yes"));
+            assertFalse(issue.labelNames().contains("master-fix-no"));
+
+            // review the pr
+            var reviewPr = reviewer.pullRequest(pr.id());
+            reviewPr.addReview(Review.Verdict.APPROVED, "LGTM");
+
+            // run the pr bot
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The update change suggestion should be added only once.
+            commentSize = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .count();
+            assertEquals(1, commentSize);
+            // The progress about the update change shouldn't be checked.
+            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            // The pr should contain the `approval` label because the pr is ready for approval
+            assertTrue(pr.labelNames().contains("approval"));
+            // The issue should contain the `master-fix-request` label
+            assertTrue(issue.labelNames().contains("master-fix-request"));
+            // The issue shouldn't contain the `master-fix-yes` and `master-fix-no` label
+            assertFalse(issue.labelNames().contains("master-fix-yes"));
+            assertFalse(issue.labelNames().contains("master-fix-no"));
+
+            // Test the title of the PR doesn't have issue id.
+            pr.setTitle(issue.title());
+            // Clean the labels.
+            pr.removeLabel("approval");
+            issue.removeLabel("master-fix-request");
+
+            // run the pr bot
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The update change suggestion should be added only once.
+            commentSize = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .count();
+            assertEquals(1, commentSize);
+            // The progress about the update change shouldn't be checked.
+            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            // The pr shouldn't contain the `approval` label because the pr is not ready for approval
+            assertFalse(pr.labelNames().contains("approval"));
+            // The issue shouldn't contain the `master-fix-request`, `master-fix-yes` and `master-fix-no` label
+            assertFalse(issue.labelNames().contains("master-fix-request"));
+            assertFalse(issue.labelNames().contains("master-fix-yes"));
+            assertFalse(issue.labelNames().contains("master-fix-no"));
+
+            // Correct the title.
+            pr.setTitle(issue.id() + ": " + issue.title());
+
+            // Test multi issues in one pull request
+            // Create another two issues.
+            var issue2 = issueProject.createIssue("This is update change issue2", List.of(), Map.of("issuetype", JSON.of("Bug")));
+            var issue3 = issueProject.createIssue("This is update change issue3", List.of(), Map.of("issuetype", JSON.of("Bug")));
+            pr.addComment("/issue add " + issue2.id() + "\n" + VALID_BOT_COMMAND_MARKER);
+            pr.addComment("/issue add " + issue3.id() + "\n" + VALID_BOT_COMMAND_MARKER);
+
+            // run the pr bot
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The update change suggestion should be added only once.
+            commentSize = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .count();
+            assertEquals(1, commentSize);
+            // The progress about the update change shouldn't be checked.
+            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            // The pr should contain the `approval` label because the pr is ready for approval
+            assertTrue(pr.labelNames().contains("approval"));
+            // These three issues should contain the `master-fix-request` label
+            assertTrue(issue.labelNames().contains("master-fix-request"));
+            assertTrue(issue2.labelNames().contains("master-fix-request"));
+            assertTrue(issue3.labelNames().contains("master-fix-request"));
+            // These three issues shouldn't contain the `master-fix-yes` and `master-fix-no` label
+            assertFalse(issue.labelNames().contains("master-fix-yes"));
+            assertFalse(issue.labelNames().contains("master-fix-no"));
+            assertFalse(issue2.labelNames().contains("master-fix-yes"));
+            assertFalse(issue2.labelNames().contains("master-fix-no"));
+            assertFalse(issue3.labelNames().contains("master-fix-yes"));
+            assertFalse(issue3.labelNames().contains("master-fix-no"));
+        }
+    }
+
+    @Test
+    void testUpdateChangeApproval(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var maintainer = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var census = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addReviewer(maintainer.forge().currentUser().id())
+                    .build();
+            var bot = PullRequestBot.newBuilder().repo(author)
+                    .censusRepo(census).issueProject(issueProject)
+                    .approvalInfos(List.of(new ApprovalInfo(author, Pattern.compile("test"),
+                                    "test-fix-request", "test-fix-yes", "test-fix-no", Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("master"),
+                                    "master-fix-request", "master-fix-yes", "master-fix-no", Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("jdk18"),
+                                    "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))))
+                    .build();
+
+            var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": " + issue.title());
+
+            // review the pr
+            var reviewPr = reviewer.pullRequest(pr.id());
+            reviewPr.addReview(Review.Verdict.APPROVED, "LGTM");
+
+            // Create another two issues.
+            var issue2 = issueProject.createIssue("This is update change issue2", List.of(), Map.of("issuetype", JSON.of("Bug")));
+            var issue3 = issueProject.createIssue("This is update change issue3", List.of(), Map.of("issuetype", JSON.of("Bug")));
+            pr.addComment("/issue add " + issue2.id() + "\n" + VALID_BOT_COMMAND_MARKER);
+            pr.addComment("/issue add " + issue3.id() + "\n" + VALID_BOT_COMMAND_MARKER);
+
+            // Test the update change is approved by the maintainer on the main issue.
+            // Add the `master-fix-yes` label to the main issue.
+            issue.addLabel("master-fix-yes");
+            // Add the update marker to the pr body. This step simulates the approval bot.
+            pr.setBody(pr.body() + "\n<!-- approval: 'update' -->\n");
+
+            // run the pr bot
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The update change suggestion should be added only once.
+            var commentSize = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .count();
+            assertEquals(1, commentSize);
+            // The progress about the update change should be checked.
+            assertTrue(pr.body().contains("- [x] Change must be properly approved by the maintainers"));
+            // The pr shouldn't contain the `approval` label because the pr has been approved.
+            assertFalse(pr.labelNames().contains("approval"));
+            // These three issues should contain the `master-fix-request` and `master-fix-yes` label
+            assertTrue(issue.labelNames().contains("master-fix-request"));
+            assertTrue(issue2.labelNames().contains("master-fix-request"));
+            assertTrue(issue3.labelNames().contains("master-fix-request"));
+            assertTrue(issue.labelNames().contains("master-fix-yes"));
+            assertTrue(issue2.labelNames().contains("master-fix-yes"));
+            assertTrue(issue3.labelNames().contains("master-fix-yes"));
+            // These three issues shouldn't contain the `master-fix-no` label
+            assertFalse(issue.labelNames().contains("master-fix-no"));
+            assertFalse(issue2.labelNames().contains("master-fix-no"));
+            assertFalse(issue3.labelNames().contains("master-fix-no"));
+            // The pr is still open
+            assertTrue(pr.isOpen());
+
+            // Test the update change is disapproved by the maintainer on the main issue.
+            // Also test disapproval after approval.
+            // Only need to revise the main issue, the bot will sync the label to other issues.
+            // Clean the previous `master-fix-yes` label.
+            issue.removeLabel("master-fix-yes");
+            // Add the `master-fix-no` label to the main issue.
+            issue.addLabel("master-fix-no");
+            // Add the update marker to the pr body. This step simulates the approval bot.
+            pr.setBody(pr.body() + "\n<!-- approval: 'update' -->\n");
+
+            // run the pr bot
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The update change suggestion should be added only once.
+            commentSize = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .count();
+            assertEquals(1, commentSize);
+            // The progress about the update change shouldn't be checked.
+            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            // The pr shouldn't contain the `approval` label because the pr has been disapproved.
+            assertFalse(pr.labelNames().contains("approval"));
+            // These three issues should contain the `master-fix-request` and `master-fix-no` label
+            assertTrue(issue.labelNames().contains("master-fix-request"));
+            assertTrue(issue2.labelNames().contains("master-fix-request"));
+            assertTrue(issue3.labelNames().contains("master-fix-request"));
+            assertTrue(issue.labelNames().contains("master-fix-no"));
+            assertTrue(issue2.labelNames().contains("master-fix-no"));
+            assertTrue(issue3.labelNames().contains("master-fix-no"));
+            // These three issues shouldn't contain the `master-fix-yes` label
+            assertFalse(issue.labelNames().contains("master-fix-yes"));
+            assertFalse(issue2.labelNames().contains("master-fix-yes"));
+            assertFalse(issue3.labelNames().contains("master-fix-yes"));
+            // The pr is closed now.
+            assertTrue(pr.isClosed());
+
+            // Test the update change is approved by the maintainer on the main issue.
+            // Also test approval after disapproval.
+            // Only need to revise the main issue, the bot will sync the label to other issues.
+            // Clean the previous `master-fix-no` label.
+            issue.removeLabel("master-fix-no");
+            // Add the `master-fix-yes` label to the main issue.
+            issue.addLabel("master-fix-yes");
+            // Add the update marker to the pr body. This step simulates the approval bot.
+            pr.setBody(pr.body() + "\n<!-- approval: 'update' -->\n");
+            // Open the pull request manually.
+            pr.setState(Issue.State.OPEN);
+
+            // run the pr bot
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The update change suggestion should be added only once.
+            commentSize = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .count();
+            assertEquals(1, commentSize);
+            // The progress about the update change should be checked.
+            assertTrue(pr.body().contains("- [x] Change must be properly approved by the maintainers"));
+            // The pr shouldn't contain the `approval` label because the pr has been approved.
+            assertFalse(pr.labelNames().contains("approval"));
+            // These three issues should contain the `master-fix-request` and `master-fix-yes` label
+            assertTrue(issue.labelNames().contains("master-fix-request"));
+            assertTrue(issue2.labelNames().contains("master-fix-request"));
+            assertTrue(issue3.labelNames().contains("master-fix-request"));
+            assertTrue(issue.labelNames().contains("master-fix-yes"));
+            assertTrue(issue2.labelNames().contains("master-fix-yes"));
+            assertTrue(issue3.labelNames().contains("master-fix-yes"));
+            // These three issues shouldn't contain the `master-fix-no` label
+            assertFalse(issue.labelNames().contains("master-fix-no"));
+            assertFalse(issue2.labelNames().contains("master-fix-no"));
+            assertFalse(issue3.labelNames().contains("master-fix-no"));
+            // The pr is open (actually open by the approval bot).
+            assertTrue(pr.isOpen());
+        }
+    }
+
+    @Test
+    void testNotUpdateChange(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var maintainer = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var census = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addReviewer(maintainer.forge().currentUser().id())
+                    .build();
+            var bot = PullRequestBot.newBuilder().repo(author)
+                    .censusRepo(census).issueProject(issueProject)
+                    .approvalInfos(List.of(new ApprovalInfo(author, Pattern.compile("test"),
+                                    "test-fix-request", "test-fix-yes", "test-fix-no", Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("master"),
+                                    "master-fix-request", "master-fix-yes", "master-fix-no", Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("jdk18"),
+                                    "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))))
+                    .build();
+
+            var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var mainHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(mainHash, author.url(), "main", true);
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+
+            // Create a pull request to the `main` branch instead of `master` branch, so it is not an update change.
+            var pr = credentials.createPullRequest(author, "main", "edit", issue.id() + ": " + issue.title());
+
+            // review the pr
+            var reviewPr = reviewer.pullRequest(pr.id());
+            reviewPr.addReview(Review.Verdict.APPROVED, "LGTM");
+
+            // run the pr bot
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The update change suggestion shouldn't be added.
+            var commentSize = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .count();
+            assertEquals(0, commentSize);
+            // The progress about the update change shouldn't be added to the pr body.
+            assertFalse(pr.body().contains("Change must be properly approved by the maintainers"));
+            // The pr shouldn't contain the `approval` label because the pr is not an update change (the target branch is not `master`).
+            assertFalse(pr.labelNames().contains("approval"));
+            // The issue shouldn't contain the `master-fix-request`, `master-fix-yes` and `master-fix-no` label
+            assertFalse(issue.labelNames().contains("master-fix-request"));
+            assertFalse(issue.labelNames().contains("master-fix-yes"));
+            assertFalse(issue.labelNames().contains("master-fix-no"));
+        }
+    }
+
+    @Test
+    void testUpdateChangeWithCleanBackport(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var maintainer = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var census = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addReviewer(maintainer.forge().currentUser().id())
+                    .build();
+            var bot = PullRequestBot.newBuilder().repo(author)
+                    .censusRepo(census).issueProject(issueProject)
+                    .approvalInfos(List.of(new ApprovalInfo(author, Pattern.compile("test"),
+                                    "test-fix-request", "test-fix-yes", "test-fix-no", Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("master"),
+                                    "master-fix-request", "master-fix-yes", "master-fix-no", Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("jdk18"),
+                                    "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))))
+                    .build();
+
+            var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
+            issue.setState(Issue.State.CLOSED);
+
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Push a commit to the jdk19 branch
+            var jdk19Branch = localRepo.branch(masterHash, "jdk19");
+            localRepo.checkout(jdk19Branch);
+            var newFile = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile, "a_new_file");
+            localRepo.add(newFile);
+            var issueNumber = issue.id().split("-")[1];
+            var commitMessage = issueNumber + ": This is update change issue\n\nReviewed-by: integrationreviewer2";
+            var commitHash = localRepo.commit(commitMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
+            localRepo.push(commitHash, author.url(), "jdk19", true);
+
+            // "backport" the commit to the master branch
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var newFile2 = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile2, "a_new_file");
+            localRepo.add(newFile2);
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
+            localRepo.push(editHash, author.url(), "edit", true);
+            // This is a clean backport, so it is ready for approval.
+            var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + commitHash);
+
+            // run the pr bot
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The update change suggestion should be added.
+            var commentSize = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .count();
+            assertEquals(1, commentSize);
+            // The progress about the update change should be added to the pr body.
+            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            // The pr should contain the `approval` label because the pr is a clean backport.
+            assertTrue(pr.labelNames().contains("approval"));
+            // The issue should contain the `master-fix-request` label
+            assertTrue(issue.labelNames().contains("master-fix-request"));
+            // The issue shouldn't contain the `master-fix-yes` and `master-fix-no` label
+            assertFalse(issue.labelNames().contains("master-fix-yes"));
+            assertFalse(issue.labelNames().contains("master-fix-no"));
+
+            // Add more commit to `edit` branch, then the pull request is not a clean backport now.
+            Files.writeString(newFile2, "another_new_file");
+            localRepo.add(newFile2);
+            var editHash2 = localRepo.commit("another commit", "duke", "duke@openjdk.org");
+            localRepo.push(editHash2, author.url(), "edit", true);
+
+            // run the pr bot
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The update change suggestion should be added only once.
+            commentSize = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .count();
+            assertEquals(1, commentSize);
+            // The progress about the update change should be added to the pr body.
+            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            // The pr shouldn't contain the `approval` label because the pr is not ready for approval (it is not a clean backport).
+            assertFalse(pr.labelNames().contains("approval"));
+            // The issue shouldn't contain the `master-fix-request`, `master-fix-yes` and `master-fix-no` label
+            assertFalse(issue.labelNames().contains("master-fix-request"));
+            assertFalse(issue.labelNames().contains("master-fix-yes"));
+            assertFalse(issue.labelNames().contains("master-fix-no"));
+
+            // review the pr, then the pull request is ready for approval
+            var reviewPr = reviewer.pullRequest(pr.id());
+            reviewPr.addReview(Review.Verdict.APPROVED, "LGTM");
+
+            // run the pr bot
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The update change suggestion should be added only once.
+            commentSize = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .count();
+            assertEquals(1, commentSize);
+            // The progress about the update change should be added to the pr body.
+            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            // The pr should contain the `approval` label because the pr has been reviewed and is ready for approval now.
+            assertTrue(pr.labelNames().contains("approval"));
+            // The issue should contain the `master-fix-request` label
+            assertTrue(issue.labelNames().contains("master-fix-request"));
+            // The issue shouldn't contain the `master-fix-yes` and `master-fix-no` label
+            assertFalse(issue.labelNames().contains("master-fix-yes"));
+            assertFalse(issue.labelNames().contains("master-fix-no"));
         }
     }
 }

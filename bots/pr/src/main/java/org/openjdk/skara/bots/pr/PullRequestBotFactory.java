@@ -24,7 +24,6 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.json.*;
 
 import java.util.*;
@@ -106,8 +105,9 @@ public class PullRequestBotFactory implements BotFactory {
         for (var repo : specific.get("repositories").fields()) {
             var censusRepo = configuration.repository(repo.value().get("census").asString());
             var censusRef = configuration.repositoryRef(repo.value().get("census").asString());
+            var repository = configuration.repository(repo.name());
             var botBuilder = PullRequestBot.newBuilder()
-                                           .repo(configuration.repository(repo.name()))
+                                           .repo(repository)
                                            .censusRepo(censusRepo)
                                            .censusRef(censusRef)
                                            .blockingCheckLabels(blockers)
@@ -163,6 +163,24 @@ public class PullRequestBotFactory implements BotFactory {
             }
             if (repo.value().contains("jep")) {
                 botBuilder.enableJep(repo.value().get("jep").asBoolean());
+            }
+
+            var approvalInfos = new ArrayList<ApprovalInfo>();
+            if (repo.value().contains("approval")) {
+                for (var branchInfo : repo.value().get("approval").asArray()) {
+                    var requestLabel = branchInfo.get("request-label").asString();
+                    var approvalLabel = branchInfo.get("approval-label").asString();
+                    var disapprovalLabel = branchInfo.get("disapproval-label").asString();
+                    var maintainers = new HashSet<String>();
+                    if (branchInfo.contains("maintainers")) {
+                        for (var maintainer : branchInfo.get("maintainers").asArray()) {
+                            maintainers.add(maintainer.asString());
+                        }
+                    }
+                    approvalInfos.add(new ApprovalInfo(repository, Pattern.compile(branchInfo.get("branch").asString()),
+                            requestLabel, approvalLabel, disapprovalLabel, maintainers));
+                }
+                botBuilder.approvalInfos(approvalInfos);
             }
 
             ret.add(botBuilder.build());

@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class CommandExtractor {
-    private static final Pattern commandPattern = Pattern.compile("^\\s*/([A-Za-z]+)(?:\\s+(.*))?");
+    private static final Pattern commandPattern = Pattern.compile("^\\s*/([A-Za-z\\-]+)(?:\\s+(.*))?");
 
     private static String formatId(String baseId, int subId) {
         if (subId > 0) {
@@ -62,6 +62,8 @@ public class CommandExtractor {
             Map.entry("clean", new CleanCommand()),
             Map.entry("open", new OpenCommand()),
             Map.entry("backport", new BackportCommand()),
+            Map.entry("approval", new ApprovalCommand()),
+            Map.entry("request-approval", new RequestApprovalCommand()),
             Map.entry("tag", new TagCommand())
     );
 

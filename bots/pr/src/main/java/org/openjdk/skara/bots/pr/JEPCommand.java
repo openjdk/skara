@@ -87,7 +87,7 @@ public class JEPCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
-                       List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
+                       List<Comment> allComments, PrintWriter reply, PullRequestWorkItem workItem, List<String> labelsToAdd, List<String> labelsToRemove) {
         if (!bot.enableJep()) {
             reply.println("This repository has not been configured to use the `jep` command.");
             return;

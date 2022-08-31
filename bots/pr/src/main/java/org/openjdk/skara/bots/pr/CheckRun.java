@@ -27,9 +27,6 @@ import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.jbs.Backports;
-import org.openjdk.skara.jbs.JdkVersion;
-import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
@@ -67,6 +64,9 @@ class CheckRun {
     private static final String emptyPrBodyMarker = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private static final String fullNameWarningMarker = "<!-- PullRequestBot full name warning comment -->";
+    // The `update change` is usually `backport change`.
+    private static final String updateChangeSuggestionMarker = "<!-- Update change pull request suggestion -->";
+    private static final String APPROVAL_PROGRESS = "Change must be properly approved by the maintainers";
     private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final Set<String> newLabels;
 
@@ -112,86 +112,6 @@ class CheckRun {
         }
         var matcher = workItem.bot.allowedTargetBranches().matcher(pr.targetRef());
         return matcher.matches();
-    }
-
-    private List<Issue> issues(boolean withCsr, boolean withJep) {
-        var issue = Issue.fromStringRelaxed(pr.title());
-        if (issue.isPresent()) {
-            var issues = new ArrayList<Issue>();
-            issues.add(issue.get());
-            issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
-            if (withCsr) {
-                getCsrIssue(issue.get()).ifPresent(issues::add);
-            }
-            if (withJep) {
-                getJepIssue().ifPresent(issues::add);
-            }
-            return issues;
-        }
-        return List.of();
-    }
-
-    /**
-     * Get the fix version from the provided PR.
-     */
-    public static Optional<JdkVersion> getVersion(PullRequest pullRequest) {
-        var confFile = pullRequest.repository().fileContents(".jcheck/conf", pullRequest.targetRef());
-        var configuration = JCheckConfiguration.parse(confFile.lines().toList());
-        var version = configuration.general().version().orElse(null);
-        if (version == null || "".equals(version)) {
-            return Optional.empty();
-        }
-        return JdkVersion.parse(version);
-    }
-
-    /**
-     * Get the csr issue. Note: this `Issue` is not the issue in module `issuetracker`.
-     */
-    private Optional<Issue> getCsrIssue(Issue issue) {
-        var issueProject = issueProject();
-        if (issueProject == null) {
-            return Optional.empty();
-        }
-        var jbsIssueOpt = issueProject.issue(issue.shortId());
-        if (jbsIssueOpt.isEmpty()) {
-            return Optional.empty();
-        }
-
-        var versionOpt = getVersion(pr);
-        if (versionOpt.isEmpty()) {
-            return Optional.empty();
-        }
-
-        return Backports.findCsr(jbsIssueOpt.get(), versionOpt.get())
-                .flatMap(perIssue -> Issue.fromStringRelaxed(perIssue.id() + ": " + perIssue.title()));
-    }
-
-    private Optional<Issue> getJepIssue() {
-        var comment = getJepComment();
-        if (comment.isPresent()) {
-            return Issue.fromStringRelaxed(comment.get().group(2) + ": " + comment.get().group(3));
-        }
-        return Optional.empty();
-    }
-
-    private Optional<Matcher> getJepComment() {
-        var jepComment = pr.comments().stream()
-                .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))
-                .flatMap(comment -> comment.body().lines())
-                .map(JEPCommand.jepMarkerPattern::matcher)
-                .filter(Matcher::find)
-                .reduce((first, second) -> second)
-                .orElse(null);
-        if (jepComment == null) {
-            return Optional.empty();
-        }
-
-        var issueId = jepComment.group(2);
-        if ("unneeded".equals(issueId)) {
-            return  Optional.empty();
-        }
-
-        return Optional.of(jepComment);
     }
 
     private IssueProject issueProject() {
@@ -243,11 +163,12 @@ class CheckRun {
     // Additional bot-specific progresses that are not handled by JCheck
     private Map<String, Boolean> botSpecificProgresses() {
         var ret = new HashMap<String, Boolean>();
+        var issueOpt = Issue.fromStringRelaxed(pr.title());
         if (pr.labelNames().contains("csr")) {
             // If the PR have csr label, the CSR request need to be approved.
             ret.put("Change requires a CSR request to be approved", false);
         } else {
-            var csrIssue = Issue.fromStringRelaxed(pr.title()).flatMap(this::getCsrIssue)
+            var csrIssue = issueOpt.flatMap(workItem::getCsrIssue)
                     .flatMap(value -> issueProject() != null ? issueProject().issue(value.shortId()) : Optional.empty());
             if (csrIssue.isPresent()) {
                 var resolution = csrIssue.get().properties().get("resolution");
@@ -264,11 +185,27 @@ class CheckRun {
         if (pr.labelNames().contains("jep")) {
             ret.put("Change requires a JEP request to be targeted", false);
         } else {
-            var comment = getJepComment();
+            var comment = workItem.getJepComment();
             if (comment.isPresent()) {
                 ret.put("Change requires a JEP request to be targeted", true);
             }
         }
+
+        if (workItem.isUpdateChange()) {
+            var issue = issueOpt.flatMap(value -> issueProject() != null ? issueProject().issue(value.shortId()) : Optional.empty());
+            if (issue.isPresent()) {
+                if (issue.get().labelNames().contains(workItem.approvalLabelName())) {
+                    ret.put(APPROVAL_PROGRESS, true);
+                } else {
+                    // The main issue doesn't have the approval label.
+                    ret.put(APPROVAL_PROGRESS, false);
+                }
+            } else {
+                // The PR doesn't contain a right issue.
+                ret.put(APPROVAL_PROGRESS, false);
+            }
+        }
+
         return ret;
     }
 
@@ -286,7 +223,7 @@ class CheckRun {
     private List<String> botSpecificIntegrationBlockers() {
         var ret = new ArrayList<String>();
 
-        var issues = issues(false, false);
+        var issues = workItem.issues(false, false);
         var issueProject = issueProject();
         if (issueProject != null) {
             for (var currentIssue : issues) {
@@ -595,7 +532,7 @@ class CheckRun {
             progressBody.append(warningListToText(integrationBlockers));
         }
 
-        var issues = issues(true, true);
+        var issues = workItem.issues(true, true);
         var issueProject = issueProject();
         if (issueProject != null && !issues.isEmpty()) {
             progressBody.append("\n\n### Issue");
@@ -1013,6 +950,131 @@ class CheckRun {
         pr.addComment(message);
     }
 
+    /**
+     * Add a suggestion comment to the pull requset which has an update change to direct the developers.
+     */
+    private void addUpdateChangeSuggestionComment() {
+        var existing = findComment(comments, updateChangeSuggestionMarker);
+        if (existing.isPresent()) {
+            // Only add the comment once per PR
+            return;
+        }
+        var message = new StringBuilder();
+        message.append("@");
+        message.append(pr.author().username());
+        message.append(" ");
+        var issue = Issue.fromStringRelaxed(pr.title()).flatMap(
+                value -> issueProject() != null ? issueProject().issue(value.shortId()) : Optional.empty());
+        var issueLink = "";
+        if (issue.isPresent()) {
+            issueLink = "[" + issue.get().id() + "](" + issue.get().webUrl() + ") ";
+        }
+        message.append(String.format("""
+                This is a change to the update repository or branch. Please add a comment to the main issue %s\
+                to state the related condition (the backport reason, the risk of the patch, the amount of \
+                work and so on). Below is an example for you:
+
+                ```
+                Fix Request (%s)
+                The code applies cleanly and the test in this change fails without the patch and succeeds \
+                after applying it. The risk of this backport is low because the change is little and the \
+                issue fixed by this change also exists in other update repositories.
+                ```
+
+                If you don't have permission to add a comment in JBS. Please use the command `request-approval` \
+                to provide the related content, then the bot can help you add a comment by using the content \
+                you provided. Below is an example for you:
+
+                ```
+                /request-approval Fix Request (%s)
+                The code applies cleanly and the test in this change fails without the patch and succeeds \
+                after applying it. The risk of this backport is low because the change is little and the \
+                issue fixed by this change also exists in other update repositories.
+                ```
+
+                Please note you have to contact the maintainers directly in the main issue %s\
+                or by using the command `request-approval` repeatedly instead of in this pull request. \
+                And you don't need to add the fix request label manually to the issue like before, \
+                now the bot can help you add the label automatically when this pull request is ready \
+                for maintainers to approve.
+                """, issueLink, pr.repository().name(), pr.repository().name(), issueLink));
+        message.append(updateChangeSuggestionMarker);
+        pr.addComment(message.toString());
+    }
+
+    /**
+     * Update labels of the issue and PR for the update change(usually backport).
+     */
+    private void updateLabelsForUpdatesChange(boolean readyForApproval) {
+        if (issueProject() == null) {
+            return;
+        }
+        var mainIssueOpt = Issue.fromStringRelaxed(pr.title()).flatMap(value -> issueProject().issue(value.shortId()));
+        var issues = workItem.issues(false, false);
+        for (var vcsIssue : issues) {
+            var issueOpt = issueProject().issue(vcsIssue.shortId());
+            if (issueOpt.isPresent()) {
+                var issue = issueOpt.get();
+                if (mainIssueOpt.isPresent() && !mainIssueOpt.get().id().equals(issue.id()) &&
+                        mainIssueOpt.get().labelNames().contains(workItem.approvalLabelName())) {
+                    // If approval label was only added to the main issue, the bot should add it to all the issues.
+                    if (issue.labelNames().contains(workItem.disapprovalLabelName())) {
+                        // Remove the previously existing disapproval label.
+                        issue.removeLabel(workItem.disapprovalLabelName());
+                    }
+                    if (!issue.labelNames().contains(workItem.approvalLabelName())) {
+                        issue.addLabel(workItem.approvalLabelName());
+                    }
+                } else if (mainIssueOpt.isPresent() && !mainIssueOpt.get().id().equals(issue.id()) &&
+                        mainIssueOpt.get().labelNames().contains(workItem.disapprovalLabelName())) {
+                    // If disapproval label was only added to the main issue, the bot should add it to all the issues.
+                    if (issue.labelNames().contains(workItem.approvalLabelName())) {
+                        // Remove the previously existing approval label.
+                        issue.removeLabel(workItem.approvalLabelName());
+                    }
+                    if (!issue.labelNames().contains(workItem.disapprovalLabelName())) {
+                        issue.addLabel(workItem.disapprovalLabelName());
+                    }
+                }
+                if (readyForApproval && !issue.labelNames().contains(workItem.requestLabelName())) {
+                    // Add the fix request label to the issue if the PR is ready for approval.
+                    issue.addLabel(workItem.requestLabelName());
+                } else if (!readyForApproval && issue.labelNames().contains(workItem.requestLabelName()) &&
+                        !issue.labelNames().contains(workItem.approvalLabelName()) &&
+                        !issue.labelNames().contains(workItem.disapprovalLabelName())) {
+                    // Remove the fix request label of the issue if the PR is not ready for approval
+                    // and the issue has not been approved or disapproved.
+                    // One condition which causes this: firstly, the PR is ready for approval (such as a clean backport),
+                    // so the bot adds the fix request label to the issue. Then the author of the PR submits
+                    // new code to the PR which needs to be reviewed or other things occur so that the PR becomes not
+                    // ready for approval, the bot should remove the fix request label to reduce the work of the maintainers.
+                    issue.removeLabel(workItem.requestLabelName());
+                }
+            }
+        }
+
+        if (mainIssueOpt.isPresent()) {
+            if (readyForApproval && !mainIssueOpt.get().labelNames().contains(workItem.approvalLabelName()) &&
+                    !mainIssueOpt.get().labelNames().contains(workItem.disapprovalLabelName())) {
+                if (!pr.labelNames().contains("approval")) {
+                    // Add `approval` label to PR if the PR is ready for approval and the PR has not been approved.
+                    pr.addLabel("approval");
+                }
+            } else {
+                // The pull request is not ready for approval or the main issue contains approval or disapproval label.
+                if (pr.labelNames().contains("approval")) {
+                    // Remove `approval` label of PR if the PR has been approved or disapproved.
+                    pr.removeLabel("approval");
+                }
+                if (mainIssueOpt.get().labelNames().contains(workItem.disapprovalLabelName()) && pr.isOpen()) {
+                    pr.addComment(String.format("@%s this pull request was rejected by the maintainer. "
+                            + "The bot will close this pull request automatically.", pr.author().username()));
+                    pr.setState(org.openjdk.skara.issuetracker.Issue.State.CLOSED);
+                }
+            }
+        }
+    }
+
     private void checkStatus() {
         var checkBuilder = CheckBuilder.create("jcheck", pr.headHash());
         var censusDomain = censusInstance.configuration().census().domain();
@@ -1114,6 +1176,28 @@ class CheckRun {
 
             if (!PullRequestUtils.isMerge(pr) && PullRequestUtils.containsForeignMerge(pr, localRepo)) {
                 addMergeCommitWarningComment(comments);
+            }
+
+            // If the PR targets to the update repository or branch.
+            if (workItem.isUpdateChange()) {
+                var readyForApproval = visitor.messages().isEmpty() &&
+                                       additionalErrors.isEmpty() &&
+                                       additionalProgresses.entrySet().stream()
+                                          .filter(entry -> !entry.getKey().equals(APPROVAL_PROGRESS))
+                                          .allMatch(Map.Entry::getValue) &&
+                                       integrationBlockers.isEmpty();
+                if (isCleanBackport) {
+                    readyForApproval = visitor.isReadyForReview() &&
+                                       additionalErrors.isEmpty() &&
+                                       additionalProgresses.entrySet().stream()
+                                           .filter(entry -> !entry.getKey().equals(APPROVAL_PROGRESS))
+                                           .allMatch(Map.Entry::getValue) &&
+                                       integrationBlockers.isEmpty();
+                }
+                // The bot needs to provide a suggestion comment.
+                addUpdateChangeSuggestionComment();
+                // The labels of the issue and the PR need to be updated.
+                updateLabelsForUpdatesChange(readyForApproval);
             }
 
             // Ensure that the ready for sponsor label is up to date

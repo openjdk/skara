@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.bot.ApprovalInfo;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.vcs.*;
@@ -55,6 +56,7 @@ public class PullRequestBotBuilder {
     private Map<String, HostedRepository> forks = Map.of();
     private Set<String> integrators = Set.of();
     private Set<Integer> excludeCommitCommentsFrom = Set.of();
+    private List<ApprovalInfo> approvalInfos = List.of();
 
     PullRequestBotBuilder() {
     }
@@ -179,12 +181,18 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder approvalInfos(List<ApprovalInfo> approvalInfos) {
+        this.approvalInfos = approvalInfos;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration,
                                   externalPullRequestCommands, externalCommitCommands,
                                   blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
                                   readyComments, issueProject, ignoreStaleReviews,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
-                                  confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom, enableCsr, enableJep);
+                                  confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom, enableCsr,
+                                  enableJep, approvalInfos);
     }
 }

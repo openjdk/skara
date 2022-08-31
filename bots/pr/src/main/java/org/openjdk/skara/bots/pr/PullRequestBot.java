@@ -64,6 +64,7 @@ class PullRequestBot implements Bot {
     private final Set<Integer> excludeCommitCommentsFrom;
     private final boolean enableCsr;
     private final boolean enableJep;
+    private final List<ApprovalInfo> approvalInfos;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     private Instant lastFullUpdate;
@@ -76,7 +77,8 @@ class PullRequestBot implements Bot {
                    boolean ignoreStaleReviews, Pattern allowedTargetBranches,
                    Path seedStorage, HostedRepository confOverrideRepo, String confOverrideName,
                    String confOverrideRef, String censusLink, Map<String, HostedRepository> forks,
-                   Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr, boolean enableJep) {
+                   Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr,
+                   boolean enableJep, List<ApprovalInfo> approvalInfos) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -101,6 +103,7 @@ class PullRequestBot implements Bot {
         this.excludeCommitCommentsFrom = excludeCommitCommentsFrom;
         this.enableCsr = enableCsr;
         this.enableJep = enableJep;
+        this.approvalInfos = approvalInfos;
 
         autoLabelled = new HashSet<>();
         scheduledRechecks = new ConcurrentHashMap<>();
@@ -286,6 +289,10 @@ class PullRequestBot implements Bot {
 
     public boolean enableJep() {
         return enableJep;
+    }
+
+    public List<ApprovalInfo> approvalInfos() {
+        return approvalInfos;
     }
 
     Optional<HostedRepository> writeableForkOf(HostedRepository upstream) {

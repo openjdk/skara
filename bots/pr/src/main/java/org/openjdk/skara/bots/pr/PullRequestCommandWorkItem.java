@@ -152,7 +152,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
                     }
                     var labelsToAdd = new ArrayList<String>();
                     var labelsToRemove = new ArrayList<String>();
-                    handler.get().handle(bot, pr, censusInstance, scratchPath, command, allComments, printer, labelsToAdd, labelsToRemove);
+                    handler.get().handle(bot, pr, censusInstance, scratchPath, command, allComments, printer, this, labelsToAdd, labelsToRemove);
                     var newComment = pr.addComment(writer.toString());
                     var latency = Duration.between(command.createdAt(), newComment.createdAt());
                     log.log(Level.INFO, "Time from command '" + command.name() + "' to reply " + latency, latency);

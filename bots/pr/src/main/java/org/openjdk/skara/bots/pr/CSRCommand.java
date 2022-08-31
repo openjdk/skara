@@ -69,7 +69,8 @@ public class CSRCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath,
+                       CommandInvocation command, List<Comment> allComments, PrintWriter reply, PullRequestWorkItem workItem) {
         if (!bot.enableCsr()) {
             reply.println("This repository has not been configured to use the `csr` command.");
             return;
@@ -106,7 +107,7 @@ public class CSRCommand implements CommandHandler {
                 return;
             }
 
-            var versionOpt = CheckRun.getVersion(pr);
+            var versionOpt = workItem.getVersion();
             if (versionOpt.isEmpty()) {
                 csrUnneededReply(pr, reply);
                 return;
@@ -162,7 +163,7 @@ public class CSRCommand implements CommandHandler {
         }
 
         var jbsIssue = jbsIssueOpt.get();
-        var versionOpt = CheckRun.getVersion(pr);
+        var versionOpt = workItem.getVersion();
         if (versionOpt.isEmpty()) {
             csrReply(reply);
             linkReply(pr, jbsIssue, reply);

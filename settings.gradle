@@ -55,6 +55,7 @@ include 'version'
 include 'jbs'
 include 'xml'
 
+include 'bots:approval'
 include 'bots:bridgekeeper'
 include 'bots:censussync'
 include 'bots:checkout'

@@ -37,6 +37,7 @@ module {
 
 dependencies {
     implementation project(':bots:pr')
+    implementation project(':bots:approval')
     implementation project(':bots:csr')
     implementation project(':bots:jep')
     implementation project(':bots:hgbridge')
