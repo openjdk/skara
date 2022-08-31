@@ -26,7 +26,6 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.network.URIBuilder;
-import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Diff;
 import org.openjdk.skara.vcs.Hash;
 
@@ -60,6 +59,16 @@ public class TestPullRequest extends TestIssue implements PullRequest {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    TestPullRequest(TestPullRequest orig) {
+        super(orig);
+        targetRepository = orig.targetRepository;
+        sourceRepository = orig.sourceRepository;
+        sourceRef = orig.sourceRef;
+        // The data field of this class hides the data field in the super class, but in reality
+        // they always point to the same instance.
+        data = (PullRequestData) super.data;
     }
 
     static TestPullRequest createNew(TestHostedRepository targetRepository, TestHostedRepository sourceRepository, String id, String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
@@ -276,5 +285,28 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public Optional<Hash> findIntegratedCommitHash() {
         return findIntegratedCommitHash(List.of(repository().forge().currentUser().id()));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        TestPullRequest that = (TestPullRequest) o;
+        return Objects.equals(targetRepository, that.targetRepository) &&
+                Objects.equals(sourceRepository, that.sourceRepository) &&
+                Objects.equals(sourceRef, that.sourceRef) &&
+                Objects.equals(data, that.data);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), targetRepository, sourceRepository, sourceRef, data);
     }
 }

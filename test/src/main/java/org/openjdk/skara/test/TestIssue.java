@@ -47,6 +47,14 @@ public class TestIssue implements Issue {
         this.data = data;
     }
 
+    protected TestIssue(TestIssue orig) {
+        id = orig.id;
+        issueProject = orig.issueProject;
+        author = orig.author;
+        user = orig.user;
+        data = orig.data.copy();
+    }
+
     static TestIssue createNew(TestIssueProject issueProject, String id, String title, List<String> body, Map<String, JSONValue> properties) {
         var data = new IssueData();
         data.title = title;
@@ -293,5 +301,26 @@ public class TestIssue implements Issue {
     @Override
     public Optional<HostUser> closedBy() {
         return isClosed() ? Optional.of(data.closedBy) : Optional.empty();
+    }
+
+    public void setLastUpdate(ZonedDateTime time) {
+        data.lastUpdate = time;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        TestIssue testIssue = (TestIssue) o;
+        return id.equals(testIssue.id) && data.equals(testIssue.data);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, data);
     }
 }

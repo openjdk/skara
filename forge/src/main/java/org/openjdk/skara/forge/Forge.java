@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge;
 
+import java.time.Duration;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.json.JSONObject;
 import org.openjdk.skara.vcs.Hash;
@@ -42,6 +43,17 @@ public interface Forge extends Host {
      */
     Optional<HostedRepository> repository(String name);
     Optional<HostedCommit> search(Hash hash);
+
+    /**
+     * Some forges do not always update the "updated_at" fields of various objects.
+     * This method returns a Duration indicating how long the shortest update
+     * interval is for this field. This is needed to be taken into account when
+     * running queries based on this field. The default returns 0 which means no
+     * special considerations are needed.
+     */
+    default Duration minTimeStampUpdateInterval() {
+        return Duration.ofMillis(0);
+    }
 
     static Forge from(String name, URI uri, Credential credential, JSONObject configuration) {
         var factory = ForgeFactory.getForgeFactories().stream()

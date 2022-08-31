@@ -41,4 +41,59 @@ class IssueData {
     ZonedDateTime created = ZonedDateTime.now();
     ZonedDateTime lastUpdate = created;
     HostUser closedBy = null;
+
+    IssueData() {
+    }
+
+    IssueData copy() {
+        var copy = new IssueData();
+        copyTo(copy);
+        return copy;
+    }
+
+    protected void copyTo(IssueData copy) {
+        copy.state = state;
+        copy.body = body;
+        copy.title = title;
+        copy.comments.addAll(comments);
+        copy.labels.putAll(labels);
+        copy.assignees.addAll(assignees);
+        copy.links.addAll(links);
+        copy.properties.putAll(properties);
+        copy.created = created;
+        copy.lastUpdate = lastUpdate;
+        copy.closedBy = closedBy;
+    }
+
+    /**
+     * This equals method is tailored for PullRequestPollerTests, where it
+     * simulates the parts of a PullRequest which are included in the main
+     * object and not accessed by sub queries. That means comments are
+     * excluded.
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        IssueData issueData = (IssueData) o;
+        return state == issueData.state &&
+                Objects.equals(body, issueData.body) &&
+                Objects.equals(title, issueData.title) &&
+                Objects.equals(labels, issueData.labels) &&
+                Objects.equals(assignees, issueData.assignees) &&
+                Objects.equals(links, issueData.links) &&
+                Objects.equals(properties, issueData.properties) &&
+                Objects.equals(created, issueData.created) &&
+                Objects.equals(lastUpdate, issueData.lastUpdate) &&
+                Objects.equals(closedBy, issueData.closedBy);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(state, body, title, labels, assignees, links, properties, created, lastUpdate, closedBy);
+    }
 }

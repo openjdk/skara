@@ -36,4 +36,52 @@ class PullRequestData extends IssueData {
     final List<Review> reviews = new ArrayList<>();
     boolean draft;
     ZonedDateTime lastForcePushTime;
+
+    PullRequestData() {
+    }
+
+    @Override
+    PullRequestData copy() {
+        var copy = new PullRequestData();
+        copyTo(copy);
+        return copy;
+    }
+
+    protected void copyTo(PullRequestData copy) {
+        super.copyTo(copy);
+        copy.headHash = headHash;
+        copy.targetRef = targetRef;
+        copy.reviewComments.addAll(reviewComments);
+        copy.checks.addAll(checks);
+        copy.reviews.addAll(reviews);
+        copy.draft = draft;
+        copy.lastForcePushTime = lastForcePushTime;
+    }
+
+    /**
+     * This equals method is tailored for PullRequestPollerTests, where it
+     * simulates the parts of a PullRequest which are included in the main
+     * object and not accessed by sub queries. That means reviews and checks
+     * are excluded.
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) return false;
+        PullRequestData that = (PullRequestData) o;
+        return draft == that.draft &&
+                Objects.equals(headHash, that.headHash) &&
+                Objects.equals(targetRef, that.targetRef) &&
+                Objects.equals(lastForcePushTime, that.lastForcePushTime);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), headHash, targetRef, draft, lastForcePushTime);
+    }
 }

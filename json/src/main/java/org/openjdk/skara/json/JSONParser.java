@@ -285,7 +285,7 @@ class JSONParser {
         expect('l');
         expect('l');
         advance();
-        return new JSONNull();
+        return JSONNull.instance;
     }
 
     public JSONObject parseObject() {

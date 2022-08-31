@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.test;
 
+import java.time.Duration;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
@@ -51,6 +52,13 @@ public class TestHost implements Forge, IssueTracker {
     private final int currentUser;
     private HostData data;
     private final Logger log = Logger.getLogger("org.openjdk.skara.test");
+    // Setting this field doesn't change the behavior of the TestHost, but it changes
+    // what the associated method returns, which triggers different code paths in
+    // dependent code for testing.
+    private Duration minTimeStampUpdateInterval = Duration.ofMillis(0);
+    // Makes queries for pull requests return copies to better simulate querying
+    // from a remote server in certain tests.
+    private boolean copyPullRequests = false;
 
     private static class HostData {
         final List<HostUser> users = new ArrayList<>();
@@ -191,7 +199,11 @@ public class TestHost implements Forge, IssueTracker {
 
     TestPullRequest getPullRequest(TestHostedRepository repository, String id) {
         var original = data.pullRequests.get(id);
-        return TestPullRequest.createFrom(repository, original);
+        if (copyPullRequests) {
+            return new TestPullRequest(original);
+        } else {
+            return TestPullRequest.createFrom(repository, original);
+        }
     }
 
     List<TestPullRequest> getPullRequests(TestHostedRepository repository) {
@@ -262,5 +274,18 @@ public class TestHost implements Forge, IssueTracker {
         return data.issues.keySet().stream()
                 .map(testIssue -> getIssue(issueProject, testIssue))
                 .max(Comparator.comparing(TestIssue::updatedAt));
+    }
+
+    public void setMinTimeStampUpdateInterval(Duration minTimeStampUpdateInterval) {
+        this.minTimeStampUpdateInterval = minTimeStampUpdateInterval;
+    }
+
+    @Override
+    public Duration minTimeStampUpdateInterval() {
+        return minTimeStampUpdateInterval;
+    }
+
+    public void setCopyPullRequests(boolean copyPullRequests) {
+        this.copyPullRequests = copyPullRequests;
     }
 }

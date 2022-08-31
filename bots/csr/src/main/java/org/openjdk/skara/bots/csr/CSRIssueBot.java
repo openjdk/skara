@@ -26,10 +26,12 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.openjdk.skara.bot.Bot;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.HostedRepository;
@@ -49,9 +51,11 @@ public class CSRIssueBot implements Bot {
     // Keeps track of updatedAt timestamps from the previous call to getPeriodicItems,
     // so we can avoid re-evaluating issues that are returned again without any actual
     // update.
-    private Map<String, ZonedDateTime> issueUpdatedAt = new HashMap<>();
+    private Map<String, ZonedDateTime> issueUpdatedAt = Map.of();
     // The last found updatedAt from any issue.
     private ZonedDateTime lastUpdatedAt;
+
+    private final List<Issue> retryIssues = new ArrayList<>();
 
     public CSRIssueBot(IssueProject issueProject, List<HostedRepository> repositories) {
         this.issueProject = issueProject;
@@ -65,7 +69,6 @@ public class CSRIssueBot implements Bot {
 
     @Override
     public List<WorkItem> getPeriodicItems() {
-        var ret = new ArrayList<WorkItem>();
         // In the very first round, we just find the last updated issue to
         // initialize lastUpdatedAt. There is no need for reacting to any CSR
         // issue update before that, as the CSRPullRequestBot will go through
@@ -75,7 +78,7 @@ public class CSRIssueBot implements Bot {
             if (lastUpdatedIssue.isPresent()) {
                 Issue issue = lastUpdatedIssue.get();
                 lastUpdatedAt = issue.updatedAt();
-                issueUpdatedAt.put(issue.id(), issue.updatedAt());
+                issueUpdatedAt = Map.of(issue.id(), issue.updatedAt());
                 log.fine("Setting lastUpdatedAt from last updated issue " + issue.id() + " updated at " + lastUpdatedAt);
             } else {
                 // If no previous issue was found, initiate lastUpdatedAt to something far
@@ -84,28 +87,52 @@ public class CSRIssueBot implements Bot {
                 lastUpdatedAt = ZonedDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
                 log.warning("No CSR issue found, setting lastUpdatedAt to " + lastUpdatedAt);
             }
-            return ret;
+            return List.of();
         }
 
-        var newIssuesUpdatedAt = new HashMap<String, ZonedDateTime>();
         var issues = issueProject.csrIssues(lastUpdatedAt);
-        for (var issue : issues) {
-            newIssuesUpdatedAt.put(issue.id(), issue.updatedAt());
-            // Update the lastUpdatedAt value with the highest found value for next call
-            if (issue.updatedAt().isAfter(lastUpdatedAt)) {
-                lastUpdatedAt = issue.updatedAt();
-            }
-            var lastUpdate = issueUpdatedAt.get(issue.id());
-            if (lastUpdate != null) {
-                if (!issue.updatedAt().isAfter(lastUpdate)) {
-                    continue;
-                }
-            }
-            var issueWorkItem = new IssueWorkItem(this, issue);
-            ret.add(issueWorkItem);
+        if (!issues.isEmpty()) {
+            lastUpdatedAt = issues.stream()
+                    .map(Issue::updatedAt)
+                    .max(Comparator.naturalOrder())
+                    .orElseThrow(() -> new RuntimeException("No updatedAt field found in any Issue"));
         }
+        var newIssuesUpdatedAt = issues.stream()
+                .collect(Collectors.toMap(Issue::id, Issue::updatedAt));
+
+        var filtered = issues.stream()
+                .filter(i -> !issueUpdatedAt.containsKey(i.id()) || i.updatedAt().isAfter(issueUpdatedAt.get(i.id())))
+                .toList();
+
+        var withRetries = addRetries(filtered);
+
+        var workItems = withRetries.stream()
+                .map(i -> (WorkItem) new IssueWorkItem(this, i, e -> this.retryIssue(i)))
+                .toList();
+
         issueUpdatedAt = newIssuesUpdatedAt;
-        return ret;
+
+        return workItems;
+    }
+
+    private synchronized void retryIssue(Issue issue) {
+        retryIssues.add(issue);
+    }
+
+    private synchronized List<Issue> addRetries(List<Issue> issues) {
+        if (retryIssues.isEmpty()) {
+            return issues;
+        } else {
+            var retries = retryIssues.stream()
+                    .filter(retryIssue -> issues.stream().noneMatch(i -> retryIssue.id().equals(i.id())))
+                    .toList();
+            retryIssues.clear();
+            if (retries.isEmpty()) {
+                return issues;
+            } else {
+                return Stream.concat(issues.stream(), retries.stream()).toList();
+            }
+        }
     }
 
     @Override

@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 import org.openjdk.skara.bot.WorkItem;
@@ -46,9 +47,12 @@ class IssueWorkItem implements WorkItem {
     private final CSRIssueBot bot;
     private final Issue csrIssue;
 
-    public IssueWorkItem(CSRIssueBot bot, Issue csrIssue) {
+    private final Consumer<RuntimeException> errorHandler;
+
+    public IssueWorkItem(CSRIssueBot bot, Issue csrIssue, Consumer<RuntimeException> errorHandler) {
         this.bot = bot;
         this.csrIssue = csrIssue;
+        this.errorHandler = errorHandler;
     }
 
     @Override
@@ -83,7 +87,8 @@ class IssueWorkItem implements WorkItem {
                 .filter(Issue::isOpen)
                 // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
                 // best we can do.
-                .map(pr -> new PullRequestWorkItem(pr.repository(), pr.id(), csrIssue.project(), csrIssue.updatedAt()))
+                .map(pr -> new PullRequestWorkItem(pr.repository(), pr.id(), csrIssue.project(),
+                        errorHandler, csrIssue.updatedAt()))
                 .forEach(ret::add);
         return ret;
     }
@@ -96,5 +101,10 @@ class IssueWorkItem implements WorkItem {
     @Override
     public String workItemName() {
         return "issue";
+    }
+
+    @Override
+    public void handleRuntimeException(RuntimeException e) {
+        errorHandler.accept(e);
     }
 }
