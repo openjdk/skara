@@ -35,7 +35,7 @@ public class JdkVersion implements Comparable<JdkVersion> {
     private final static Pattern jdkVersionPattern = Pattern.compile("(5\\.0|[1-9][0-9]?)(u([0-9]{1,3}))?(?:-(.*))?$");
     private final static Pattern hsxVersionPattern = Pattern.compile("(hs[1-9][0-9]{1,2})(\\.([0-9]{1,3}))?$");
     private final static Pattern embVersionPattern = Pattern.compile("(emb-[8-9])(u([0-9]{1,3}))?$");
-    // Accept any lower case alphanumeric prefix, such as 'openjdk', 'openjfx' or 'shenandoah'.
+    // Accept any lower case prefix, such as 'openjdk', 'openjfx' or 'shenandoah'.
     private final static Pattern prefixVersionPattern = Pattern.compile("([a-z]+[1-9][0-9]?)(u([0-9]{1,3}))?$");
 
     // Match a version string symbolizing some future, but yet undefined, update of a major version
