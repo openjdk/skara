@@ -86,26 +86,29 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
     @Override
     public void onStateChange(PullRequest pr, Path scratchPath, Issue.State oldState) {
         if (pr.state() == Issue.State.CLOSED) {
-            var retargetedDependencies = PreIntegrations.retargetDependencies(pr);
             deleteBranch(pr);
-            for (var retargeted : retargetedDependencies) {
-                log.info("Posting retargeted comment on PR " + pr.id());
-                retargeted.addComment("""
-                    The dependent pull request has now been integrated, and the target branch of this pull request \
-                    has been updated. This means that changes from the dependent pull request can start to show up \
-                    as belonging to this pull request, which may be confusing for reviewers. To remedy this situation, \
-                    simply merge the latest changes from the new target branch into this pull request by running commands \
-                    similar to these in the local repository for your personal fork:
+            if (pr.labelNames().contains("integrated")) {
+                var retargetedDependencies = PreIntegrations.retargetDependencies(pr);
+                for (var retargeted : retargetedDependencies) {
+                    log.info("Posting retargeted comment on PR " + pr.id());
+                    retargeted.addComment("""
+                            The dependent pull request has now been integrated, and the target branch of this pull request \
+                            has been updated. This means that changes from the dependent pull request can start to show up \
+                            as belonging to this pull request, which may be confusing for reviewers. To remedy this situation, \
+                            simply merge the latest changes from the new target branch into this pull request by running commands \
+                            similar to these in the local repository for your personal fork:
 
-                    ```bash
-                    git checkout %s
-                    git fetch %s %s
-                    git merge FETCH_HEAD
-                    # if there are conflicts, follow the instructions given by git merge
-                    git commit -m "Merge %s"
-                    git push
-                    ```
-                    """.formatted(retargeted.sourceRef(), pr.repository().webUrl(), pr.targetRef(), pr.targetRef()));
+                            ```bash
+                            git checkout %s
+                            git fetch %s %s
+                            git merge FETCH_HEAD
+                            # if there are conflicts, follow the instructions given by git merge
+                            git commit -m "Merge %s"
+                            git push
+                            ```
+                            """.formatted(retargeted.sourceRef(), pr.repository().webUrl(), pr.targetRef(),
+                            pr.targetRef()));
+                }
             }
         } else {
             pushBranch(pr);

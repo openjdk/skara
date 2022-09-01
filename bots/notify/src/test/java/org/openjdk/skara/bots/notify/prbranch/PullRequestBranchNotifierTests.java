@@ -287,6 +287,17 @@ public class PullRequestBranchNotifierTests {
             // The target repo should no longer contain the branch
             assertThrows(IOException.class, () -> localRepo.fetch(repo.url(), PreIntegrations.preIntegrateBranch(pr)));
 
+            // The follow-up PR shouldn't been retargeted because the source PR is only closed but not integrated.
+            followUpPr = repo.pullRequest(followUpPr.id());
+            assertEquals(PreIntegrations.preIntegrateBranch(pr), followUpPr.targetRef());
+
+            // Simulate integrating the PR. Re-open and re-close is necessary because we want the state to be changed.
+            pr.setState(Issue.State.OPEN);
+            TestBotRunner.runPeriodicItems(notifyBot);
+            pr.setState(Issue.State.CLOSED);
+            pr.addLabel("integrated");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
             // The follow-up PR should have been retargeted
             followUpPr = repo.pullRequest(followUpPr.id());
             assertEquals("master", followUpPr.targetRef());
