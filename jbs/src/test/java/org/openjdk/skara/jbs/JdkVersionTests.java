@@ -67,6 +67,8 @@ public class JdkVersionTests {
         assertEquals(List.of("openjdk7"), from("openjdk7").components());
         assertEquals(List.of("openjdk8"), from("openjdk8").components());
         assertEquals(List.of("openjdk8", "211"), from("openjdk8u211").components());
+        assertEquals(List.of("shenandoah8", "211"), from("shenandoah8u211").components());
+        assertEquals(List.of("foobar8", "211"), from("foobar8u211").components());
     }
 
     @Test
