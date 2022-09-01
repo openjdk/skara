@@ -186,10 +186,10 @@ class PullRequestBot implements Bot {
         if (lastFullUpdate == null || lastFullUpdate.isBefore(Instant.now().minus(Duration.ofMinutes(10)))) {
             lastFullUpdate = Instant.now();
             log.info("Fetching all open pull requests for " + remoteRepo.name());
-            prs = remoteRepo.pullRequests();
+            prs = remoteRepo.openPullRequests();
         } else {
             log.info("Fetching recently updated pull requests (open and closed) for " + remoteRepo.name());
-            prs = remoteRepo.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(1)));
+            prs = remoteRepo.pullRequestsAfter(ZonedDateTime.now().minus(Duration.ofDays(1)));
         }
 
         return getWorkItems(prs);

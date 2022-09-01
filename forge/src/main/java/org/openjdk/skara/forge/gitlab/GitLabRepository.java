@@ -133,6 +133,15 @@ public class GitLabRepository implements HostedRepository {
     @Override
     public List<PullRequest> pullRequests() {
         return request.get("merge_requests")
+                      .execute().stream()
+                      .filter(this::hasHeadHash)
+                      .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
+                      .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PullRequest> openPullRequests() {
+        return request.get("merge_requests")
                       .param("state", "opened")
                       .execute().stream()
                       .filter(this::hasHeadHash)
@@ -141,7 +150,7 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public List<PullRequest> pullRequests(ZonedDateTime updatedAfter) {
+    public List<PullRequest> pullRequestsAfter(ZonedDateTime updatedAfter) {
         return request.get("merge_requests")
                       .param("order_by", "updated_at")
                       .param("updated_after", updatedAfter.format(DateTimeFormatter.ISO_DATE_TIME))
