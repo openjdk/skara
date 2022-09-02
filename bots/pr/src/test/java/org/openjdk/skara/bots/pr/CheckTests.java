@@ -2245,7 +2245,7 @@ class CheckTests {
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval should be added to the pr body.
-            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            assertTrue(pr.body().contains("- [ ] All issues must be"));
             // The pr shouldn't contain the `approval` label because the pr is not ready for approval
             assertFalse(pr.labelNames().contains("approval"));
             // The issue shouldn't contain the `master-fix-request`, `master-fix-yes` and `master-fix-no` label
@@ -2266,7 +2266,7 @@ class CheckTests {
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval shouldn't be checked.
-            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            assertTrue(pr.body().contains("- [ ] All issues must be"));
             // The pr should contain the `approval` label because the pr is ready for approval
             assertTrue(pr.labelNames().contains("approval"));
             // The issue should contain the `master-fix-request` label
@@ -2290,7 +2290,7 @@ class CheckTests {
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval shouldn't be checked.
-            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            assertTrue(pr.body().contains("- [ ] All issues must be"));
             // The pr shouldn't contain the `approval` label because the pr is not ready for approval
             assertFalse(pr.labelNames().contains("approval"));
             // The issue shouldn't contain the `master-fix-request`, `master-fix-yes` and `master-fix-no` label
@@ -2317,7 +2317,7 @@ class CheckTests {
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval shouldn't be checked.
-            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            assertTrue(pr.body().contains("- [ ] All issues must be"));
             // The pr should contain the `approval` label because the pr is ready for approval
             assertTrue(pr.labelNames().contains("approval"));
             // These three issues should contain the `master-fix-request` label
@@ -2392,7 +2392,7 @@ class CheckTests {
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval should be checked.
-            assertTrue(pr.body().contains("- [x] Change must be properly approved by the maintainers"));
+            assertTrue(pr.body().contains("- [x] All issues must be"));
             // The pr shouldn't contain the `approval` label because the pr has been approved.
             assertFalse(pr.labelNames().contains("approval"));
             // These three issues should contain the `master-fix-request` and `master-fix-yes` label
@@ -2428,7 +2428,7 @@ class CheckTests {
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval shouldn't be checked.
-            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            assertTrue(pr.body().contains("- [ ] All issues must be"));
             // The pr shouldn't contain the `approval` label because the pr has been disapproved.
             assertFalse(pr.labelNames().contains("approval"));
             // These three issues should contain the `master-fix-request` and `master-fix-no` label
@@ -2466,7 +2466,7 @@ class CheckTests {
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval should be checked.
-            assertTrue(pr.body().contains("- [x] Change must be properly approved by the maintainers"));
+            assertTrue(pr.body().contains("- [x] All issues must be"));
             // The pr shouldn't contain the `approval` label because the pr has been approved.
             assertFalse(pr.labelNames().contains("approval"));
             // These three issues should contain the `master-fix-request` and `master-fix-yes` label
@@ -2533,7 +2533,7 @@ class CheckTests {
                     .count();
             assertEquals(0, commentSize);
             // The progress about the maintainer's approval shouldn't be added to the pr body.
-            assertFalse(pr.body().contains("Change must be properly approved by the maintainers"));
+            assertFalse(pr.body().contains("All issues must be"));
             // The pr shouldn't contain the `approval` label because the pr is not an update change (the target branch is not `master`).
             assertFalse(pr.labelNames().contains("approval"));
             // The issue shouldn't contain the `master-fix-request`, `master-fix-yes` and `master-fix-no` label
@@ -2606,7 +2606,7 @@ class CheckTests {
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval should be added to the pr body.
-            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            assertTrue(pr.body().contains("- [ ] All issues must be"));
             // The pr should contain the `approval` label because the pr is a clean backport.
             assertTrue(pr.labelNames().contains("approval"));
             // The issue should contain the `master-fix-request` label
@@ -2630,7 +2630,7 @@ class CheckTests {
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval should be added to the pr body.
-            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            assertTrue(pr.body().contains("- [ ] All issues must be"));
             // The pr shouldn't contain the `approval` label because the pr is not ready for approval (it is not a clean backport).
             assertFalse(pr.labelNames().contains("approval"));
             // The issue shouldn't contain the `master-fix-request`, `master-fix-yes` and `master-fix-no` label
@@ -2651,7 +2651,7 @@ class CheckTests {
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval should be added to the pr body.
-            assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
+            assertTrue(pr.body().contains("- [ ] All issues must be"));
             // The pr should contain the `approval` label because the pr has been reviewed and is ready for approval now.
             assertTrue(pr.labelNames().contains("approval"));
             // The issue should contain the `master-fix-request` label

@@ -65,7 +65,7 @@ class CheckRun {
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private static final String fullNameWarningMarker = "<!-- PullRequestBot full name warning comment -->";
     private static final String APPROVAL_SUGGESTION_MARKER = "<!-- Approval suggestion comment -->";
-    private static final String APPROVAL_PROGRESS = "Change must be properly approved by the maintainers";
+    private static final String APPROVAL_PROGRESS = "All issues must be [approved](https://openjdk.org/projects/jdk-updates/approval.html) by a maintainer";
     private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final Set<String> newLabels;
 
