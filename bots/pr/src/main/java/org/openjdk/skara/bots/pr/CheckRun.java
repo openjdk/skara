@@ -1179,19 +1179,14 @@ class CheckRun {
 
             // If the PR targets to the update repository or branch.
             if (workItem.requiresApproval()) {
-                var readyForApproval = visitor.messages().isEmpty() &&
-                                       additionalErrors.isEmpty() &&
-                                       additionalProgresses.entrySet().stream()
-                                          .filter(entry -> !entry.getKey().equals(APPROVAL_PROGRESS))
-                                          .allMatch(Map.Entry::getValue) &&
-                                       integrationBlockers.isEmpty();
+                var additionalThingReady = additionalErrors.isEmpty() &&
+                                           additionalProgresses.entrySet().stream()
+                                             .filter(entry -> !entry.getKey().equals(APPROVAL_PROGRESS))
+                                             .allMatch(Map.Entry::getValue) &&
+                                           integrationBlockers.isEmpty();;
+                var readyForApproval = visitor.messages().isEmpty() && additionalThingReady;
                 if (isCleanBackport) {
-                    readyForApproval = visitor.isReadyForReview() &&
-                                       additionalErrors.isEmpty() &&
-                                       additionalProgresses.entrySet().stream()
-                                           .filter(entry -> !entry.getKey().equals(APPROVAL_PROGRESS))
-                                           .allMatch(Map.Entry::getValue) &&
-                                       integrationBlockers.isEmpty();
+                    readyForApproval = visitor.isReadyForReview() && additionalThingReady;
                 }
                 // The bot needs to provide a suggestion comment.
                 addApprovalSuggestionComment();
