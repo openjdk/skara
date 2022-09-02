@@ -147,6 +147,9 @@ public class GitHubRepository implements HostedRepository {
     public List<PullRequest> pullRequests() {
         return request.get("pulls")
                       .param("state", "all")
+                      .param("sort", "updated")
+                      .param("direction", "desc")
+                      .maxPages(1)
                       .execute().asArray().stream()
                       .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
                       .collect(Collectors.toList());
@@ -154,8 +157,6 @@ public class GitHubRepository implements HostedRepository {
 
     @Override
     public List<PullRequest> openPullRequests() {
-        // The default `state` parameter is `open` in GitHub which is not same as `GitLab`.
-        // Here, the `state` parameter is also added to avoid misunderstanding.
         return request.get("pulls")
                       .param("state", "open")
                       .execute().asArray().stream()
@@ -178,8 +179,6 @@ public class GitHubRepository implements HostedRepository {
 
     @Override
     public List<PullRequest> openPullRequestsAfter(ZonedDateTime updatedAfter) {
-        // The default `state` parameter is `open` in GitHub which is not same as `GitLab`.
-        // Here, the `state` parameter is also added to avoid misunderstanding.
         return request.get("pulls")
                 .param("state", "open")
                 .execute().asArray().stream()

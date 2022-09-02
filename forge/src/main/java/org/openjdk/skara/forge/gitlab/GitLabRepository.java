@@ -133,6 +133,8 @@ public class GitLabRepository implements HostedRepository {
     @Override
     public List<PullRequest> pullRequests() {
         return request.get("merge_requests")
+                      .param("order_by", "updated_at")
+                      .maxPages(1)
                       .execute().stream()
                       .filter(this::hasHeadHash)
                       .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
@@ -154,6 +156,7 @@ public class GitLabRepository implements HostedRepository {
         return request.get("merge_requests")
                       .param("order_by", "updated_at")
                       .param("updated_after", updatedAfter.format(DateTimeFormatter.ISO_DATE_TIME))
+                      .maxPages(1)
                       .execute().stream()
                       .filter(this::hasHeadHash)
                       .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
