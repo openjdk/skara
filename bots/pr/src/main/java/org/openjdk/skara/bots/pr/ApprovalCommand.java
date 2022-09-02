@@ -54,7 +54,7 @@ public class ApprovalCommand implements CommandHandler {
 
     private void disapprovalReply(PullRequest pr, PrintWriter writer) {
         writer.println(String.format("@%s this pull request was rejected by the maintainer. "
-                + "The bot will close this pull request automatically.", pr.author().username()));
+                + "This pull request will be closed.", pr.author().username()));
         writer.println(DISAPPROVAL_MARKER);
     }
 
@@ -62,7 +62,7 @@ public class ApprovalCommand implements CommandHandler {
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath,
                        CommandInvocation command, List<Comment> allComments, PrintWriter reply, PullRequestWorkItem workItem) {
         if (!workItem.requiresApproval()) {
-            reply.println("this repository or the target branch of this pull request have not been configured to use the `approval` command.");
+            reply.println("the `approval` command can only be used on pull requests targeting branches and repositories that require approval.");
             return;
         }
 
@@ -90,7 +90,7 @@ public class ApprovalCommand implements CommandHandler {
                     }
                     if (issue.labelNames().contains(workItem.approvalLabelName())) {
                         // If the maintainers have approved the PR before,
-                        // the bot should remove the approval label at first.
+                        // the bot should remove the approval label first.
                         issue.removeLabel(workItem.approvalLabelName());
                     }
                     if (!issue.labelNames().contains(workItem.disapprovalLabelName())) {
@@ -118,7 +118,7 @@ public class ApprovalCommand implements CommandHandler {
                 }
                 if (issue.labelNames().contains(workItem.disapprovalLabelName())) {
                     // If the maintainers have disapproved the PR before,
-                    // the bot should remove the disapproval label at first.
+                    // the bot should remove the disapproval label first.
                     issue.removeLabel(workItem.disapprovalLabelName());
                 }
                 if (!issue.labelNames().contains(workItem.approvalLabelName())) {

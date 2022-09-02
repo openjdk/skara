@@ -200,7 +200,7 @@ class CheckRun {
                     ret.put(APPROVAL_PROGRESS, false);
                 }
             } else {
-                // The PR doesn't contain a right issue.
+                // The PR doesn't have an issue.
                 ret.put(APPROVAL_PROGRESS, false);
             }
         }
@@ -950,55 +950,31 @@ class CheckRun {
     }
 
     /**
-     * Add a suggestion comment to the pull request which needs the maintainer's approval to direct the developers.
+     * Add or update a suggestion comment to the pull request which needs the maintainer's approval to direct the developers.
      */
-    private void addApprovalSuggestionComment() {
-        var existing = findComment(comments, APPROVAL_SUGGESTION_MARKER);
-        if (existing.isPresent()) {
-            // Only add the comment once per PR
-            return;
-        }
+    private void updateApprovalSuggestionComment() {
         var message = new StringBuilder();
         message.append("@");
         message.append(pr.author().username());
         message.append(" ");
-        var issue = Issue.fromStringRelaxed(pr.title()).flatMap(
-                value -> issueProject() != null ? issueProject().issue(value.shortId()) : Optional.empty());
-        var issueLink = "";
-        if (issue.isPresent()) {
-            issueLink = "[" + issue.get().id() + "](" + issue.get().webUrl() + ") ";
-        }
-        message.append(String.format("""
-                This is a change to the update repository or branch. Please add a comment to the main issue %s\
-                to state the related condition (the backport reason, the risk of the patch, the amount of \
-                work and so on). Below is an example for you:
+        message.append("""
+                This pull request requires [maintainer approval]\
+                (https://openjdk.org/projects/jdk-updates/approval.html).
 
-                ```
-                Fix Request (%s)
-                The code applies cleanly and the test in this change fails without the patch and succeeds \
-                after applying it. The risk of this backport is low because the change is little and the \
-                issue fixed by this change also exists in other update repositories.
-                ```
+                As a convenience, or if you don't have permission to post comments in JBS, \
+                you may use the command `/request-approval` to supply the fix request comment \
+                and automatically set the correct request label.
+                usage: `/request-approval <comment-text>`
 
-                If you don't have permission to add a comment in JBS. Please use the command `request-approval` \
-                to provide the related content, then the bot can help you add a comment by using the content \
-                you provided. Below is an example for you:
-
-                ```
-                /request-approval Fix Request (%s)
-                The code applies cleanly and the test in this change fails without the patch and succeeds \
-                after applying it. The risk of this backport is low because the change is little and the \
-                issue fixed by this change also exists in other update repositories.
-                ```
-
-                Please note you have to contact the maintainers directly in the main issue %s\
-                or by using the command `request-approval` repeatedly instead of in this pull request. \
-                And you don't need to add the fix request label manually to the issue like before, \
-                now the bot can help you add the label automatically when this pull request is ready \
-                for maintainers to approve.
-                """, issueLink, pr.repository().name(), pr.repository().name(), issueLink));
+                Please note that approval discussions should take place in the issue and not in the pull request.
+                """);
         message.append(APPROVAL_SUGGESTION_MARKER);
-        pr.addComment(message.toString());
+        var existing = findComment(comments, APPROVAL_SUGGESTION_MARKER);
+        if (existing.isPresent()) {
+            pr.updateComment(existing.get().id(), message.toString());
+        } else {
+            pr.addComment(message.toString());
+        }
     }
 
     /**
@@ -1189,7 +1165,7 @@ class CheckRun {
                     readyForApproval = visitor.isReadyForReview() && additionalThingReady;
                 }
                 // The bot needs to provide a suggestion comment.
-                addApprovalSuggestionComment();
+                updateApprovalSuggestionComment();
                 // The labels of the issue and the PR need to be updated.
                 updateLabelsAboutApproval(readyForApproval);
             }

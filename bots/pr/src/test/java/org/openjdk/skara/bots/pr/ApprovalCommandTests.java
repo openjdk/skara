@@ -445,8 +445,8 @@ public class ApprovalCommandTests {
 
             // The bot should reply a comment.
             var commentSize = pr.comments().stream()
-                    .filter(comment -> comment.body().contains("this repository or the target branch "
-                            + "of this pull request have not been configured to use the `approval` command"))
+                    .filter(comment -> comment.body().contains("the `approval` command can only be used on "
+                            + "pull requests targeting branches and repositories that require approval."))
                     .count();
             assertEquals(1, commentSize);
 
