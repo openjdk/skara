@@ -139,6 +139,6 @@ public class ApprovalCommand implements CommandHandler {
 
     @Override
     public String description() {
-        return "approve or disapprove an update change";
+        return "approve or disapprove a pull request which needs maintainer's approval";
     }
 }
