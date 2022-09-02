@@ -46,7 +46,7 @@ public class ApprovalIssueWorkItem implements WorkItem {
         PullRequestUtils.pullRequestCommentLink(issue).stream()
                 .flatMap(uri -> bot.repositories().stream()
                              .flatMap(r -> r.parsePullRequestUrl(uri.toString()).stream()))
-                .filter(pr -> pr.isOpen() && bot.isUpdateChange(pr))
+                .filter(pr -> pr.isOpen() && bot.requiresApproval(pr))
                 .map(pr -> new ApprovalPullRequestWorkItem(pr.repository(), pr.id(), issue.project(),
                         bot.approvalInfos().stream().filter(info -> bot.approvalInfoMatch(info, pr)).findFirst().get()))
                 .forEach(ret::add);

@@ -64,8 +64,7 @@ class CheckRun {
     private static final String emptyPrBodyMarker = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private static final String fullNameWarningMarker = "<!-- PullRequestBot full name warning comment -->";
-    // The `update change` is usually `backport change`.
-    private static final String updateChangeSuggestionMarker = "<!-- Update change pull request suggestion -->";
+    private static final String APPROVAL_SUGGESTION_MARKER = "<!-- Approval suggestion comment -->";
     private static final String APPROVAL_PROGRESS = "Change must be properly approved by the maintainers";
     private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final Set<String> newLabels;
@@ -191,7 +190,7 @@ class CheckRun {
             }
         }
 
-        if (workItem.isUpdateChange()) {
+        if (workItem.requiresApproval()) {
             var issue = issueOpt.flatMap(value -> issueProject() != null ? issueProject().issue(value.shortId()) : Optional.empty());
             if (issue.isPresent()) {
                 if (issue.get().labelNames().contains(workItem.approvalLabelName())) {
@@ -951,10 +950,10 @@ class CheckRun {
     }
 
     /**
-     * Add a suggestion comment to the pull requset which has an update change to direct the developers.
+     * Add a suggestion comment to the pull request which needs the maintainer's approval to direct the developers.
      */
-    private void addUpdateChangeSuggestionComment() {
-        var existing = findComment(comments, updateChangeSuggestionMarker);
+    private void addApprovalSuggestionComment() {
+        var existing = findComment(comments, APPROVAL_SUGGESTION_MARKER);
         if (existing.isPresent()) {
             // Only add the comment once per PR
             return;
@@ -998,14 +997,14 @@ class CheckRun {
                 now the bot can help you add the label automatically when this pull request is ready \
                 for maintainers to approve.
                 """, issueLink, pr.repository().name(), pr.repository().name(), issueLink));
-        message.append(updateChangeSuggestionMarker);
+        message.append(APPROVAL_SUGGESTION_MARKER);
         pr.addComment(message.toString());
     }
 
     /**
-     * Update labels of the issue and PR for the update change(usually backport).
+     * Update labels of the issue and PR which need the maintainer's approval (usually backport).
      */
-    private void updateLabelsForUpdatesChange(boolean readyForApproval) {
+    private void updateLabelsAboutApproval(boolean readyForApproval) {
         if (issueProject() == null) {
             return;
         }
@@ -1179,7 +1178,7 @@ class CheckRun {
             }
 
             // If the PR targets to the update repository or branch.
-            if (workItem.isUpdateChange()) {
+            if (workItem.requiresApproval()) {
                 var readyForApproval = visitor.messages().isEmpty() &&
                                        additionalErrors.isEmpty() &&
                                        additionalProgresses.entrySet().stream()
@@ -1195,9 +1194,9 @@ class CheckRun {
                                        integrationBlockers.isEmpty();
                 }
                 // The bot needs to provide a suggestion comment.
-                addUpdateChangeSuggestionComment();
+                addApprovalSuggestionComment();
                 // The labels of the issue and the PR need to be updated.
-                updateLabelsForUpdatesChange(readyForApproval);
+                updateLabelsAboutApproval(readyForApproval);
             }
 
             // Ensure that the ready for sponsor label is up to date

@@ -48,7 +48,7 @@ public class ApprovalPullRequestBot extends AbstractApprovalBot implements Bot {
     public List<WorkItem> getPeriodicItems() {
         var items = new ArrayList<WorkItem>();
         for (var pr : poller.getUpdatedPullRequests(HostedRepository::openPullRequestsAfter, HostedRepository::pullRequests)) {
-            if (isUpdateChange(pr)) {
+            if (requiresApproval(pr)) {
                 var pullRequestWorkItem = new ApprovalPullRequestWorkItem(repository, pr.id(), issueProject(),
                                 approvalInfos().stream().filter(info -> approvalInfoMatch(info, pr)).findFirst().get());
                 log.fine("Scheduling: " + pullRequestWorkItem);

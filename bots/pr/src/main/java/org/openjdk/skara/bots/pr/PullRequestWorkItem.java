@@ -119,7 +119,7 @@ abstract class PullRequestWorkItem implements WorkItem {
     }
 
     /**
-     * Get the backport request label name from the configuration.
+     * Get the request label name from the configuration.
      */
     String requestLabelName() {
         if (requestLabelName == null) {
@@ -136,7 +136,7 @@ abstract class PullRequestWorkItem implements WorkItem {
     }
 
     /**
-     * Get the backport approval label name from the configuration.
+     * Get the approval label name from the configuration.
      */
     String approvalLabelName() {
         if (approvalLabelName == null) {
@@ -153,7 +153,7 @@ abstract class PullRequestWorkItem implements WorkItem {
     }
 
     /**
-     * Get the backport disapproval label name from the configuration.
+     * Get the disapproval label name from the configuration.
      */
     String disapprovalLabelName() {
         if (disapprovalLabelName == null) {
@@ -170,9 +170,9 @@ abstract class PullRequestWorkItem implements WorkItem {
     }
 
     /**
-     * Judge whether the change of this PR is an update change.
+     * Judge whether the change of this PR needs the maintainer's approval.
      */
-    boolean isUpdateChange() {
+    boolean requiresApproval() {
         return bot.approvalInfos().stream()
                         .anyMatch(this::approvalInfoMatch);
     }

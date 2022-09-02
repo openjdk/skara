@@ -61,7 +61,7 @@ public class ApprovalCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath,
                        CommandInvocation command, List<Comment> allComments, PrintWriter reply, PullRequestWorkItem workItem) {
-        if (!workItem.isUpdateChange()) {
+        if (!workItem.requiresApproval()) {
             reply.println("this repository or the target branch of this pull request have not been configured to use the `approval` command.");
             return;
         }

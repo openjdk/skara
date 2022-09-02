@@ -45,7 +45,7 @@ public abstract class AbstractApprovalBot implements Bot {
         return issueProject;
     }
 
-    boolean isUpdateChange(PullRequest pr) {
+    boolean requiresApproval(PullRequest pr) {
         return approvalInfos != null &&
                 approvalInfos.stream().anyMatch(info -> approvalInfoMatch(info, pr));
     }

@@ -53,7 +53,7 @@ public class RequestApprovalCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath,
                        CommandInvocation command, List<Comment> allComments, PrintWriter reply, PullRequestWorkItem workItem) {
-        if (!workItem.isUpdateChange()) {
+        if (!workItem.requiresApproval()) {
             reply.println("this repository or the target branch of this pull request have not been configured to use the `request-approval` command.");
             return;
         }
@@ -89,7 +89,7 @@ public class RequestApprovalCommand implements CommandHandler {
 
     @Override
     public String description() {
-        return "add a comment to the main issue of an update change";
+        return "add a comment to the main issue of a pull request which needs maintainer's approval";
     }
 
     @Override

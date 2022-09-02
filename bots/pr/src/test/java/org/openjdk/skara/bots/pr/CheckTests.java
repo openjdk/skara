@@ -39,7 +39,6 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.openjdk.skara.bots.pr.PullRequestCommandWorkItem.VALID_BOT_COMMAND_MARKER;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
@@ -2205,7 +2204,7 @@ class CheckTests {
     }
 
     @Test
-    void testUpdateChange(TestInfo testInfo) throws IOException {
+    void testApprovalRequest(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -2240,12 +2239,12 @@ class CheckTests {
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The update change suggestion should be added.
+            // The maintainer's approval suggestion should be added.
             var commentSize = pr.comments().stream()
-                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
-            // The progress about the update change should be added to the pr body.
+            // The progress about the maintainer's approval should be added to the pr body.
             assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
             // The pr shouldn't contain the `approval` label because the pr is not ready for approval
             assertFalse(pr.labelNames().contains("approval"));
@@ -2261,12 +2260,12 @@ class CheckTests {
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The update change suggestion should be added only once.
+            // The maintainer's approval suggestion should be added only once.
             commentSize = pr.comments().stream()
-                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
-            // The progress about the update change shouldn't be checked.
+            // The progress about the maintainer's approval shouldn't be checked.
             assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
             // The pr should contain the `approval` label because the pr is ready for approval
             assertTrue(pr.labelNames().contains("approval"));
@@ -2285,12 +2284,12 @@ class CheckTests {
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The update change suggestion should be added only once.
+            // The maintainer's approval suggestion should be added only once.
             commentSize = pr.comments().stream()
-                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
-            // The progress about the update change shouldn't be checked.
+            // The progress about the maintainer's approval shouldn't be checked.
             assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
             // The pr shouldn't contain the `approval` label because the pr is not ready for approval
             assertFalse(pr.labelNames().contains("approval"));
@@ -2312,12 +2311,12 @@ class CheckTests {
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The update change suggestion should be added only once.
+            // The maintainer's approval suggestion should be added only once.
             commentSize = pr.comments().stream()
-                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
-            // The progress about the update change shouldn't be checked.
+            // The progress about the maintainer's approval shouldn't be checked.
             assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
             // The pr should contain the `approval` label because the pr is ready for approval
             assertTrue(pr.labelNames().contains("approval"));
@@ -2336,7 +2335,7 @@ class CheckTests {
     }
 
     @Test
-    void testUpdateChangeApproval(TestInfo testInfo) throws IOException {
+    void testApprovalAndDisapproval(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -2387,12 +2386,12 @@ class CheckTests {
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The update change suggestion should be added only once.
+            // The maintainer's approval suggestion should be added only once.
             var commentSize = pr.comments().stream()
-                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
-            // The progress about the update change should be checked.
+            // The progress about the maintainer's approval should be checked.
             assertTrue(pr.body().contains("- [x] Change must be properly approved by the maintainers"));
             // The pr shouldn't contain the `approval` label because the pr has been approved.
             assertFalse(pr.labelNames().contains("approval"));
@@ -2423,12 +2422,12 @@ class CheckTests {
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The update change suggestion should be added only once.
+            // The maintainer's approval suggestion should be added only once.
             commentSize = pr.comments().stream()
-                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
-            // The progress about the update change shouldn't be checked.
+            // The progress about the maintainer's approval shouldn't be checked.
             assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
             // The pr shouldn't contain the `approval` label because the pr has been disapproved.
             assertFalse(pr.labelNames().contains("approval"));
@@ -2461,12 +2460,12 @@ class CheckTests {
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The update change suggestion should be added only once.
+            // The maintainer's approval suggestion should be added only once.
             commentSize = pr.comments().stream()
-                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
-            // The progress about the update change should be checked.
+            // The progress about the maintainer's approval should be checked.
             assertTrue(pr.body().contains("- [x] Change must be properly approved by the maintainers"));
             // The pr shouldn't contain the `approval` label because the pr has been approved.
             assertFalse(pr.labelNames().contains("approval"));
@@ -2487,7 +2486,7 @@ class CheckTests {
     }
 
     @Test
-    void testNotUpdateChange(TestInfo testInfo) throws IOException {
+    void testNotNeedApproval(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -2528,12 +2527,12 @@ class CheckTests {
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The update change suggestion shouldn't be added.
+            // The maintainer's approval suggestion shouldn't be added.
             var commentSize = pr.comments().stream()
-                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(0, commentSize);
-            // The progress about the update change shouldn't be added to the pr body.
+            // The progress about the maintainer's approval shouldn't be added to the pr body.
             assertFalse(pr.body().contains("Change must be properly approved by the maintainers"));
             // The pr shouldn't contain the `approval` label because the pr is not an update change (the target branch is not `master`).
             assertFalse(pr.labelNames().contains("approval"));
@@ -2545,7 +2544,7 @@ class CheckTests {
     }
 
     @Test
-    void testUpdateChangeWithCleanBackport(TestInfo testInfo) throws IOException {
+    void testApprovalWithCleanBackport(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -2601,12 +2600,12 @@ class CheckTests {
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The update change suggestion should be added.
+            // The maintainer's approval suggestion should be added.
             var commentSize = pr.comments().stream()
-                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
-            // The progress about the update change should be added to the pr body.
+            // The progress about the maintainer's approval should be added to the pr body.
             assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
             // The pr should contain the `approval` label because the pr is a clean backport.
             assertTrue(pr.labelNames().contains("approval"));
@@ -2625,12 +2624,12 @@ class CheckTests {
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The update change suggestion should be added only once.
+            // The maintainer's approval suggestion should be added only once.
             commentSize = pr.comments().stream()
-                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
-            // The progress about the update change should be added to the pr body.
+            // The progress about the maintainer's approval should be added to the pr body.
             assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
             // The pr shouldn't contain the `approval` label because the pr is not ready for approval (it is not a clean backport).
             assertFalse(pr.labelNames().contains("approval"));
@@ -2646,12 +2645,12 @@ class CheckTests {
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The update change suggestion should be added only once.
+            // The maintainer's approval suggestion should be added only once.
             commentSize = pr.comments().stream()
-                    .filter(comment -> comment.body().contains("<!-- Update change pull request suggestion -->"))
+                    .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
-            // The progress about the update change should be added to the pr body.
+            // The progress about the maintainer's approval should be added to the pr body.
             assertTrue(pr.body().contains("- [ ] Change must be properly approved by the maintainers"));
             // The pr should contain the `approval` label because the pr has been reviewed and is ready for approval now.
             assertTrue(pr.labelNames().contains("approval"));
