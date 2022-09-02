@@ -24,7 +24,6 @@ package org.openjdk.skara.bots.approval;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import org.openjdk.skara.bot.ApprovalInfo;
 import org.openjdk.skara.bot.Bot;
 import org.openjdk.skara.bot.WorkItem;
@@ -33,7 +32,6 @@ import org.openjdk.skara.forge.UpdatedPullRequestPoller;
 import org.openjdk.skara.issuetracker.IssueProject;
 
 public class ApprovalPullRequestBot extends AbstractApprovalBot implements Bot {
-    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.approval");
     private final HostedRepository repository;
     private final UpdatedPullRequestPoller poller;
 
@@ -51,7 +49,6 @@ public class ApprovalPullRequestBot extends AbstractApprovalBot implements Bot {
             if (requiresApproval(pr)) {
                 var pullRequestWorkItem = new ApprovalPullRequestWorkItem(repository, pr.id(), issueProject(),
                                 approvalInfos().stream().filter(info -> approvalInfoMatch(info, pr)).findFirst().get());
-                log.fine("Scheduling: " + pullRequestWorkItem);
                 items.add(pullRequestWorkItem);
             }
         }

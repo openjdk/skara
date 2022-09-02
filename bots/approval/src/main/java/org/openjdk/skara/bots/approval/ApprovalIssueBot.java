@@ -24,7 +24,6 @@ package org.openjdk.skara.bots.approval;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import org.openjdk.skara.bot.ApprovalInfo;
 import org.openjdk.skara.bot.Bot;
 import org.openjdk.skara.bot.WorkItem;
@@ -33,7 +32,6 @@ import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.issuetracker.UpdatedIssuePoller;
 
 public class ApprovalIssueBot extends AbstractApprovalBot implements Bot {
-    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.approval");
     private final List<HostedRepository> repositories;
     private final UpdatedIssuePoller poller;
 
@@ -52,7 +50,6 @@ public class ApprovalIssueBot extends AbstractApprovalBot implements Bot {
         var items = new ArrayList<WorkItem>();
         for (var issue : poller.getUpdatedIssues(IssueProject::issues)) {
             var issueWorkItem = new ApprovalIssueWorkItem(this, issue);
-            log.fine("Scheduling: " + issueWorkItem);
             items.add(issueWorkItem);
         }
         return items;

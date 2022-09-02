@@ -23,9 +23,9 @@
 package org.openjdk.skara.bots.approval;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.PullRequestUtils;
 import org.openjdk.skara.issuetracker.Issue;
@@ -42,16 +42,13 @@ public class ApprovalIssueWorkItem implements WorkItem {
 
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
-        var ret = new ArrayList<WorkItem>();
-        PullRequestUtils.pullRequestCommentLink(issue).stream()
+        return PullRequestUtils.pullRequestCommentLink(issue).stream()
                 .flatMap(uri -> bot.repositories().stream()
                              .flatMap(r -> r.parsePullRequestUrl(uri.toString()).stream()))
                 .filter(pr -> pr.isOpen() && bot.requiresApproval(pr))
                 .map(pr -> new ApprovalPullRequestWorkItem(pr.repository(), pr.id(), issue.project(),
                         bot.approvalInfos().stream().filter(info -> bot.approvalInfoMatch(info, pr)).findFirst().get()))
-                .forEach(ret::add);
-        ret.forEach(item -> log.fine("Scheduling: " + item.toString() + " due to update in " + issue.id()));
-        return ret;
+                .collect(Collectors.toList());
     }
 
     @Override
