@@ -78,13 +78,16 @@ public class ApprovalPullRequestWorkItem implements WorkItem {
 
     private boolean hasApprovalProgressChecked(PullRequest pr) {
         var statusMessage = getStatusMessage(pr);
-        return statusMessage.contains("- [x] Change must be properly approved by the maintainers");
+        return statusMessage.contains("- [x] All issues must be "
+                + "[approved](https://openjdk.org/projects/jdk-updates/approval.html) by a maintainer");
     }
 
     private boolean hasApprovalProgress(PullRequest pr) {
         var statusMessage = getStatusMessage(pr);
-        return statusMessage.contains("- [ ] Change must be properly approved by the maintainers") ||
-                statusMessage.contains("- [x] Change must be properly approved by the maintainers");
+        return statusMessage.contains("- [ ] All issues must be "
+                + "[approved](https://openjdk.org/projects/jdk-updates/approval.html) by a maintainer") ||
+                statusMessage.contains("- [x] All issues must be "
+                        + "[approved](https://openjdk.org/projects/jdk-updates/approval.html) by a maintainer");
     }
 
     @Override

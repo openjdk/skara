@@ -69,7 +69,7 @@ public class ApprovalPullRequestBotTests {
             // Create a pull request
             var pr = credentials.createPullRequest(author, "master", "edit",
                     issue.id() + ": " + issue.title(), List.of("PR body", PROGRESS_MARKER));
-            pr.setBody(pr.body() + "\n- [ ] Change must be properly approved by the maintainers");
+            pr.setBody(pr.body() + "\n- [ ] All issues must be");
 
             // review the pr
             var reviewPr = reviewer.pullRequest(pr.id());
@@ -120,7 +120,7 @@ public class ApprovalPullRequestBotTests {
             // Create a pull request
             var pr = credentials.createPullRequest(author, "master", "edit",
                     issue.id() + ": " + issue.title(), List.of("PR body", PROGRESS_MARKER));
-            pr.setBody(pr.body() + "\n- [ ] Change must be properly approved by the maintainers");
+            pr.setBody(pr.body() + "\n- [ ] All issues must be");
 
             // review the pr
             var reviewPr = reviewer.pullRequest(pr.id());
@@ -171,7 +171,7 @@ public class ApprovalPullRequestBotTests {
             // Create a pull request
             var pr = credentials.createPullRequest(author, "master", "edit",
                     issue.id() + ": " + issue.title(), List.of("PR body", PROGRESS_MARKER));
-            pr.setBody(pr.body() + "\n- [ ] Change must be properly approved by the maintainers");
+            pr.setBody(pr.body() + "\n- [ ] All issues must be");
 
             // Don't review the pr, so the update change is not ready for approval.
             // Don't add the `approval` label to the pull request.
@@ -229,7 +229,7 @@ public class ApprovalPullRequestBotTests {
             issue.addLabel("master-fix-request");
 
             // The progress has been checked because of previous approval.
-            pr.setBody(pr.body() + "\n- [x] Change must be properly approved by the maintainers");
+            pr.setBody(pr.body() + "\n- [x] All issues must be");
 
             // Reject the update change.
             issue.addLabel("master-fix-no");
@@ -270,7 +270,7 @@ public class ApprovalPullRequestBotTests {
 
             // Create a pull request which has the wrong title.
             var pr = credentials.createPullRequest(author, "master", "edit", issue.title(), List.of("PR body", PROGRESS_MARKER));
-            pr.setBody(pr.body() + "\n- [ ] Change must be properly approved by the maintainers");
+            pr.setBody(pr.body() + "\n- [ ] All issues must be");
 
             // review the pr
             var reviewPr = reviewer.pullRequest(pr.id());
