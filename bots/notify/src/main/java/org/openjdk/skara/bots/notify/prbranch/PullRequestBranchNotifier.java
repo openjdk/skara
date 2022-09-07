@@ -86,16 +86,17 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
     @Override
     public void onStateChange(PullRequest pr, Path scratchPath, Issue.State oldState) {
         if (pr.state() == Issue.State.CLOSED) {
+            var retargetedDependencies = PreIntegrations.retargetDependencies(pr);
             deleteBranch(pr);
             if (pr.labelNames().contains("integrated")) {
-                var retargetedDependencies = PreIntegrations.retargetDependencies(pr);
                 for (var retargeted : retargetedDependencies) {
                     log.info("Posting retargeted comment on PR " + pr.id());
                     retargeted.addComment("""
-                            The dependent pull request has now been integrated, and the target branch of this pull request \
-                            has been updated. This means that changes from the dependent pull request can start to show up \
-                            as belonging to this pull request, which may be confusing for reviewers. To remedy this situation, \
-                            simply merge the latest changes from the new target branch into this pull request by running commands \
+                            The parent pull request that this pull request depends on has now been integrated and \
+                            the target branch of this pull request has been updated. This means that changes from \
+                            the dependent pull request can start to show up as belonging to this pull request, \
+                            which may be confusing for reviewers. To remedy this situation, simply merge the latest \
+                            changes from the new target branch into this pull request by running commands \
                             similar to these in the local repository for your personal fork:
 
                             ```bash
@@ -108,6 +109,17 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
                             ```
                             """.formatted(retargeted.sourceRef(), pr.repository().webUrl(), pr.targetRef(),
                             pr.targetRef()));
+                }
+            } else {
+                for (var retargeted : retargetedDependencies) {
+                    log.info("Posting retargeted comment on PR " + pr.id());
+                    retargeted.addComment("""
+                            The parent pull request that this pull request depends on has been closed without being integrated. \
+                            This has caused the pull request branch pr/XX to be deleted and the target branch of this pull \
+                            request to be updated, which means that changes from the parent pull request will start to show up \
+                            in this pull request. If closing the parent pull request was done in error, it will need to be \
+                            re-opened and this pull request will need to be retargeted again manually.
+                            """);
                 }
             }
         } else {

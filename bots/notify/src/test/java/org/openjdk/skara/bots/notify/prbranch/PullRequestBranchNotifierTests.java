@@ -278,6 +278,7 @@ public class PullRequestBranchNotifierTests {
             var followUp = CheckableRepository.appendAndCommit(localRepo, "Follow-up work", "Follow-up change");
             localRepo.push(followUp, repo.url(), "followup", true);
             var followUpPr = credentials.createPullRequest(repo, PreIntegrations.preIntegrateBranch(pr), "followup", "This is another pull request");
+            followUpPr.addLabel("rfr");
             assertEquals(PreIntegrations.preIntegrateBranch(pr), followUpPr.targetRef());
 
             // Close the PR
@@ -287,25 +288,39 @@ public class PullRequestBranchNotifierTests {
             // The target repo should no longer contain the branch
             assertThrows(IOException.class, () -> localRepo.fetch(repo.url(), PreIntegrations.preIntegrateBranch(pr)));
 
-            // The follow-up PR shouldn't been retargeted because the source PR is only closed but not integrated.
-            followUpPr = repo.pullRequest(followUpPr.id());
-            assertEquals(PreIntegrations.preIntegrateBranch(pr), followUpPr.targetRef());
-
-            // Simulate integrating the PR. Re-open and re-close is necessary because we want the state to be changed.
-            pr.setState(Issue.State.OPEN);
-            TestBotRunner.runPeriodicItems(notifyBot);
-            pr.setState(Issue.State.CLOSED);
-            pr.addLabel("integrated");
-            TestBotRunner.runPeriodicItems(notifyBot);
-
             // The follow-up PR should have been retargeted
             followUpPr = repo.pullRequest(followUpPr.id());
             assertEquals("master", followUpPr.targetRef());
 
             // Instructions on how to adapt to the newly integrated changes should have been posted
             var lastComment = followUpPr.comments().get(followUpPr.comments().size() - 1);
-            assertTrue(lastComment.body().contains("The dependent pull request has now"), lastComment.body());
-            assertTrue(lastComment.body().contains("git checkout followup"), lastComment.body());
+            assertTrue(lastComment.body().contains("The parent pull request that this pull request "
+                    + "depends on has been closed without being integrated."), lastComment.body());
+
+            // Create another follow-up work
+            var anotherFollowUp = CheckableRepository.appendAndCommit(localRepo, "another follow-up work", "another follow-up change");
+            localRepo.push(anotherFollowUp, repo.url(), "another-followup", true);
+            var anotherFollowUpPr = credentials.createPullRequest(repo, PreIntegrations.preIntegrateBranch(followUpPr), "another-followup", "This is another follow-up pull request");
+            anotherFollowUpPr.addLabel("rfr");
+            assertEquals(PreIntegrations.preIntegrateBranch(followUpPr), anotherFollowUpPr.targetRef());
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Simulate that the PR has been integrated.
+            followUpPr.setState(Issue.State.CLOSED);
+            followUpPr.addLabel("integrated");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The target repo should no longer contain the branch
+            var targetBranch = PreIntegrations.preIntegrateBranch(followUpPr);
+            assertThrows(IOException.class, () -> localRepo.fetch(repo.url(), targetBranch));
+
+            // The another follow-up PR should have been retargeted
+            anotherFollowUpPr = repo.pullRequest(anotherFollowUpPr.id());
+            assertEquals("master", anotherFollowUpPr.targetRef());
+            lastComment = anotherFollowUpPr.comments().get(anotherFollowUpPr.comments().size() - 1);
+            assertTrue(lastComment.body().contains("The parent pull request that this "
+                    + "pull request depends on has now been integrated"), lastComment.body());
+            assertTrue(lastComment.body().contains("git checkout another-followup"), lastComment.body());
             assertTrue(lastComment.body().contains("git commit -m \"Merge master\""), lastComment.body());
         }
     }
