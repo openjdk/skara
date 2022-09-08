@@ -136,6 +136,7 @@ public class PullRequestPoller {
         // Save the state of the current query results
         current = new QueryResult(pullRequestMap, commentsMap, reviewsMap, maxUpdatedAt, afterQuery, result);
 
+        log.info("Found " + result.size() + " updated pull requests for " + repository.name());
         return result;
     }
 
@@ -193,7 +194,7 @@ public class PullRequestPoller {
     private List<PullRequest> queryPullRequests() {
         if (prev == null || prev.maxUpdatedAt == null) {
             if (includeClosed) {
-                log.info("Fetching all open and recent closed pull requests for " + repository.name());
+                log.fine("Fetching all open and recent closed pull requests for " + repository.name());
                 // We need to guarantee that all open PRs are always included in the first round.
                 // The pullRequests(ZonedDateTime) call has a size limit, so may leave some out.
                 // There may also be open PRs that haven't been updated since the closed age limit.
@@ -201,16 +202,16 @@ public class PullRequestPoller {
                 var allPrs = repository.pullRequests(ZonedDateTime.now().minus(CLOSED_PR_AGE_LIMIT));
                 return Stream.concat(openPrs.stream(), allPrs.stream().filter(pr -> !pr.isOpen())).toList();
             } else {
-                log.info("Fetching all open pull requests for " + repository.name());
+                log.fine("Fetching all open pull requests for " + repository.name());
                 return repository.pullRequests();
             }
         } else {
             var queryUpdatedAt = paddingNeeded ? prev.maxUpdatedAt.minus(queryPadding) : prev.maxUpdatedAt;
             if (includeClosed) {
-                log.info("Fetching open and closed pull requests updated after " + queryUpdatedAt + " for " + repository.name());
+                log.fine("Fetching open and closed pull requests updated after " + queryUpdatedAt + " for " + repository.name());
                 return repository.pullRequests(queryUpdatedAt);
             } else {
-                log.info("Fetching open pull requests updated after " + queryUpdatedAt + " for " + repository.name());
+                log.fine("Fetching open pull requests updated after " + queryUpdatedAt + " for " + repository.name());
                 return repository.openPullRequestsAfter(queryUpdatedAt);
             }
         }
