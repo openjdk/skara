@@ -900,7 +900,7 @@ class SponsorTests {
             var commitComment = pr.comments().stream()
                     .filter(comment -> comment.body().contains("Pushed as commit"))
                     .findAny().orElseThrow();
-            ((TestPullRequest) pr).removeComment(commitComment);
+            pr.removeComment(commitComment);
             localRepo.push(masterHash, author.url(), "master", true);
 
             // The bot should now retry
@@ -925,7 +925,7 @@ class SponsorTests {
             var commitComment2 = pr.comments().stream()
                     .filter(comment -> comment.body().contains("Pushed as commit"))
                     .findAny().orElseThrow();
-            ((TestPullRequest) pr).removeComment(commitComment2);
+            pr.removeComment(commitComment2);
 
             // The bot should now retry
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -944,7 +944,7 @@ class SponsorTests {
             var commitComment3 = pr.comments().stream()
                     .filter(comment -> comment.body().contains("Pushed as commit"))
                     .findAny().orElseThrow();
-            ((TestPullRequest) pr).removeComment(commitComment3);
+            pr.removeComment(commitComment3);
 
             // The bot should now retry
             TestBotRunner.runPeriodicItems(mergeBot);
