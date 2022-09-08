@@ -56,9 +56,6 @@ public class TestHost implements Forge, IssueTracker {
     // what the associated method returns, which triggers different code paths in
     // dependent code for testing.
     private Duration minTimeStampUpdateInterval = Duration.ofMillis(0);
-    // Makes queries for pull requests return copies to better simulate querying
-    // from a remote server in certain tests.
-    private boolean copyPullRequests = false;
 
     private static class HostData {
         final List<HostUser> users = new ArrayList<>();
@@ -282,9 +279,5 @@ public class TestHost implements Forge, IssueTracker {
     @Override
     public Duration minTimeStampUpdateInterval() {
         return minTimeStampUpdateInterval;
-    }
-
-    public void setCopyPullRequests(boolean copyPullRequests) {
-        this.copyPullRequests = copyPullRequests;
     }
 }
