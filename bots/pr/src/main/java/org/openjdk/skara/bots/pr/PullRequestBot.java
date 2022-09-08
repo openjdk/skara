@@ -57,14 +57,13 @@ class PullRequestBot implements Bot {
     private final String confOverrideRef;
     private final String censusLink;
     private final Set<String> autoLabelled;
-    private final ConcurrentHashMap<String, Instant> scheduledRechecks;
-    private final PullRequestUpdateCache updateCache;
     private final Map<String, HostedRepository> forks;
     private final Set<String> integrators;
     private final Set<Integer> excludeCommitCommentsFrom;
     private final boolean enableCsr;
     private final boolean enableJep;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
+    private final PullRequestPoller poller;
 
     private Instant lastFullUpdate;
 
@@ -103,8 +102,7 @@ class PullRequestBot implements Bot {
         this.enableJep = enableJep;
 
         autoLabelled = new HashSet<>();
-        scheduledRechecks = new ConcurrentHashMap<>();
-        updateCache = new PullRequestUpdateCache();
+        poller = new PullRequestPoller(repo, true, true, true);
 
         // Only check recently updated when starting up to avoid congestion
         lastFullUpdate = Instant.now();
@@ -144,19 +142,9 @@ class PullRequestBot implements Bot {
         return true;
     }
 
-    private boolean checkHasExpired(PullRequest pr) {
-        var expiresAt = scheduledRechecks.get(pr.webUrl().toString());
-        if (expiresAt != null && Instant.now().isAfter(expiresAt)) {
-            log.info("Check metadata has expired (expired at: " + expiresAt + ") for PR #" + pr.id());
-            scheduledRechecks.remove(pr.webUrl().toString());
-            return true;
-        }
-        return false;
-    }
-
     void scheduleRecheckAt(PullRequest pr, Instant expiresAt) {
         log.info("Setting check metadata expiration to: " + expiresAt + " for PR #" + pr.id());
-        scheduledRechecks.put(pr.webUrl().toString(), expiresAt);
+        poller.retryPullRequest(pr, expiresAt);
     }
 
     private List<WorkItem> getWorkItems(List<PullRequest> pullRequests) {
@@ -164,16 +152,14 @@ class PullRequestBot implements Bot {
         ret.add(new CommitCommentsWorkItem(this, remoteRepo, excludeCommitCommentsFrom));
 
         for (var pr : pullRequests) {
-            if (updateCache.needsUpdate(pr) || checkHasExpired(pr)) {
-                if (!isReady(pr)) {
-                    continue;
-                }
-                if (pr.state() == Issue.State.OPEN) {
-                    ret.add(new CheckWorkItem(this, pr.id(), e -> updateCache.invalidate(pr), pr.updatedAt()));
-                } else {
-                    // Closed PR's do not need to be checked
-                    ret.add(new PullRequestCommandWorkItem(this, pr.id(), e -> updateCache.invalidate(pr), pr.updatedAt()));
-                }
+            if (!isReady(pr)) {
+                continue;
+            }
+            if (pr.state() == Issue.State.OPEN) {
+                ret.add(new CheckWorkItem(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt()));
+            } else {
+                // Closed PR's do not need to be checked
+                ret.add(new PullRequestCommandWorkItem(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt()));
             }
         }
 
@@ -182,17 +168,10 @@ class PullRequestBot implements Bot {
 
     @Override
     public List<WorkItem> getPeriodicItems() {
-        List<PullRequest> prs;
-        if (lastFullUpdate == null || lastFullUpdate.isBefore(Instant.now().minus(Duration.ofMinutes(10)))) {
-            lastFullUpdate = Instant.now();
-            log.info("Fetching all open pull requests for " + remoteRepo.name());
-            prs = remoteRepo.pullRequests();
-        } else {
-            log.info("Fetching recently updated pull requests (open and closed) for " + remoteRepo.name());
-            prs = remoteRepo.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(1)));
-        }
-
-        return getWorkItems(prs);
+        List<PullRequest> prs = poller.updatedPullRequests();
+        List<WorkItem> workItems = getWorkItems(prs);
+        poller.lastBatchHandled();
+        return workItems;
     }
 
     @Override
