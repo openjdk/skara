@@ -72,7 +72,7 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should have removed the CSR label
-            assertFalse(pr.labelNames().contains("csr"));
+            assertFalse(pr.store().labelNames().contains("csr"));
         }
     }
 
@@ -103,7 +103,7 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should have kept the CSR label
-            assertTrue(pr.labelNames().contains("csr"));
+            assertTrue(pr.store().labelNames().contains("csr"));
         }
     }
 
@@ -134,7 +134,7 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should have kept the CSR label
-            assertTrue(pr.labelNames().contains("csr"));
+            assertTrue(pr.store().labelNames().contains("csr"));
         }
     }
 
@@ -169,13 +169,13 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot added the csr label automatically
-            assertTrue(pr.labelNames().contains("csr"));
+            assertTrue(pr.store().labelNames().contains("csr"));
 
             // Run bot
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should have kept the CSR label
-            assertTrue(pr.labelNames().contains("csr"));
+            assertTrue(pr.store().labelNames().contains("csr"));
         }
     }
 
@@ -209,13 +209,13 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot added the csr label automatically
-            assertTrue(pr.labelNames().contains("csr"));
+            assertTrue(pr.store().labelNames().contains("csr"));
 
             // Run bot, should *not* throw NPE
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should have kept the CSR label
-            assertTrue(pr.labelNames().contains("csr"));
+            assertTrue(pr.store().labelNames().contains("csr"));
         }
     }
 
@@ -250,13 +250,13 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot added the csr label automatically
-            assertTrue(pr.labelNames().contains("csr"));
+            assertTrue(pr.store().labelNames().contains("csr"));
 
             // Run bot, should *not* throw NPE
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should have kept the CSR label
-            assertTrue(pr.labelNames().contains("csr"));
+            assertTrue(pr.store().labelNames().contains("csr"));
         }
     }
 
@@ -323,11 +323,11 @@ class CSRBotTests {
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             var confHash = localRepo.commit("Set version as null", "duke", "duke@openjdk.org");
             localRepo.push(confHash, repo.url(), "master", true);
-            assertFalse(pr.labelNames().contains("csr"));
+            assertFalse(pr.store().labelNames().contains("csr"));
             // Run bot. The bot won't get a CSR.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the `csr` label.
-            assertFalse(pr.labelNames().contains("csr"));
+            assertFalse(pr.store().labelNames().contains("csr"));
 
             // Test the method `TestPullRequest#diff`.
             assertEquals(1, pr.diff().patches().size());
@@ -343,7 +343,7 @@ class CSRBotTests {
             // Run bot. The bot won't get a CSR.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the `csr` label.
-            assertFalse(pr.labelNames().contains("csr"));
+            assertFalse(pr.store().labelNames().contains("csr"));
 
             // Test the method `TestPullRequest#diff`.
             assertEquals(1, pr.diff().patches().size());
@@ -359,7 +359,7 @@ class CSRBotTests {
             // Run bot. The primary CSR doesn't have the fix version `17`, so the bot won't get a CSR.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the `csr` label.
-            assertFalse(pr.labelNames().contains("csr"));
+            assertFalse(pr.store().labelNames().contains("csr"));
 
             // Set the fix versions of the primary CSR to 17 and 18.
             csr.setProperty("fixVersions", JSON.array().add("17").add("18"));
@@ -367,7 +367,7 @@ class CSRBotTests {
             // the fix version `17`, so it would be used and the `csr` label would be added.
             TestBotRunner.runPeriodicItems(csrIssueBot);
             // The bot should have added the `csr` label
-            assertTrue(pr.labelNames().contains("csr"));
+            assertTrue(pr.store().labelNames().contains("csr"));
 
             // Revert the fix versions of the primary CSR to 18.
             csr.setProperty("fixVersions", JSON.array().add("18"));
@@ -377,12 +377,12 @@ class CSRBotTests {
             backportIssue.setProperty("fixVersions", JSON.array().add("17"));
             backportIssue.setState(Issue.State.OPEN);
             issue.addLink(Link.create(backportIssue, "backported by").build());
-            assertTrue(pr.labelNames().contains("csr"));
+            assertTrue(pr.store().labelNames().contains("csr"));
             pr.removeLabel("csr");
             // Run bot. The bot can find a backport issue but can't find a backport CSR.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the `csr` label.
-            assertFalse(pr.labelNames().contains("csr"));
+            assertFalse(pr.store().labelNames().contains("csr"));
 
             // Create a backport CSR whose fix version is 17.
             var backportCsr = issueProject.createIssue("This is the backport CSR", List.of(), Map.of());
@@ -393,7 +393,7 @@ class CSRBotTests {
             // Run csr issue bot. The bot can find a backport issue and a backport CSR.
             TestBotRunner.runPeriodicItems(csrIssueBot);
             // The bot should have added the CSR label
-            assertTrue(pr.labelNames().contains("csr"));
+            assertTrue(pr.store().labelNames().contains("csr"));
 
             // Now we have a primary issue, a primary CSR, a backport issue, a backport CSR.
             // Set the backport CSR to have multiple fix versions, included 11.
@@ -410,7 +410,7 @@ class CSRBotTests {
             // Run bot.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot should have added the CSR label
-            assertTrue(pr.labelNames().contains("csr"));
+            assertTrue(pr.store().labelNames().contains("csr"));
 
             // Set the backport CSR to have multiple fix versions, excluded 11.
             backportCsr.setProperty("fixVersions", JSON.array().add("17").add("8"));
@@ -418,7 +418,7 @@ class CSRBotTests {
             // Run bot.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the `csr` label.
-            assertFalse(pr.labelNames().contains("csr"));
+            assertFalse(pr.store().labelNames().contains("csr"));
         }
     }
 

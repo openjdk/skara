@@ -57,8 +57,8 @@ public class TestHost implements Forge, IssueTracker {
         final Map<String, Repository> repositories = new HashMap<>();
         final Map<String, IssueProject> issueProjects = new HashMap<>();
         final Set<TemporaryDirectory> folders = new HashSet<>();
-        private final Map<String, TestPullRequest> pullRequests = new HashMap<>();
-        private final Map<String, TestIssue> issues = new HashMap<>();
+        private final Map<String, TestPullRequestStore> pullRequests = new HashMap<>();
+        private final Map<String, TestIssueStore> issues = new HashMap<>();
     }
 
     private Repository createLocalRepository() {
@@ -182,16 +182,18 @@ public class TestHost implements Forge, IssueTracker {
         }
     }
 
-    TestPullRequest createPullRequest(TestHostedRepository targetRepository, TestHostedRepository sourceRepository, String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
+    TestPullRequest createPullRequest(TestHostedRepository targetRepository, TestHostedRepository sourceRepository,
+            String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
         var id = String.valueOf(data.pullRequests.size() + 1);
-        var pr = TestPullRequest.createNew(targetRepository, sourceRepository, id, targetRef, sourceRef, title, body, draft);
-        data.pullRequests.put(id, pr);
-        return pr;
+        var prStore = new TestPullRequestStore(id, targetRepository.forge().currentUser(), title, body,
+                sourceRepository, targetRef, sourceRef, draft);
+        data.pullRequests.put(id, prStore);
+        return new TestPullRequest(prStore, targetRepository);
     }
 
     TestPullRequest getPullRequest(TestHostedRepository repository, String id) {
-        var original = data.pullRequests.get(id);
-        return TestPullRequest.createFrom(repository, original);
+        var store = data.pullRequests.get(id);
+        return new TestPullRequest(store, repository);
     }
 
     List<TestPullRequest> getPullRequests(TestHostedRepository repository) {
@@ -203,17 +205,18 @@ public class TestHost implements Forge, IssueTracker {
 
     TestIssue createIssue(TestIssueProject issueProject, String title, List<String> body, Map<String, JSONValue> properties) {
         var id = issueProject.projectName().toUpperCase() + "-" + (data.issues.size() + 1);
-        var issue = TestIssue.createNew(issueProject, id, title, body, properties);
-        data.issues.put(id ,issue);
-        return issue;
+        HostUser author = issueProject.issueTracker().currentUser();
+        var issueStore = new TestIssueStore(id, issueProject, author, title, body, properties);
+        data.issues.put(id, issueStore);
+        return new TestIssue(issueStore, author);
     }
 
     TestIssue getIssue(TestIssueProject issueProject, String id) {
-        var original = data.issues.get(id);
-        if (original == null) {
+        var issueStore = data.issues.get(id);
+        if (issueStore == null) {
             return null;
         }
-        return TestIssue.createFrom(issueProject, original);
+        return new TestIssue(issueStore, issueProject.issueTracker().currentUser());
     }
 
     TestIssue getJepIssue(TestIssueProject issueProject, String jepId) {
@@ -221,8 +224,8 @@ public class TestHost implements Forge, IssueTracker {
                 .sorted(Map.Entry.comparingByKey())
                 .map(issue -> getIssue(issueProject, issue.getKey()))
                 .filter(issue -> {
-                    var issueType = issue.data.properties.get("issuetype");
-                    var jepNumber = issue.data.properties.get(JEP_NUMBER);
+                    var issueType = issue.properties().get("issuetype");
+                    var jepNumber = issue.properties().get(JEP_NUMBER);
                     return issueType != null && "JEP".equals(issueType.asString()) &&
                            jepNumber != null && jepId.equals(jepNumber.asString());
                 })
