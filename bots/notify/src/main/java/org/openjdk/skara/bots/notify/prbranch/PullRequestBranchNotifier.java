@@ -114,11 +114,11 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
                 for (var retargeted : retargetedDependencies) {
                     log.info("Posting retargeted comment on PR " + pr.id());
                     retargeted.addComment("""
-                            The parent pull request that this pull request depends on has been closed without being integrated. \
-                            This has caused the pull request branch pr/XX to be deleted and the target branch of this pull \
-                            request to be updated, which means that changes from the parent pull request will start to show up \
-                            in this pull request. If closing the parent pull request was done in error, it will need to be \
-                            re-opened and this pull request will need to be retargeted again manually.
+                            The parent pull request that this pull request depends on has been closed without being \
+                            integrated and the target branch of this pull request has been updated as the previous \
+                            branch was deleted. This means that changes from the parent pull request will start to \
+                            show up in this pull request. If closing the parent pull request was done in error, it will \
+                            need to be re-opened and this pull request will need to manually be retargeted again.
                             """);
                 }
             }

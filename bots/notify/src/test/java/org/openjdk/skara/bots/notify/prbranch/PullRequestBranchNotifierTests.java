@@ -295,7 +295,7 @@ public class PullRequestBranchNotifierTests {
             // Instructions on how to adapt to the newly integrated changes should have been posted
             var lastComment = followUpPr.comments().get(followUpPr.comments().size() - 1);
             assertTrue(lastComment.body().contains("The parent pull request that this pull request "
-                    + "depends on has been closed without being integrated."), lastComment.body());
+                    + "depends on has been closed without being integrated"), lastComment.body());
 
             // Create another follow-up work
             var anotherFollowUp = CheckableRepository.appendAndCommit(localRepo, "another follow-up work", "another follow-up change");
