@@ -76,7 +76,7 @@ class CSRTests {
             assertLastCommentContains(pr, "has indicated that a " +
                                           "[compatibility and specification](https://wiki.openjdk.org/display/csr/Main) (CSR) request " +
                                           "is needed for this pull request.");
-            assertTrue(pr.labelNames().contains("csr"));
+            assertTrue(pr.store().labelNames().contains("csr"));
             // The PR body should contain the progress about CSR request
             assertTrue(pr.store().body().contains("- [ ] Change requires a CSR request to be approved"));
 

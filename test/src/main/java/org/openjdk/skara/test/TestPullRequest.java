@@ -294,6 +294,9 @@ public class TestPullRequest extends TestIssue implements PullRequest {
         return labels;
     }
 
+    /**
+     * Equals for a TestPullRequest means that all the snapshotted data is the same.
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) {

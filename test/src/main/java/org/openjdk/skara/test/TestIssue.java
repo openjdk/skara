@@ -319,6 +319,9 @@ public class TestIssue implements Issue {
         lastUpdate = time;
     }
 
+    /**
+     * Equals for a TestIssue means that all the snapshotted data is the same.
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) {

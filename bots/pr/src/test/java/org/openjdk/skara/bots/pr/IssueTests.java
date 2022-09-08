@@ -326,8 +326,7 @@ class IssueTests {
             // The bot should reply with a success message
             assertLastCommentContains(pr,"current title");
 
-            var updatedPr = author.pullRequest(pr.id());
-            assertEquals("1234: An issue", updatedPr.title());
+            assertEquals("1234: An issue", pr.store().title());
 
             // Update the issue description
             pr.addComment("/issue 1234: Yes this is an issue");
@@ -336,8 +335,7 @@ class IssueTests {
             // The bot should reply with a success message
             assertLastCommentContains(pr,"will now be updated");
 
-            updatedPr = author.pullRequest(pr.id());
-            assertEquals("1234: Yes this is an issue", updatedPr.title());
+            assertEquals("1234: Yes this is an issue", pr.store().title());
         }
     }
 

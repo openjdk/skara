@@ -72,7 +72,7 @@ class ReviewerTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should not yet consider the PR ready
-            assertFalse(pr.labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("ready"));
 
             // Remove it again
             pr.addComment("/reviewer remove @" + integrator.forge().currentUser().username());

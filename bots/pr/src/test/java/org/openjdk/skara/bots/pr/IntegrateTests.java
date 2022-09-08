@@ -1282,7 +1282,7 @@ class IntegrateTests {
             var commitComment = pr.comments().stream()
                     .filter(comment -> comment.body().contains("Pushed as commit"))
                     .findAny().orElseThrow();
-            ((TestPullRequest) pr).removeComment(commitComment);
+            pr.removeComment(commitComment);
 
             // Add a new commit to master branch
             localRepo.checkout(new Branch("master"));

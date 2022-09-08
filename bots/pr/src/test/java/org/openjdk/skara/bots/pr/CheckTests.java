@@ -818,19 +818,19 @@ class CheckTests {
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
-            assertTrue(prBadTitle.body().contains("Title mismatch between PR and JBS for issue"));
+            assertTrue(prBadTitle.store().body().contains("Title mismatch between PR and JBS for issue"));
 
             var prCutOff =  credentials.createPullRequest(author, "master", "edit", issue1.id() + ": My first issue with a very long title that is going to be cut off by …", List.of("…the Git Forge provider", "", "It also has a second line!"), false);
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
-            assertFalse(prCutOff.body().contains("Title mismatch between PR and JBS for issue"));
+            assertFalse(prCutOff.store().body().contains("Title mismatch between PR and JBS for issue"));
 
             // The PR title should contain the full issue title
-            assertEquals("1: My first issue with a very long title that is going to be cut off by the Git Forge provider", prCutOff.title());
+            assertEquals("1: My first issue with a very long title that is going to be cut off by the Git Forge provider", prCutOff.store().title());
             // And the body should not contain the issue title
-            assertTrue(prCutOff.body().startsWith("It also has a second line!"));
+            assertTrue(prCutOff.store().body().startsWith("It also has a second line!"));
 
             // Verify that trailing space in issue is ignored
             var issue2 = issues.createIssue("My second issue ending in space   ", List.of("Hello"), Map.of());
@@ -845,7 +845,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR title should contain the issue title without trailing space
-            assertEquals("TEST-2: My second issue ending in space", prCutOff2.title());
+            assertEquals("TEST-2: My second issue ending in space", prCutOff2.store().title());
         }
     }
 
@@ -1652,7 +1652,7 @@ class CheckTests {
             var bugHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(bugHash, author.url(), "bug", true);
             var bugPR = credentials.createPullRequest(author, "master", "bug", numericId, true);
-            assertEquals(numericId, bugPR.title());
+            assertEquals(numericId, bugPR.store().title());
 
             // Check the status (should expand title)
             TestBotRunner.runPeriodicItems(checkBot);
@@ -1690,7 +1690,7 @@ class CheckTests {
             var bugHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(bugHash, author.url(), "bug", true);
             var bugPR = credentials.createPullRequest(author, "master", "bug", bug.id(), true);
-            assertEquals(bug.id(), bugPR.title());
+            assertEquals(bug.id(), bugPR.store().title());
 
             // Check the status (should expand title)
             TestBotRunner.runPeriodicItems(checkBot);
@@ -1735,7 +1735,7 @@ class CheckTests {
 
             // Check the status (should not expand title)
             TestBotRunner.runPeriodicItems(checkBot);
-            assertEquals("bad title", bugPR.title());
+            assertEquals("bad title", bugPR.store().title());
             assertEquals(CheckStatus.FAILURE, bugPR.checks(bugHash).get("jcheck").status());
             assertTrue(bugPR.checks(bugHash).get("jcheck").summary().get().contains("The commit message does not reference any issue"));
 

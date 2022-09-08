@@ -130,7 +130,7 @@ public class CleanCommandTests {
             var backportComment = comments.get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
-            assertEquals(issue1Number + ": An issue", pr.title());
+            assertEquals(issue1Number + ": An issue", pr.store().title());
             assertTrue(pr.store().labelNames().contains("backport"));
 
             // The bot should have added the "clean" label
@@ -205,7 +205,7 @@ public class CleanCommandTests {
             var backportComment = comments.get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
-            assertEquals(issue2Number + ": Another issue", pr.title());
+            assertEquals(issue2Number + ": Another issue", pr.store().title());
             assertTrue(pr.store().labelNames().contains("backport"));
 
             // The bot should not have added the "clean" label
@@ -284,7 +284,7 @@ public class CleanCommandTests {
             var backportComment = comments.get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
-            assertEquals(issue2Number + ": Another issue", pr.title());
+            assertEquals(issue2Number + ": Another issue", pr.store().title());
             assertTrue(pr.store().labelNames().contains("backport"));
 
             // The bot should not have added the "clean" label
