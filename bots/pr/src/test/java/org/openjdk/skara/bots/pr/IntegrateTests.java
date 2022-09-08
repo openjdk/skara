@@ -99,10 +99,10 @@ class IntegrateTests {
             assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
             assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
-            assertTrue(pr.labelNames().contains("integrated"));
+            assertTrue(pr.store().labelNames().contains("integrated"));
 
             // Ready label should have been removed
-            assertFalse(pr.labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("ready"));
         }
     }
 
@@ -815,8 +815,7 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should respond with a failure about missing e-mail
-            pr = author.pullRequest(pr.id());
-            assertFalse(pr.labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("ready"));
             var checks = pr.checks(pr.headHash());
             assertTrue(checks.containsKey("jcheck"));
             var jcheck = checks.get("jcheck");
@@ -877,7 +876,7 @@ class IntegrateTests {
             assertEquals(1, pushed);
 
             // Ready label should remain
-            assertTrue(pr.labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("ready"));
         }
     }
 
@@ -914,13 +913,15 @@ class IntegrateTests {
                                       .filter(c -> c.body().contains("This pull request will be automatically integrated"))
                                       .count();
             assertEquals(1, integrateComments);
-            assertTrue(pr.labelNames().contains("auto"));
+            assertTrue(pr.store().labelNames().contains("auto"));
 
             // Approve it as another user
             var approvalPr = integrator.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
-            // The bot should post the /integrate command and push
+            // The bot needs two rounds, first mark the PR as ready
+            TestBotRunner.runPeriodicItems(mergeBot);
+            // Then post the /integrate command and push
             TestBotRunner.runPeriodicItems(mergeBot);
             var pushed = pr.comments().stream()
                            .filter(comment -> comment.body().contains("Pushed as commit"))
@@ -939,10 +940,10 @@ class IntegrateTests {
             assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
             assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
-            assertTrue(pr.labelNames().contains("integrated"));
+            assertTrue(pr.store().labelNames().contains("integrated"));
 
             // Ready label should have been removed
-            assertFalse(pr.labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("ready"));
         }
     }
 
@@ -980,13 +981,15 @@ class IntegrateTests {
                                       .filter(c -> c.body().contains("This pull request will be automatically integrated"))
                                       .count();
             assertEquals(1, integrateComments);
-            assertTrue(pr.labelNames().contains("auto"));
+            assertTrue(pr.store().labelNames().contains("auto"));
 
             // Approve it as another user
             var approvalPr = integrator.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
-            // The bot should post the /integrate command and push
+            // The bot needs two rounds, first mark the PR as ready
+            TestBotRunner.runPeriodicItems(mergeBot);
+            // Then post the /integrate command and push
             TestBotRunner.runPeriodicItems(mergeBot);
             var pushed = pr.comments().stream()
                            .filter(comment -> comment.body().contains("Pushed as commit"))
@@ -1005,10 +1008,10 @@ class IntegrateTests {
             assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
             assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
-            assertTrue(pr.labelNames().contains("integrated"));
+            assertTrue(pr.store().labelNames().contains("integrated"));
 
             // Ready label should have been removed
-            assertFalse(pr.labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("ready"));
         }
     }
 
@@ -1045,7 +1048,7 @@ class IntegrateTests {
                                       .filter(c -> c.body().contains("This pull request will be automatically integrated"))
                                       .count();
             assertEquals(1, integrateComments);
-            assertTrue(pr.labelNames().contains("auto"));
+            assertTrue(pr.store().labelNames().contains("auto"));
 
             // Make a comment to integrate manually
             pr.addComment("/integrate manual");
@@ -1059,7 +1062,7 @@ class IntegrateTests {
             assertEquals(1, replies);
 
             // The "auto" label should have been removed
-            assertFalse(pr.labelNames().contains("auto"));
+            assertFalse(pr.store().labelNames().contains("auto"));
 
             // Approve it as another user
             var approvalPr = integrator.pullRequest(pr.id());
@@ -1096,10 +1099,10 @@ class IntegrateTests {
             assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
             assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
-            assertTrue(pr.labelNames().contains("integrated"));
+            assertTrue(pr.store().labelNames().contains("integrated"));
 
             // Ready label should have been removed
-            assertFalse(pr.labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("ready"));
         }
     }
 
@@ -1218,14 +1221,14 @@ class IntegrateTests {
         }
     }
 
-    private void retryAfterInterruptVerifyIntegrated(PullRequest pr) throws IOException {
+    private void retryAfterInterruptVerifyIntegrated(TestPullRequest pr) throws IOException {
         var pushed = pr.comments().stream()
                 .filter(comment -> comment.body().contains("Pushed as commit"))
                 .count();
         assertEquals(1, pushed, "Commit comment not found");
-        assertFalse(pr.labelNames().contains("ready"), "ready label not removed");
-        assertFalse(pr.labelNames().contains("rfr"), "rfr label not removed");
-        assertTrue(pr.labelNames().contains("integrated"), "integrated label not added");
+        assertFalse(pr.store().labelNames().contains("ready"), "ready label not removed");
+        assertFalse(pr.store().labelNames().contains("rfr"), "rfr label not removed");
+        assertTrue(pr.store().labelNames().contains("integrated"), "integrated label not added");
     }
 
     /**
@@ -1298,9 +1301,9 @@ class IntegrateTests {
                     .filter(comment -> comment.body().contains("Pushed as commit " + integratedHash.orElseThrow()))
                     .count();
             assertEquals(1, pushed, "Commit comment not found");
-            assertFalse(pr.labelNames().contains("ready"), "ready label not removed");
-            assertFalse(pr.labelNames().contains("rfr"), "rfr label not removed");
-            assertTrue(pr.labelNames().contains("integrated"), "integrated label not added");
+            assertFalse(pr.store().labelNames().contains("ready"), "ready label not removed");
+            assertFalse(pr.store().labelNames().contains("rfr"), "rfr label not removed");
+            assertTrue(pr.store().labelNames().contains("integrated"), "integrated label not added");
         }
     }
 
@@ -1344,7 +1347,7 @@ class IntegrateTests {
                     .filter(comment -> comment.body().contains("Integration of this pull request has been deferred"))
                     .count();
             assertEquals(1, deferred, "Missing deferred message");
-            assertTrue(authorPr.labelNames().contains("deferred"));
+            assertTrue(authorPr.store().labelNames().contains("deferred"));
 
             // Try to integrate by non committer
             var badIntegratorPr = badIntegrator.pullRequest(authorPr.id());
@@ -1363,7 +1366,7 @@ class IntegrateTests {
                     .filter(comment -> comment.body().contains("Integration of this pull request is no longer deferred and may only be integrated by the author"))
                     .count();
             assertEquals(1, undeferred, "Missing undeferred message");
-            assertFalse(authorPr.labelNames().contains("deferred"));
+            assertFalse(authorPr.store().labelNames().contains("deferred"));
 
             // Try integrating as another committer, which should fail since the PR is currently not deferred
             var integratorPr = integrator.pullRequest(authorPr.id());
@@ -1378,7 +1381,7 @@ class IntegrateTests {
             // Defer again
             authorPr.addComment("/integrate defer");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertTrue(authorPr.labelNames().contains("deferred"));
+            assertTrue(authorPr.store().labelNames().contains("deferred"));
 
             // Try to issue /integrate with an invalid command for a non author
             integratorPr.addComment("/integrate auto");
@@ -1405,11 +1408,11 @@ class IntegrateTests {
             assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 4", headCommit.committer().name());
             assertEquals("integrationcommitter4@openjdk.org", headCommit.committer().email());
-            assertTrue(authorPr.labelNames().contains("integrated"));
+            assertTrue(authorPr.store().labelNames().contains("integrated"));
 
             // Ready and deferred labels should have been removed
-            assertFalse(authorPr.labelNames().contains("ready"));
-            assertFalse(authorPr.labelNames().contains("deferred"));
+            assertFalse(authorPr.store().labelNames().contains("ready"));
+            assertFalse(authorPr.store().labelNames().contains("deferred"));
         }
     }
 
@@ -1457,10 +1460,10 @@ class IntegrateTests {
                     .filter(comment -> comment.body().contains("your change"))
                     .count();
             assertEquals(1, sponsor);
-            assertFalse(authorPr.labelNames().contains("integrated"));
-            assertTrue(authorPr.labelNames().contains("sponsor"));
-            assertTrue(authorPr.labelNames().contains("rfr"));
-            assertTrue(authorPr.labelNames().contains("ready"));
+            assertFalse(authorPr.store().labelNames().contains("integrated"));
+            assertTrue(authorPr.store().labelNames().contains("sponsor"));
+            assertTrue(authorPr.store().labelNames().contains("rfr"));
+            assertTrue(authorPr.store().labelNames().contains("ready"));
 
             // The bot should not have pushed the commit
             var notPushed = authorPr.comments().stream()
@@ -1485,10 +1488,10 @@ class IntegrateTests {
             assertEquals(1, pushed);
 
             // The corresponding labels should have been adjusted
-            assertTrue(authorPr.labelNames().contains("integrated"));
-            assertFalse(authorPr.labelNames().contains("sponsor"));
-            assertFalse(authorPr.labelNames().contains("rfr"));
-            assertFalse(authorPr.labelNames().contains("ready"));
+            assertTrue(authorPr.store().labelNames().contains("integrated"));
+            assertFalse(authorPr.store().labelNames().contains("sponsor"));
+            assertFalse(authorPr.store().labelNames().contains("rfr"));
+            assertFalse(authorPr.store().labelNames().contains("ready"));
 
             // The change should now be present on the master branch
             var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");

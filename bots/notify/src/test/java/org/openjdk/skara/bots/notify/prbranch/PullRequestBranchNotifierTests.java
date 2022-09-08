@@ -194,7 +194,7 @@ public class PullRequestBranchNotifierTests {
             var lastHeadHash = pr.headHash();
             var refreshCount = 0;
             do {
-                pr = repo.pullRequest(pr.id());
+                pr = (TestPullRequest) repo.pullRequest(pr.id());
                 if (refreshCount++ > 100) {
                     fail("The PR did not update after the new push");
                 }
@@ -288,7 +288,7 @@ public class PullRequestBranchNotifierTests {
             assertThrows(IOException.class, () -> localRepo.fetch(repo.url(), PreIntegrations.preIntegrateBranch(pr)));
 
             // The follow-up PR should have been retargeted
-            followUpPr = repo.pullRequest(followUpPr.id());
+            followUpPr = (TestPullRequest) repo.pullRequest(followUpPr.id());
             assertEquals("master", followUpPr.targetRef());
 
             // Instructions on how to adapt to the newly integrated changes should have been posted

@@ -38,7 +38,6 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
 class CheckTests {
@@ -80,8 +79,8 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should now be ready for review
-            assertTrue(pr.labelNames().contains("rfr"));
-            assertFalse(pr.labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("rfr"));
+            assertFalse(pr.store().labelNames().contains("ready"));
 
             // Approve it as another user
             var approvalPr = reviewer.pullRequest(pr.id());
@@ -97,8 +96,8 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should now be ready
-            assertTrue(pr.labelNames().contains("ready"));
-            assertTrue(pr.body().contains("https://census.com/integrationreviewer2-profile"));
+            assertTrue(pr.store().labelNames().contains("ready"));
+            assertTrue(pr.store().body().contains("https://census.com/integrationreviewer2-profile"));
         }
     }
 
@@ -129,7 +128,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should not be flagged as ready for review
-            assertFalse(pr.labelNames().contains("rfr"));
+            assertFalse(pr.store().labelNames().contains("rfr"));
 
             // Approve it as another user
             var approvalPr = reviewer.pullRequest(pr.id());
@@ -145,27 +144,17 @@ class CheckTests {
             assertEquals(CheckStatus.FAILURE, check.status());
 
             // The PR should not still not be flagged as ready for review
-            assertFalse(pr.labelNames().contains("rfr"));
+            assertFalse(pr.store().labelNames().contains("rfr"));
 
             // Remove the trailing whitespace in a new commit
             editHash = CheckableRepository.replaceAndCommit(localRepo, "A line without a trailing whitespace");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
 
-            // Make sure that the push registered
-            var lastHeadHash = pr.headHash();
-            var refreshCount = 0;
-            do {
-                pr = author.pullRequest(pr.id());
-                if (refreshCount++ > 100) {
-                    fail("The PR did not update after the new push");
-                }
-            } while (pr.headHash().equals(lastHeadHash));
-
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready
-            assertTrue(pr.labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("ready"));
 
             // The check should now be successful
             checks = pr.checks(editHash);
@@ -203,63 +192,49 @@ class CheckTests {
 
             // Let the status bot inspect the PR
             TestBotRunner.runPeriodicItems(checkBot);
-            assertFalse(authorPr.body().contains("Reviewers"));
+            assertFalse(authorPr.store().body().contains("Reviewers"));
 
             // Approve it
             var reviewerPr = reviewer.pullRequest(authorPr.id());
             reviewerPr.addReview(Review.Verdict.APPROVED, "Reviewers");
             TestBotRunner.runPeriodicItems(checkBot);
 
-            // Refresh the PR and check that it has been approved
-            authorPr = author.pullRequest(authorPr.id());
-            assertTrue(authorPr.body().contains("Reviewers"));
+            // Check that it has been approved
+            assertTrue(authorPr.store().body().contains("Reviewers"));
 
             // Update the file after approval
             editHash = CheckableRepository.appendAndCommit(localRepo, "Now I've gone and changed it");
             localRepo.push(editHash, author.url(), "edit", true);
 
-            // Make sure that the push registered
-            var lastHeadHash = authorPr.headHash();
-            var refreshCount = 0;
-            do {
-                authorPr = author.pullRequest(authorPr.id());
-                if (refreshCount++ > 100) {
-                    fail("The PR did not update after the new push");
-                }
-            } while (authorPr.headHash().equals(lastHeadHash));
-
             // Check that the review is flagged as stale
             TestBotRunner.runPeriodicItems(checkBot);
-            authorPr = author.pullRequest(authorPr.id());
             Pattern compilePattern = Pattern.compile(".*Review applies to \\[.*\\]\\(.*\\).*", Pattern.MULTILINE | Pattern.DOTALL);
-            assertTrue(compilePattern.matcher(authorPr.body()).matches());
+            assertTrue(compilePattern.matcher(authorPr.store().body()).matches());
 
             // Now we can approve it again
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(checkBot);
 
-            // Refresh the PR and check that it has been approved (once) and is no longer stale
-            authorPr = author.pullRequest(authorPr.id());
-            assertTrue(authorPr.body().contains("Reviewers"));
-            assertEquals(1, authorPr.body().split("Generated Reviewer", -1).length - 1);
+            // Check that it has been approved (once) and is no longer stale
+            assertTrue(authorPr.store().body().contains("Reviewers"));
+            assertEquals(1, authorPr.store().body().split("Generated Reviewer", -1).length - 1);
             assertTrue(authorPr.reviews().size() >= 1);
-            assertFalse(authorPr.body().contains("Note"));
+            assertFalse(authorPr.store().body().contains("Note"));
 
             // Add a review with disapproval
             var commenterPr = commenter.pullRequest(authorPr.id());
             commenterPr.addReview(Review.Verdict.DISAPPROVED, "Disapproved");
             TestBotRunner.runPeriodicItems(checkBot);
 
-            // Refresh the PR and check that it still only approved once (but two reviews) and is no longer stale
-            authorPr = author.pullRequest(authorPr.id());
-            assertTrue(authorPr.body().contains("Reviewers"));
-            assertEquals(1, authorPr.body().split("Generated Reviewer", -1).length - 1);
+            // Check that it still only approved once (but two reviews) and is no longer stale
+            assertTrue(authorPr.store().body().contains("Reviewers"));
+            assertEquals(1, authorPr.store().body().split("Generated Reviewer", -1).length - 1);
             assertTrue(authorPr.reviews().size() >= 2);
-            assertFalse(authorPr.body().contains("Note"));
+            assertFalse(authorPr.store().body().contains("Note"));
 
             // No census link is set
             var reviewerString = "Generated Reviewer 2 (@" + reviewer.forge().currentUser().username() + " - **Reviewer**)";
-            assertTrue(authorPr.body().contains(reviewerString));
+            assertTrue(authorPr.store().body().contains(reviewerString));
         }
     }
 
@@ -287,15 +262,14 @@ class CheckTests {
 
             // Let the status bot inspect the PR
             TestBotRunner.runPeriodicItems(checkBot);
-            assertFalse(authorPr.body().contains("Reviewers"));
+            assertFalse(authorPr.store().body().contains("Reviewers"));
 
             // Approve it
             authorPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(checkBot);
 
-            // Refresh the PR and check that it has been approved
-            authorPr = author.pullRequest(authorPr.id());
-            assertTrue(authorPr.body().contains("Reviewers"));
+            // Check that it has been approved
+            assertTrue(authorPr.store().body().contains("Reviewers"));
 
             // Verify that the check failed
             var checks = authorPr.checks(editHash);
@@ -337,8 +311,8 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should now be ready for review
-            assertTrue(pr.labelNames().contains("rfr"));
-            assertFalse(pr.labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("rfr"));
+            assertFalse(pr.store().labelNames().contains("ready"));
 
             // Approve it as another user
             var approvalPr = reviewer.pullRequest(pr.id());
@@ -354,28 +328,18 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should now be ready
-            assertTrue(pr.labelNames().contains("rfr"));
-            assertTrue(pr.labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("rfr"));
+            assertTrue(pr.store().labelNames().contains("ready"));
 
             var addedHash = CheckableRepository.appendAndCommit(localRepo, "trailing whitespace   ");
             localRepo.push(addedHash, author.url(), "edit");
-
-            // Make sure that the push registered
-            var lastHeadHash = pr.headHash();
-            var refreshCount = 0;
-            do {
-                pr = author.pullRequest(pr.id());
-                if (refreshCount++ > 100) {
-                    fail("The PR did not update after the new push");
-                }
-            } while (pr.headHash().equals(lastHeadHash));
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR is now neither ready for review nor integration
-            assertFalse(pr.labelNames().contains("rfr"));
-            assertFalse(pr.labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("rfr"));
+            assertFalse(pr.store().labelNames().contains("ready"));
 
             // The check should now be failing
             checks = pr.checks(addedHash);
@@ -388,8 +352,7 @@ class CheckTests {
     @Test
     void mergeMessage(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -425,7 +388,7 @@ class CheckTests {
             localRepo.push(unrelatedHash, author.url(), "master");
 
             // Let the bot see the changes
-            pr.setBody(pr.body() + "recheck");
+            pr.setBody(pr.store().body() + "recheck");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an ok message
@@ -441,8 +404,7 @@ class CheckTests {
     @Test
     void cannotRebase(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -468,7 +430,7 @@ class CheckTests {
 
             // Get all messages up to date
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertTrue(pr.labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("ready"));
 
             // Push something conflicting to master
             localRepo.checkout(masterHash, true);
@@ -476,7 +438,7 @@ class CheckTests {
             localRepo.push(conflictingHash, author.url(), "master");
 
             // Let the bot see the changes
-            pr.setBody(pr.body() + "recheck");
+            pr.setBody(pr.store().body() + "recheck");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should not yet post the ready for integration message
@@ -486,8 +448,8 @@ class CheckTests {
             assertEquals(0, updated);
 
             // The PR should be flagged as outdated
-            assertTrue(pr.labelNames().contains("merge-conflict"));
-            assertFalse(pr.labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("merge-conflict"));
+            assertFalse(pr.store().labelNames().contains("ready"));
 
             // An instructional message should have been bosted
             var help = pr.comments().stream()
@@ -505,7 +467,7 @@ class CheckTests {
             localRepo.push(masterHash, author.url(), "master", true);
 
             // Let the bot see the changes
-            pr.setBody(pr.body() + "recheck");
+            pr.setBody(pr.store().body() + "recheck");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should now post an integration message
@@ -515,8 +477,8 @@ class CheckTests {
             assertEquals(1, updated);
 
             // The PR should not be flagged as outdated
-            assertFalse(pr.labelNames().contains("merge-conflict"));
-            assertTrue(pr.labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("merge-conflict"));
+            assertTrue(pr.store().labelNames().contains("ready"));
         }
     }
 
@@ -554,17 +516,17 @@ class CheckTests {
             assertTrue(check.summary().orElseThrow().contains("Test Blocker"));
 
             // The PR should not yet be ready for review
-            assertTrue(pr.labelNames().contains("block"));
-            assertFalse(pr.labelNames().contains("rfr"));
-            assertFalse(pr.labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("block"));
+            assertFalse(pr.store().labelNames().contains("rfr"));
+            assertFalse(pr.store().labelNames().contains("ready"));
 
             // Check the status again
             pr.removeLabel("block");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready for review
-            assertTrue(pr.labelNames().contains("rfr"));
-            assertFalse(pr.labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("rfr"));
+            assertFalse(pr.store().labelNames().contains("ready"));
         }
     }
 
@@ -605,32 +567,30 @@ class CheckTests {
             assertTrue(check.summary().orElseThrow().contains(CheckRun.MSG_EMPTY_BODY));
 
             // Additional errors should be displayed in the body
-            var updatedPr = author.pullRequest(pr.id());
-            assertTrue(updatedPr.body().contains("## Error"));
-            assertTrue(updatedPr.body().contains(CheckRun.MSG_EMPTY_BODY));
+            assertTrue(pr.store().body().contains("## Error"));
+            assertTrue(pr.store().body().contains(CheckRun.MSG_EMPTY_BODY));
 
             // There should be an indicator of where the pr body should be entered
-            assertTrue(updatedPr.body().contains("Replace this text with a description of your pull request"));
+            assertTrue(pr.store().body().contains("Replace this text with a description of your pull request"));
 
             // The PR should not yet be ready for review
-            assertFalse(pr.labelNames().contains("rfr"));
-            assertFalse(pr.labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("rfr"));
+            assertFalse(pr.store().labelNames().contains("ready"));
 
             // Check the status again
             pr.setBody("Here's that body");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready for review
-            assertTrue(pr.labelNames().contains("rfr"));
-            assertFalse(pr.labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("rfr"));
+            assertFalse(pr.store().labelNames().contains("ready"));
 
             // The additional errors should be gone
-            updatedPr = author.pullRequest(pr.id());
-            assertFalse(updatedPr.body().contains("## Error"));
-            assertFalse(updatedPr.body().contains(CheckRun.MSG_EMPTY_BODY));
+            assertFalse(pr.store().body().contains("## Error"));
+            assertFalse(pr.store().body().contains(CheckRun.MSG_EMPTY_BODY));
 
             // And no new helper marker
-            assertFalse(updatedPr.body().contains("Replace this text with a description of your pull request"));
+            assertFalse(pr.store().body().contains("Replace this text with a description of your pull request"));
         }
     }
 
@@ -675,13 +635,12 @@ class CheckTests {
             assertTrue(check.summary().orElseThrow().contains("Executable files are not allowed (file: executable.exe)"));
 
             // Additional errors should be displayed in the body
-            var updatedPr = author.pullRequest(pr.id());
-            assertTrue(updatedPr.body().contains("## Error"));
-            assertTrue(updatedPr.body().contains("Executable files are not allowed (file: executable.exe)"));
+            assertTrue(pr.store().body().contains("## Error"));
+            assertTrue(pr.store().body().contains("Executable files are not allowed (file: executable.exe)"));
 
             // The PR should not yet be ready for review
-            assertFalse(pr.labelNames().contains("rfr"));
-            assertFalse(pr.labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("rfr"));
+            assertFalse(pr.store().labelNames().contains("ready"));
 
             // Drop that error
             Files.setPosixFilePermissions(tempFolder.path().resolve("executable.exe"), Set.of(PosixFilePermission.OWNER_READ));
@@ -691,13 +650,12 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready for review
-            assertTrue(pr.labelNames().contains("rfr"));
-            assertFalse(pr.labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("rfr"));
+            assertFalse(pr.store().labelNames().contains("ready"));
 
             // The additional errors should be gone
-            updatedPr = author.pullRequest(pr.id());
-            assertFalse(updatedPr.body().contains("## Error"));
-            assertFalse(updatedPr.body().contains("Executable files are not allowed"));
+            assertFalse(pr.store().body().contains("## Error"));
+            assertFalse(pr.store().body().contains("Executable files are not allowed"));
         }
     }
 
@@ -731,14 +689,14 @@ class CheckTests {
             assertEquals(0, checks.size());
 
             // The PR should not yet be ready for review
-            assertFalse(pr.labelNames().contains("rfr"));
+            assertFalse(pr.store().labelNames().contains("rfr"));
 
             // Check the status again
             pr.addLabel("good-to-go");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready for review
-            assertTrue(pr.labelNames().contains("rfr"));
+            assertTrue(pr.store().labelNames().contains("rfr"));
         }
     }
 
@@ -772,7 +730,7 @@ class CheckTests {
             assertEquals(0, checks.size());
 
             // The PR should not yet be ready for review
-            assertFalse(pr.labelNames().contains("rfr"));
+            assertFalse(pr.store().labelNames().contains("rfr"));
 
             // Check the status again
             var reviewerPr = reviewer.pullRequest(pr.id());
@@ -780,7 +738,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready for review
-            assertTrue(pr.labelNames().contains("rfr"));
+            assertTrue(pr.store().labelNames().contains("rfr"));
         }
     }
 
@@ -927,7 +885,7 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // And the body should contain the issue title
-            assertTrue(pr.body().contains("My first issue"));
+            assertTrue(pr.store().body().contains("My first issue"));
 
             // Change the issue
             var issue2 = issues.createIssue("My second issue", List.of("Body"), Map.of("issuetype", JSON.of("Bug")));
@@ -937,20 +895,20 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The body should contain the updated issue title
-            assertFalse(pr.body().contains("My first issue"));
-            assertTrue(pr.body().contains("My second issue"));
+            assertFalse(pr.store().body().contains("My first issue"));
+            assertTrue(pr.store().body().contains("My second issue"));
 
             // The PR title does not match the issue title
-            assertTrue(pr.body().contains("Title mismatch"));
-            assertTrue(pr.body().contains("Integration blocker"));
+            assertTrue(pr.store().body().contains("Title mismatch"));
+            assertTrue(pr.store().body().contains("Integration blocker"));
 
             // Correct it
             pr.setTitle(issue2.id() + " - " + issue2.title());
 
             // Check the status again - it should now match
             TestBotRunner.runPeriodicItems(checkBot);
-            assertFalse(pr.body().contains("Title mismatch"));
-            assertFalse(pr.body().contains("Integration blocker"));
+            assertFalse(pr.store().body().contains("Title mismatch"));
+            assertFalse(pr.store().body().contains("Integration blocker"));
 
             // Use an invalid issue key
             var issueKey = issue1.id().replace("TEST", "BADPROJECT");
@@ -958,9 +916,9 @@ class CheckTests {
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
-            assertFalse(pr.body().contains("My first issue"));
-            assertFalse(pr.body().contains("My second issue"));
-            assertTrue(pr.body().contains("does not belong to the `TEST` project"));
+            assertFalse(pr.store().body().contains("My first issue"));
+            assertFalse(pr.store().body().contains("My second issue"));
+            assertTrue(pr.store().body().contains("does not belong to the `TEST` project"));
 
             // Now drop the issue key
             issueKey = issue1.id().replace("TEST-", "");
@@ -968,17 +926,17 @@ class CheckTests {
 
             // The body should now contain the updated issue title
             TestBotRunner.runPeriodicItems(checkBot);
-            assertTrue(pr.body().contains("My first issue"));
-            assertFalse(pr.body().contains("My second issue"));
+            assertTrue(pr.store().body().contains("My first issue"));
+            assertFalse(pr.store().body().contains("My second issue"));
 
             // Now enter an invalid issue id
             pr.setTitle("2384848: This is a pull request");
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
-            assertFalse(pr.body().contains("My first issue"));
-            assertFalse(pr.body().contains("My second issue"));
-            assertTrue(pr.body().contains("Failed to retrieve"));
+            assertFalse(pr.store().body().contains("My first issue"));
+            assertFalse(pr.store().body().contains("My second issue"));
+            assertTrue(pr.store().body().contains("Failed to retrieve"));
 
             // The check should still be successful though
             checks = pr.checks(editHash);
@@ -1024,7 +982,7 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // And the body should contain the issue title
-            assertTrue(pr.body().contains("My first issue"));
+            assertTrue(pr.store().body().contains("My first issue"));
 
             // Change the issue
             var issue2 = issues.createIssue("My second issue", List.of("Body"), Map.of("issuetype", JSON.of("Bug")));
@@ -1034,20 +992,20 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The body should contain the updated issue title
-            assertFalse(pr.body().contains("My first issue"));
-            assertTrue(pr.body().contains("My second issue"));
+            assertFalse(pr.store().body().contains("My first issue"));
+            assertTrue(pr.store().body().contains("My second issue"));
 
             // The PR title does not match the issue title
-            assertTrue(pr.body().contains("Title mismatch"));
-            assertTrue(pr.body().contains("Integration blocker"));
+            assertTrue(pr.store().body().contains("Title mismatch"));
+            assertTrue(pr.store().body().contains("Integration blocker"));
 
             // Correct it
             issue2.setTitle("This is a pull request");
 
             // Check the status again - it should still not match due to caching
             TestBotRunner.runPeriodicItems(checkBot);
-            assertTrue(pr.body().contains("Title mismatch"));
-            assertTrue(pr.body().contains("Integration blocker"));
+            assertTrue(pr.store().body().contains("Title mismatch"));
+            assertTrue(pr.store().body().contains("Integration blocker"));
 
             // Ensure the check cache expires
             checkBot.scheduleRecheckAt(pr, Instant.now().minus(Duration.ofDays(1)));
@@ -1061,8 +1019,8 @@ class CheckTests {
 
             // Check the status again - now it should be fine
             TestBotRunner.runPeriodicItems(checkBot);
-            assertFalse(pr.body().contains("Title mismatch"));
-            assertFalse(pr.body().contains("Integration blocker"));
+            assertFalse(pr.store().body().contains("Title mismatch"));
+            assertFalse(pr.store().body().contains("Integration blocker"));
         }
     }
 
@@ -1105,10 +1063,10 @@ class CheckTests {
 
             // PR should have one issue
             TestBotRunner.runPeriodicItems(checkBot);
-            assertTrue(pr.body().contains("### Issue"));
-            assertFalse(pr.body().contains("### Issues"));
-            assertTrue(pr.body().contains("The main issue"));
-            assertFalse(pr.body().contains("The csr issue (**CSR**)"));
+            assertTrue(pr.store().body().contains("### Issue"));
+            assertFalse(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains("The main issue"));
+            assertFalse(pr.store().body().contains("The csr issue (**CSR**)"));
 
             // Require CSR
             mainIssue.addLink(Link.create(csrIssue, "csr for").build());
@@ -1116,9 +1074,9 @@ class CheckTests {
 
             // PR should have two issues
             TestBotRunner.runPeriodicItems(checkBot);
-            assertTrue(pr.body().contains("### Issues"));
-            assertTrue(pr.body().contains("The main issue"));
-            assertTrue(pr.body().contains("The csr issue (**CSR**)"));
+            assertTrue(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains("The main issue"));
+            assertTrue(pr.store().body().contains("The csr issue (**CSR**)"));
 
             // Set the state of the csr issue to `closed`
             csrIssue.setState(Issue.State.CLOSED);
@@ -1128,11 +1086,11 @@ class CheckTests {
 
             // PR should have two issues
             TestBotRunner.runPeriodicItems(checkBot);
-            assertTrue(pr.body().contains("### Issues"));
-            assertTrue(pr.body().contains("The main issue"));
-            assertTrue(pr.body().contains("The csr issue (**CSR**)"));
+            assertTrue(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains("The main issue"));
+            assertTrue(pr.store().body().contains("The csr issue (**CSR**)"));
             // The csr issue state don't need to be `open`.
-            assertFalse(pr.body().contains("Issue is not open"));
+            assertFalse(pr.store().body().contains("Issue is not open"));
         }
     }
 
@@ -1167,19 +1125,19 @@ class CheckTests {
 
             // PR should have one issue
             TestBotRunner.runPeriodicItems(checkBot);
-            assertTrue(pr.body().contains("### Issue"));
-            assertFalse(pr.body().contains("### Issues"));
-            assertTrue(pr.body().contains("The main issue"));
-            assertFalse(pr.body().contains("The jep issue (**JEP**)"));
+            assertTrue(pr.store().body().contains("### Issue"));
+            assertFalse(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains("The main issue"));
+            assertFalse(pr.store().body().contains("The jep issue (**JEP**)"));
 
             // Require jep
             pr.addComment("/jep JEP-123");
 
             // PR should have two issues
             TestBotRunner.runPeriodicItems(checkBot);
-            assertTrue(pr.body().contains("### Issues"));
-            assertTrue(pr.body().contains("The main issue"));
-            assertTrue(pr.body().contains("The jep issue (**JEP**)"));
+            assertTrue(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains("The main issue"));
+            assertTrue(pr.store().body().contains("The jep issue (**JEP**)"));
 
             // Set the state of the jep issue to `Targeted`.
             // This step is not necessary, because the JEPBot is not actually running
@@ -1195,9 +1153,9 @@ class CheckTests {
 
             // PR should have two issues even though the jep issue has been targeted
             TestBotRunner.runPeriodicItems(checkBot);
-            assertTrue(pr.body().contains("### Issues"));
-            assertTrue(pr.body().contains("The main issue"));
-            assertTrue(pr.body().contains("The jep issue (**JEP**)"));
+            assertTrue(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains("The main issue"));
+            assertTrue(pr.store().body().contains("The jep issue (**JEP**)"));
 
             // Set the state of the jep issue to `Closed`.
             jepIssue.setState(Issue.State.CLOSED);
@@ -1209,11 +1167,11 @@ class CheckTests {
 
             // PR should have two issues even though the jep issue has been Closed
             TestBotRunner.runPeriodicItems(checkBot);
-            assertTrue(pr.body().contains("### Issues"));
-            assertTrue(pr.body().contains("The main issue"));
-            assertTrue(pr.body().contains("The jep issue (**JEP**)"));
+            assertTrue(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains("The main issue"));
+            assertTrue(pr.store().body().contains("The jep issue (**JEP**)"));
             // The jep issue state doesn't need to be `open`.
-            assertFalse(pr.body().contains("Issue is not open"));
+            assertFalse(pr.store().body().contains("Issue is not open"));
         }
     }
 
@@ -1348,8 +1306,8 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should still not be ready for review as it is a draft
-            assertFalse(pr.labelNames().contains("rfr"));
-            assertFalse(pr.labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("rfr"));
+            assertFalse(pr.store().labelNames().contains("ready"));
         }
     }
 
@@ -1407,7 +1365,6 @@ class CheckTests {
 
             // Break the jcheck configuration on the "edit" branch
             var confPath = tempFolder.path().resolve(".jcheck/conf");
-            var oldConf = Files.readString(confPath, StandardCharsets.UTF_8);
             Files.writeString(confPath, "Hello there!", StandardCharsets.UTF_8);
             localRepo.add(confPath);
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A change");
@@ -1538,30 +1495,20 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should be flagged as ready
-            assertTrue(pr.labelNames().contains("ready"));
-            assertFalse(pr.body().contains("Re-review required"));
+            assertTrue(pr.store().labelNames().contains("ready"));
+            assertFalse(pr.store().body().contains("Re-review required"));
 
             // Add another commit
             editHash = CheckableRepository.replaceAndCommit(localRepo, "Another line");
             localRepo.push(editHash, author.url(), "edit", true);
 
-            // Make sure that the push registered
-            var lastHeadHash = pr.headHash();
-            var refreshCount = 0;
-            do {
-                pr = author.pullRequest(pr.id());
-                if (refreshCount++ > 100) {
-                    fail("The PR did not update after the new push");
-                }
-            } while (pr.headHash().equals(lastHeadHash));
-
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should no longer be ready, as the review is stale
-            assertFalse(pr.labelNames().contains("ready"));
-            assertTrue(pr.labelNames().contains("rfr"));
-            assertTrue(pr.body().contains("Re-review required"));
+            assertFalse(pr.store().labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("rfr"));
+            assertTrue(pr.store().body().contains("Re-review required"));
         }
     }
 
@@ -1669,10 +1616,10 @@ class CheckTests {
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
-            assertTrue(backportPR.body().contains(backport.id()));
-            assertTrue(backportPR.body().contains("My first feature"));
-            assertTrue(backportPR.body().contains("### Integration blocker"));
-            assertTrue(backportPR.body().contains("Issue of type `Backport` is not allowed for integrations"));
+            assertTrue(backportPR.store().body().contains(backport.id()));
+            assertTrue(backportPR.store().body().contains("My first feature"));
+            assertTrue(backportPR.store().body().contains("### Integration blocker"));
+            assertTrue(backportPR.store().body().contains("Issue of type `Backport` is not allowed for integrations"));
         }
     }
 
@@ -1711,8 +1658,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Verify that the title is expanded
-            bugPR = author.pullRequest(bugPR.id());
-            assertEquals(numericId + ": " + bug.title(), bugPR.title());
+            assertEquals(numericId + ": " + bug.title(), bugPR.store().title());
         }
     }
 
@@ -1750,9 +1696,8 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Verify that the title is expanded
-            bugPR = author.pullRequest(bugPR.id());
             var numericId = bug.id().split("-")[1];
-            assertEquals(numericId + ": " + bug.title(), bugPR.title());
+            assertEquals(numericId + ": " + bug.title(), bugPR.store().title());
         }
     }
 
@@ -1796,16 +1741,14 @@ class CheckTests {
 
             // Now update it
             bugPR.setTitle(numericId);
-            bugPR = author.pullRequest(bugPR.id());
-            assertEquals(numericId, bugPR.title());
+            assertEquals(numericId, bugPR.store().title());
 
             // Check the status (should expand title)
             TestBotRunner.runPeriodicItems(checkBot);
             assertEquals(CheckStatus.SUCCESS, bugPR.checks(bugHash).get("jcheck").status());
 
             // Verify that the title is expanded
-            bugPR = author.pullRequest(bugPR.id());
-            assertEquals(numericId + ": " + bug.title(), bugPR.title());
+            assertEquals(numericId + ": " + bug.title(), bugPR.store().title());
         }
     }
 
@@ -1843,17 +1786,15 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Verify that the title is expanded
-            bugPR = author.pullRequest(bugPR.id());
             var numericId = bug.id().split("-")[1];
-            assertEquals(numericId + ": " + bug.title(), bugPR.title());
+            assertEquals(numericId + ": " + bug.title(), bugPR.store().title());
         }
     }
 
     @Test
     void overrideJcheckConf(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var confFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
             var conf = credentials.getHostedRepository();
 
@@ -1888,15 +1829,14 @@ class CheckTests {
 
             // Check the status (should become ready immediately as reviewercount is overridden to 0)
             TestBotRunner.runPeriodicItems(checkBot);
-            assertEquals(Set.of("rfr", "ready"), new HashSet<>(pr.labelNames()));
+            assertEquals(Set.of("rfr", "ready"), new HashSet<>(pr.store().labelNames()));
         }
     }
 
     @Test
     void overrideNonexistingJcheckConf(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var confFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
             var conf = credentials.getHostedRepository();
 
@@ -1936,15 +1876,14 @@ class CheckTests {
 
             // Check the status (should become ready immediately as reviewercount is overridden to 0)
             TestBotRunner.runPeriodicItems(checkBot);
-            assertEquals(Set.of("rfr", "ready"), new HashSet<>(pr.labelNames()));
+            assertEquals(Set.of("rfr", "ready"), new HashSet<>(pr.store().labelNames()));
         }
     }
 
     @Test
     void differentAuthors(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
             var committer = credentials.getHostedRepository();
@@ -1971,7 +1910,6 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should respond with an integration message and a warning about different authors
-            pr = author.pullRequest(pr.id());
             var comments = pr.comments();
             var numComments = comments.size();
             var lastComment = comments.get(comments.size() - 1).body();
@@ -1981,7 +1919,6 @@ class CheckTests {
 
             // Run the bot again, should not result in any new comments
             TestBotRunner.runPeriodicItems(mergeBot);
-            pr = author.pullRequest(pr.id());
             assertEquals(numComments, pr.comments().size());
         }
     }
@@ -2049,16 +1986,16 @@ class CheckTests {
             var confHash = localRepo.commit("Set version as null", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.url(), "master", true);
             // Simulate the CSRBot.
-            pr.setBody(pr.body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + csrUpdateMarker);
             // Run bot. The bot won't get a CSR.
             TestBotRunner.runPeriodicItems(bot);
             // The PR should have primary issue and shouldn't have primary CSR.
-            assertTrue(pr.body().contains("### Issue"));
-            assertFalse(pr.body().contains("### Issues"));
-            assertTrue(pr.body().contains(issue.id()));
-            assertTrue(pr.body().contains(issue.title()));
-            assertFalse(pr.body().contains(csr.id()));
-            assertFalse(pr.body().contains(csr.title()));
+            assertTrue(pr.store().body().contains("### Issue"));
+            assertFalse(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains(issue.id()));
+            assertTrue(pr.store().body().contains(issue.title()));
+            assertFalse(pr.store().body().contains(csr.id()));
+            assertFalse(pr.store().body().contains(csr.title()));
 
             // Add `version=bla` to `.jcheck/conf`, set the version as a wrong value
             localRepo.checkout(localRepo.defaultBranch());
@@ -2069,16 +2006,16 @@ class CheckTests {
             confHash = localRepo.commit("Set the version as a wrong value", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.url(), "master", true);
             // Simulate the CSRBot.
-            pr.setBody(pr.body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + csrUpdateMarker);
             // Run bot. The bot won't get a CSR.
             TestBotRunner.runPeriodicItems(bot);
             // The PR should have primary issue and shouldn't have primary CSR.
-            assertTrue(pr.body().contains("### Issue"));
-            assertFalse(pr.body().contains("### Issues"));
-            assertTrue(pr.body().contains(issue.id()));
-            assertTrue(pr.body().contains(issue.title()));
-            assertFalse(pr.body().contains(csr.id()));
-            assertFalse(pr.body().contains(csr.title()));
+            assertTrue(pr.store().body().contains("### Issue"));
+            assertFalse(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains(issue.id()));
+            assertTrue(pr.store().body().contains(issue.title()));
+            assertFalse(pr.store().body().contains(csr.id()));
+            assertFalse(pr.store().body().contains(csr.title()));
 
             // Set the `version` in `.jcheck/conf` as 17 which is an available version.
             localRepo.checkout(localRepo.defaultBranch());
@@ -2089,29 +2026,29 @@ class CheckTests {
             confHash = localRepo.commit("Set the version as 17", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.url(), "master", true);
             // Simulate the CSRBot.
-            pr.setBody(pr.body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + csrUpdateMarker);
             // Run bot. The primary CSR doesn't have the fix version `17`, so the bot won't get a CSR.
             TestBotRunner.runPeriodicItems(bot);
             // The PR should have primary issue and shouldn't have primary CSR.
-            assertTrue(pr.body().contains("### Issue"));
-            assertFalse(pr.body().contains("### Issues"));
-            assertTrue(pr.body().contains(issue.id()));
-            assertTrue(pr.body().contains(issue.title()));
-            assertFalse(pr.body().contains(csr.id()));
-            assertFalse(pr.body().contains(csr.title()));
+            assertTrue(pr.store().body().contains("### Issue"));
+            assertFalse(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains(issue.id()));
+            assertTrue(pr.store().body().contains(issue.title()));
+            assertFalse(pr.store().body().contains(csr.id()));
+            assertFalse(pr.store().body().contains(csr.title()));
 
             // Set the fix versions of the primary CSR to 17 and 18.
             csr.setProperty("fixVersions", JSON.array().add("17").add("18"));
             // Simulate the CSRBot.
-            pr.setBody(pr.body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + csrUpdateMarker);
             // Run bot. The primary CSR has the fix version `17`, so it would be used.
             TestBotRunner.runPeriodicItems(bot);
             // The bot should have primary issue and primary CSR
-            assertTrue(pr.body().contains("### Issues"));
-            assertTrue(pr.body().contains(issue.id()));
-            assertTrue(pr.body().contains(issue.title()));
-            assertTrue(pr.body().contains(csr.id()));
-            assertTrue(pr.body().contains(csr.title() + " (**CSR**)"));
+            assertTrue(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains(issue.id()));
+            assertTrue(pr.store().body().contains(issue.title()));
+            assertTrue(pr.store().body().contains(csr.id()));
+            assertTrue(pr.store().body().contains(csr.title() + " (**CSR**)"));
 
             // Revert the fix versions of the primary CSR to 18.
             csr.setProperty("fixVersions", JSON.array().add("18"));
@@ -2122,18 +2059,18 @@ class CheckTests {
             backportIssue.setState(Issue.State.OPEN);
             issue.addLink(Link.create(backportIssue, "backported by").build());
             // Simulate the CSRBot.
-            pr.setBody(pr.body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + csrUpdateMarker);
             // Run bot. The bot can find a backport issue but can't find a backport CSR.
             TestBotRunner.runPeriodicItems(bot);
             // The bot should have primary issue and shouldn't have primary CSR.
-            assertTrue(pr.body().contains("### Issue"));
-            assertFalse(pr.body().contains("### Issues"));
-            assertTrue(pr.body().contains(issue.id()));
-            assertTrue(pr.body().contains(issue.title()));
-            assertFalse(pr.body().contains(csr.id()));
-            assertFalse(pr.body().contains(csr.title()));
-            assertFalse(pr.body().contains(backportIssue.id()));
-            assertFalse(pr.body().contains(backportIssue.title()));
+            assertTrue(pr.store().body().contains("### Issue"));
+            assertFalse(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains(issue.id()));
+            assertTrue(pr.store().body().contains(issue.title()));
+            assertFalse(pr.store().body().contains(csr.id()));
+            assertFalse(pr.store().body().contains(csr.title()));
+            assertFalse(pr.store().body().contains(backportIssue.id()));
+            assertFalse(pr.store().body().contains(backportIssue.title()));
 
             // Create a backport CSR whose fix version is 17.
             var backportCsr = issueProject.createIssue("This is the backport CSR", List.of(), Map.of());
@@ -2142,19 +2079,19 @@ class CheckTests {
             backportCsr.setState(Issue.State.OPEN);
             backportIssue.addLink(Link.create(backportCsr, "csr for").build());
             // Simulate the CSRBot.
-            pr.setBody(pr.body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + csrUpdateMarker);
             // Run bot. The bot can find a backport issue and a backport CSR.
             TestBotRunner.runPeriodicItems(bot);
             // The bot should have primary issue and backport CSR.
-            assertTrue(pr.body().contains("### Issues"));
-            assertTrue(pr.body().contains(issue.id()));
-            assertTrue(pr.body().contains(issue.title()));
-            assertTrue(pr.body().contains(backportCsr.id()));
-            assertTrue(pr.body().contains(backportCsr.title() + " (**CSR**)"));
-            assertFalse(pr.body().contains(csr.id()));
-            assertFalse(pr.body().contains(csr.title()));
-            assertFalse(pr.body().contains(backportIssue.id()));
-            assertFalse(pr.body().contains(backportIssue.title()));
+            assertTrue(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains(issue.id()));
+            assertTrue(pr.store().body().contains(issue.title()));
+            assertTrue(pr.store().body().contains(backportCsr.id()));
+            assertTrue(pr.store().body().contains(backportCsr.title() + " (**CSR**)"));
+            assertFalse(pr.store().body().contains(csr.id()));
+            assertFalse(pr.store().body().contains(csr.title()));
+            assertFalse(pr.store().body().contains(backportIssue.id()));
+            assertFalse(pr.store().body().contains(backportIssue.title()));
 
             // Now we have a primary issue, a primary CSR, a backport issue, a backport CSR.
             // Set the backport CSR to have multiple fix versions, included 11.
@@ -2168,37 +2105,37 @@ class CheckTests {
             confHash = localRepo.commit("Set the version as 11", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.url(), "master", true);
             // Simulate the CSRBot.
-            pr.setBody(pr.body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + csrUpdateMarker);
             // Run bot.
             TestBotRunner.runPeriodicItems(bot);
             // The PR should have primary issue and backport CSR.
-            assertTrue(pr.body().contains("### Issues"));
-            assertTrue(pr.body().contains(issue.id()));
-            assertTrue(pr.body().contains(issue.title()));
-            assertTrue(pr.body().contains(backportCsr.id()));
-            assertTrue(pr.body().contains(backportCsr.title() + " (**CSR**)"));
-            assertFalse(pr.body().contains(csr.id()));
-            assertFalse(pr.body().contains(csr.title()));
-            assertFalse(pr.body().contains(backportIssue.id()));
-            assertFalse(pr.body().contains(backportIssue.title()));
+            assertTrue(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains(issue.id()));
+            assertTrue(pr.store().body().contains(issue.title()));
+            assertTrue(pr.store().body().contains(backportCsr.id()));
+            assertTrue(pr.store().body().contains(backportCsr.title() + " (**CSR**)"));
+            assertFalse(pr.store().body().contains(csr.id()));
+            assertFalse(pr.store().body().contains(csr.title()));
+            assertFalse(pr.store().body().contains(backportIssue.id()));
+            assertFalse(pr.store().body().contains(backportIssue.title()));
 
             // Set the backport CSR to have multiple fix versions, excluded 11.
             backportCsr.setProperty("fixVersions", JSON.array().add("17").add("8"));
             // Simulate the CSRBot.
-            pr.setBody(pr.body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + csrUpdateMarker);
             // Run bot.
             TestBotRunner.runPeriodicItems(bot);
             // The bot should have primary issue and shouldn't have CSR.
-            assertTrue(pr.body().contains("### Issue"));
-            assertFalse(pr.body().contains("### Issues"));
-            assertTrue(pr.body().contains(issue.id()));
-            assertTrue(pr.body().contains(issue.title()));
-            assertFalse(pr.body().contains(csr.id()));
-            assertFalse(pr.body().contains(csr.title()));
-            assertFalse(pr.body().contains(backportIssue.id()));
-            assertFalse(pr.body().contains(backportIssue.title()));
-            assertFalse(pr.body().contains(backportCsr.id()));
-            assertFalse(pr.body().contains(backportCsr.title()));
+            assertTrue(pr.store().body().contains("### Issue"));
+            assertFalse(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains(issue.id()));
+            assertTrue(pr.store().body().contains(issue.title()));
+            assertFalse(pr.store().body().contains(csr.id()));
+            assertFalse(pr.store().body().contains(csr.title()));
+            assertFalse(pr.store().body().contains(backportIssue.id()));
+            assertFalse(pr.store().body().contains(backportIssue.title()));
+            assertFalse(pr.store().body().contains(backportCsr.id()));
+            assertFalse(pr.store().body().contains(backportCsr.title()));
         }
     }
 }

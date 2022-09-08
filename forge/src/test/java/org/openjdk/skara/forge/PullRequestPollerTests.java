@@ -8,7 +8,6 @@ import org.junit.jupiter.api.TestInfo;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.test.HostCredentials;
 import org.openjdk.skara.test.TestHost;
-import org.openjdk.skara.test.TestPullRequest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -122,23 +121,23 @@ public class PullRequestPollerTests {
             // Add a new label but make sure the updatedAt time was not updated. This should trigger an update.
             var prevUpdatedAt = pr.updatedAt();
             pr.addLabel("foo");
-            ((TestPullRequest) pr).setLastUpdate(prevUpdatedAt);
+            pr.store().setLastUpdate(prevUpdatedAt);
             prs = prPoller.updatedPullRequests();
             assertEquals(1, prs.size());
             prPoller.lastBatchHandled();
 
-            // Add comment. This should not trigger an update
+            // Add comment while keeping the updatedAt time unchanged. This should not trigger an update
             prevUpdatedAt = pr.updatedAt();
             pr.addComment("foo");
-            ((TestPullRequest) pr).setLastUpdate(prevUpdatedAt);
+            pr.store().setLastUpdate(prevUpdatedAt);
             prs = prPoller.updatedPullRequests();
             assertEquals(0, prs.size());
             prPoller.lastBatchHandled();
 
-            // Add review. This should not trigger an update
+            // Add review while keeping the updatedAt time unchanged. This should not trigger an update
             prevUpdatedAt = pr.updatedAt();
             pr.addReview(Review.Verdict.APPROVED, "foo");
-            ((TestPullRequest) pr).setLastUpdate(prevUpdatedAt);
+            pr.store().setLastUpdate(prevUpdatedAt);
             prs = prPoller.updatedPullRequests();
             assertEquals(0, prs.size());
             prPoller.lastBatchHandled();
@@ -171,31 +170,31 @@ public class PullRequestPollerTests {
             // Add a new comment but make sure the updatedAt time was not updated. This should trigger an update.
             var prevUpdatedAt = pr.updatedAt();
             pr.addLabel("foo");
-            ((TestPullRequest) pr).setLastUpdate(prevUpdatedAt);
+            pr.store().setLastUpdate(prevUpdatedAt);
             prs = prPoller.updatedPullRequests();
             assertEquals(1, prs.size());
             prPoller.lastBatchHandled();
 
-            // Add comment. This should trigger an update.
+            // Add comment while keeping updatedAt unchanged. This should trigger an update.
             prevUpdatedAt = pr.updatedAt();
             pr.addComment("foo");
-            ((TestPullRequest) pr).setLastUpdate(prevUpdatedAt);
+            pr.store().setLastUpdate(prevUpdatedAt);
             prs = prPoller.updatedPullRequests();
             assertEquals(1, prs.size());
             prPoller.lastBatchHandled();
 
-            // Update comment. This should trigger an update.
+            // Update comment while keeping updatedAt unchanged. This should trigger an update.
             prevUpdatedAt = pr.updatedAt();
             pr.updateComment(pr.comments().get(0).id(), "bar");
-            ((TestPullRequest) pr).setLastUpdate(prevUpdatedAt);
+            pr.store().setLastUpdate(prevUpdatedAt);
             prs = prPoller.updatedPullRequests();
             assertEquals(1, prs.size());
             prPoller.lastBatchHandled();
 
-            // Add review. This should not trigger an update.
+            // Add review while keeping updatedAt unchanged. This should not trigger an update.
             prevUpdatedAt = pr.updatedAt();
             pr.addReview(Review.Verdict.APPROVED, "foo");
-            ((TestPullRequest) pr).setLastUpdate(prevUpdatedAt);
+            pr.store().setLastUpdate(prevUpdatedAt);
             prs = prPoller.updatedPullRequests();
             assertEquals(0, prs.size());
             prPoller.lastBatchHandled();
@@ -225,26 +224,26 @@ public class PullRequestPollerTests {
             assertEquals(0, prs.size());
             prPoller.lastBatchHandled();
 
-            // Add a new comment but make sure the updatedAt time was not updated. This should trigger an update.
+            // Add a label but make sure the updatedAt time was not updated. This should trigger an update.
             var prevUpdatedAt = pr.updatedAt();
             pr.addLabel("foo");
-            ((TestPullRequest) pr).setLastUpdate(prevUpdatedAt);
+            pr.store().setLastUpdate(prevUpdatedAt);
             prs = prPoller.updatedPullRequests();
             assertEquals(1, prs.size());
             prPoller.lastBatchHandled();
 
-            // Add comment. This should trigger an update
+            // Add comment while keeping updatedAt unchanged. This should not trigger an update
             prevUpdatedAt = pr.updatedAt();
             pr.addComment("foo");
-            ((TestPullRequest) pr).setLastUpdate(prevUpdatedAt);
+            pr.store().setLastUpdate(prevUpdatedAt);
             prs = prPoller.updatedPullRequests();
             assertEquals(0, prs.size());
             prPoller.lastBatchHandled();
 
-            // Add review. This should not trigger an update
+            // Add review while keeping updatedAt unchanged. This should trigger an update
             prevUpdatedAt = pr.updatedAt();
             pr.addReview(Review.Verdict.APPROVED, "foo");
-            ((TestPullRequest) pr).setLastUpdate(prevUpdatedAt);
+            pr.store().setLastUpdate(prevUpdatedAt);
             prs = prPoller.updatedPullRequests();
             assertEquals(1, prs.size());
             prPoller.lastBatchHandled();

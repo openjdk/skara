@@ -51,11 +51,12 @@ public class BackportsTests {
             issue3.setProperty("issuetype", JSON.of("Backport"));
             issue3.addLink(Link.create(issue1, "backport of").build());
 
-            assertEquals(issue1, Backports.findMainIssue(issue1).orElseThrow());
-            assertEquals(issue1, Backports.findMainIssue(issue2).orElseThrow());
-            assertEquals(issue1, Backports.findMainIssue(issue3).orElseThrow());
+            assertEquals(issue1.id(), Backports.findMainIssue(issue1).orElseThrow().id());
+            assertEquals(issue1.id(), Backports.findMainIssue(issue2).orElseThrow().id());
+            assertEquals(issue1.id(), Backports.findMainIssue(issue3).orElseThrow().id());
 
-            assertEquals(List.of(issue2, issue3), Backports.findBackports(issue1, false));
+            assertEquals(List.of(issue2.id(), issue3.id()),
+                    Backports.findBackports(issue1, false).stream().map(Issue::id).toList());
             assertEquals(List.of(), Backports.findBackports(issue1, true));
         }
     }
@@ -75,7 +76,7 @@ public class BackportsTests {
             issue3.setProperty("issuetype", JSON.of("Backport"));
             issue2.addLink(Link.create(issue3, "backported by").build());
 
-            assertEquals(issue1, Backports.findMainIssue(issue1).orElseThrow());
+            assertEquals(issue1.id(), Backports.findMainIssue(issue1).orElseThrow().id());
             assertEquals(Optional.empty(), Backports.findMainIssue(issue2));
             assertEquals(Optional.empty(), Backports.findMainIssue(issue3));
         }
@@ -104,8 +105,8 @@ public class BackportsTests {
             issue4.setState(Issue.State.RESOLVED);
             issue1.addLink(Link.create(issue4, "related to").build());
 
-            assertEquals(issue1, Backports.findMainIssue(issue1).orElseThrow());
-            assertEquals(issue2, Backports.findMainIssue(issue2).orElseThrow());
+            assertEquals(issue1.id(), Backports.findMainIssue(issue1).orElseThrow().id());
+            assertEquals(issue2.id(), Backports.findMainIssue(issue2).orElseThrow().id());
             assertEquals(Optional.empty(), Backports.findMainIssue(issue3));
             assertEquals(Optional.empty(), Backports.findMainIssue(issue4));
 
@@ -162,30 +163,30 @@ public class BackportsTests {
             issue.setProperty("fixVersions", JSON.array().add("11-pool"));
             backport.setProperty("fixVersions", JSON.array().add("12-pool"));
             backportFoo.setProperty("fixVersions", JSON.array().add("12-pool-foo"));
-            assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow());
-            assertEquals(backport, Backports.findIssue(issue, JdkVersion.parse("12.2").orElseThrow()).orElseThrow());
-            assertEquals(backportFoo, Backports.findIssue(issue, JdkVersion.parse("12.2-foo").orElseThrow()).orElseThrow());
+            assertEquals(issue.id(), Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow().id());
+            assertEquals(backport.id(), Backports.findIssue(issue, JdkVersion.parse("12.2").orElseThrow()).orElseThrow().id());
+            assertEquals(backportFoo.id(), Backports.findIssue(issue, JdkVersion.parse("12.2-foo").orElseThrow()).orElseThrow().id());
             assertEquals(Optional.empty(), Backports.findIssue(issue, JdkVersion.parse("13.3").orElseThrow()));
-            assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("11.1-foo").orElseThrow()).orElseThrow());
+            assertEquals(issue.id(), Backports.findIssue(issue, JdkVersion.parse("11.1-foo").orElseThrow()).orElseThrow().id());
 
             backport.setProperty("fixVersions", JSON.array().add("openjfx17-pool"));
-            assertEquals(backport, Backports.findIssue(issue, JdkVersion.parse("openjfx17.0.1").orElseThrow()).orElseThrow());
+            assertEquals(backport.id(), Backports.findIssue(issue, JdkVersion.parse("openjfx17.0.1").orElseThrow()).orElseThrow().id());
 
             backportFoo.setProperty("fixVersions", JSON.array().add("8-pool-foo"));
-            assertEquals(backportFoo, Backports.findIssue(issue, JdkVersion.parse("8u333-foo").orElseThrow()).orElseThrow());
+            assertEquals(backportFoo.id(), Backports.findIssue(issue, JdkVersion.parse("8u333-foo").orElseThrow()).orElseThrow().id());
 
             issue.setProperty("fixVersions", JSON.array().add("tbd"));
-            assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow());
+            assertEquals(issue.id(), Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow().id());
 
             issue.setProperty("fixVersions", JSON.array().add("12.2"));
             backport.setProperty("fixVersions", JSON.array().add("tbd"));
-            assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("12.2").orElseThrow()).orElseThrow());
-            assertEquals(backport, Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow());
+            assertEquals(issue.id(), Backports.findIssue(issue, JdkVersion.parse("12.2").orElseThrow()).orElseThrow().id());
+            assertEquals(backport.id(), Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow().id());
 
             issue.setProperty("fixVersions", JSON.array().add("12.2"));
             backport.setProperty("fixVersions", JSON.array().add("11.1"));
-            assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("12.2").orElseThrow()).orElseThrow());
-            assertEquals(backport, Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow());
+            assertEquals(issue.id(), Backports.findIssue(issue, JdkVersion.parse("12.2").orElseThrow()).orElseThrow().id());
+            assertEquals(backport.id(), Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow().id());
             assertEquals(Optional.empty(), Backports.findIssue(issue, JdkVersion.parse("13.3").orElseThrow()));
         }
     }

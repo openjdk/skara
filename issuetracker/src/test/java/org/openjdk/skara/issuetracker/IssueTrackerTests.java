@@ -127,7 +127,8 @@ class IssueTrackerTests {
 
             var links = issue2.links();
             assertEquals(1, links.size());
-            assertEquals(link, links.get(0));
+            assertEquals(link.relationship(), links.get(0).relationship());
+            assertEquals(link.issue().orElseThrow().id(), links.get(0).issue().orElseThrow().id());
 
             assertEquals(1, issue1.links().size());
             var linkFromIssue1 = issue1.links().get(0);

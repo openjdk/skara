@@ -1592,16 +1592,6 @@ class MailingListBridgeBotTests {
             var nextHash = CheckableRepository.appendAndCommit(localRepo, "Yet one more line", "Fixing");
             localRepo.push(nextHash, author.url(), "edit");
 
-            // Make sure that the push registered
-            var lastHeadHash = pr.headHash();
-            var refreshCount = 0;
-            do {
-                pr = author.pullRequest(pr.id());
-                if (refreshCount++ > 100) {
-                    fail("The PR did not update after the new push");
-                }
-            } while (pr.headHash().equals(lastHeadHash));
-
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
             TestBotRunner.runPeriodicItems(mlBot);
@@ -1649,16 +1639,6 @@ class MailingListBridgeBotTests {
             for (int i = 0; i < 3; ++i) {
                 var anotherHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fixing");
                 localRepo.push(anotherHash, author.url(), "edit");
-
-                // Make sure that the push registered
-                lastHeadHash = pr.headHash();
-                refreshCount = 0;
-                do {
-                    pr = author.pullRequest(pr.id());
-                    if (refreshCount++ > 100) {
-                        fail("The PR did not update after the new push");
-                    }
-                } while (pr.headHash().equals(lastHeadHash));
 
                 TestBotRunner.runPeriodicItems(mlBot);
                 TestBotRunner.runPeriodicItems(mlBot);
@@ -1724,16 +1704,6 @@ class MailingListBridgeBotTests {
             var newLocalRepo = Repository.materialize(tempFolder.path().resolve("second"), author.url(), "master");
             var newEditHash = CheckableRepository.appendAndCommit(newLocalRepo, "Another line", "Replaced msg");
             newLocalRepo.push(newEditHash, author.url(), "edit", true);
-
-            // Make sure that the push registered
-            var lastHeadHash = pr.headHash();
-            var refreshCount = 0;
-            do {
-                pr = author.pullRequest(pr.id());
-                if (refreshCount++ > 100) {
-                    fail("The PR did not update after the new push");
-                }
-            } while (pr.headHash().equals(lastHeadHash));
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
@@ -1827,16 +1797,6 @@ class MailingListBridgeBotTests {
             localRepo.push(newMasterHash, author.url(), "master");
             var newEditHash = CheckableRepository.appendAndCommit(localRepo, "Edit line", "New edit commit message");
             localRepo.push(newEditHash, author.url(), "edit", true);
-
-            // Make sure that the push registered
-            var lastHeadHash = pr.headHash();
-            var refreshCount = 0;
-            do {
-                pr = author.pullRequest(pr.id());
-                if (refreshCount++ > 100) {
-                    fail("The PR did not update after the new push");
-                }
-            } while (pr.headHash().equals(lastHeadHash));
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
@@ -1938,16 +1898,6 @@ class MailingListBridgeBotTests {
             localRepo.merge(newMasterHash);
             var newEditHash = localRepo.commit("Latest changes from master", "duke", "duke@openjdk.org");
             localRepo.push(newEditHash, author.url(), "edit");
-
-            // Make sure that the push registered
-            var lastHeadHash = pr.headHash();
-            var refreshCount = 0;
-            do {
-                pr = author.pullRequest(pr.id());
-                if (refreshCount++ > 100) {
-                    fail("The PR did not update after the new push");
-                }
-            } while (pr.headHash().equals(lastHeadHash));
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
