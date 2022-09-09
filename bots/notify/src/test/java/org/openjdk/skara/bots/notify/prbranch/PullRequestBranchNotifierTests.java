@@ -304,8 +304,7 @@ public class PullRequestBranchNotifierTests {
             assertThrows(IOException.class, () -> localRepo.fetch(repo.url(), targetBranch));
 
             // The another follow-up PR should have been retargeted
-            anotherFollowUpPr = repo.pullRequest(anotherFollowUpPr.id());
-            assertEquals("master", anotherFollowUpPr.targetRef());
+            assertEquals("master", anotherFollowUpPr.store().targetRef());
             lastComment = anotherFollowUpPr.comments().get(anotherFollowUpPr.comments().size() - 1);
             assertTrue(lastComment.body().contains("The parent pull request that this "
                     + "pull request depends on has now been integrated"), lastComment.body());
