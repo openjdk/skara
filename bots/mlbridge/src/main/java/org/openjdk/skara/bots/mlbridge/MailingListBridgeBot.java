@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -211,10 +211,10 @@ public class MailingListBridgeBot implements Bot {
             lastFullUpdate = ZonedDateTime.now();
             lastPartialUpdate = lastFullUpdate;
             log.info("Fetching all open pull requests for " + codeRepo.name());
-            prs = codeRepo.pullRequests();
+            prs = codeRepo.openPullRequests();
         } else {
             log.info("Fetching recently updated pull requests (open and closed) for " + codeRepo.name());
-            prs = codeRepo.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(14)));
+            prs = codeRepo.pullRequestsAfter(ZonedDateTime.now().minus(Duration.ofDays(14)));
             lastPartialUpdate = ZonedDateTime.now();
         }
 

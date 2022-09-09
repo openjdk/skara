@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -138,7 +138,7 @@ public class PullRequestCloserBot implements Bot {
     public List<WorkItem> getPeriodicItems() {
         List<WorkItem> ret = new LinkedList<>();
 
-        for (var pr : remoteRepo.pullRequests()) {
+        for (var pr : remoteRepo.openPullRequests()) {
             if (updateCache.needsUpdate(pr)) {
                 var item = new PullRequestCloserBotWorkItem(remoteRepo, pr, type, e -> updateCache.invalidate(pr));
                 ret.add(item);

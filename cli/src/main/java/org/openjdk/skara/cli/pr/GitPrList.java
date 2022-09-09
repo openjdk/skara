@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -118,7 +118,7 @@ public class GitPrList {
         var host = getForge(uri, repo, arguments);
         var remoteRepo = ForgeUtils.getHostedRepositoryFor(uri, repo, host);
 
-        var prs = remoteRepo.pullRequests();
+        var prs = remoteRepo.openPullRequests();
         var ids = new ArrayList<String>();
         var titles = new ArrayList<String>();
         var authors = new ArrayList<String>();

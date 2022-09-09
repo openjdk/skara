@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -55,7 +55,7 @@ class PullRequestCloserBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // There should now be no open PRs
-            var prs = author.pullRequests();
+            var prs = author.openPullRequests();
             assertEquals(0, prs.size());
 
             var updatedPr = author.pullRequest(pr.id());
@@ -84,17 +84,17 @@ class PullRequestCloserBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // There should now be no open PRs
-            var prs = author.pullRequests();
+            var prs = author.openPullRequests();
             assertEquals(0, prs.size());
 
             // The author is persistent
             pr.setState(Issue.State.OPEN);
-            prs = author.pullRequests();
+            prs = author.openPullRequests();
             assertEquals(1, prs.size());
 
             // But so is the bot
             TestBotRunner.runPeriodicItems(bot);
-            prs = author.pullRequests();
+            prs = author.openPullRequests();
             assertEquals(0, prs.size());
 
             // There should still only be one welcome comment
@@ -126,17 +126,17 @@ class PullRequestCloserBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // There should now be no open PRs
-            var prs = author.pullRequests();
+            var prs = author.openPullRequests();
             assertEquals(0, prs.size());
 
             // The author is persistent
             pr.setState(Issue.State.OPEN);
-            prs = author.pullRequests();
+            prs = author.openPullRequests();
             assertEquals(1, prs.size());
 
             // But so is the bot
             TestBotRunner.runPeriodicItems(bot);
-            prs = author.pullRequests();
+            prs = author.openPullRequests();
             assertEquals(0, prs.size());
 
             // There should still only be one welcome comment
