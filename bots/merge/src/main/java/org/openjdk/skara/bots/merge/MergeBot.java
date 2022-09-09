@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -294,7 +294,7 @@ class MergeBot implements Bot, WorkItem {
             var prTarget = fork.forge().repository(target.name()).orElseThrow(() ->
                     new IllegalStateException("Can't get well-known repository " + target.name())
             );
-            var prs = prTarget.pullRequests();
+            var prs = prTarget.openPullRequests();
             var currentUser = prTarget.forge().currentUser();
 
             var unmerged = new HashSet<String>();
@@ -399,7 +399,7 @@ class MergeBot implements Bot, WorkItem {
                 // Check if any prerequisite repository has a conflict pull request open
                 if (shouldMerge) {
                     for (var prereq : spec.prerequisites()) {
-                        var openMergeConflictPRs = prereq.pullRequests()
+                        var openMergeConflictPRs = prereq.openPullRequests()
                                                          .stream()
                                                          .filter(pr -> pr.title().startsWith("Merge "))
                                                          .filter(pr -> pr.body().startsWith(marker))

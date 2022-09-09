@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -110,7 +110,7 @@ class MergeBotTests {
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
-            assertEquals(0, toHostedRepo.pullRequests().size());
+            assertEquals(0, toHostedRepo.openPullRequests().size());
         }
     }
 
@@ -358,7 +358,7 @@ class MergeBotTests {
             assertTrue(toHashes.contains(toHashA));
             assertTrue(toHashes.contains(toHashB));
 
-            var pullRequests = toHostedRepo.pullRequests();
+            var pullRequests = toHostedRepo.openPullRequests();
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
             assertEquals("Merge test:master", pr.title());
@@ -429,7 +429,7 @@ class MergeBotTests {
             assertTrue(toHashes.contains(toHashA));
             assertTrue(toHashes.contains(toHashB));
 
-            var pullRequests = toHostedRepo.pullRequests();
+            var pullRequests = toHostedRepo.openPullRequests();
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
             assertEquals("Merge test:master", pr.title());
@@ -562,7 +562,7 @@ class MergeBotTests {
             assertTrue(toHashes.contains(toHashA));
             assertTrue(toHashes.contains(toHashB));
 
-            var pullRequests = toHostedRepo.pullRequests();
+            var pullRequests = toHostedRepo.openPullRequests();
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
             assertEquals("Merge test:master", pr.title());
@@ -674,7 +674,7 @@ class MergeBotTests {
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
-            assertEquals(0, toHostedRepo.pullRequests().size());
+            assertEquals(0, toHostedRepo.openPullRequests().size());
 
             var fromFileD = fromDir.resolve("d.txt");
             Files.writeString(fromFileD, "Hello D\n");
@@ -789,7 +789,7 @@ class MergeBotTests {
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
-            assertEquals(0, toHostedRepo.pullRequests().size());
+            assertEquals(0, toHostedRepo.openPullRequests().size());
 
             var fromFileD = fromDir.resolve("d.txt");
             Files.writeString(fromFileD, "Hello D\n");
@@ -910,7 +910,7 @@ class MergeBotTests {
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
-            assertEquals(0, toHostedRepo.pullRequests().size());
+            assertEquals(0, toHostedRepo.openPullRequests().size());
 
             var fromFileD = fromDir.resolve("d.txt");
             Files.writeString(fromFileD, "Hello D\n");
@@ -1031,7 +1031,7 @@ class MergeBotTests {
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
-            assertEquals(0, toHostedRepo.pullRequests().size());
+            assertEquals(0, toHostedRepo.openPullRequests().size());
 
             var fromFileD = fromDir.resolve("d.txt");
             Files.writeString(fromFileD, "Hello D\n");
@@ -1152,7 +1152,7 @@ class MergeBotTests {
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
-            assertEquals(0, toHostedRepo.pullRequests().size());
+            assertEquals(0, toHostedRepo.openPullRequests().size());
 
             var fromFileD = fromDir.resolve("d.txt");
             Files.writeString(fromFileD, "Hello D\n");

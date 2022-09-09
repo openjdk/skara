@@ -145,13 +145,27 @@ public class GitHubRepository implements HostedRepository {
 
     @Override
     public List<PullRequest> pullRequests() {
-        return request.get("pulls").execute().asArray().stream()
+        return request.get("pulls")
+                      .param("state", "all")
+                      .param("sort", "updated")
+                      .param("direction", "desc")
+                      .maxPages(1)
+                      .execute().asArray().stream()
                       .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
                       .collect(Collectors.toList());
     }
 
     @Override
-    public List<PullRequest> pullRequests(ZonedDateTime updatedAfter) {
+    public List<PullRequest> openPullRequests() {
+        return request.get("pulls")
+                      .param("state", "open")
+                      .execute().asArray().stream()
+                      .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
+                      .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PullRequest> pullRequestsAfter(ZonedDateTime updatedAfter) {
         return request.get("pulls")
                       .param("state", "all")
                       .param("sort", "updated")

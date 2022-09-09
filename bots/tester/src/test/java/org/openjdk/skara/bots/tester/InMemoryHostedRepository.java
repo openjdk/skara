@@ -64,7 +64,12 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public List<PullRequest> pullRequests(ZonedDateTime updatedAfter) {
+    public List<PullRequest> openPullRequests() {
+        return null;
+    }
+
+    @Override
+    public List<PullRequest> pullRequestsAfter(ZonedDateTime updatedAfter) {
         return null;
     }
 
