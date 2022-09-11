@@ -78,11 +78,9 @@ class IssueWorkItem implements WorkItem {
         var ret = new ArrayList<WorkItem>();
         Stream.concat(mainIssue.stream(), backports.stream())
                 .flatMap(i -> PullRequestUtils.pullRequestCommentLink(i).stream())
-                .map(uri -> bot.repositories().stream()
-                        .map(r -> r.parsePullRequestUrl(uri.toString()))
-                        .flatMap(Optional::stream)
-                        .findAny())
-                .flatMap(Optional::stream)
+                .flatMap(uri -> bot.repositories().stream()
+                        .flatMap(r -> r.parsePullRequestUrl(uri.toString()).stream()))
+                .filter(Issue::isOpen)
                 // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
                 // best we can do.
                 .map(pr -> new PullRequestWorkItem(pr.repository(), pr.id(), csrIssue.project(), csrIssue.updatedAt()))

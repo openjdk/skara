@@ -43,7 +43,7 @@ public interface HostedRepository {
     PullRequest pullRequest(String id);
 
     /**
-     * Returns a list of all open pull requests.
+     * Returns a list of all the pull requests (included open and closed).
      */
     List<PullRequest> pullRequests();
 
@@ -53,11 +53,16 @@ public interface HostedRepository {
     //  and the method `pullRequests()` should return all the pull requests (included open and closed).
 
     /**
+     * Returns a list of all open pull requests.
+     */
+    List<PullRequest> openPullRequests();
+
+    /**
      * Returns a list of all pull requests (both open and closed) that have been updated after the
      * provided time, ordered by latest updated first. If there are many pull requests that
      * match, the list may have been truncated.
      */
-    List<PullRequest> pullRequests(ZonedDateTime updatedAfter);
+    List<PullRequest> pullRequestsAfter(ZonedDateTime updatedAfter);
 
     /**
      * Returns a list of all open pull requests that have been updated after the given time.

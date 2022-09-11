@@ -67,7 +67,7 @@ class CSRPullRequestBot implements Bot {
         Map<String, ZonedDateTime> newPrsUpdatedAt = new HashMap<>();
         // On the first run we have to re-evaluate all open PRs, after that, only
         // looking at PRs that have been updated should be enough.
-        var prs = lastUpdatedAt != null ? repo.openPullRequestsAfter(lastUpdatedAt) : repo.pullRequests();
+        var prs = lastUpdatedAt != null ? repo.openPullRequestsAfter(lastUpdatedAt) : repo.openPullRequests();
         for (PullRequest pr : prs) {
             newPrsUpdatedAt.put(pr.id(), pr.updatedAt());
             // Update lastUpdatedAt with the last found updatedAt for the next call
