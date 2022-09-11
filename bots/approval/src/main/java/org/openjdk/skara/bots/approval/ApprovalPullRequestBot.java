@@ -45,7 +45,7 @@ public class ApprovalPullRequestBot extends AbstractApprovalBot implements Bot {
     @Override
     public List<WorkItem> getPeriodicItems() {
         var items = new ArrayList<WorkItem>();
-        for (var pr : poller.getUpdatedPullRequests(HostedRepository::openPullRequestsAfter, HostedRepository::pullRequests)) {
+        for (var pr : poller.getUpdatedPullRequests(HostedRepository::openPullRequestsAfter, HostedRepository::openPullRequests)) {
             if (requiresApproval(pr)) {
                 var pullRequestWorkItem = new ApprovalPullRequestWorkItem(repository, pr.id(), issueProject(),
                                 approvalInfos().stream().filter(info -> approvalInfoMatch(info, pr)).findFirst().get());

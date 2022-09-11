@@ -62,7 +62,7 @@ public class UpdatedPullRequestPollerTests {
 
             // First time, the poller should get all the open pull requests.
             var poller = new UpdatedPullRequestPoller(repo);
-            var list = poller.getUpdatedPullRequests(HostedRepository::openPullRequestsAfter, HostedRepository::pullRequests);
+            var list = poller.getUpdatedPullRequests(HostedRepository::openPullRequestsAfter, HostedRepository::openPullRequests);
             assertEquals(2, list.size());
             assertEquals(1, list.stream().filter(pr -> pr.id().equals(openPr1.id())).count());
             assertEquals(1, list.stream().filter(pr -> pr.id().equals(openPr2.id())).count());
@@ -72,7 +72,7 @@ public class UpdatedPullRequestPollerTests {
             closedPr1.addLabel("test");
 
             // The poller should get the open pr 1.
-            list = poller.getUpdatedPullRequests(HostedRepository::openPullRequestsAfter, HostedRepository::pullRequests);
+            list = poller.getUpdatedPullRequests(HostedRepository::openPullRequestsAfter, HostedRepository::openPullRequests);
             assertEquals(1, list.size());
             assertEquals(1, list.stream().filter(pr -> pr.id().equals(openPr1.id())).count());
 
@@ -81,7 +81,7 @@ public class UpdatedPullRequestPollerTests {
             closedPr2.addLabel("test2");
 
             // The poller shouldn't get any pr.
-            list = poller.getUpdatedPullRequests(HostedRepository::openPullRequestsAfter, HostedRepository::pullRequests);
+            list = poller.getUpdatedPullRequests(HostedRepository::openPullRequestsAfter, HostedRepository::openPullRequests);
             assertEquals(0, list.size());
 
             // Update the open pr 1 and open pr 2
@@ -89,13 +89,13 @@ public class UpdatedPullRequestPollerTests {
             openPr2.addLabel("test2");
 
             // The poller should get the open pr 1 and open pr 2.
-            list = poller.getUpdatedPullRequests(HostedRepository::openPullRequestsAfter, HostedRepository::pullRequests);
+            list = poller.getUpdatedPullRequests(HostedRepository::openPullRequestsAfter, HostedRepository::openPullRequests);
             assertEquals(2, list.size());
             assertEquals(1, list.stream().filter(pr -> pr.id().equals(openPr1.id())).count());
             assertEquals(1, list.stream().filter(pr -> pr.id().equals(openPr2.id())).count());
 
             // No pr updates.
-            list = poller.getUpdatedPullRequests(HostedRepository::openPullRequestsAfter, HostedRepository::pullRequests);
+            list = poller.getUpdatedPullRequests(HostedRepository::openPullRequestsAfter, HostedRepository::openPullRequests);
             assertEquals(0, list.size());
         }
     }

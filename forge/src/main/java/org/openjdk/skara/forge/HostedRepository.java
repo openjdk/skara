@@ -47,11 +47,6 @@ public interface HostedRepository {
      */
     List<PullRequest> pullRequests();
 
-    // TODO To keep the API name more consistent, the method `pullRequests(ZonedDateTime updatedAfter)`
-    //  should be renamed as ` pullRequestsAfter(ZonedDateTime updatedAfter)`.
-    //  And a new method named `openPullRequests()` should be added to get all the open pull requests,
-    //  and the method `pullRequests()` should return all the pull requests (included open and closed).
-
     /**
      * Returns a list of all open pull requests.
      */

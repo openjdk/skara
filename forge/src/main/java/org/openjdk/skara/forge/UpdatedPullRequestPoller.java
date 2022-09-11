@@ -55,15 +55,9 @@ public class UpdatedPullRequestPoller {
      *
      * If you want to get the updated open pull request, you can use
      * `getUpdatedPullRequests(HostedRepository::openPullRequestsAfter, HostedRepository::openPullRequests)`.
-     * Because the method `HostedRepository::openPullRequests` has not been implemented now,
-     * you can use the method `HostedRepository::pullRequests` instead.
-     * The class `ApprovalPullRequestBot` has such usage.
      *
      * If you want to get all the updated pull request (included open and closed), you can use
      * `getUpdatedPullRequests(HostedRepository::pullRequestsAfter, HostedRepository::pullRequests)`.
-     * The method `HostedRepository::pullRequestsAfter` now is named as `HostedRepository::pullRequests`.
-     * and the `HostedRepository::pullRequests` now only get all the open pull requests.
-     * TODO want the class `HostedRepository` and its sub-classes to be adjusted.
      */
     public List<PullRequest> getUpdatedPullRequests(BiFunction<HostedRepository, ZonedDateTime, List<PullRequest>> updatedPrGetter,
                                                     Function<HostedRepository, List<PullRequest>> prGetter) {
