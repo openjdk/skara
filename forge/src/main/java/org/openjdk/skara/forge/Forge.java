@@ -45,11 +45,12 @@ public interface Forge extends Host {
     Optional<HostedCommit> search(Hash hash);
 
     /**
-     * Some forges do not always update the "updated_at" fields of various objects.
-     * This method returns a Duration indicating how long the shortest update
-     * interval is for this field. This is needed to be taken into account when
-     * running queries based on this field. The default returns 0 which means no
-     * special considerations are needed.
+     * Some forges do not always update the "updated_at" fields of various objects
+     * when the object changes. This method returns a Duration indicating how long
+     * the shortest update interval is for the "updated_at" field. This is needed
+     * to be taken into account when running queries (typically by padding the
+     * timestamp by this duration to guarantee that no results are missed). The
+     * default returns 0 which means no special considerations are needed.
      */
     default Duration minTimeStampUpdateInterval() {
         return Duration.ofMillis(0);

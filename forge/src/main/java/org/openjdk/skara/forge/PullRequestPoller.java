@@ -57,8 +57,8 @@ public class PullRequestPoller {
      * out if future results have been updated or not.
      */
     private record QueryResult(Map<String, PullRequest> pullRequests, Map<String, List<Comment>> comments,
-                               Map<String, List<Review>> reviews, ZonedDateTime maxUpdatedAt, Instant afterQuery,
-                               List<PullRequest> result) {}
+                               Map<String, List<Review>> reviews, ZonedDateTime maxUpdatedAt,
+                               Instant afterQuery, List<PullRequest> result) {}
     private QueryResult current;
     private QueryResult prev;
 
