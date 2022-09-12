@@ -91,8 +91,8 @@ class BackportTests {
             var backportComment = pr.comments().get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
-            assertEquals(issue1Number + ": An issue", pr.title());
-            assertTrue(pr.labelNames().contains("backport"));
+            assertEquals(issue1Number + ": An issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
 
             // Approve PR and re-run bot
             var prAsReviewer = reviewer.pullRequest(pr.id());
@@ -192,8 +192,8 @@ class BackportTests {
             var backportComment = comments.get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
-            assertEquals(issue1Number + ": An issue", pr.title());
-            assertTrue(pr.labelNames().contains("backport"));
+            assertEquals(issue1Number + ": An issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
 
             // Approve PR and re-run bot
             var prAsReviewer = reviewer.pullRequest(pr.id());
@@ -295,8 +295,8 @@ class BackportTests {
             var backportComment = pr.comments().get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
-            assertEquals(issue1Number + ": An issue", pr.title());
-            assertTrue(pr.labelNames().contains("backport"));
+            assertEquals(issue1Number + ": An issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
 
             // Approve PR and re-run bot
             var prAsReviewer = reviewer.pullRequest(pr.id());
@@ -375,7 +375,7 @@ class BackportTests {
             assertLastCommentContains(pr, "<!-- backport error -->");
             assertLastCommentContains(pr, ":warning:");
             assertLastCommentContains(pr, "could not find any commit with hash `0123456789012345678901234567890123456789`");
-            assertFalse(pr.labelNames().contains("backport"));
+            assertFalse(pr.store().labelNames().contains("backport"));
 
             // Re-running the bot should not cause any more error comments
             TestBotRunner.runPeriodicItems(bot);
@@ -443,7 +443,7 @@ class BackportTests {
             assertLastCommentContains(pr, ":warning:");
             assertLastCommentContains(pr, "the given backport hash");
             assertLastCommentContains(pr, "is an ancestor of your proposed change.");
-            assertFalse(pr.labelNames().contains("backport"));
+            assertFalse(pr.store().labelNames().contains("backport"));
 
             // Re-running the bot should not cause any more error comments
             TestBotRunner.runPeriodicItems(bot);
@@ -514,7 +514,7 @@ class BackportTests {
             assertLastCommentContains(pr, ":warning:");
             assertLastCommentContains(pr, "the given backport hash");
             assertLastCommentContains(pr, "is an ancestor of your proposed change.");
-            assertFalse(pr.labelNames().contains("backport"));
+            assertFalse(pr.store().labelNames().contains("backport"));
 
             // Re-running the bot should not cause any more error comments
             TestBotRunner.runPeriodicItems(bot);
@@ -576,13 +576,13 @@ class BackportTests {
             var backportComment = comments.get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
-            assertEquals(issue1Number + ": An issue", pr.title());
-            assertTrue(pr.labelNames().contains("backport"));
+            assertEquals(issue1Number + ": An issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
             assertFalse(pr.body().contains(ReviewersCheck.DESCRIPTION), "Reviewer requirement found in pr body");
             assertFalse(pr.body().contains(CheckRun.MSG_EMPTY_BODY), "Body not empty requirement found in pr body");
 
             // The bot should have added the "clean" label
-            assertTrue(pr.labelNames().contains("clean"));
+            assertTrue(pr.store().labelNames().contains("clean"));
         }
     }
 
@@ -648,11 +648,11 @@ class BackportTests {
             var backportComment = comments.get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
-            assertEquals(issue2Number + ": Another issue", pr.title());
-            assertTrue(pr.labelNames().contains("backport"));
+            assertEquals(issue2Number + ": Another issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
 
             // The bot should have added the "clean" label
-            assertTrue(pr.labelNames().contains("clean"));
+            assertTrue(pr.store().labelNames().contains("clean"));
         }
     }
 
@@ -718,12 +718,12 @@ class BackportTests {
             var backportComment = comments.get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
-            assertEquals(issue2Number + ": Another issue", pr.title());
-            assertTrue(pr.labelNames().contains("backport"));
+            assertEquals(issue2Number + ": Another issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
             assertTrue(pr.body().contains(ReviewersCheck.DESCRIPTION), "Reviewer requirement not found in pr body");
 
             // The bot should not have added the "clean" label
-            assertFalse(pr.labelNames().contains("clean"));
+            assertFalse(pr.store().labelNames().contains("clean"));
         }
     }
 
@@ -792,11 +792,11 @@ class BackportTests {
             var backportComment = comments.get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
-            assertEquals(issue2Number + ": Another issue", pr.title());
-            assertTrue(pr.labelNames().contains("backport"));
+            assertEquals(issue2Number + ": Another issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
 
             // The bot should not have added the "clean" label
-            assertFalse(pr.labelNames().contains("clean"));
+            assertFalse(pr.store().labelNames().contains("clean"));
         }
     }
 
@@ -853,12 +853,12 @@ class BackportTests {
             var backportComment = pr.comments().get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
-            assertEquals(issue1Number + ": An issue", pr.title());
+            assertEquals(issue1Number + ": An issue", pr.store().title());
             assertLastCommentContains(pr, "This change now passes all *automated* pre-integration checks");
-            assertTrue(pr.labelNames().contains("ready"));
-            assertTrue(pr.labelNames().contains("rfr"));
-            assertTrue(pr.labelNames().contains("clean"));
-            assertTrue(pr.labelNames().contains("backport"));
+            assertTrue(pr.store().labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("rfr"));
+            assertTrue(pr.store().labelNames().contains("clean"));
+            assertTrue(pr.store().labelNames().contains("backport"));
 
             // Integrate
             author.pullRequest(pr.id());
@@ -949,13 +949,13 @@ class BackportTests {
             var backportComment = pr.comments().get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
-            assertEquals(issue1Number + ": An issue", pr.title());
+            assertEquals(issue1Number + ": An issue", pr.store().title());
             assertLastCommentContains(pr, "This change now passes all *automated* pre-integration checks");
-            assertTrue(pr.labelNames().contains("ready"));
-            assertTrue(pr.labelNames().contains("rfr"));
-            assertTrue(pr.labelNames().contains("clean"));
-            assertFalse(pr.labelNames().contains("sponsor"));
-            assertTrue(pr.labelNames().contains("backport"));
+            assertTrue(pr.store().labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("rfr"));
+            assertTrue(pr.store().labelNames().contains("clean"));
+            assertFalse(pr.store().labelNames().contains("sponsor"));
+            assertTrue(pr.store().labelNames().contains("backport"));
 
             // Integrate
             var prAsAuthor = author.pullRequest(pr.id());
@@ -963,7 +963,7 @@ class BackportTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should reply with a sponsor message
-            assertTrue(pr.labelNames().contains("sponsor"));
+            assertTrue(pr.store().labelNames().contains("sponsor"));
 
             // Sponsor the commit
             var prAsReviewer = reviewer.pullRequest(pr.id());
@@ -1058,8 +1058,8 @@ class BackportTests {
             var backportComment = pr.comments().get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
-            assertEquals(issue1Number + ": An issue", pr.title());
-            assertTrue(pr.labelNames().contains("backport"));
+            assertEquals(issue1Number + ": An issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
         }
     }
 
@@ -1116,8 +1116,8 @@ class BackportTests {
             var backportComment = pr.comments().get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
-            assertEquals(issue1Number + ": An issue", pr.title());
-            assertTrue(pr.labelNames().contains("backport"));
+            assertEquals(issue1Number + ": An issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
         }
     }
 
@@ -1174,8 +1174,8 @@ class BackportTests {
             var backportComment = pr.comments().get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
-            assertEquals(issue1Number + ": An issue", pr.title());
-            assertTrue(pr.labelNames().contains("backport"));
+            assertEquals(issue1Number + ": An issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
         }
     }
 
@@ -1232,8 +1232,8 @@ class BackportTests {
             var backportComment = pr.comments().get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
-            assertEquals(issue1Number + ": An issue", pr.title());
-            assertTrue(pr.labelNames().contains("backport"));
+            assertEquals(issue1Number + ": An issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
 
             // Approve PR and re-run bot
             var prAsReviewer = reviewer.pullRequest(pr.id());
@@ -1330,7 +1330,7 @@ class BackportTests {
             var backportComment = pr.comments().get(0).body();
             assertTrue(backportComment.contains("<!-- backport error -->"));
             assertTrue(backportComment.contains("the commit `" + releaseHash.hex() + "` does not refer to an issue"));
-            assertFalse(pr.labelNames().contains("backport"));
+            assertFalse(pr.store().labelNames().contains("backport"));
         }
     }
 
@@ -1378,14 +1378,14 @@ class BackportTests {
             TestBotRunner.runPeriodicItems(bot);
             var backportComment = pr.comments().get(0).body();
             assertTrue(backportComment.contains("does not match project"));
-            assertFalse(pr.labelNames().contains("backport"));
+            assertFalse(pr.store().labelNames().contains("backport"));
 
             // Use bad issue ID
             pr.setTitle("Backport TEST-4711");
             TestBotRunner.runPeriodicItems(bot);
             backportComment = pr.comments().get(1).body();
             assertTrue(backportComment.contains("does not exist in project"));
-            assertFalse(pr.labelNames().contains("backport"));
+            assertFalse(pr.store().labelNames().contains("backport"));
 
             // Use different kinds of good titles
             // Use the full issue ID
@@ -1393,16 +1393,16 @@ class BackportTests {
             TestBotRunner.runPeriodicItems(bot);
             backportComment = pr.comments().get(2).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with the original issue"));
-            assertEquals(issue1Number + ": An issue", pr.title());
-            assertTrue(pr.labelNames().contains("backport"));
+            assertEquals(issue1Number + ": An issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
 
             // Set the title without project name
             pr.setTitle("Backport " + issue1.id().split("-")[1]);
             TestBotRunner.runPeriodicItems(bot);
             backportComment = pr.comments().get(3).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with the original issue"));
-            assertEquals(issue1Number + ": An issue", pr.title());
-            assertTrue(pr.labelNames().contains("backport"));
+            assertEquals(issue1Number + ": An issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
 
             // Approve PR and re-run bot
             var prAsReviewer = reviewer.pullRequest(pr.id());
@@ -1512,9 +1512,9 @@ class BackportTests {
             var backportComment = pr.comments().get(0).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
-            assertEquals(issue1Number + ": An issue", pr.title());
-            assertTrue(pr.labelNames().contains("backport"));
-            assertTrue(pr.labelNames().contains("clean"));
+            assertEquals(issue1Number + ": An issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
+            assertTrue(pr.store().labelNames().contains("clean"));
             var mergeReadyComment = pr.comments().get(1).body();
             assertTrue(mergeReadyComment.contains("This change now passes all *automated* pre-integration checks"));
 
@@ -1526,10 +1526,10 @@ class BackportTests {
             var backportComment2 = pr.comments().get(2).body();
             assertTrue(backportComment2.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment2.contains("<!-- backport " + releaseHash2.hex() + " -->"));
-            assertEquals(issue1Number + ": An issue", pr.title());
-            assertTrue(pr.labelNames().contains("backport"));
+            assertEquals(issue1Number + ": An issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
             // The backport is no longer clean as the release2 version of the change was different
-            assertFalse(pr.labelNames().contains("clean"));
+            assertFalse(pr.store().labelNames().contains("clean"));
             mergeReadyComment = pr.comments().get(1).body();
             assertTrue(mergeReadyComment.contains("This change is no longer ready for integration - check the PR body for details"));
 

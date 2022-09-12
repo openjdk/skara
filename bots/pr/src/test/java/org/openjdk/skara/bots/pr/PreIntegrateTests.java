@@ -85,9 +85,8 @@ public class PreIntegrateTests {
             approvalFollowUpPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // The bot should add an integration blocker message
-            followUpPr = author.pullRequest(followUpPr.id());
-            assertTrue(followUpPr.body().contains("Integration blocker"));
-            assertTrue(followUpPr.body().contains("Dependency #" + pr.id() + " must be integrated"));
+            assertTrue(followUpPr.store().body().contains("Integration blocker"));
+            assertTrue(followUpPr.store().body().contains("Dependency #" + pr.id() + " must be integrated"));
 
             // Try to integrate it
             followUpPr.addComment("/integrate");
@@ -114,9 +113,8 @@ public class PreIntegrateTests {
 
             // The second should now become ready
             TestBotRunner.runPeriodicItems(mergeBot);
-            followUpPr = author.pullRequest(followUpPr.id());
-            assertFalse(followUpPr.body().contains("Integration blocker"));
-            assertTrue(followUpPr.labelNames().contains("ready"));
+            assertFalse(followUpPr.store().body().contains("Integration blocker"));
+            assertTrue(followUpPr.store().labelNames().contains("ready"));
 
             // Push something else unrelated to the target
             var currentMaster = localRepo.fetch(author.url(), "master");

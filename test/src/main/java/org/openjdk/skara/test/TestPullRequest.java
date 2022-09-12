@@ -23,10 +23,8 @@
 package org.openjdk.skara.test;
 
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.*;
-import org.openjdk.skara.issuetracker.IssueProject;
+import org.openjdk.skara.issuetracker.Label;
 import org.openjdk.skara.network.URIBuilder;
-import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Diff;
 import org.openjdk.skara.vcs.Hash;
 
@@ -37,43 +35,45 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * TestPullRequest is the object returned from a TestHost when queried for pull
+ * requests. It's backed by a TestPullRequestStore, which tracks the "server
+ * side" state of the pull request. A TestPullRequest instance contains a
+ * snapshot of the server side state for all data directly related to the pull
+ * request. What data is snapshotted and which is fetched on request should be
+ * the same as for GitHubPullRequest and GitLabMergeRequest.
+ */
 public class TestPullRequest extends TestIssue implements PullRequest {
-    private final TestHostedRepository targetRepository;
-    private final TestHostedRepository sourceRepository;
-    private final String sourceRef;
-    final PullRequestData data;
 
-    private TestPullRequest(TestHostedRepository targetRepository, TestHostedRepository sourceRepository, String id, HostUser author, HostUser user, String targetRef, String sourceRef, PullRequestData data) {
-        super(targetRepository, id, author, user, data);
+    protected final TestHostedRepository targetRepository;
+    protected final Hash headHash;
+    protected final String sourceRef;
+    protected final String targetRef;
+    protected final boolean draft;
+    private List<Label> labels;
+
+    public TestPullRequest(TestPullRequestStore store, TestHostedRepository targetRepository) {
+        super(store, targetRepository.forge().currentUser());
         this.targetRepository = targetRepository;
-        this.sourceRepository = sourceRepository;
-        this.sourceRef = sourceRef;
-        data.targetRef = targetRef;
-        this.data = data;
-
-        try {
-            var headHash = sourceRepository.localRepository().resolve(sourceRef);
-            if (headHash.isPresent() && !headHash.get().equals(data.headHash)) {
-                data.headHash = headHash.get();
-                data.lastUpdate = ZonedDateTime.now();
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        this.headHash = store().headHash();
+        this.sourceRef = store().sourceRef();
+        this.targetRef = store().targetRef();
+        this.draft = store().draft();
+        // store().headHash() may have updated lastUpdate
+        setLastUpdate(store().lastUpdate());
     }
 
-    static TestPullRequest createNew(TestHostedRepository targetRepository, TestHostedRepository sourceRepository, String id, String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
-        var data = new PullRequestData();
-        data.title = title;
-        data.body = String.join("\n", body);
-        data.draft = draft;
-        var pr = new TestPullRequest(targetRepository, sourceRepository, id, targetRepository.forge().currentUser(), targetRepository.forge().currentUser(), targetRef, sourceRef, data);
-        return pr;
+    @Override
+    protected TestPullRequest copy() {
+        return new TestPullRequest(store(), targetRepository);
     }
 
-    static TestPullRequest createFrom(TestHostedRepository repository, TestPullRequest other) {
-        var pr = new TestPullRequest(repository, other.sourceRepository, other.id, other.author, repository.forge().currentUser(), other.data.targetRef, other.sourceRef, other.data);
-        return pr;
+    /**
+     * Gives test code direct access to the backing store object to be able to
+     * inspect and manipulate state directly.
+     */
+    public TestPullRequestStore store() {
+        return (TestPullRequestStore) super.store();
     }
 
     @Override
@@ -82,25 +82,20 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     }
 
     @Override
-    public IssueProject project() {
-        return null;
-    }
-
-    @Override
     public List<Review> reviews() {
-        return new ArrayList<>(data.reviews);
+        return new ArrayList<>(store().reviews());
     }
 
     @Override
     public void addReview(Review.Verdict verdict, String body) {
         try {
-            var review = new Review(ZonedDateTime.now(), targetRepository.forge().currentUser(),
-                                    verdict, targetRepository.localRepository().resolve(sourceRef).orElseThrow(),
-                                    data.reviews.size(),
+            var review = new Review(ZonedDateTime.now(), user,
+                                    verdict, targetRepository.localRepository().resolve(store().sourceRef()).orElseThrow(),
+                                    store().reviews().size(),
                                     body);
 
-            data.reviews.add(review);
-            data.lastUpdate = ZonedDateTime.now();
+            store().reviews().add(review);
+            store().setLastUpdate(ZonedDateTime.now());
 
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -114,9 +109,11 @@ public class TestPullRequest extends TestIssue implements PullRequest {
 
     @Override
     public ReviewComment addReviewComment(Hash base, Hash hash, String path, int line, String body) {
-        var comment = new ReviewComment(null, String.valueOf(data.reviewComments.size()), hash, path, line, String.valueOf(data.reviewComments.size()), body, user, ZonedDateTime.now(), ZonedDateTime.now());
-        data.reviewComments.add(comment);
-        data.lastUpdate = ZonedDateTime.now();
+        var id = String.valueOf(store().reviewComments().size());
+        var comment = new ReviewComment(null, id,
+                hash, path, line, id, body, user, ZonedDateTime.now(), ZonedDateTime.now());
+        store().reviewComments().add(comment);
+        store().setLastUpdate(ZonedDateTime.now());
         return comment;
     }
 
@@ -125,20 +122,22 @@ public class TestPullRequest extends TestIssue implements PullRequest {
         if (parent.parent().isPresent()) {
             throw new RuntimeException("Can only reply to top-level review comments");
         }
-        var comment = new ReviewComment(parent, parent.threadId(), parent.hash().orElseThrow(), parent.path(), parent.line(), String.valueOf(data.reviewComments.size()), body, user, ZonedDateTime.now(), ZonedDateTime.now());
-        data.reviewComments.add(comment);
-        data.lastUpdate = ZonedDateTime.now();
+        var comment = new ReviewComment(parent, parent.threadId(), parent.hash().orElseThrow(), parent.path(),
+                parent.line(), String.valueOf(store().reviewComments().size()), body, user,
+                ZonedDateTime.now(), ZonedDateTime.now());
+        store().reviewComments().add(comment);
+        store().setLastUpdate(ZonedDateTime.now());
         return comment;
     }
 
     @Override
     public List<ReviewComment> reviewComments() {
-        return new ArrayList<>(data.reviewComments);
+        return new ArrayList<>(store().reviewComments());
     }
 
     @Override
     public Hash headHash() {
-        return data.headHash;
+        return headHash;
     }
 
     @Override
@@ -153,41 +152,43 @@ public class TestPullRequest extends TestIssue implements PullRequest {
 
     @Override
     public Optional<HostedRepository> sourceRepository() {
-        return Optional.of(sourceRepository);
+        return Optional.of(store().sourceRepository());
     }
 
     @Override
     public String targetRef() {
-        return data.targetRef;
+        return targetRef;
     }
 
     @Override
     public Map<String, Check> checks(Hash hash) {
-        return data.checks.stream()
+        return store().checks().stream()
                 .filter(check -> check.hash().equals(hash))
                 .collect(Collectors.toMap(Check::name, Function.identity()));
     }
 
     @Override
     public void createCheck(Check check) {
-        var existing = data.checks.stream()
+        var checks = store().checks();
+        var existing = checks.stream()
                                   .filter(c -> c.name().equals(check.name()))
                                   .findAny();
-        existing.ifPresent(data.checks::remove);
-        data.checks.add(check);
-        data.lastUpdate = ZonedDateTime.now();
+        existing.ifPresent(checks::remove);
+        checks.add(check);
+        store().setLastUpdate(ZonedDateTime.now());
     }
 
     @Override
     public void updateCheck(Check updated) {
-        var existing = data.checks.stream()
+        var checks = store().checks();
+        var existing = checks.stream()
                 .filter(check -> check.name().equals(updated.name()))
                 .findAny()
                 .orElseThrow();
 
-        data.checks.remove(existing);
-        data.checks.add(updated);
-        data.lastUpdate = ZonedDateTime.now();
+        checks.remove(existing);
+        checks.add(updated);
+        store().setLastUpdate(ZonedDateTime.now());
     }
 
     @Override
@@ -202,7 +203,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
 
     @Override
     public boolean isDraft() {
-        return data.draft;
+        return draft;
     }
 
     @Override
@@ -216,7 +217,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
 
     @Override
     public void makeNotDraft() {
-        data.draft = false;
+        store().setDraft(false);
     }
 
     @Override
@@ -226,13 +227,13 @@ public class TestPullRequest extends TestIssue implements PullRequest {
 
     @Override
     public Optional<ZonedDateTime> labelAddedAt(String label) {
-        return Optional.ofNullable(data.labels.get(label));
+        return Optional.ofNullable(store().labels().get(label));
     }
 
     @Override
     public void setTargetRef(String targetRef) {
-        data.targetRef = targetRef;
-        data.lastUpdate = ZonedDateTime.now();
+        store().setTargetRef(targetRef);
+        store().setLastUpdate(ZonedDateTime.now());
     }
 
     @Override
@@ -244,7 +245,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     public Diff diff() {
         try {
             var targetLocalRepository = targetRepository.localRepository();
-            var sourceLocalRepository = sourceRepository.localRepository();
+            var sourceLocalRepository = store().sourceRepository().localRepository();
             var sourceHash = headHash();
             if (!targetLocalRepository.root().equals(sourceLocalRepository.root())) {
                 // The target and source repo are not same, fetch the source branch
@@ -266,15 +267,54 @@ public class TestPullRequest extends TestIssue implements PullRequest {
 
     @Override
     public Optional<ZonedDateTime> lastForcePushTime() {
-        return Optional.ofNullable(data.lastForcePushTime);
+        return Optional.ofNullable(store().lastForcePushTime());
     }
 
     public void setLastForcePushTime(ZonedDateTime lastForcePushTime) {
-        data.lastForcePushTime = lastForcePushTime;
+        store().setLastForcePushTime(lastForcePushTime);
     }
 
     @Override
     public Optional<Hash> findIntegratedCommitHash() {
         return findIntegratedCommitHash(List.of(repository().forge().currentUser().id()));
+    }
+
+    /**
+     * Mimic GitHub/GitLab where the labels are fetched lazily and cached.
+     * In GitLabMergeRequest, the labels are actually part of the main json, but
+     * are still re-fetched once on the first call to labels().
+     */
+    @Override
+    public List<Label> labels() {
+        if (labels == null) {
+            labels = store().labels().keySet().stream().map(Label::new).collect(Collectors.toList());
+        }
+        return labels;
+    }
+
+    /**
+     * Equals for a TestPullRequest means that all the snapshotted data is the same.
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        TestPullRequest that = (TestPullRequest) o;
+        return draft == that.draft &&
+                Objects.equals(headHash, that.headHash) &&
+                Objects.equals(sourceRef, that.sourceRef) &&
+                Objects.equals(targetRef, that.targetRef);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), headHash, sourceRef, targetRef, draft);
     }
 }

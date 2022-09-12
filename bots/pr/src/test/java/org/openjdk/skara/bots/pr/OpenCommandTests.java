@@ -68,12 +68,12 @@ public class OpenCommandTests {
             // Close the PR
             pr.setState(Issue.State.CLOSED);
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.isClosed());
+            assertSame(pr.store().state(), Issue.State.CLOSED);
 
             // Issue the "/open" PR command, should make the PR open again
             pr.addComment("/open");
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.isOpen());
+            assertSame(pr.store().state(), Issue.State.OPEN);
             assertLastCommentContains(pr, "This pull request is now open");
         }
     }
@@ -112,13 +112,13 @@ public class OpenCommandTests {
             // Close the PR
             pr.setState(Issue.State.CLOSED);
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.isClosed());
+            assertSame(pr.store().state(), Issue.State.CLOSED);
 
             // Try to issue the "/open" PR command, should not work
             var prAsOther = other.pullRequest(pr.id());
             prAsOther.addComment("/open");
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(prAsOther.isClosed());
+            assertSame(pr.store().state(), Issue.State.CLOSED);
             assertLastCommentContains(prAsOther, "Only the pull request author can set the pull request state to \"open\"");
         }
     }
@@ -153,10 +153,10 @@ public class OpenCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // Try to issue the "/open" PR command, should not work
-            assertTrue(pr.isOpen());
+            assertSame(pr.store().state(), Issue.State.OPEN);
             pr.addComment("/open");
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.isOpen());
+            assertSame(pr.store().state(), Issue.State.OPEN);
             assertLastCommentContains(pr, "This pull request is already open");
         }
     }

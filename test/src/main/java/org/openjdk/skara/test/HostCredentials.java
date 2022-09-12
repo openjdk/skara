@@ -369,35 +369,35 @@ public class HostCredentials implements AutoCloseable {
         return credentials.getIssueProject(host);
     }
 
-    public PullRequest createPullRequest(HostedRepository sourceRepository, HostedRepository targetRepository,
+    public TestPullRequest createPullRequest(HostedRepository sourceRepository, HostedRepository targetRepository,
                                          String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
-        var pr = sourceRepository.createPullRequest(targetRepository, targetRef, sourceRef, title, body, draft);
+        var pr = (TestPullRequest) sourceRepository.createPullRequest(targetRepository, targetRef, sourceRef, title, body, draft);
         pullRequestsToBeClosed.add(pr);
         return pr;
     }
 
-    public PullRequest createPullRequest(HostedRepository targetRepository, String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
+    public TestPullRequest createPullRequest(HostedRepository targetRepository, String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
         return createPullRequest(targetRepository, targetRepository, targetRef, sourceRef, title, body, draft);
     }
 
-        public PullRequest createPullRequest(HostedRepository targetRepository, String targetRef, String sourceRef, String title, boolean draft) {
+        public TestPullRequest createPullRequest(HostedRepository targetRepository, String targetRef, String sourceRef, String title, boolean draft) {
         return createPullRequest(targetRepository, targetRepository, targetRef, sourceRef, title, List.of("PR body"), draft);
     }
 
-    public PullRequest createPullRequest(HostedRepository targetRepository, String targetRef, String sourceRef, String title, List<String> body) {
+    public TestPullRequest createPullRequest(HostedRepository targetRepository, String targetRef, String sourceRef, String title, List<String> body) {
         return createPullRequest(targetRepository, targetRepository, targetRef, sourceRef, title, body, false);
     }
 
-    public PullRequest createPullRequest(HostedRepository targetRepository, String targetRef, String sourceRef, String title) {
+    public TestPullRequest createPullRequest(HostedRepository targetRepository, String targetRef, String sourceRef, String title) {
         return createPullRequest(targetRepository, targetRepository, targetRef, sourceRef, title, List.of("PR body"), false);
     }
 
-    public PullRequest createPullRequest(HostedRepository sourceRepository, HostedRepository targetRepository, String targetRef, String sourceRef, String title) {
+    public TestPullRequest createPullRequest(HostedRepository sourceRepository, HostedRepository targetRepository, String targetRef, String sourceRef, String title) {
         return createPullRequest(sourceRepository, targetRepository, targetRef, sourceRef, title, List.of("PR body"), false);
     }
 
-    public Issue createIssue(IssueProject issueProject, String title) {
-        var issue = issueProject.createIssue(title, List.of(), Map.of("issuetype", JSON.of("Bug")));
+    public TestIssue createIssue(IssueProject issueProject, String title) {
+        var issue = (TestIssue) issueProject.createIssue(title, List.of(), Map.of("issuetype", JSON.of("Bug")));
         issuesToBeClosed.add(issue);
         return issue;
     }
