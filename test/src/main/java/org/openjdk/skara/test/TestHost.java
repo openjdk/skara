@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.test;
 
+import java.time.Duration;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
@@ -51,6 +52,10 @@ public class TestHost implements Forge, IssueTracker {
     private final int currentUser;
     private HostData data;
     private final Logger log = Logger.getLogger("org.openjdk.skara.test");
+    // Setting this field doesn't change the behavior of the TestHost, but it changes
+    // what the associated method returns, which triggers different code paths in
+    // dependent test code.
+    private Duration timeStampQueryPrecision = Duration.ZERO;
 
     private static class HostData {
         final List<HostUser> users = new ArrayList<>();
@@ -265,5 +270,14 @@ public class TestHost implements Forge, IssueTracker {
         return data.issues.keySet().stream()
                 .map(testIssue -> getIssue(issueProject, testIssue))
                 .max(Comparator.comparing(TestIssue::updatedAt));
+    }
+
+    public void setTimeStampQueryPrecision(Duration timeStampQueryPrecision) {
+        this.timeStampQueryPrecision = timeStampQueryPrecision;
+    }
+
+    @Override
+    public Duration timeStampQueryPrecision() {
+        return timeStampQueryPrecision;
     }
 }
