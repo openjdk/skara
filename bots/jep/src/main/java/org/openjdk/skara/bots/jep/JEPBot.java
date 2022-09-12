@@ -60,7 +60,7 @@ public class JEPBot implements Bot, WorkItem {
 
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
-        var prs = repo.pullRequests();
+        var prs = repo.openPullRequests();
         for (var pr : prs) {
             var jepComment = pr.comments().stream()
                     .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))

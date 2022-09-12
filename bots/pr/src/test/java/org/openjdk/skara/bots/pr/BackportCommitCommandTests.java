@@ -118,7 +118,7 @@ public class BackportCommitCommandTests {
             assertTrue(botReply.body().contains("target repository"));
             assertTrue(botReply.body().contains("is not a valid target for backports"));
             assertTrue(botReply.body().contains("List of valid target repositories: foobar/other-repo, test"));
-            assertEquals(List.of(), author.pullRequests());
+            assertEquals(List.of(), author.openPullRequests());
         }
     }
 
@@ -159,7 +159,7 @@ public class BackportCommitCommandTests {
             var botReply = recentCommitComments.get(0);
             assertTrue(botReply.body().contains("is not a valid target for backports"));
             assertTrue(botReply.body().contains("List of valid target repositories: foobar/other-repo"));
-            assertEquals(List.of(), author.pullRequests());
+            assertEquals(List.of(), author.openPullRequests());
         }
     }
 
@@ -200,7 +200,7 @@ public class BackportCommitCommandTests {
             var botReply = recentCommitComments.get(0);
             assertTrue(botReply.body().contains("target branch"));
             assertTrue(botReply.body().contains("does not exist"));
-            assertEquals(List.of(), author.pullRequests());
+            assertEquals(List.of(), author.openPullRequests());
         }
     }
 
@@ -252,7 +252,7 @@ public class BackportCommitCommandTests {
             assertTrue(botReply.body().contains("Please fetch the appropriate branch/commit and manually resolve these conflicts"));
             assertTrue(botReply.body().contains("master:master"));
             assertTrue(botReply.body().contains("$ git checkout master"));
-            assertEquals(List.of(), author.pullRequests());
+            assertEquals(List.of(), author.openPullRequests());
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -122,10 +122,10 @@ public class NotifyBot implements Bot, Emitter {
             if (lastFullUpdate == null || lastFullUpdate.isBefore(ZonedDateTime.now().minus(Duration.ofMinutes(10)))) {
                 lastFullUpdate = ZonedDateTime.now();
                 log.info("Fetching all open pull requests");
-                prs = repository.pullRequests();
+                prs = repository.openPullRequests();
             } else {
                 log.info("Fetching recently updated pull requests (open and closed)");
-                prs = repository.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(14)));
+                prs = repository.pullRequestsAfter(ZonedDateTime.now().minus(Duration.ofDays(14)));
             }
 
             // Pull request events

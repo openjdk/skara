@@ -331,7 +331,8 @@ public class TestIssue implements Issue {
             return false;
         }
         var testIssue = (TestIssue) o;
-        return Objects.equals(author, testIssue.author) &&
+        return Objects.equals(store.id(), testIssue.store.id()) &&
+                Objects.equals(author, testIssue.author) &&
                 Objects.equals(body, testIssue.body) &&
                 Objects.equals(title, testIssue.title) &&
                 Objects.equals(lastUpdate, testIssue.lastUpdate) &&
@@ -341,7 +342,7 @@ public class TestIssue implements Issue {
 
     @Override
     public int hashCode() {
-        return Objects.hash(author, body, title, lastUpdate, labels, state);
+        return Objects.hash(store.id(), author, body, title, lastUpdate, labels, state);
     }
 
     /**
