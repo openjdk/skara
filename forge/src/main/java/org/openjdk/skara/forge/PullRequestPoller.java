@@ -203,7 +203,7 @@ public class PullRequestPoller {
                 return Stream.concat(openPrs.stream(), allPrs.stream().filter(pr -> !pr.isOpen())).toList();
             } else {
                 log.fine("Fetching all open pull requests for " + repository.name());
-                return repository.pullRequests();
+                return repository.openPullRequests();
             }
         } else {
             var queryUpdatedAt = paddingNeeded ? prev.maxUpdatedAt.minus(queryPadding) : prev.maxUpdatedAt;

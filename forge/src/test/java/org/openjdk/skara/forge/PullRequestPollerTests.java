@@ -18,8 +18,6 @@ public class PullRequestPollerTests {
     void onlyOpen(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var repo = credentials.getHostedRepository();
-            var forge = repo.forge();
-            ((TestHost) forge).setCopyPullRequests(true);
             var prPoller = new PullRequestPoller(repo, false, true, true);
 
             // Create closed PR that should never be returned
@@ -56,8 +54,6 @@ public class PullRequestPollerTests {
     void includeClosed(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var repo = credentials.getHostedRepository();
-            var forge = repo.forge();
-            ((TestHost) forge).setCopyPullRequests(true);
             var prPoller = new PullRequestPoller(repo, true, true, true);
 
             // Create a and an open closed PR, that should both be returned
@@ -103,7 +99,6 @@ public class PullRequestPollerTests {
             var repo = credentials.getHostedRepository();
             var forge = repo.forge();
             ((TestHost) forge).setMinTimeStampUpdateInterval(Duration.ofDays(1));
-            ((TestHost) forge).setCopyPullRequests(true);
             var prPoller = new PullRequestPoller(repo, true, false, false);
 
             // Create a closed PR and poll for it
@@ -153,7 +148,6 @@ public class PullRequestPollerTests {
             var repo = credentials.getHostedRepository();
             var forge = repo.forge();
             ((TestHost) forge).setMinTimeStampUpdateInterval(Duration.ofDays(1));
-            ((TestHost) forge).setCopyPullRequests(true);
             var prPoller = new PullRequestPoller(repo, true, true, false);
 
             // Create a PR and poll for it
@@ -210,7 +204,6 @@ public class PullRequestPollerTests {
             var repo = credentials.getHostedRepository();
             var forge = repo.forge();
             ((TestHost) forge).setMinTimeStampUpdateInterval(Duration.ofDays(1));
-            ((TestHost) forge).setCopyPullRequests(true);
             var prPoller = new PullRequestPoller(repo, true, false, true);
 
             // Create a PR and poll for it
@@ -254,8 +247,6 @@ public class PullRequestPollerTests {
     void retries(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var repo = credentials.getHostedRepository();
-            var forge = repo.forge();
-            ((TestHost) forge).setCopyPullRequests(true);
             var prPoller = new PullRequestPoller(repo, false, true, true);
 
             // Create PR
@@ -305,8 +296,6 @@ public class PullRequestPollerTests {
     void quarantine(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var repo = credentials.getHostedRepository();
-            var forge = repo.forge();
-            ((TestHost) forge).setCopyPullRequests(true);
             var prPoller = new PullRequestPoller(repo, false, false, false);
 
             // Create PR
