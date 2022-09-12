@@ -26,7 +26,6 @@ import java.time.ZonedDateTime;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.PullRequest;
-import org.openjdk.skara.forge.PullRequestPoller;
 import org.openjdk.skara.issuetracker.IssueProject;
 
 import java.util.*;
@@ -41,12 +40,19 @@ class CSRPullRequestBot implements Bot {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.csr");
     private final HostedRepository repo;
     private final IssueProject project;
-    private final PullRequestPoller poller;
+    // Keeps track of updatedAt timestamps from the previous call to getPeriodicItems,
+    // so we can avoid re-evaluating PRs that are returned again without any actual
+    // update. This is needed because timestamp based searches aren't exact enough
+    // to avoid sometimes receiving the same items multiple times.
+    private Map<String, ZonedDateTime> prsUpdatedAt = new HashMap<>();
+    // The last found updateAt in any returned PR. Used for limiting results on the
+    // next call to the hosted repo. Should only contain timestamps originating
+    // from the remote repo to avoid problems with mismatched clocks.
+    private ZonedDateTime lastUpdatedAt;
 
     CSRPullRequestBot(HostedRepository repo, IssueProject project) {
         this.repo = repo;
         this.project = project;
-        this.poller = new PullRequestPoller(repo, false, false, false);
     }
 
     @Override
@@ -56,12 +62,28 @@ class CSRPullRequestBot implements Bot {
 
     @Override
     public List<WorkItem> getPeriodicItems() {
-        var prs = poller.updatedPullRequests();
-        var items = prs.stream()
-                .map(pr -> (WorkItem) new PullRequestWorkItem(repo, pr.id(), project,
-                        e -> poller.retryPullRequest(pr), pr.updatedAt()))
-                .toList();
-        poller.lastBatchHandled();
+        var items = new ArrayList<WorkItem>();
+        log.info("Fetching all open pull requests for " + repo.name());
+        Map<String, ZonedDateTime> newPrsUpdatedAt = new HashMap<>();
+        // On the first run we have to re-evaluate all open PRs, after that, only
+        // looking at PRs that have been updated should be enough.
+        var prs = lastUpdatedAt != null ? repo.openPullRequestsAfter(lastUpdatedAt) : repo.openPullRequests();
+        for (PullRequest pr : prs) {
+            newPrsUpdatedAt.put(pr.id(), pr.updatedAt());
+            // Update lastUpdatedAt with the last found updatedAt for the next call
+            if (lastUpdatedAt == null || pr.updatedAt().isAfter(lastUpdatedAt)) {
+                lastUpdatedAt = pr.updatedAt();
+            }
+            var lastUpdate = prsUpdatedAt.get(pr.id());
+            if (lastUpdate != null) {
+                if (!pr.updatedAt().isAfter(lastUpdate)) {
+                    continue;
+                }
+            }
+            var pullRequestWorkItem = new PullRequestWorkItem(repo, pr.id(), project, pr.updatedAt());
+            items.add(pullRequestWorkItem);
+        }
+        prsUpdatedAt = newPrsUpdatedAt;
         return items;
     }
 
