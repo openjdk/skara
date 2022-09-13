@@ -79,13 +79,24 @@ class MirrorBot implements Bot, WorkItem {
             var sanitizedUrl =
                 URLEncoder.encode(to.webUrl().toString(), StandardCharsets.UTF_8);
             var dir = storage.resolve(sanitizedUrl);
+            var dir_temporary = storage.resolve(sanitizedUrl + "temporary");
             Repository repo = null;
 
 
             if (!Files.exists(dir)) {
+                if (Files.exists(dir_temporary)) {
+                    try {
+                        Files.walk(dir_temporary)
+                                .map(Path::toFile)
+                                .sorted(Comparator.reverseOrder())
+                                .forEach(File::delete);
+                    } catch (IOException io) {
+                        throw new RuntimeException(io);
+                    }
+                }
                 log.info("Cloning " + from.name());
-                Files.createDirectories(dir);
-                repo = Repository.mirror(from.url(), dir);
+                Files.createDirectories(dir_temporary);
+                repo = Repository.mirror(from.url(), dir_temporary);
             } else {
                 log.info("Found existing scratch directory for " + to.name());
                 repo = Repository.get(dir).orElseThrow(() -> {
@@ -111,7 +122,8 @@ class MirrorBot implements Bot, WorkItem {
                     }
                 }
             }
-
+            File temporary_dir = new File(dir_temporary.toUri());
+            temporary_dir.renameTo(new File(dir.toUri()));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

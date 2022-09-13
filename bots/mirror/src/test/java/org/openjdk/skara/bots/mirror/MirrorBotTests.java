@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.bots.mirror;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.test.*;
@@ -446,6 +448,47 @@ class MirrorBotTests {
             assertEquals(2, toCommits.size());
             assertEquals(second, toCommits.get(0).hash());
             assertEquals(List.of(new Branch("feature")), toLocalRepo.branches());
+        }
+    }
+
+    @Test
+    void mirrorMasterBranchWithExistingCloneDirectory(TestInfo testInfo) throws IOException {
+        try (var temp = new TemporaryDirectory()) {
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
+
+            var fromDir = temp.path().resolve("from.git");
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
+            var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
+
+            var toDir = temp.path().resolve("to.git");
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
+            var gitConfig = toDir.resolve(".git").resolve("config");
+            Files.write(gitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+                    StandardOpenOption.APPEND);
+            var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
+
+            var newFile = fromDir.resolve("this-file-cannot-exist.txt");
+            Files.writeString(newFile, "Hello world\n");
+            fromLocalRepo.add(newFile);
+            var newHash = fromLocalRepo.commit("An additional commit", "duke", "duke@openjdk.org");
+            var fromCommits = fromLocalRepo.commits().asList();
+            assertEquals(1, fromCommits.size());
+            assertEquals(newHash, fromCommits.get(0).hash());
+
+            var toCommits = toLocalRepo.commits().asList();
+            assertEquals(0, toCommits.size());
+
+            var storage = temp.path().resolve("storage");
+            var sanitizedUrl =
+                    URLEncoder.encode(toHostedRepo.webUrl().toString(), StandardCharsets.UTF_8);
+            var dir_temporary = storage.resolve(sanitizedUrl + "temporary");
+            Files.createDirectories(dir_temporary);
+            var bot = new MirrorBot(storage, fromHostedRepo, toHostedRepo);
+            TestBotRunner.runPeriodicItems(bot);
+
+            toCommits = toLocalRepo.commits().asList();
+            assertEquals(1, toCommits.size());
+            assertEquals(newHash, toCommits.get(0).hash());
         }
     }
 }
