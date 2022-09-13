@@ -95,6 +95,10 @@ public class Status {
             return new Status(Operation.COPIED, -1);
         }
 
+        if (c == 'T') {
+            throw new IllegalArgumentException("It is illegal to change the file type(Reminder: It is also illegal to submit symlink or executable file)");
+        }
+
         throw new IllegalArgumentException("Invalid status character: " + c);
     }
 
@@ -115,6 +119,9 @@ public class Status {
         }
         if (c == 'U') {
             return new Status(Operation.UNMERGED, -1);
+        }
+        if (c == 'T') {
+            throw new IllegalArgumentException("It is illegal to change the file type(Reminder: It is also illegal to submit symlink or executable file)");
         }
 
         var score = 0;
