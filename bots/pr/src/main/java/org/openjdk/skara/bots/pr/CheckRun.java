@@ -747,7 +747,7 @@ class CheckRun {
         };
     }
 
-    private Optional<Comment> findComment(List<Comment> comments, String marker) {
+    private Optional<Comment> findComment(String marker) {
         var self = pr.repository().forge().currentUser();
         return comments.stream()
                        .filter(comment -> comment.author().equals(self))
@@ -889,7 +889,7 @@ class CheckRun {
     }
 
     private void addFullNameWarningComment() {
-        var existing = findComment(comments, fullNameWarningMarker);
+        var existing = findComment(fullNameWarningMarker);
         if (existing.isPresent()) {
             // Only warn once
             return;
@@ -922,8 +922,8 @@ class CheckRun {
         }
     }
 
-    private void updateMergeReadyComment(boolean isReady, String commitMessage, List<Comment> comments, List<Review> reviews, boolean rebasePossible) {
-        var existing = findComment(comments, mergeReadyMarker);
+    private void updateMergeReadyComment(boolean isReady, String commitMessage, List<Review> reviews, boolean rebasePossible) {
+        var existing = findComment(mergeReadyMarker);
         if (isReady && rebasePossible) {
             addFullNameWarningComment();
             var message = getMergeReadyComment(commitMessage, reviews);
@@ -940,8 +940,8 @@ class CheckRun {
         }
     }
 
-    private void addSourceBranchWarningComment(List<Comment> comments) {
-        var existing = findComment(comments, sourceBranchWarningMarker);
+    private void addSourceBranchWarningComment() {
+        var existing = findComment(sourceBranchWarningMarker);
         if (existing.isPresent()) {
             // Only add the comment once per PR
             return;
@@ -972,8 +972,8 @@ class CheckRun {
         pr.addComment(message);
     }
 
-    private void addOutdatedComment(List<Comment> comments) {
-        var existing = findComment(comments, outdatedHelpMarker);
+    private void addOutdatedComment() {
+        var existing = findComment(outdatedHelpMarker);
         if (existing.isPresent()) {
             // Only add the comment once per PR
             return;
@@ -994,8 +994,8 @@ class CheckRun {
         pr.addComment(message);
     }
 
-    private void addMergeCommitWarningComment(List<Comment> comments) {
-        var existing = findComment(comments, mergeCommitWarningMarker);
+    private void addMergeCommitWarningComment() {
+        var existing = findComment(mergeCommitWarningMarker);
         if (existing.isPresent()) {
             // Only add the comment once per PR
             return;
@@ -1090,7 +1090,7 @@ class CheckRun {
                                       integrationBlockers.isEmpty();
             }
 
-            updateMergeReadyComment(readyForIntegration, commitMessage, comments, activeReviews, rebasePossible);
+            updateMergeReadyComment(readyForIntegration, commitMessage, activeReviews, rebasePossible);
             if (readyForIntegration && rebasePossible) {
                 newLabels.add("ready");
             } else {
@@ -1098,7 +1098,7 @@ class CheckRun {
             }
             if (!rebasePossible) {
                 if (!labels.contains("failed-auto-merge")) {
-                    addOutdatedComment(comments);
+                    addOutdatedComment();
                 }
                 newLabels.add("merge-conflict");
             } else {
@@ -1108,12 +1108,12 @@ class CheckRun {
             if (pr.sourceRepository().isPresent()) {
                 var branchNames = pr.repository().branches().stream().map(HostedBranch::name).collect(Collectors.toSet());
                 if (!pr.repository().url().equals(pr.sourceRepository().get().url()) && branchNames.contains(pr.sourceRef())) {
-                    addSourceBranchWarningComment(comments);
+                    addSourceBranchWarningComment();
                 }
             }
 
             if (!PullRequestUtils.isMerge(pr) && PullRequestUtils.containsForeignMerge(pr, localRepo)) {
-                addMergeCommitWarningComment(comments);
+                addMergeCommitWarningComment();
             }
 
             // Ensure that the ready for sponsor label is up to date
