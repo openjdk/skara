@@ -137,6 +137,9 @@ public class IssuePoller {
         if (issuePrev == null || issue.updatedAt().isAfter(issuePrev.updatedAt())) {
             return true;
         }
+        if (!issuePrev.equals(issue)) {
+            return true;
+        }
         return false;
     }
 
