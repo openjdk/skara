@@ -16,7 +16,7 @@ public class IssuePollerTests {
     void simple(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var issueProject = credentials.getIssueProject();
-            var issuePoller = new IssuePoller(issueProject, Duration.ofSeconds(1));
+            var issuePoller = new IssuePoller(issueProject, Duration.ZERO);
 
             // Poll with no Issues in the project
             var issues = issuePoller.updatedIssues();
@@ -85,7 +85,7 @@ public class IssuePollerTests {
             var issueProject = credentials.getIssueProject();
             var testHost = (TestHost) issueProject.issueTracker();
             testHost.setTimeStampQueryPrecision(Duration.ofNanos(2));
-            var issuePoller = new IssuePoller(issueProject, Duration.ofSeconds(1));
+            var issuePoller = new IssuePoller(issueProject, Duration.ZERO);
 
             // Create issue and poll for it
             var issue1 = credentials.createIssue(issueProject, "Issue 1");
@@ -138,7 +138,7 @@ public class IssuePollerTests {
     void retries(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var issueProject = credentials.getIssueProject();
-            var issuePoller = new IssuePoller(issueProject, Duration.ofSeconds(1));
+            var issuePoller = new IssuePoller(issueProject, Duration.ZERO);
 
             // Create issue
             var issue1 = credentials.createIssue(issueProject, "Issue 1");

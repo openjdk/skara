@@ -250,7 +250,9 @@ public class TestHost implements Forge, IssueTracker {
         return data.issues.entrySet().stream()
                           .sorted(Map.Entry.comparingByKey())
                           .map(issue -> getIssue(issueProject, issue.getKey()))
-                          .filter(i -> i.updatedAt().isAfter(updatedAfter))
+                          // Accept updatedAfter == updatedAt to make tests more
+                          // resilient on hardware with lower resolution system clocks.
+                          .filter(i -> !i.updatedAt().isBefore(updatedAfter))
                           .collect(Collectors.toList());
     }
 
