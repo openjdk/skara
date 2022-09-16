@@ -495,8 +495,8 @@ class CheckRun {
                                .collect(Collectors.joining("\n"));
     }
 
-    private Optional<String> getReviewersList(List<Review> reviews) {
-        var reviewers = reviews.stream()
+    private Optional<String> getReviewersList() {
+        var reviewers = activeReviews.stream()
                                .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                                .map(review -> {
                                    var entry = " * " + formatReviewer(review.reviewer());
@@ -521,7 +521,7 @@ class CheckRun {
         // Check for manually added reviewers
         if (!ignoreStaleReviews) {
             var namespace = censusInstance.namespace();
-            var allReviewers = CheckablePullRequest.reviewerNames(reviews, namespace);
+            var allReviewers = CheckablePullRequest.reviewerNames(activeReviews, namespace);
             var additionalEntries = new ArrayList<String>();
             for (var additional : Reviewers.reviewers(pr.repository().forge().currentUser(), comments)) {
                 if (!allReviewers.contains(additional)) {
@@ -547,7 +547,7 @@ class CheckRun {
         return name + " `<" + contributor.address() + ">`";
     }
 
-    private Optional<String> getContributorsList(List<Comment> comments) {
+    private Optional<String> getContributorsList() {
         var contributors = Contributors.contributors(pr.repository().forge().currentUser(), comments)
                                        .stream()
                                        .map(c -> " * " + formatContributor(c))
@@ -566,7 +566,7 @@ class CheckRun {
                                      .replaceAll("\\s+", " "));
     }
 
-    private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor,
+    private String getStatusMessage(PullRequestCheckIssueVisitor visitor,
                                     List<String> additionalErrors, Map<String, Boolean> additionalProgresses,
                                     List<String> integrationBlockers, boolean isCleanBackport) {
         var progressBody = new StringBuilder();
@@ -655,12 +655,12 @@ class CheckRun {
             }
         }
 
-        getReviewersList(reviews).ifPresent(reviewers -> {
+        getReviewersList().ifPresent(reviewers -> {
             progressBody.append("\n\n### Reviewers\n");
             progressBody.append(reviewers);
         });
 
-        getContributorsList(comments).ifPresent(contributors -> {
+        getContributorsList().ifPresent(contributors -> {
             progressBody.append("\n\n### Contributors\n");
             progressBody.append(contributors);
         });
@@ -755,7 +755,7 @@ class CheckRun {
                        .findAny();
     }
 
-    private String getMergeReadyComment(String commitMessage, List<Review> reviews) {
+    private String getMergeReadyComment(String commitMessage) {
         var message = new StringBuilder();
         message.append("@");
         message.append(pr.author().username());
@@ -856,7 +856,7 @@ class CheckRun {
             message.append(censusInstance.project().name());
             message.append(") an existing Committer must agree to ");
             message.append("[sponsor](https://openjdk.org/sponsor/) your change. ");
-            var candidates = reviews.stream()
+            var candidates = activeReviews.stream()
                                     .filter(review -> censusInstance.isCommitter(review.reviewer()))
                                     .map(review -> "@" + review.reviewer().username())
                                     .collect(Collectors.joining(", "));
@@ -922,11 +922,11 @@ class CheckRun {
         }
     }
 
-    private void updateMergeReadyComment(boolean isReady, String commitMessage, List<Review> reviews, boolean rebasePossible) {
+    private void updateMergeReadyComment(boolean isReady, String commitMessage, boolean rebasePossible) {
         var existing = findComment(mergeReadyMarker);
         if (isReady && rebasePossible) {
             addFullNameWarningComment();
-            var message = getMergeReadyComment(commitMessage, reviews);
+            var message = getMergeReadyComment(commitMessage);
             if (existing.isEmpty()) {
                 log.info("Adding merge ready comment");
                 pr.addComment(message);
@@ -1070,7 +1070,7 @@ class CheckRun {
             var integrationBlockers = botSpecificIntegrationBlockers();
 
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(comments, activeReviews, visitor, additionalErrors,
+            var statusMessage = getStatusMessage(visitor, additionalErrors,
                                                 additionalProgresses, integrationBlockers, isCleanBackport);
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
@@ -1090,7 +1090,7 @@ class CheckRun {
                                       integrationBlockers.isEmpty();
             }
 
-            updateMergeReadyComment(readyForIntegration, commitMessage, activeReviews, rebasePossible);
+            updateMergeReadyComment(readyForIntegration, commitMessage, rebasePossible);
             if (readyForIntegration && rebasePossible) {
                 newLabels.add("ready");
             } else {
