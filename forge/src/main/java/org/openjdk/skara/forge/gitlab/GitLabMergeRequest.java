@@ -828,6 +828,10 @@ public class GitLabMergeRequest implements PullRequest {
         return findIntegratedCommitHash(List.of(repository.forge().currentUser().id()));
     }
 
+    /**
+     * Equality for a GitLabMergeRequest is based on the data snapshot retrieved
+     * when the instance was created.
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) {

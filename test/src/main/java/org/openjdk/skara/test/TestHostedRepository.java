@@ -77,13 +77,18 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
 
     @Override
     public List<PullRequest> pullRequests() {
+        return new ArrayList<>(host.getPullRequests(this));
+    }
+
+    @Override
+    public List<PullRequest> openPullRequests() {
         return host.getPullRequests(this).stream()
                    .filter(pr -> pr.state().equals(Issue.State.OPEN))
                    .collect(Collectors.toList());
     }
 
     @Override
-    public List<PullRequest> pullRequests(ZonedDateTime updatedAfter) {
+    public List<PullRequest> pullRequestsAfter(ZonedDateTime updatedAfter) {
         return host.getPullRequests(this).stream()
                    .filter(pr -> pr.updatedAt().isAfter(updatedAfter))
                    .sorted(Comparator.comparing(PullRequest::updatedAt).reversed())
@@ -100,7 +105,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
 
     @Override
     public List<PullRequest> findPullRequestsWithComment(String author, String body) {
-        return pullRequests().stream()
+        return openPullRequests().stream()
                              .filter(pr -> pr.comments().stream()
                                                 .filter(comment -> author == null || comment.author().username().equals(author))
                                                 .filter(comment -> comment == null ||comment.body().contains(body))

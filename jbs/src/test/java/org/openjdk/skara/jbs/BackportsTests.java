@@ -30,6 +30,7 @@ import org.openjdk.skara.test.HostCredentials;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.openjdk.skara.test.TestIssue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.RESOLVED_IN_BUILD;
@@ -253,7 +254,7 @@ public class BackportsTests {
     private static class BackportManager {
         private final HostCredentials credentials;
         private final IssueProject issueProject;
-        private final List<Issue> issues;
+        private final List<TestIssue> issues;
 
         private void setState(Issue issue, String version) {
             if (version.endsWith("#open")) {

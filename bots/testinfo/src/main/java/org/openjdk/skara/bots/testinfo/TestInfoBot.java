@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -47,7 +47,7 @@ public class TestInfoBot implements Bot {
 
     @Override
     public List<WorkItem> getPeriodicItems() {
-        var prs = repo.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(1)));
+        var prs = repo.pullRequestsAfter(ZonedDateTime.now().minus(Duration.ofDays(1)));
         var ret = new ArrayList<WorkItem>();
         for (var pr : prs) {
             if (pr.sourceRepository().isEmpty()) {
