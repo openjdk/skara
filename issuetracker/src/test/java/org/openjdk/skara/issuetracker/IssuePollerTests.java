@@ -16,7 +16,7 @@ public class IssuePollerTests {
     void simple(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var issueProject = credentials.getIssueProject();
-            var issuePoller = new IssuePoller(issueProject, Duration.ZERO);
+            var issuePoller = new IssuePoller(issueProject, Duration.ofSeconds(1));
 
             // Poll with no Issues in the project
             var issues = issuePoller.updatedIssues();
@@ -80,12 +80,12 @@ public class IssuePollerTests {
     }
 
     @Test
-    void timeStampPadding(TestInfo testInfo) throws IOException {
+    void timeStampPadding(TestInfo testInfo) throws IOException, InterruptedException {
         try (var credentials = new HostCredentials(testInfo)) {
             var issueProject = credentials.getIssueProject();
             var testHost = (TestHost) issueProject.issueTracker();
             testHost.setTimeStampQueryPrecision(Duration.ofNanos(2));
-            var issuePoller = new IssuePoller(issueProject, Duration.ZERO);
+            var issuePoller = new IssuePoller(issueProject, Duration.ofSeconds(1));
 
             // Create issue and poll for it
             var issue1 = credentials.createIssue(issueProject, "Issue 1");
@@ -105,15 +105,20 @@ public class IssuePollerTests {
             issuePoller.lastBatchHandled();
 
             // Poll again
+            // Sleep to make it more likely that this and the previous calls to
+            // updatedIssues are far enough apart to trigger padding.
+            Thread.sleep(1);
             issues = issuePoller.updatedIssues();
             assertEquals(0, issues.size());
             issuePoller.lastBatchHandled();
 
-            // With the extremely short precision, the poller should now be padding
-            // the fetch query with the precision duration to avoid fetching issue1
-            // again. We can prove that by updating the updatedAt to something after
+            // With the extremely short precision of 2 nanos, enough time should now
+            // have passed between the two previous polls so that the poller is now
+            // padding the fetch query with the precision duration.
+            // We can prove that by updating the updatedAt of issue1 to something after
             // the last updatedAt but before last updatedAt + precision. If the fetch
-            // call would return it, then isUpdated should also return true.
+            // call would return it, then isUpdated should also return true, and
+            // updatedIssues() would then return issue1.
             var lastFoundUpdatedAt = issue1.store().lastUpdate();
             issue1.store().setLastUpdate(lastFoundUpdatedAt.plus(Duration.ofNanos(1)));
             issues = issuePoller.updatedIssues();
@@ -133,7 +138,7 @@ public class IssuePollerTests {
     void retries(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var issueProject = credentials.getIssueProject();
-            var issuePoller = new IssuePoller(issueProject, Duration.ZERO);
+            var issuePoller = new IssuePoller(issueProject, Duration.ofSeconds(1));
 
             // Create issue
             var issue1 = credentials.createIssue(issueProject, "Issue 1");
