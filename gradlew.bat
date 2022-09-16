@@ -24,10 +24,9 @@ for /f "tokens=1,2 delims==" %%A in (deps.env) do (set %%A=%%~B)
 for /f %%i in ("%JDK_WINDOWS_X64_URL%") do set JDK_WINDOWS_DIR=%%~ni
 for /f %%i in ("%GRADLE_URL%") do set GRADLE_DIR=%%~ni
 
-if exist %~dp0\.jdk\%JDK_WINDOWS_DIR% goto gradle
+if exist %~dp0\.jdk\%JDK_WINDOWS_DIR%.zip goto extractJdk
 
 echo Downloading JDK...
-mkdir %~dp0\.jdk\temp
 curl -L %JDK_WINDOWS_X64_URL% -o %JDK_WINDOWS_DIR%.zip
 move %JDK_WINDOWS_DIR%.zip %~dp0\.jdk\
 for /f "tokens=*" %%i in ('@certutil -hashfile %~dp0/.jdk/%JDK_WINDOWS_DIR%.zip sha256 ^| %WINDIR%\System32\find /v "hash of file" ^| %WINDIR%\System32\find /v "CertUtil"') do set SHA256JDK=%%i
@@ -36,16 +35,15 @@ echo Invalid SHA256 for JDK detected (%SHA256JDK%)
 goto done
 
 :extractJdk
+if exist %~dp0\.jdk\%JDK_WINDOWS_DIR% goto gradle
 echo Extracting JDK...
-%WINDIR%\System32\tar -xf %~dp0/.jdk/%JDK_WINDOWS_DIR%.zip -C %~dp0/.jdk/temp
-for /d %%i in (%~dp0\.jdk\temp\*) do move %%i %~dp0\.jdk\%JDK_WINDOWS_DIR%
-rmdir %~dp0\.jdk\temp
+md %~dp0\.jdk\%JDK_WINDOWS_DIR%
+%WINDIR%\System32\tar -xf %~dp0/.jdk/%JDK_WINDOWS_DIR%.zip -C %~dp0/.jdk/%JDK_WINDOWS_DIR%\
 
 :gradle
-if exist %~dp0\.gradle\%GRADLE_DIR% goto run
+if exist %~dp0\.gradle\%GRADLE_DIR%.zip goto extractGradle
 
 echo Downloading Gradle...
-mkdir %~dp0\.gradle\temp
 curl -L %GRADLE_URL% -o %GRADLE_DIR%.zip
 move %GRADLE_DIR%.zip %~dp0\.gradle\
 for /f "tokens=*" %%i in ('@certutil -hashfile %~dp0/.gradle/%GRADLE_DIR%.zip sha256 ^| %WINDIR%\System32\find /v "hash of file" ^| %WINDIR%\System32\find /v "CertUtil"') do set SHA256GRADLE=%%i
@@ -54,13 +52,14 @@ echo Invalid SHA256 for Gradle detected (%SHA256GRADLE%)
 goto done
 
 :extractGradle
+if exist %~dp0\.gradle\%GRADLE_DIR% goto run
 echo Extracting Gradle...
-%WINDIR%\System32\tar -xf %~dp0/.gradle/%GRADLE_DIR%.zip -C %~dp0/.gradle/temp
-for /d %%i in (%~dp0\.gradle\temp\*) do move %%i %~dp0\.gradle\%GRADLE_DIR%
-rmdir %~dp0\.gradle\temp
+md %~dp0\.gradle\%GRADLE_DIR%
+%WINDIR%\System32\tar -xf %~dp0/.gradle/%GRADLE_DIR%.zip -C %~dp0/.gradle/%GRADLE_DIR%
 
 :run
-set JAVA_HOME=%~dp0/.jdk/%JDK_WINDOWS_DIR%
-%~dp0\.gradle\%GRADLE_DIR%\bin\gradle %*
+for /d %%i in (%~dp0.jdk\%JDK_WINDOWS_DIR%\*) do set JAVA_HOME=%%i
+for /d %%i in (%~dp0.gradle\%GRADLE_DIR%\*) do set GRADLE_HOME=%%i
+%GRADLE_HOME%\bin\gradle %*
 
 :done
