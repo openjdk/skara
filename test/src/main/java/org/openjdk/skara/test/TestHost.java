@@ -55,7 +55,7 @@ public class TestHost implements Forge, IssueTracker {
     // Setting this field doesn't change the behavior of the TestHost, but it changes
     // what the associated method returns, which triggers different code paths in
     // dependent code for testing.
-    private Duration minTimeStampUpdateInterval = Duration.ofMillis(0);
+    private Duration minTimeStampUpdateInterval = Duration.ZERO;
 
     private static class HostData {
         final List<HostUser> users = new ArrayList<>();

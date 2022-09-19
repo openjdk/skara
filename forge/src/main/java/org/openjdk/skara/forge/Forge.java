@@ -53,7 +53,7 @@ public interface Forge extends Host {
      * default returns 0 which means no special considerations are needed.
      */
     default Duration minTimeStampUpdateInterval() {
-        return Duration.ofMillis(0);
+        return Duration.ZERO;
     }
 
     static Forge from(String name, URI uri, Credential credential, JSONObject configuration) {
