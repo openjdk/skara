@@ -173,6 +173,10 @@ public class GitWebrev {
             Switch.shortcut("v")
                   .fullname("version")
                   .helptext("Print the version of this tool")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("quiet")
+                  .helptext("Do not print webrev link after executing successfully")
                   .optional());
 
         var inputs = List.of(
@@ -260,7 +264,7 @@ public class GitWebrev {
         }
 
         var comments = !arguments.contains("no-comments");
-
+        var quiet = arguments.contains("quiet");
         if (arguments.contains("base") && arguments.contains("rev")) {
             System.err.println("error: cannot combine --base and --rev options");
             System.exit(1);
@@ -453,6 +457,10 @@ public class GitWebrev {
                   .similarity(similarity)
                   .comments(comments)
                   .generate(base, head);
+        }
+        if (!quiet) {
+            System.out.println("Webrev executed successfully, details are in the link below:");
+            System.out.println("file://" + new File(output.resolve("index.html").toUri()).getAbsoluteFile());
         }
     }
 
