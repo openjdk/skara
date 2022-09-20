@@ -45,7 +45,7 @@ public class GitLabMergeRequest implements PullRequest {
     private final GitLabHost host;
 
     // Only cache the label names as those are most commonly used and converting to
-    // Label objects is expensive.
+    // Label objects is expensive. This list is always sorted.
     private List<String> labels;
 
     GitLabMergeRequest(GitLabRepository repository, GitLabHost host, JSONValue jsonValue, RestRequest request) {
@@ -633,7 +633,7 @@ public class GitLabMergeRequest implements PullRequest {
         request.put("")
                .body("labels", String.join(",", labels))
                .execute();
-        this.labels = List.copyOf(labels);
+        this.labels = labels.stream().sorted().toList();
     }
 
     @Override
@@ -646,7 +646,7 @@ public class GitLabMergeRequest implements PullRequest {
         request.put("")
                .body("labels", String.join(",", labels))
                .execute();
-        this.labels = List.copyOf(labels);
+        this.labels = labels.stream().sorted().toList();
     }
 
     @Override
@@ -654,7 +654,7 @@ public class GitLabMergeRequest implements PullRequest {
         request.put("")
                .body("labels", String.join(",", labels))
                .execute();
-        this.labels = List.copyOf(labels);
+        this.labels = labels.stream().sorted().toList();
     }
 
     @Override
