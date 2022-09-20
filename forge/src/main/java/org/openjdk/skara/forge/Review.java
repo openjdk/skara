@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge;
 
+import java.util.Objects;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.vcs.Hash;
 
@@ -77,5 +78,27 @@ public class Review {
         NONE,
         APPROVED,
         DISAPPROVED
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Review review = (Review) o;
+        return id == review.id &&
+                Objects.equals(createdAt, review.createdAt) &&
+                Objects.equals(reviewer, review.reviewer) &&
+                verdict == review.verdict &&
+                Objects.equals(hash, review.hash) &&
+                Objects.equals(body, review.body);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(createdAt, reviewer, verdict, hash, id, body);
     }
 }

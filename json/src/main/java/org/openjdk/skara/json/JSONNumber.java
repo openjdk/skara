@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.json;
 
+import java.util.Objects;
+
 class JSONNumber implements JSONValue {
     long value;
 
@@ -56,5 +58,22 @@ class JSONNumber implements JSONValue {
     @Override
     public String toString() {
         return Long.toString(value);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        JSONNumber that = (JSONNumber) o;
+        return value == that.value;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
     }
 }

@@ -54,6 +54,10 @@ public class TestHost implements Forge, IssueTracker {
     private final Logger log = Logger.getLogger("org.openjdk.skara.test");
     // Setting this field doesn't change the behavior of the TestHost, but it changes
     // what the associated method returns, which triggers different code paths in
+    // dependent code for testing.
+    private Duration minTimeStampUpdateInterval = Duration.ZERO;
+    // Setting this field doesn't change the behavior of the TestHost, but it changes
+    // what the associated method returns, which triggers different code paths in
     // dependent test code.
     private Duration timeStampQueryPrecision = Duration.ZERO;
 
@@ -272,6 +276,15 @@ public class TestHost implements Forge, IssueTracker {
         return data.issues.keySet().stream()
                 .map(testIssue -> getIssue(issueProject, testIssue))
                 .max(Comparator.comparing(TestIssue::updatedAt));
+    }
+
+    public void setMinTimeStampUpdateInterval(Duration minTimeStampUpdateInterval) {
+        this.minTimeStampUpdateInterval = minTimeStampUpdateInterval;
+    }
+
+    @Override
+    public Duration minTimeStampUpdateInterval() {
+        return minTimeStampUpdateInterval;
     }
 
     public void setTimeStampQueryPrecision(Duration timeStampQueryPrecision) {

@@ -23,7 +23,9 @@
 package org.openjdk.skara.json;
 
 public class JSONNull implements JSONValue {
-    public JSONNull() {
+    static JSONNull instance = new JSONNull();
+
+    private JSONNull() {
     }
 
     @Override

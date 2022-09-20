@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.json;
 
+import java.util.Objects;
+
 public class JSONBoolean implements JSONValue {
     boolean value;
 
@@ -42,5 +44,22 @@ public class JSONBoolean implements JSONValue {
     @Override
     public String toString() {
         return value ? "true" : "false";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        JSONBoolean that = (JSONBoolean) o;
+        return value == that.value;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
     }
 }
