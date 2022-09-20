@@ -56,6 +56,10 @@ public class TestHost implements Forge, IssueTracker {
     // what the associated method returns, which triggers different code paths in
     // dependent code for testing.
     private Duration minTimeStampUpdateInterval = Duration.ZERO;
+    // Setting this field doesn't change the behavior of the TestHost, but it changes
+    // what the associated method returns, which triggers different code paths in
+    // dependent test code.
+    private Duration timeStampQueryPrecision = Duration.ZERO;
 
     private static class HostData {
         final List<HostUser> users = new ArrayList<>();
@@ -250,7 +254,9 @@ public class TestHost implements Forge, IssueTracker {
         return data.issues.entrySet().stream()
                           .sorted(Map.Entry.comparingByKey())
                           .map(issue -> getIssue(issueProject, issue.getKey()))
-                          .filter(i -> i.updatedAt().isAfter(updatedAfter))
+                          // Accept updatedAfter == updatedAt to make tests more
+                          // resilient on hardware with lower resolution system clocks.
+                          .filter(i -> !i.updatedAt().isBefore(updatedAfter))
                           .collect(Collectors.toList());
     }
 
@@ -279,5 +285,14 @@ public class TestHost implements Forge, IssueTracker {
     @Override
     public Duration minTimeStampUpdateInterval() {
         return minTimeStampUpdateInterval;
+    }
+
+    public void setTimeStampQueryPrecision(Duration timeStampQueryPrecision) {
+        this.timeStampQueryPrecision = timeStampQueryPrecision;
+    }
+
+    @Override
+    public Duration timeStampQueryPrecision() {
+        return timeStampQueryPrecision;
     }
 }
