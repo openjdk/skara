@@ -228,15 +228,13 @@ public class PullRequestPoller {
     }
 
     private Map<String, List<Review>> fetchReviews(List<PullRequest> prs, ZonedDateTime maxUpdatedAt) {
-        Map<String, List<Review>> reviewsMap;
         if (checkReviews) {
-            reviewsMap = prs.stream()
+            return prs.stream()
                     .filter(pr -> pr.updatedAt().isAfter(maxUpdatedAt.minus(queryPadding)))
                     .collect(Collectors.toMap(Issue::id, PullRequest::reviews));
         } else {
-            reviewsMap = Map.of();
+            return Map.of();
         }
-        return reviewsMap;
     }
 
     /**
