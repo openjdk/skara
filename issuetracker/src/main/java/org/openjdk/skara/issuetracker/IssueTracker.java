@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.issuetracker;
 
+import java.time.Duration;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.json.JSONObject;
 
@@ -31,6 +32,15 @@ public interface IssueTracker extends Host {
     IssueProject project(String name);
 
     URI uri();
+
+    /**
+     * The precision at which timeStamp based queries are supported for this
+     * IssueTracker. If this is >0, knowing this can be used to avoid
+     * re-querying for the same Issues over and over.
+     */
+    default Duration timeStampQueryPrecision() {
+        return Duration.ZERO;
+    }
 
     static IssueTracker from(String name, URI uri, Credential credential, JSONObject configuration) {
         var factory = IssueTrackerFactory.getIssueTrackerFactories().stream()
