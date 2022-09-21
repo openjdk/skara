@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.issuetracker.jira;
 
+import java.time.Duration;
 import java.time.ZoneId;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
@@ -166,5 +167,13 @@ public class JiraHost implements IssueTracker {
     @Override
     public String hostname() {
         return uri.getHost();
+    }
+
+    /**
+     * Jira can only query on timestamps with minute precision.
+     */
+    @Override
+    public Duration timeStampQueryPrecision() {
+        return Duration.ofMinutes(1);
     }
 }

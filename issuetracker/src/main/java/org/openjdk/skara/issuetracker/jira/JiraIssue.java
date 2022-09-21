@@ -590,4 +590,25 @@ public class JiraIssue implements Issue {
     public Optional<HostUser> closedBy() {
         throw new RuntimeException("Not implemented yet");
     }
+
+    /**
+     * Equality for a JiraIssue is based on the data snapshot retrieved when
+     * the instance was created.
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        JiraIssue jiraIssue = (JiraIssue) o;
+        return Objects.equals(json, jiraIssue.json);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(json);
+    }
 }

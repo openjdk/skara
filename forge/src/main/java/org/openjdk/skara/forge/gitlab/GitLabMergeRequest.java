@@ -44,7 +44,9 @@ public class GitLabMergeRequest implements PullRequest {
     private final GitLabRepository repository;
     private final GitLabHost host;
 
-    private List<Label> labels;
+    // Only cache the label names as those are most commonly used and converting to
+    // Label objects is expensive. This list is always sorted.
+    private List<String> labels;
 
     GitLabMergeRequest(GitLabRepository repository, GitLabHost host, JSONValue jsonValue, RestRequest request) {
         this.repository = repository;
@@ -52,9 +54,8 @@ public class GitLabMergeRequest implements PullRequest {
         this.json = jsonValue;
         this.request = request.restrict("merge_requests/" + json.get("iid").toString() + "/");
 
-        labels = json.get("labels")
-                     .stream()
-                     .map(s -> labelNameToLabel(s.asString()))
+        labels = json.get("labels").stream()
+                     .map(JSONValue::asString)
                      .sorted()
                      .collect(Collectors.toList());
     }
@@ -622,22 +623,21 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public void addLabel(String label) {
-        labels = null;
         // GitLab does not allow adding/removing single labels, only setting the full list
         // We retrieve the list again here to try to minimize the race condition window
         var currentJson = request.get("").execute().asObject();
         var labels = Stream.concat(currentJson.get("labels").stream()
-                .map(JSONValue::asString),
-                List.of(label).stream())
+                                .map(JSONValue::asString),
+                        Stream.of(label))
                 .collect(Collectors.toSet());
         request.put("")
                .body("labels", String.join(",", labels))
                .execute();
+        this.labels = labels.stream().sorted().toList();
     }
 
     @Override
     public void removeLabel(String label) {
-        labels = null;
         var currentJson = request.get("").execute().asObject();
         var labels = currentJson.get("labels").stream()
                 .map(JSONValue::asString)
@@ -646,6 +646,7 @@ public class GitLabMergeRequest implements PullRequest {
         request.put("")
                .body("labels", String.join(",", labels))
                .execute();
+        this.labels = labels.stream().sorted().toList();
     }
 
     @Override
@@ -653,21 +654,20 @@ public class GitLabMergeRequest implements PullRequest {
         request.put("")
                .body("labels", String.join(",", labels))
                .execute();
-        this.labels = labels.stream().map(this::labelNameToLabel).collect(Collectors.toList());
+        this.labels = labels.stream().sorted().toList();
     }
 
     @Override
     public List<Label> labels() {
-        if (labels == null) {
-            var currentJson = request.get("").execute().asObject();
-            labels = currentJson.get("labels")
-                                .stream()
-                                .map(s -> labelNameToLabel(s.asString()))
-                                // Avoid throwing NPE for unknown labels
-                                .filter(Objects::nonNull)
-                                .sorted()
-                                .collect(Collectors.toList());
-        }
+        return labels.stream()
+                .map(this::labelNameToLabel)
+                // Avoid throwing NPE for unknown labels
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    @Override
+    public List<String> labelNames() {
         return labels;
     }
 
