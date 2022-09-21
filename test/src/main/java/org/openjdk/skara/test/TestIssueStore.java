@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.test;
 
-import java.util.stream.Collectors;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSONValue;
@@ -77,6 +76,22 @@ public class TestIssueStore {
 
     public Issue.State state() {
         return state;
+    }
+
+    public boolean isOpen() {
+        return state == Issue.State.OPEN;
+    }
+
+    public boolean isClosed() {
+        return state == Issue.State.CLOSED;
+    }
+
+    public boolean isResolved() {
+        return state == Issue.State.RESOLVED;
+    }
+
+    public boolean isFixed() {
+        return isResolved();
     }
 
     public String body() {

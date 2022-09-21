@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.openjdk.skara.bots.pr.PullRequestCommandWorkItem.VALID_BOT_COMMAND_MARKER;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
@@ -63,7 +62,7 @@ public class RequestApprovalCommandTests {
                                     "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))))
                     .build();
 
-            var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
+            var issue = credentials.createIssue(issueProject, "This is update change issue");
             issue.setProperty("issuetype", JSON.of("Bug"));
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
@@ -84,13 +83,13 @@ public class RequestApprovalCommandTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should reply a comment.
-            var commentSize = pr.comments().stream()
+            var commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("the text you provide has been successfully "
                             + "added to the main issue as a comment"))
                     .count();
             assertEquals(1, commentSize);
             // The issue should have one corresponding comment.
-            commentSize = issue.comments().stream()
+            commentSize = issue.store().comments().stream()
                     .filter(comment -> comment.body().contains("request-approval-test"))
                     .count();
             assertEquals(1, commentSize);
@@ -102,13 +101,13 @@ public class RequestApprovalCommandTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should reply a comment, now the pull request has two such comments.
-            commentSize = pr.comments().stream()
+            commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("the text you provide has been successfully "
                             + "added to the main issue as a comment"))
                     .count();
             assertEquals(2, commentSize);
             // The issue should have two corresponding comments.
-            commentSize = issue.comments().stream()
+            commentSize = issue.store().comments().stream()
                     .filter(comment -> comment.body().contains("request-approval-test"))
                     .count();
             assertEquals(2, commentSize);
@@ -139,7 +138,7 @@ public class RequestApprovalCommandTests {
                                     "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))))
                     .build();
 
-            var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
+            var issue = credentials.createIssue(issueProject, "This is update change issue");
             issue.setProperty("issuetype", JSON.of("Bug"));
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
@@ -160,13 +159,13 @@ public class RequestApprovalCommandTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should reply a comment.
-            var commentSize = pr.comments().stream()
+            var commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("this repository or the target branch of "
                             + "this pull request have not been configured to use the `request-approval` command"))
                     .count();
             assertEquals(1, commentSize);
             // The issue shouldn't have related comment.
-            commentSize = issue.comments().stream()
+            commentSize = issue.store().comments().stream()
                     .filter(comment -> comment.body().contains("request-approval-test"))
                     .count();
             assertEquals(0, commentSize);
@@ -186,12 +185,12 @@ public class RequestApprovalCommandTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should reply a comment.
-            commentSize = anotherPr.comments().stream()
+            commentSize = anotherPr.store().comments().stream()
                     .filter(comment -> comment.body().contains("only the pull request author is allowed to use the `request-approval` command"))
                     .count();
             assertEquals(1, commentSize);
             // The issue shouldn't have related comment.
-            commentSize = issue.comments().stream()
+            commentSize = issue.store().comments().stream()
                     .filter(comment -> comment.body().contains("request-approval-test"))
                     .count();
             assertEquals(0, commentSize);
@@ -222,7 +221,7 @@ public class RequestApprovalCommandTests {
                                     "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))))
                     .build();
 
-            var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
+            var issue = credentials.createIssue(issueProject, "This is update change issue");
             issue.setProperty("issuetype", JSON.of("Bug"));
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
@@ -243,12 +242,12 @@ public class RequestApprovalCommandTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should reply a comment.
-            var commentSize = pr.comments().stream()
+            var commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("the title of the pull request doesn't contain the main issue"))
                     .count();
             assertEquals(1, commentSize);
             // The issue shouldn't have related comment.
-            commentSize = issue.comments().stream()
+            commentSize = issue.store().comments().stream()
                     .filter(comment -> comment.body().contains("request-approval-test"))
                     .count();
             assertEquals(0, commentSize);
@@ -263,12 +262,12 @@ public class RequestApprovalCommandTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should reply a comment.
-            commentSize = pr.comments().stream()
+            commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("the main issue of the pull request title is not found"))
                     .count();
             assertEquals(1, commentSize);
             // The issue shouldn't have related comment.
-            commentSize = issue.comments().stream()
+            commentSize = issue.store().comments().stream()
                     .filter(comment -> comment.body().contains("request-approval-test"))
                     .count();
             assertEquals(0, commentSize);

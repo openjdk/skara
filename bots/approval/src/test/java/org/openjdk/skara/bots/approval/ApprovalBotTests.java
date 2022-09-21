@@ -92,7 +92,7 @@ public class ApprovalBotTests {
             // The bot should remove the `approval` label of the pull request.
             assertFalse(pr.store().labelNames().contains("approval"));
             // The bot should add the approval update marker.
-            assertTrue(pr.body().contains(APPROVAL_UPDATE_MARKER));
+            assertTrue(pr.store().body().contains(APPROVAL_UPDATE_MARKER));
         }
     }
 
@@ -145,7 +145,7 @@ public class ApprovalBotTests {
             // The bot should remove the `approval` label of the pull request.
             assertFalse(pr.store().labelNames().contains("approval"));
             // The bot should add the approval update marker.
-            assertTrue(pr.body().contains(APPROVAL_UPDATE_MARKER));
+            assertTrue(pr.store().body().contains(APPROVAL_UPDATE_MARKER));
         }
     }
 
@@ -195,7 +195,7 @@ public class ApprovalBotTests {
             // The pull request shouldn't have the `approval` label.
             assertFalse(pr.store().labelNames().contains("approval"));
             // The bot should add the approval update marker.
-            assertTrue(pr.body().contains(APPROVAL_UPDATE_MARKER));
+            assertTrue(pr.store().body().contains(APPROVAL_UPDATE_MARKER));
         }
     }
 
@@ -249,7 +249,7 @@ public class ApprovalBotTests {
             // The pull request shouldn't have the `approval` label.
             assertFalse(pr.store().labelNames().contains("approval"));
             // The bot should add the approval update marker.
-            assertTrue(pr.body().contains(APPROVAL_UPDATE_MARKER));
+            assertTrue(pr.store().body().contains(APPROVAL_UPDATE_MARKER));
         }
     }
 
@@ -299,9 +299,9 @@ public class ApprovalBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot shouldn't remove the `approval` label of the pull request.
-            assertTrue(pr.labelNames().contains("approval"));
+            assertTrue(pr.store().labelNames().contains("approval"));
             // The bot shouldn't add the approval update marker.
-            assertFalse(pr.body().contains(APPROVAL_UPDATE_MARKER));
+            assertFalse(pr.store().body().contains(APPROVAL_UPDATE_MARKER));
 
             // Change the pr title to wrong issue id
             pr.setTitle("2: " + issue.title());
@@ -312,7 +312,7 @@ public class ApprovalBotTests {
             // The bot shouldn't remove the `approval` label of the pull request.
             assertTrue(pr.store().labelNames().contains("approval"));
             // The bot shouldn't add the approval update marker.
-            assertFalse(pr.body().contains(APPROVAL_UPDATE_MARKER));
+            assertFalse(pr.store().body().contains(APPROVAL_UPDATE_MARKER));
         }
     }
 }

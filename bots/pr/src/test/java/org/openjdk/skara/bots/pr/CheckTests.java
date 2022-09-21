@@ -2164,7 +2164,7 @@ class CheckTests {
                                     "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))))
                     .build();
 
-            var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
+            var issue = credentials.createIssue(issueProject, "This is update change issue");
             issue.setProperty("issuetype", JSON.of("Bug"));
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
@@ -2178,18 +2178,18 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The maintainer's approval suggestion should be added.
-            var commentSize = pr.comments().stream()
+            var commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval should be added to the pr body.
-            assertTrue(pr.body().contains("- [ ] All issues must be"));
+            assertTrue(pr.store().body().contains("- [ ] All issues must be"));
             // The pr shouldn't contain the `approval` label because the pr is not ready for approval
-            assertFalse(pr.labelNames().contains("approval"));
+            assertFalse(pr.store().labelNames().contains("approval"));
             // The issue shouldn't contain the `master-fix-request`, `master-fix-yes` and `master-fix-no` label
-            assertFalse(issue.labelNames().contains("master-fix-request"));
-            assertFalse(issue.labelNames().contains("master-fix-yes"));
-            assertFalse(issue.labelNames().contains("master-fix-no"));
+            assertFalse(issue.store().labelNames().contains("master-fix-request"));
+            assertFalse(issue.store().labelNames().contains("master-fix-yes"));
+            assertFalse(issue.store().labelNames().contains("master-fix-no"));
 
             // review the pr
             var reviewPr = reviewer.pullRequest(pr.id());
@@ -2199,19 +2199,19 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The maintainer's approval suggestion should be added only once.
-            commentSize = pr.comments().stream()
+            commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval shouldn't be checked.
-            assertTrue(pr.body().contains("- [ ] All issues must be"));
+            assertTrue(pr.store().body().contains("- [ ] All issues must be"));
             // The pr should contain the `approval` label because the pr is ready for approval
-            assertTrue(pr.labelNames().contains("approval"));
+            assertTrue(pr.store().labelNames().contains("approval"));
             // The issue should contain the `master-fix-request` label
-            assertTrue(issue.labelNames().contains("master-fix-request"));
+            assertTrue(issue.store().labelNames().contains("master-fix-request"));
             // The issue shouldn't contain the `master-fix-yes` and `master-fix-no` label
-            assertFalse(issue.labelNames().contains("master-fix-yes"));
-            assertFalse(issue.labelNames().contains("master-fix-no"));
+            assertFalse(issue.store().labelNames().contains("master-fix-yes"));
+            assertFalse(issue.store().labelNames().contains("master-fix-no"));
 
             // Test the title of the PR doesn't have issue id.
             pr.setTitle(issue.title());
@@ -2223,26 +2223,28 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The maintainer's approval suggestion should be added only once.
-            commentSize = pr.comments().stream()
+            commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval shouldn't be checked.
-            assertTrue(pr.body().contains("- [ ] All issues must be"));
+            assertTrue(pr.store().body().contains("- [ ] All issues must be"));
             // The pr shouldn't contain the `approval` label because the pr is not ready for approval
-            assertFalse(pr.labelNames().contains("approval"));
+            assertFalse(pr.store().labelNames().contains("approval"));
             // The issue shouldn't contain the `master-fix-request`, `master-fix-yes` and `master-fix-no` label
-            assertFalse(issue.labelNames().contains("master-fix-request"));
-            assertFalse(issue.labelNames().contains("master-fix-yes"));
-            assertFalse(issue.labelNames().contains("master-fix-no"));
+            assertFalse(issue.store().labelNames().contains("master-fix-request"));
+            assertFalse(issue.store().labelNames().contains("master-fix-yes"));
+            assertFalse(issue.store().labelNames().contains("master-fix-no"));
 
             // Correct the title.
             pr.setTitle(issue.id() + ": " + issue.title());
 
             // Test multi issues in one pull request
             // Create another two issues.
-            var issue2 = issueProject.createIssue("This is update change issue2", List.of(), Map.of("issuetype", JSON.of("Bug")));
-            var issue3 = issueProject.createIssue("This is update change issue3", List.of(), Map.of("issuetype", JSON.of("Bug")));
+            var issue2 = credentials.createIssue(issueProject, "This is update change issue2");
+            issue2.setProperty("issuetype", JSON.of("Bug"));
+            var issue3 = credentials.createIssue(issueProject, "This is update change issue3");
+            issue3.setProperty("issuetype", JSON.of("Bug"));
             pr.addComment("/issue add " + issue2.id() + "\n" + VALID_BOT_COMMAND_MARKER);
             pr.addComment("/issue add " + issue3.id() + "\n" + VALID_BOT_COMMAND_MARKER);
 
@@ -2250,25 +2252,25 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The maintainer's approval suggestion should be added only once.
-            commentSize = pr.comments().stream()
+            commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval shouldn't be checked.
-            assertTrue(pr.body().contains("- [ ] All issues must be"));
+            assertTrue(pr.store().body().contains("- [ ] All issues must be"));
             // The pr should contain the `approval` label because the pr is ready for approval
-            assertTrue(pr.labelNames().contains("approval"));
+            assertTrue(pr.store().labelNames().contains("approval"));
             // These three issues should contain the `master-fix-request` label
-            assertTrue(issue.labelNames().contains("master-fix-request"));
-            assertTrue(issue2.labelNames().contains("master-fix-request"));
-            assertTrue(issue3.labelNames().contains("master-fix-request"));
+            assertTrue(issue.store().labelNames().contains("master-fix-request"));
+            assertTrue(issue2.store().labelNames().contains("master-fix-request"));
+            assertTrue(issue3.store().labelNames().contains("master-fix-request"));
             // These three issues shouldn't contain the `master-fix-yes` and `master-fix-no` label
-            assertFalse(issue.labelNames().contains("master-fix-yes"));
-            assertFalse(issue.labelNames().contains("master-fix-no"));
-            assertFalse(issue2.labelNames().contains("master-fix-yes"));
-            assertFalse(issue2.labelNames().contains("master-fix-no"));
-            assertFalse(issue3.labelNames().contains("master-fix-yes"));
-            assertFalse(issue3.labelNames().contains("master-fix-no"));
+            assertFalse(issue.store().labelNames().contains("master-fix-yes"));
+            assertFalse(issue.store().labelNames().contains("master-fix-no"));
+            assertFalse(issue2.store().labelNames().contains("master-fix-yes"));
+            assertFalse(issue2.store().labelNames().contains("master-fix-no"));
+            assertFalse(issue3.store().labelNames().contains("master-fix-yes"));
+            assertFalse(issue3.store().labelNames().contains("master-fix-no"));
         }
     }
 
@@ -2295,7 +2297,7 @@ class CheckTests {
                                     "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))))
                     .build();
 
-            var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
+            var issue = credentials.createIssue(issueProject, "This is update change issue");
             issue.setProperty("issuetype", JSON.of("Bug"));
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
@@ -2310,8 +2312,10 @@ class CheckTests {
             reviewPr.addReview(Review.Verdict.APPROVED, "LGTM");
 
             // Create another two issues.
-            var issue2 = issueProject.createIssue("This is update change issue2", List.of(), Map.of("issuetype", JSON.of("Bug")));
-            var issue3 = issueProject.createIssue("This is update change issue3", List.of(), Map.of("issuetype", JSON.of("Bug")));
+            var issue2 = credentials.createIssue(issueProject, "This is update change issue2");
+            issue2.setProperty("issuetype", JSON.of("Bug"));
+            var issue3 = credentials.createIssue(issueProject, "This is update change issue3");
+            issue3.setProperty("issuetype", JSON.of("Bug"));
             pr.addComment("/issue add " + issue2.id() + "\n" + VALID_BOT_COMMAND_MARKER);
             pr.addComment("/issue add " + issue3.id() + "\n" + VALID_BOT_COMMAND_MARKER);
 
@@ -2325,27 +2329,27 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The maintainer's approval suggestion should be added only once.
-            var commentSize = pr.comments().stream()
+            var commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval should be checked.
-            assertTrue(pr.body().contains("- [x] All issues must be"));
+            assertTrue(pr.store().body().contains("- [x] All issues must be"));
             // The pr shouldn't contain the `approval` label because the pr has been approved.
-            assertFalse(pr.labelNames().contains("approval"));
+            assertFalse(pr.store().labelNames().contains("approval"));
             // These three issues should contain the `master-fix-request` and `master-fix-yes` label
-            assertTrue(issue.labelNames().contains("master-fix-request"));
-            assertTrue(issue2.labelNames().contains("master-fix-request"));
-            assertTrue(issue3.labelNames().contains("master-fix-request"));
-            assertTrue(issue.labelNames().contains("master-fix-yes"));
-            assertTrue(issue2.labelNames().contains("master-fix-yes"));
-            assertTrue(issue3.labelNames().contains("master-fix-yes"));
+            assertTrue(issue.store().labelNames().contains("master-fix-request"));
+            assertTrue(issue2.store().labelNames().contains("master-fix-request"));
+            assertTrue(issue3.store().labelNames().contains("master-fix-request"));
+            assertTrue(issue.store().labelNames().contains("master-fix-yes"));
+            assertTrue(issue2.store().labelNames().contains("master-fix-yes"));
+            assertTrue(issue3.store().labelNames().contains("master-fix-yes"));
             // These three issues shouldn't contain the `master-fix-no` label
-            assertFalse(issue.labelNames().contains("master-fix-no"));
-            assertFalse(issue2.labelNames().contains("master-fix-no"));
-            assertFalse(issue3.labelNames().contains("master-fix-no"));
+            assertFalse(issue.store().labelNames().contains("master-fix-no"));
+            assertFalse(issue2.store().labelNames().contains("master-fix-no"));
+            assertFalse(issue3.store().labelNames().contains("master-fix-no"));
             // The pr is still open
-            assertTrue(pr.isOpen());
+            assertTrue(pr.store().isOpen());
 
             // Test the update change is disapproved by the maintainer on the main issue.
             // Also test disapproval after approval.
@@ -2361,27 +2365,27 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The maintainer's approval suggestion should be added only once.
-            commentSize = pr.comments().stream()
+            commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval shouldn't be checked.
-            assertTrue(pr.body().contains("- [ ] All issues must be"));
+            assertTrue(pr.store().body().contains("- [ ] All issues must be"));
             // The pr shouldn't contain the `approval` label because the pr has been disapproved.
-            assertFalse(pr.labelNames().contains("approval"));
+            assertFalse(pr.store().labelNames().contains("approval"));
             // These three issues should contain the `master-fix-request` and `master-fix-no` label
-            assertTrue(issue.labelNames().contains("master-fix-request"));
-            assertTrue(issue2.labelNames().contains("master-fix-request"));
-            assertTrue(issue3.labelNames().contains("master-fix-request"));
-            assertTrue(issue.labelNames().contains("master-fix-no"));
-            assertTrue(issue2.labelNames().contains("master-fix-no"));
-            assertTrue(issue3.labelNames().contains("master-fix-no"));
+            assertTrue(issue.store().labelNames().contains("master-fix-request"));
+            assertTrue(issue2.store().labelNames().contains("master-fix-request"));
+            assertTrue(issue3.store().labelNames().contains("master-fix-request"));
+            assertTrue(issue.store().labelNames().contains("master-fix-no"));
+            assertTrue(issue2.store().labelNames().contains("master-fix-no"));
+            assertTrue(issue3.store().labelNames().contains("master-fix-no"));
             // These three issues shouldn't contain the `master-fix-yes` label
-            assertFalse(issue.labelNames().contains("master-fix-yes"));
-            assertFalse(issue2.labelNames().contains("master-fix-yes"));
-            assertFalse(issue3.labelNames().contains("master-fix-yes"));
+            assertFalse(issue.store().labelNames().contains("master-fix-yes"));
+            assertFalse(issue2.store().labelNames().contains("master-fix-yes"));
+            assertFalse(issue3.store().labelNames().contains("master-fix-yes"));
             // The pr is closed now.
-            assertTrue(pr.isClosed());
+            assertTrue(pr.store().isClosed());
 
             // Test the update change is approved by the maintainer on the main issue.
             // Also test approval after disapproval.
@@ -2399,27 +2403,27 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The maintainer's approval suggestion should be added only once.
-            commentSize = pr.comments().stream()
+            commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval should be checked.
-            assertTrue(pr.body().contains("- [x] All issues must be"));
+            assertTrue(pr.store().body().contains("- [x] All issues must be"));
             // The pr shouldn't contain the `approval` label because the pr has been approved.
-            assertFalse(pr.labelNames().contains("approval"));
+            assertFalse(pr.store().labelNames().contains("approval"));
             // These three issues should contain the `master-fix-request` and `master-fix-yes` label
-            assertTrue(issue.labelNames().contains("master-fix-request"));
-            assertTrue(issue2.labelNames().contains("master-fix-request"));
-            assertTrue(issue3.labelNames().contains("master-fix-request"));
-            assertTrue(issue.labelNames().contains("master-fix-yes"));
-            assertTrue(issue2.labelNames().contains("master-fix-yes"));
-            assertTrue(issue3.labelNames().contains("master-fix-yes"));
+            assertTrue(issue.store().labelNames().contains("master-fix-request"));
+            assertTrue(issue2.store().labelNames().contains("master-fix-request"));
+            assertTrue(issue3.store().labelNames().contains("master-fix-request"));
+            assertTrue(issue.store().labelNames().contains("master-fix-yes"));
+            assertTrue(issue2.store().labelNames().contains("master-fix-yes"));
+            assertTrue(issue3.store().labelNames().contains("master-fix-yes"));
             // These three issues shouldn't contain the `master-fix-no` label
-            assertFalse(issue.labelNames().contains("master-fix-no"));
-            assertFalse(issue2.labelNames().contains("master-fix-no"));
-            assertFalse(issue3.labelNames().contains("master-fix-no"));
+            assertFalse(issue.store().labelNames().contains("master-fix-no"));
+            assertFalse(issue2.store().labelNames().contains("master-fix-no"));
+            assertFalse(issue3.store().labelNames().contains("master-fix-no"));
             // The pr is open (actually open by the approval bot).
-            assertTrue(pr.isOpen());
+            assertTrue(pr.store().isOpen());
         }
     }
 
@@ -2446,7 +2450,7 @@ class CheckTests {
                                     "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))))
                     .build();
 
-            var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
+            var issue = credentials.createIssue(issueProject, "This is update change issue");
             issue.setProperty("issuetype", JSON.of("Bug"));
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var mainHash = localRepo.resolve("master").orElseThrow();
@@ -2466,18 +2470,18 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The maintainer's approval suggestion shouldn't be added.
-            var commentSize = pr.comments().stream()
+            var commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(0, commentSize);
             // The progress about the maintainer's approval shouldn't be added to the pr body.
-            assertFalse(pr.body().contains("All issues must be"));
+            assertFalse(pr.store().body().contains("All issues must be"));
             // The pr shouldn't contain the `approval` label because the pr is not an update change (the target branch is not `master`).
-            assertFalse(pr.labelNames().contains("approval"));
+            assertFalse(pr.store().labelNames().contains("approval"));
             // The issue shouldn't contain the `master-fix-request`, `master-fix-yes` and `master-fix-no` label
-            assertFalse(issue.labelNames().contains("master-fix-request"));
-            assertFalse(issue.labelNames().contains("master-fix-yes"));
-            assertFalse(issue.labelNames().contains("master-fix-no"));
+            assertFalse(issue.store().labelNames().contains("master-fix-request"));
+            assertFalse(issue.store().labelNames().contains("master-fix-yes"));
+            assertFalse(issue.store().labelNames().contains("master-fix-no"));
         }
     }
 
@@ -2504,7 +2508,7 @@ class CheckTests {
                                     "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))))
                     .build();
 
-            var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
+            var issue = credentials.createIssue(issueProject, "This is update change issue");
             issue.setProperty("issuetype", JSON.of("Bug"));
             issue.setState(Issue.State.CLOSED);
 
@@ -2539,19 +2543,19 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The maintainer's approval suggestion should be added.
-            var commentSize = pr.comments().stream()
+            var commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval should be added to the pr body.
-            assertTrue(pr.body().contains("- [ ] All issues must be"));
+            assertTrue(pr.store().body().contains("- [ ] All issues must be"));
             // The pr should contain the `approval` label because the pr is a clean backport.
-            assertTrue(pr.labelNames().contains("approval"));
+            assertTrue(pr.store().labelNames().contains("approval"));
             // The issue should contain the `master-fix-request` label
-            assertTrue(issue.labelNames().contains("master-fix-request"));
+            assertTrue(issue.store().labelNames().contains("master-fix-request"));
             // The issue shouldn't contain the `master-fix-yes` and `master-fix-no` label
-            assertFalse(issue.labelNames().contains("master-fix-yes"));
-            assertFalse(issue.labelNames().contains("master-fix-no"));
+            assertFalse(issue.store().labelNames().contains("master-fix-yes"));
+            assertFalse(issue.store().labelNames().contains("master-fix-no"));
 
             // Add more commit to `edit` branch, then the pull request is not a clean backport now.
             Files.writeString(newFile2, "another_new_file");
@@ -2563,18 +2567,18 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The maintainer's approval suggestion should be added only once.
-            commentSize = pr.comments().stream()
+            commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval should be added to the pr body.
-            assertTrue(pr.body().contains("- [ ] All issues must be"));
+            assertTrue(pr.store().body().contains("- [ ] All issues must be"));
             // The pr shouldn't contain the `approval` label because the pr is not ready for approval (it is not a clean backport).
-            assertFalse(pr.labelNames().contains("approval"));
+            assertFalse(pr.store().labelNames().contains("approval"));
             // The issue shouldn't contain the `master-fix-request`, `master-fix-yes` and `master-fix-no` label
-            assertFalse(issue.labelNames().contains("master-fix-request"));
-            assertFalse(issue.labelNames().contains("master-fix-yes"));
-            assertFalse(issue.labelNames().contains("master-fix-no"));
+            assertFalse(issue.store().labelNames().contains("master-fix-request"));
+            assertFalse(issue.store().labelNames().contains("master-fix-yes"));
+            assertFalse(issue.store().labelNames().contains("master-fix-no"));
 
             // review the pr, then the pull request is ready for approval
             var reviewPr = reviewer.pullRequest(pr.id());
@@ -2584,19 +2588,19 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The maintainer's approval suggestion should be added only once.
-            commentSize = pr.comments().stream()
+            commentSize = pr.store().comments().stream()
                     .filter(comment -> comment.body().contains("<!-- Approval suggestion comment -->"))
                     .count();
             assertEquals(1, commentSize);
             // The progress about the maintainer's approval should be added to the pr body.
-            assertTrue(pr.body().contains("- [ ] All issues must be"));
+            assertTrue(pr.store().body().contains("- [ ] All issues must be"));
             // The pr should contain the `approval` label because the pr has been reviewed and is ready for approval now.
-            assertTrue(pr.labelNames().contains("approval"));
+            assertTrue(pr.store().labelNames().contains("approval"));
             // The issue should contain the `master-fix-request` label
-            assertTrue(issue.labelNames().contains("master-fix-request"));
+            assertTrue(issue.store().labelNames().contains("master-fix-request"));
             // The issue shouldn't contain the `master-fix-yes` and `master-fix-no` label
-            assertFalse(issue.labelNames().contains("master-fix-yes"));
-            assertFalse(issue.labelNames().contains("master-fix-no"));
+            assertFalse(issue.store().labelNames().contains("master-fix-yes"));
+            assertFalse(issue.store().labelNames().contains("master-fix-no"));
         }
     }
 }
