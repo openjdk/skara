@@ -70,7 +70,7 @@ public class SyncLabelBotTests {
             issue1.setProperty("issuetype", JSON.of("Bug"));
             issue1.setState(RESOLVED);
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue1.labelNames());
+            assertEquals(List.of(), issue1.store().labelNames());
 
             var issue2 = credentials.createIssue(issueProject, "Issue 2");
             issue2.setProperty("fixVersions", JSON.array().add(JSON.of("8u162")));
@@ -78,7 +78,7 @@ public class SyncLabelBotTests {
             issue2.setState(RESOLVED);
             issue1.addLink(Link.create(issue2, "backported by").build());
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of("hgupdate-sync"), issue1.labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue1.store().labelNames());
 
             var issue3 = credentials.createIssue(issueProject, "Issue 3");
             issue3.setProperty("fixVersions", JSON.array().add(JSON.of("10")));
@@ -86,7 +86,7 @@ public class SyncLabelBotTests {
             issue3.setState(RESOLVED);
             issue1.addLink(Link.create(issue3, "backported by").build());
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue3.labelNames());
+            assertEquals(List.of(), issue3.store().labelNames());
 
             var issue4 = credentials.createIssue(issueProject, "Issue 4");
             issue4.setProperty("fixVersions", JSON.array().add(JSON.of("11")));
@@ -94,17 +94,17 @@ public class SyncLabelBotTests {
             issue4.setState(RESOLVED);
             issue1.addLink(Link.create(issue4, "backported by").build());
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of("hgupdate-sync"), issue1.labelNames());
-            assertEquals(List.of(), issue2.labelNames());
-            assertEquals(List.of(), issue3.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue4.labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue1.store().labelNames());
+            assertEquals(List.of(), issue2.store().labelNames());
+            assertEquals(List.of(), issue3.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue4.store().labelNames());
 
             // Ensure it is stable
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of("hgupdate-sync"), issue1.labelNames());
-            assertEquals(List.of(), issue2.labelNames());
-            assertEquals(List.of(), issue3.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue4.labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue1.store().labelNames());
+            assertEquals(List.of(), issue2.store().labelNames());
+            assertEquals(List.of(), issue3.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue4.store().labelNames());
         }
     }
 
@@ -138,20 +138,20 @@ public class SyncLabelBotTests {
 
             // First correct them
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of("hgupdate-sync"), issue1.labelNames());
-            assertEquals(List.of(), issue2.labelNames());
-            assertEquals(List.of(), issue3.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue4.labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue1.store().labelNames());
+            assertEquals(List.of(), issue2.store().labelNames());
+            assertEquals(List.of(), issue3.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue4.store().labelNames());
 
             // Intentionally mislabel
             issue2.addLabel("hgupdate-sync");
 
             // They should be restored
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of("hgupdate-sync"), issue1.labelNames());
-            assertEquals(List.of(), issue2.labelNames());
-            assertEquals(List.of(), issue3.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue4.labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue1.store().labelNames());
+            assertEquals(List.of(), issue2.store().labelNames());
+            assertEquals(List.of(), issue3.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue4.store().labelNames());
         }
     }
 
@@ -168,7 +168,7 @@ public class SyncLabelBotTests {
             issue1.setProperty("issuetype", JSON.of("Bug"));
             issue1.setState(RESOLVED);
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue1.labelNames());
+            assertEquals(List.of(), issue1.store().labelNames());
 
             var issue2 = credentials.createIssue(issueProject, "Issue 2");
             issue2.setProperty("fixVersions", JSON.array().add(JSON.of("8u162")));
@@ -176,7 +176,7 @@ public class SyncLabelBotTests {
             issue2.setState(RESOLVED);
             issue1.addLink(Link.create(issue2, "backported by").build());
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of("hgupdate-sync"), issue1.labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue1.store().labelNames());
 
             var issue3 = credentials.createIssue(issueProject, "Issue 3");
             issue3.setProperty("fixVersions", JSON.array().add(JSON.of("10")));
@@ -184,7 +184,7 @@ public class SyncLabelBotTests {
             issue3.setState(RESOLVED);
             issue1.addLink(Link.create(issue3, "backported by").build());
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue3.labelNames());
+            assertEquals(List.of(), issue3.store().labelNames());
 
             var issue4 = credentials.createIssue(issueProject, "Issue 4");
             issue4.setProperty("fixVersions", JSON.array().add(JSON.of("11")));
@@ -192,18 +192,18 @@ public class SyncLabelBotTests {
             issue4.setState(RESOLVED);
             issue1.addLink(Link.create(issue4, "backported by").build());
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of("hgupdate-sync"), issue1.labelNames());
-            assertEquals(List.of(), issue2.labelNames());
-            assertEquals(List.of(), issue3.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue4.labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue1.store().labelNames());
+            assertEquals(List.of(), issue2.store().labelNames());
+            assertEquals(List.of(), issue3.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue4.store().labelNames());
 
             // Now ignore one of them - it should cause another to change
             issue3.addLabel("hgupdate-sync-ignore");
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of("hgupdate-sync"), issue1.labelNames());
-            assertEquals(List.of(), issue2.labelNames());
-            assertEquals(List.of("hgupdate-sync-ignore"), issue3.labelNames());
-            assertEquals(List.of(), issue4.labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue1.store().labelNames());
+            assertEquals(List.of(), issue2.store().labelNames());
+            assertEquals(List.of("hgupdate-sync-ignore"), issue3.store().labelNames());
+            assertEquals(List.of(), issue4.store().labelNames());
 
             // Rearrange it a bit more
             var issue5 = credentials.createIssue(issueProject, "Issue 5");
@@ -212,27 +212,27 @@ public class SyncLabelBotTests {
             issue5.setState(RESOLVED);
             issue1.addLink(Link.create(issue5, "backported by").build());
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of("hgupdate-sync"), issue5.labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue5.store().labelNames());
 
             // Now ignore another
             issue2.addLabel("hgupdate-sync-ignore");
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue1.labelNames());
-            assertEquals(List.of("hgupdate-sync-ignore"), issue2.labelNames());
-            assertEquals(List.of("hgupdate-sync-ignore"), issue3.labelNames());
-            assertEquals(List.of(), issue4.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue5.labelNames());
+            assertEquals(List.of(), issue1.store().labelNames());
+            assertEquals(List.of("hgupdate-sync-ignore"), issue2.store().labelNames());
+            assertEquals(List.of("hgupdate-sync-ignore"), issue3.store().labelNames());
+            assertEquals(List.of(), issue4.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue5.store().labelNames());
 
             // Now ignore the main issue as well
             issue1.addLabel("hgupdate-sync-ignore");
 
             // This should lead to issue 5 no longer being a sync issue
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of("hgupdate-sync-ignore"), issue1.labelNames());
-            assertEquals(List.of("hgupdate-sync-ignore"), issue2.labelNames());
-            assertEquals(List.of("hgupdate-sync-ignore"), issue3.labelNames());
-            assertEquals(List.of(), issue4.labelNames());
-            assertEquals(List.of(), issue5.labelNames());
+            assertEquals(List.of("hgupdate-sync-ignore"), issue1.store().labelNames());
+            assertEquals(List.of("hgupdate-sync-ignore"), issue2.store().labelNames());
+            assertEquals(List.of("hgupdate-sync-ignore"), issue3.store().labelNames());
+            assertEquals(List.of(), issue4.store().labelNames());
+            assertEquals(List.of(), issue5.store().labelNames());
         }
     }
 
@@ -249,7 +249,7 @@ public class SyncLabelBotTests {
             issue1.setProperty("issuetype", JSON.of("Bug"));
             issue1.setState(RESOLVED);
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue1.labelNames());
+            assertEquals(List.of(), issue1.store().labelNames());
 
             var issue2 = credentials.createIssue(issueProject, "Issue 2");
             issue2.setProperty("fixVersions", JSON.array().add(JSON.of("8u261")));
@@ -257,7 +257,7 @@ public class SyncLabelBotTests {
             issue2.setState(RESOLVED);
             issue1.addLink(Link.create(issue2, "backported by").build());
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue1.labelNames());
+            assertEquals(List.of(), issue1.store().labelNames());
 
             var issue3 = credentials.createIssue(issueProject, "Issue 3");
             issue3.setProperty("fixVersions", JSON.array().add(JSON.of("8u251")));
@@ -265,7 +265,7 @@ public class SyncLabelBotTests {
             issue3.setState(RESOLVED);
             issue1.addLink(Link.create(issue3, "backported by").build());
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of("hgupdate-sync"), issue3.labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue3.store().labelNames());
 
             var issue4 = credentials.createIssue(issueProject, "Issue 4");
             issue4.setProperty("fixVersions", JSON.array().add(JSON.of("emb-8u251")));
@@ -274,18 +274,18 @@ public class SyncLabelBotTests {
             issue1.addLink(Link.create(issue4, "backported by").build());
 
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue1.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue2.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue3.labelNames());
-            assertEquals(List.of(), issue4.labelNames());
+            assertEquals(List.of(), issue1.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue2.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue3.store().labelNames());
+            assertEquals(List.of(), issue4.store().labelNames());
 
             // Now try it with a configured ignore - issue 3 should lose its label
             var syncLabelBotWithIgnore = testBotBuilder(issueProject, storageFolder, null, "8u8\\d").create("synclabel", JSON.object());
             TestBotRunner.runPeriodicItems(syncLabelBotWithIgnore);
-            assertEquals(List.of(), issue1.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue2.labelNames());
-            assertEquals(List.of(), issue3.labelNames());
-            assertEquals(List.of(), issue4.labelNames());
+            assertEquals(List.of(), issue1.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue2.store().labelNames());
+            assertEquals(List.of(), issue3.store().labelNames());
+            assertEquals(List.of(), issue4.store().labelNames());
         }
     }
 
@@ -302,7 +302,7 @@ public class SyncLabelBotTests {
             issue1.setProperty("issuetype", JSON.of("Bug"));
             issue1.setState(RESOLVED);
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue1.labelNames());
+            assertEquals(List.of(), issue1.store().labelNames());
 
             var issue2 = credentials.createIssue(issueProject, "Issue 2");
             issue2.setProperty("fixVersions", JSON.array().add(JSON.of("8u261")));
@@ -310,7 +310,7 @@ public class SyncLabelBotTests {
             issue2.setState(RESOLVED);
             issue1.addLink(Link.create(issue2, "backported by").build());
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue1.labelNames());
+            assertEquals(List.of(), issue1.store().labelNames());
 
             var issue3 = credentials.createIssue(issueProject, "Issue 3");
             issue3.setProperty("fixVersions", JSON.array().add(JSON.of("8u251")));
@@ -318,7 +318,7 @@ public class SyncLabelBotTests {
             issue3.setState(RESOLVED);
             issue1.addLink(Link.create(issue3, "backported by").build());
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of("hgupdate-sync"), issue3.labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue3.store().labelNames());
 
             var issue4 = credentials.createIssue(issueProject, "Issue 4");
             issue4.setProperty("fixVersions", JSON.array().add(JSON.of("8u361")));
@@ -327,18 +327,18 @@ public class SyncLabelBotTests {
             issue1.addLink(Link.create(issue4, "backported by").build());
 
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue1.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue2.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue3.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue4.labelNames());
+            assertEquals(List.of(), issue1.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue2.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue3.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue4.store().labelNames());
 
             // Now try it with a configured include - issue 2 will now lose its label
             var syncLabelBotWithIgnore = testBotBuilder(issueProject, storageFolder, "8u\\d6\\d", null).create("synclabel", JSON.object());
             TestBotRunner.runPeriodicItems(syncLabelBotWithIgnore);
-            assertEquals(List.of(), issue1.labelNames());
-            assertEquals(List.of(), issue2.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue3.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue4.labelNames());
+            assertEquals(List.of(), issue1.store().labelNames());
+            assertEquals(List.of(), issue2.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue3.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue4.store().labelNames());
         }
     }
 
@@ -355,7 +355,7 @@ public class SyncLabelBotTests {
             issue1.setProperty("issuetype", JSON.of("Bug"));
             issue1.setState(RESOLVED);
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue1.labelNames());
+            assertEquals(List.of(), issue1.store().labelNames());
 
             var issue2 = credentials.createIssue(issueProject, "Issue 2");
             issue2.setProperty("fixVersions", JSON.array().add(JSON.of("8u271")));
@@ -364,7 +364,7 @@ public class SyncLabelBotTests {
             issue2.setState(RESOLVED);
             issue1.addLink(Link.create(issue2, "backported by").build());
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue1.labelNames());
+            assertEquals(List.of(), issue1.store().labelNames());
 
             var issue3 = credentials.createIssue(issueProject, "Issue 3");
             issue3.setProperty("fixVersions", JSON.array().add(JSON.of("8u291")));
@@ -372,7 +372,7 @@ public class SyncLabelBotTests {
             issue3.setState(RESOLVED);
             issue1.addLink(Link.create(issue3, "backported by").build());
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue3.labelNames());
+            assertEquals(List.of(), issue3.store().labelNames());
 
             var issue4 = credentials.createIssue(issueProject, "Issue 4");
             issue4.setProperty("fixVersions", JSON.array().add(JSON.of("8u301")));
@@ -380,10 +380,10 @@ public class SyncLabelBotTests {
             issue4.setState(RESOLVED);
             issue1.addLink(Link.create(issue4, "backported by").build());
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue1.labelNames());
-            assertEquals(List.of(), issue2.labelNames());
-            assertEquals(List.of(), issue3.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue4.labelNames());
+            assertEquals(List.of(), issue1.store().labelNames());
+            assertEquals(List.of(), issue2.store().labelNames());
+            assertEquals(List.of(), issue3.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue4.store().labelNames());
         }
     }
 
@@ -414,9 +414,9 @@ public class SyncLabelBotTests {
             issue1.addLink(Link.create(issue3, "backported by").build());
 
             TestBotRunner.runPeriodicItems(syncLabelBot);
-            assertEquals(List.of(), issue1.labelNames());
-            assertEquals(List.of(), issue2.labelNames());
-            assertEquals(List.of("hgupdate-sync"), issue3.labelNames());
+            assertEquals(List.of(), issue1.store().labelNames());
+            assertEquals(List.of(), issue2.store().labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue3.store().labelNames());
         }
     }
 }

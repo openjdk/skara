@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge.gitlab;
 
+import java.time.Duration;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.json.*;
@@ -251,5 +252,10 @@ public class GitLabHost implements Forge {
 
     URI getWebUri(String endpoint) {
         return URI.create(uri.toString() + endpoint);
+    }
+
+    @Override
+    public Duration minTimeStampUpdateInterval() {
+        return Duration.ofMinutes(1);
     }
 }

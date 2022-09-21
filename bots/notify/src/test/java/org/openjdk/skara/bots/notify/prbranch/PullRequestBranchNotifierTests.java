@@ -190,16 +190,6 @@ public class PullRequestBranchNotifierTests {
             var updatedHash = CheckableRepository.appendAndCommit(localRepo, "Yet another line");
             localRepo.push(updatedHash, repo.url(), "source");
 
-            // Make sure that the push registered
-            var lastHeadHash = pr.headHash();
-            var refreshCount = 0;
-            do {
-                pr = repo.pullRequest(pr.id());
-                if (refreshCount++ > 100) {
-                    fail("The PR did not update after the new push");
-                }
-            } while (pr.headHash().equals(lastHeadHash));
-
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The branch should have been updated
@@ -289,8 +279,7 @@ public class PullRequestBranchNotifierTests {
             assertThrows(IOException.class, () -> localRepo.fetch(repo.url(), PreIntegrations.preIntegrateBranch(pr)));
 
             // The follow-up PR should have been retargeted
-            followUpPr = repo.pullRequest(followUpPr.id());
-            assertEquals("master", followUpPr.targetRef());
+            assertEquals("master", followUpPr.store().targetRef());
 
             // Instructions on how to adapt to the newly integrated changes should have been posted
             var lastComment = followUpPr.comments().get(followUpPr.comments().size() - 1);
@@ -315,8 +304,7 @@ public class PullRequestBranchNotifierTests {
             assertThrows(IOException.class, () -> localRepo.fetch(repo.url(), targetBranch));
 
             // The another follow-up PR should have been retargeted
-            anotherFollowUpPr = repo.pullRequest(anotherFollowUpPr.id());
-            assertEquals("master", anotherFollowUpPr.targetRef());
+            assertEquals("master", anotherFollowUpPr.store().targetRef());
             lastComment = anotherFollowUpPr.comments().get(anotherFollowUpPr.comments().size() - 1);
             assertTrue(lastComment.body().contains("The parent pull request that this "
                     + "pull request depends on has now been integrated"), lastComment.body());
@@ -369,7 +357,7 @@ public class PullRequestBranchNotifierTests {
             localRepo.squash(updatedHash);
             var forcePushHash = localRepo.commit("test force-push", "duke", "duke@openjdk.org");
             localRepo.push(forcePushHash, repo.url(), "source", true);
-            ((TestPullRequest) pr).setLastForcePushTime(ZonedDateTime.now());
+            pr.setLastForcePushTime(ZonedDateTime.now());
             pr.addComment("Force-push");
             TestBotRunner.runPeriodicItems(notifyBot);
 
@@ -399,7 +387,7 @@ public class PullRequestBranchNotifierTests {
             localRepo.squash(updatedHash);
             forcePushHash = localRepo.commit("test force-push again", "duke", "duke@openjdk.org");
             localRepo.push(forcePushHash, repo.url(), "source", true);
-            ((TestPullRequest) pr).setLastForcePushTime(ZonedDateTime.now());
+            pr.setLastForcePushTime(ZonedDateTime.now());
             pr.addComment("Force-push again");
             TestBotRunner.runPeriodicItems(notifyBot);
 

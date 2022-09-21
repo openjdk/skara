@@ -115,9 +115,9 @@ class SponsorTests {
 
             assertEquals("Generated Reviewer 1", headCommit.committer().name());
             assertEquals("integrationreviewer1@openjdk.org", headCommit.committer().email());
-            assertTrue(pr.labelNames().contains("integrated"));
-            assertFalse(pr.labelNames().contains("ready"));
-            assertFalse(pr.labelNames().contains("sponsor"));
+            assertTrue(pr.store().labelNames().contains("integrated"));
+            assertFalse(pr.store().labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("sponsor"));
         }
     }
 
@@ -277,25 +277,15 @@ class SponsorTests {
                           .filter(comment -> comment.body().contains("at version " + editHash.hex()))
                           .count();
             assertEquals(1, ready);
-            assertTrue(pr.labelNames().contains("sponsor"));
+            assertTrue(pr.store().labelNames().contains("sponsor"));
 
             // Push another change
             var updateHash = CheckableRepository.appendAndCommit(localRepo, "Yet more stuff", "Append commit", authorFullName, "ta@none.none");
             localRepo.push(updateHash, author.url(), "edit");
 
-            // Make sure that the push registered
-            var lastHeadHash = pr.headHash();
-            var refreshCount = 0;
-            do {
-                pr = author.pullRequest(pr.id());
-                if (refreshCount++ > 100) {
-                    fail("The PR did not update after the new push");
-                }
-            } while (pr.headHash().equals(lastHeadHash));
-
             // The label should have been dropped
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertFalse(pr.labelNames().contains("sponsor"));
+            assertFalse(pr.store().labelNames().contains("sponsor"));
 
             // Reviewer now tries to sponsor
             var reviewerPr = reviewer.pullRequest(pr.id());
@@ -311,12 +301,12 @@ class SponsorTests {
             // Flag it as ready for integration again
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertTrue(pr.labelNames().contains("sponsor"));
+            assertTrue(pr.store().labelNames().contains("sponsor"));
 
             // It should now be possible to sponsor
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertFalse(pr.labelNames().contains("sponsor"));
+            assertFalse(pr.store().labelNames().contains("sponsor"));
 
             // The bot should have pushed the commit
             var pushed = pr.comments().stream()
@@ -517,14 +507,14 @@ class SponsorTests {
                           .filter(comment -> comment.body().contains("at version " + editHash.hex()))
                           .count();
             assertEquals(1, ready);
-            assertTrue(pr.labelNames().contains("sponsor"));
+            assertTrue(pr.store().labelNames().contains("sponsor"));
 
             // The reviewer now changes their mind
             approvalPr.addReview(Review.Verdict.DISAPPROVED, "No wait, disapproved");
 
             // The label should have been dropped
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertFalse(pr.labelNames().contains("sponsor"));
+            assertFalse(pr.store().labelNames().contains("sponsor"));
 
             // Reviewer now tries to sponsor
             var reviewerPr = reviewer.pullRequest(pr.id());
@@ -537,12 +527,12 @@ class SponsorTests {
             // Make it ready for integration again
             approvalPr.addReview(Review.Verdict.APPROVED, "Sorry, wrong button");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertTrue(pr.labelNames().contains("sponsor"));
+            assertTrue(pr.store().labelNames().contains("sponsor"));
 
             // It should now be possible to sponsor
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertFalse(pr.labelNames().contains("sponsor"));
+            assertFalse(pr.store().labelNames().contains("sponsor"));
 
             // The bot should have pushed the commit
             var pushed = pr.comments().stream()
@@ -747,7 +737,8 @@ class SponsorTests {
             var approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
-            // Let the bot see it
+            // Let the bot see it, needs two runs to first mark ready, then add /integrate
+            TestBotRunner.runPeriodicItems(mergeBot);
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // Bot should have marked the PR as ready for sponsor
@@ -756,7 +747,7 @@ class SponsorTests {
                           .filter(comment -> comment.body().contains("at version " + editHash.hex()))
                           .count();
             assertEquals(1, ready);
-            assertTrue(pr.labelNames().contains("sponsor"));
+            assertTrue(pr.store().labelNames().contains("sponsor"));
 
             // Reviewer now sponsor
             var reviewerPr = reviewer.pullRequest(pr.id());
@@ -909,7 +900,7 @@ class SponsorTests {
             var commitComment = pr.comments().stream()
                     .filter(comment -> comment.body().contains("Pushed as commit"))
                     .findAny().orElseThrow();
-            ((TestPullRequest) pr).removeComment(commitComment);
+            pr.removeComment(commitComment);
             localRepo.push(masterHash, author.url(), "master", true);
 
             // The bot should now retry
@@ -920,10 +911,10 @@ class SponsorTests {
                     .filter(comment -> comment.body().contains("Pushed as commit"))
                     .count();
             assertEquals(1, pushed, "Commit comment not found");
-            assertFalse(pr.labelNames().contains("ready"), "ready label not removed");
-            assertFalse(pr.labelNames().contains("rfr"), "rfr label not removed");
-            assertFalse(pr.labelNames().contains("sponsor"), "sponsor label not removed");
-            assertTrue(pr.labelNames().contains("integrated"), "integrated label not added");
+            assertFalse(pr.store().labelNames().contains("ready"), "ready label not removed");
+            assertFalse(pr.store().labelNames().contains("rfr"), "rfr label not removed");
+            assertFalse(pr.store().labelNames().contains("sponsor"), "sponsor label not removed");
+            assertTrue(pr.store().labelNames().contains("integrated"), "integrated label not added");
 
             // Remove some labels and the commit comment to simulate that last attempt was interrupted
             // after the push was made and the PR was closed
@@ -934,7 +925,7 @@ class SponsorTests {
             var commitComment2 = pr.comments().stream()
                     .filter(comment -> comment.body().contains("Pushed as commit"))
                     .findAny().orElseThrow();
-            ((TestPullRequest) pr).removeComment(commitComment2);
+            pr.removeComment(commitComment2);
 
             // The bot should now retry
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -944,16 +935,16 @@ class SponsorTests {
                     .filter(comment -> comment.body().contains("Pushed as commit"))
                     .count();
             assertEquals(1, pushed, "Commit comment not found");
-            assertFalse(pr.labelNames().contains("ready"), "ready label not removed");
-            assertFalse(pr.labelNames().contains("rfr"), "rfr label not removed");
-            assertFalse(pr.labelNames().contains("sponsor"), "sponsor label not removed");
-            assertTrue(pr.labelNames().contains("integrated"), "integrated label not added");
+            assertFalse(pr.store().labelNames().contains("ready"), "ready label not removed");
+            assertFalse(pr.store().labelNames().contains("rfr"), "rfr label not removed");
+            assertFalse(pr.store().labelNames().contains("sponsor"), "sponsor label not removed");
+            assertTrue(pr.store().labelNames().contains("integrated"), "integrated label not added");
 
             // Simulate that interruption happened just before the commit comment was added
             var commitComment3 = pr.comments().stream()
                     .filter(comment -> comment.body().contains("Pushed as commit"))
                     .findAny().orElseThrow();
-            ((TestPullRequest) pr).removeComment(commitComment3);
+            pr.removeComment(commitComment3);
 
             // The bot should now retry
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -963,10 +954,10 @@ class SponsorTests {
                     .filter(comment -> comment.body().contains("Pushed as commit"))
                     .count();
             assertEquals(1, pushed, "Commit comment not found");
-            assertFalse(pr.labelNames().contains("ready"), "ready label not removed");
-            assertFalse(pr.labelNames().contains("rfr"), "rfr label not removed");
-            assertFalse(pr.labelNames().contains("sponsor"), "sponsor label not removed");
-            assertTrue(pr.labelNames().contains("integrated"), "integrated label not added");
+            assertFalse(pr.store().labelNames().contains("ready"), "ready label not removed");
+            assertFalse(pr.store().labelNames().contains("rfr"), "rfr label not removed");
+            assertFalse(pr.store().labelNames().contains("sponsor"), "sponsor label not removed");
+            assertTrue(pr.store().labelNames().contains("integrated"), "integrated label not added");
 
             // Add another command and verify that no further action is taken
             pr.addComment("/integrate");

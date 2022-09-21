@@ -131,6 +131,6 @@ public interface JSONValue {
     }
 
     static JSONValue fromNull() {
-        return new JSONNull();
+        return JSONNull.instance;
     }
 }
