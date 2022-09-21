@@ -64,7 +64,6 @@ public class ApprovalBotFactory implements BotFactory {
             }
             repositories.get(issueProject).add(repo);
 
-            var approvalInfoList = new ArrayList<ApprovalInfo>();
             for (var branchInfo : project.get("approval").asArray()) {
                 var requestLabel = branchInfo.get("request-label").asString();
                 var approvalLabel = branchInfo.get("approval-label").asString();
@@ -75,18 +74,14 @@ public class ApprovalBotFactory implements BotFactory {
                         maintainers.add(maintainer.asString());
                     }
                 }
-                approvalInfoList.add(new ApprovalInfo(repo, Pattern.compile(branchInfo.get("branch").asString()),
+                approvalInfoMap.get(issueProject).add(new ApprovalInfo(repo, Pattern.compile(branchInfo.get("branch").asString()),
                         requestLabel, approvalLabel, disapprovalLabel, maintainers));
             }
-            approvalInfoMap.get(issueProject).addAll(approvalInfoList);
-            var pullRequestBot = new ApprovalPullRequestBot(repo, issueProject, approvalInfoList);
-            log.info("Setting up approval pull request bot for " + repo.name());
-            botList.add(pullRequestBot);
         }
 
         for (var issueProject : issueProjects) {
             log.info("Setting up approval issue bot for " + issueProject.name());
-            botList.add(new ApprovalIssueBot(issueProject, repositories.get(issueProject), approvalInfoMap.get(issueProject)));
+            botList.add(new ApprovalBot(issueProject, repositories.get(issueProject), approvalInfoMap.get(issueProject)));
         }
 
         return botList;

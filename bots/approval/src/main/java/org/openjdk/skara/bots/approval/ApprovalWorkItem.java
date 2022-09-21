@@ -33,7 +33,7 @@ import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
-public class ApprovalPullRequestWorkItem implements WorkItem {
+public class ApprovalWorkItem implements WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.approval");
     // The tag to re-run the CheckWorkItem of the PRBot.
     static final String APPROVAL_UPDATE_MARKER = "<!-- approval: 'update' -->";
@@ -44,9 +44,7 @@ public class ApprovalPullRequestWorkItem implements WorkItem {
     private final IssueProject issueProject;
     private final ApprovalInfo approvalInfo;
 
-    public ApprovalPullRequestWorkItem(HostedRepository repo, String prId,
-                                       IssueProject issueProject,
-                                       ApprovalInfo approvalInfo) {
+    public ApprovalWorkItem(HostedRepository repo, String prId, IssueProject issueProject, ApprovalInfo approvalInfo) {
         this.repo = repo;
         this.prId = prId;
         this.issueProject = issueProject;
@@ -139,7 +137,7 @@ public class ApprovalPullRequestWorkItem implements WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof ApprovalPullRequestWorkItem item)) {
+        if (!(other instanceof ApprovalWorkItem item)) {
             return true;
         }
 
@@ -153,11 +151,11 @@ public class ApprovalPullRequestWorkItem implements WorkItem {
 
     @Override
     public String workItemName() {
-        return "approval-pr";
+        return "approval";
     }
 
     @Override
     public String toString() {
-        return botName() + "/ApprovalPullRequestWorkItem@" + repo.name() + "#" + prId;
+        return botName() + "/ApprovalWorkItem@" + repo.name() + "#" + prId;
     }
 }

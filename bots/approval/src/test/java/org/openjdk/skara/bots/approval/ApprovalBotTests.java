@@ -24,8 +24,8 @@ package org.openjdk.skara.bots.approval;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.openjdk.skara.bots.approval.ApprovalPullRequestWorkItem.APPROVAL_UPDATE_MARKER;
-import static org.openjdk.skara.bots.approval.ApprovalPullRequestWorkItem.PROGRESS_MARKER;
+import static org.openjdk.skara.bots.approval.ApprovalWorkItem.APPROVAL_UPDATE_MARKER;
+import static org.openjdk.skara.bots.approval.ApprovalWorkItem.PROGRESS_MARKER;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.openjdk.skara.bot.ApprovalInfo;
+import org.openjdk.skara.forge.PullRequestUtils;
 import org.openjdk.skara.forge.Review;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.CheckableRepository;
@@ -41,7 +42,7 @@ import org.openjdk.skara.test.HostCredentials;
 import org.openjdk.skara.test.TemporaryDirectory;
 import org.openjdk.skara.test.TestBotRunner;
 
-public class ApprovalPullRequestBotTests {
+public class ApprovalBotTests {
     @Test
     void testApproval(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
@@ -51,12 +52,13 @@ public class ApprovalPullRequestBotTests {
             var maintainer = credentials.getHostedRepository();
             var issueProject = credentials.getIssueProject();
 
-            var bot = new ApprovalPullRequestBot(author, issueProject, List.of(new ApprovalInfo(author, Pattern.compile("test"),
-                            "test-fix-request", "test-fix-yes", "test-fix-no", Set.of("integrationreviewer3")),
-                    new ApprovalInfo(author, Pattern.compile("master"),
-                            "master-fix-request", "master-fix-yes", "master-fix-no", Set.of("integrationreviewer3")),
-                    new ApprovalInfo(author, Pattern.compile("jdk18"),
-                            "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))));
+            var bot = new ApprovalBot(issueProject, List.of(author),
+                    List.of(new ApprovalInfo(author, Pattern.compile("test"),
+                                    "test-fix-request" , "test-fix-yes" , "test-fix-no" , Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("master"),
+                                    "master-fix-request" , "master-fix-yes" , "master-fix-no" , Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("jdk18"),
+                                    "jdk18-fix-request" , "jdk18-fix-yes" , "jdk18-fix-no" , Set.of("integrationreviewer3"))));
 
             var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
             issue.setProperty("issuetype", JSON.of("Bug"));
@@ -70,6 +72,7 @@ public class ApprovalPullRequestBotTests {
             var pr = credentials.createPullRequest(author, "master", "edit",
                     issue.id() + ": " + issue.title(), List.of("PR body", PROGRESS_MARKER));
             pr.setBody(pr.body() + "\n- [ ] All issues must be");
+            PullRequestUtils.postPullRequestLinkComment(issue, pr);
 
             // review the pr
             var reviewPr = reviewer.pullRequest(pr.id());
@@ -87,7 +90,7 @@ public class ApprovalPullRequestBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should remove the `approval` label of the pull request.
-            assertFalse(pr.labelNames().contains("approval"));
+            assertFalse(pr.store().labelNames().contains("approval"));
             // The bot should add the approval update marker.
             assertTrue(pr.body().contains(APPROVAL_UPDATE_MARKER));
         }
@@ -102,12 +105,13 @@ public class ApprovalPullRequestBotTests {
             var maintainer = credentials.getHostedRepository();
             var issueProject = credentials.getIssueProject();
 
-            var bot = new ApprovalPullRequestBot(author, issueProject, List.of(new ApprovalInfo(author, Pattern.compile("test"),
-                            "test-fix-request", "test-fix-yes", "test-fix-no", Set.of("integrationreviewer3")),
-                    new ApprovalInfo(author, Pattern.compile("master"),
-                            "master-fix-request", "master-fix-yes", "master-fix-no", Set.of("integrationreviewer3")),
-                    new ApprovalInfo(author, Pattern.compile("jdk18"),
-                            "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))));
+            var bot = new ApprovalBot(issueProject, List.of(author),
+                    List.of(new ApprovalInfo(author, Pattern.compile("test"),
+                                    "test-fix-request" , "test-fix-yes" , "test-fix-no" , Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("master"),
+                                    "master-fix-request" , "master-fix-yes" , "master-fix-no" , Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("jdk18"),
+                                    "jdk18-fix-request" , "jdk18-fix-yes" , "jdk18-fix-no" , Set.of("integrationreviewer3"))));
 
             var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
             issue.setProperty("issuetype", JSON.of("Bug"));
@@ -121,6 +125,7 @@ public class ApprovalPullRequestBotTests {
             var pr = credentials.createPullRequest(author, "master", "edit",
                     issue.id() + ": " + issue.title(), List.of("PR body", PROGRESS_MARKER));
             pr.setBody(pr.body() + "\n- [ ] All issues must be");
+            PullRequestUtils.postPullRequestLinkComment(issue, pr);
 
             // review the pr
             var reviewPr = reviewer.pullRequest(pr.id());
@@ -138,7 +143,7 @@ public class ApprovalPullRequestBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should remove the `approval` label of the pull request.
-            assertFalse(pr.labelNames().contains("approval"));
+            assertFalse(pr.store().labelNames().contains("approval"));
             // The bot should add the approval update marker.
             assertTrue(pr.body().contains(APPROVAL_UPDATE_MARKER));
         }
@@ -153,14 +158,15 @@ public class ApprovalPullRequestBotTests {
             var maintainer = credentials.getHostedRepository();
             var issueProject = credentials.getIssueProject();
 
-            var bot = new ApprovalPullRequestBot(author, issueProject, List.of(new ApprovalInfo(author, Pattern.compile("test"),
-                            "test-fix-request", "test-fix-yes", "test-fix-no", Set.of("integrationreviewer3")),
-                    new ApprovalInfo(author, Pattern.compile("master"),
-                            "master-fix-request", "master-fix-yes", "master-fix-no", Set.of("integrationreviewer3")),
-                    new ApprovalInfo(author, Pattern.compile("jdk18"),
-                            "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))));
+            var bot = new ApprovalBot(issueProject, List.of(author),
+                    List.of(new ApprovalInfo(author, Pattern.compile("test"),
+                                    "test-fix-request" , "test-fix-yes" , "test-fix-no" , Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("master"),
+                                    "master-fix-request" , "master-fix-yes" , "master-fix-no" , Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("jdk18"),
+                                    "jdk18-fix-request" , "jdk18-fix-yes" , "jdk18-fix-no" , Set.of("integrationreviewer3"))));
 
-            var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
+            var issue = credentials.createIssue(issueProject, "This is update change issue");
             issue.setProperty("issuetype", JSON.of("Bug"));
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
@@ -172,6 +178,7 @@ public class ApprovalPullRequestBotTests {
             var pr = credentials.createPullRequest(author, "master", "edit",
                     issue.id() + ": " + issue.title(), List.of("PR body", PROGRESS_MARKER));
             pr.setBody(pr.body() + "\n- [ ] All issues must be");
+            PullRequestUtils.postPullRequestLinkComment(issue, pr);
 
             // Don't review the pr, so the update change is not ready for approval.
             // Don't add the `approval` label to the pull request.
@@ -184,9 +191,9 @@ public class ApprovalPullRequestBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should add the fix request label to the issue.
-            assertTrue(issue.labelNames().contains("master-fix-request"));
+            assertTrue(issue.store().labelNames().contains("master-fix-request"));
             // The pull request shouldn't have the `approval` label.
-            assertFalse(pr.labelNames().contains("approval"));
+            assertFalse(pr.store().labelNames().contains("approval"));
             // The bot should add the approval update marker.
             assertTrue(pr.body().contains(APPROVAL_UPDATE_MARKER));
         }
@@ -201,12 +208,13 @@ public class ApprovalPullRequestBotTests {
             var maintainer = credentials.getHostedRepository();
             var issueProject = credentials.getIssueProject();
 
-            var bot = new ApprovalPullRequestBot(author, issueProject, List.of(new ApprovalInfo(author, Pattern.compile("test"),
-                            "test-fix-request", "test-fix-yes", "test-fix-no", Set.of("integrationreviewer3")),
-                    new ApprovalInfo(author, Pattern.compile("master"),
-                            "master-fix-request", "master-fix-yes", "master-fix-no", Set.of("integrationreviewer3")),
-                    new ApprovalInfo(author, Pattern.compile("jdk18"),
-                            "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))));
+            var bot = new ApprovalBot(issueProject, List.of(author),
+                    List.of(new ApprovalInfo(author, Pattern.compile("test"),
+                                    "test-fix-request" , "test-fix-yes" , "test-fix-no" , Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("master"),
+                                    "master-fix-request" , "master-fix-yes" , "master-fix-no" , Set.of("integrationreviewer3")),
+                            new ApprovalInfo(author, Pattern.compile("jdk18"),
+                                    "jdk18-fix-request" , "jdk18-fix-yes" , "jdk18-fix-no" , Set.of("integrationreviewer3"))));
 
             var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
             issue.setProperty("issuetype", JSON.of("Bug"));
@@ -219,6 +227,7 @@ public class ApprovalPullRequestBotTests {
             // Create a pull request
             var pr = credentials.createPullRequest(author, "master", "edit",
                     issue.id() + ": " + issue.title(), List.of("PR body", PROGRESS_MARKER));
+            PullRequestUtils.postPullRequestLinkComment(issue, pr);
             // review the pr
             var reviewPr = reviewer.pullRequest(pr.id());
             reviewPr.addReview(Review.Verdict.APPROVED, "LGTM");
@@ -238,7 +247,7 @@ public class ApprovalPullRequestBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The pull request shouldn't have the `approval` label.
-            assertFalse(pr.labelNames().contains("approval"));
+            assertFalse(pr.store().labelNames().contains("approval"));
             // The bot should add the approval update marker.
             assertTrue(pr.body().contains(APPROVAL_UPDATE_MARKER));
         }
@@ -253,12 +262,13 @@ public class ApprovalPullRequestBotTests {
             var maintainer = credentials.getHostedRepository();
             var issueProject = credentials.getIssueProject();
 
-            var bot = new ApprovalPullRequestBot(author, issueProject, List.of(new ApprovalInfo(author, Pattern.compile("test"),
-                                    "test-fix-request", "test-fix-yes", "test-fix-no", Set.of("integrationreviewer3")),
+            var bot = new ApprovalBot(issueProject, List.of(author),
+                    List.of(new ApprovalInfo(author, Pattern.compile("test"),
+                                    "test-fix-request" , "test-fix-yes" , "test-fix-no" , Set.of("integrationreviewer3")),
                             new ApprovalInfo(author, Pattern.compile("master"),
-                                    "master-fix-request", "master-fix-yes", "master-fix-no", Set.of("integrationreviewer3")),
+                                    "master-fix-request" , "master-fix-yes" , "master-fix-no" , Set.of("integrationreviewer3")),
                             new ApprovalInfo(author, Pattern.compile("jdk18"),
-                                    "jdk18-fix-request", "jdk18-fix-yes", "jdk18-fix-no", Set.of("integrationreviewer3"))));
+                                    "jdk18-fix-request" , "jdk18-fix-yes" , "jdk18-fix-no" , Set.of("integrationreviewer3"))));
 
             var issue = issueProject.createIssue("This is update change issue", List.of(), Map.of());
             issue.setProperty("issuetype", JSON.of("Bug"));
@@ -271,6 +281,7 @@ public class ApprovalPullRequestBotTests {
             // Create a pull request which has the wrong title.
             var pr = credentials.createPullRequest(author, "master", "edit", issue.title(), List.of("PR body", PROGRESS_MARKER));
             pr.setBody(pr.body() + "\n- [ ] All issues must be");
+            PullRequestUtils.postPullRequestLinkComment(issue, pr);
 
             // review the pr
             var reviewPr = reviewer.pullRequest(pr.id());
@@ -299,7 +310,7 @@ public class ApprovalPullRequestBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot shouldn't remove the `approval` label of the pull request.
-            assertTrue(pr.labelNames().contains("approval"));
+            assertTrue(pr.store().labelNames().contains("approval"));
             // The bot shouldn't add the approval update marker.
             assertFalse(pr.body().contains(APPROVAL_UPDATE_MARKER));
         }
