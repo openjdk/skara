@@ -63,6 +63,7 @@ public class CheckablePullRequest {
                                            // Reviews without a hash are never valid as they referred to no longer
                                            // existing commits.
                                            .filter(review -> review.hash().isPresent())
+                                           .filter(review -> review.targetRef().equals(pr.targetRef()))
                                            .filter(review -> !ignoreStaleReviews || review.hash().orElseThrow().equals(pr.headHash()))
                                            .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                                            .collect(Collectors.toList());
@@ -126,15 +127,29 @@ public class CheckablePullRequest {
     }
 
     /**
-     * The Review list is in chronological order, the latest one from a particular reviewer is the
-     * one that is "active".
+     * The latest one from a particular reviewer is the one that is "active".
+     * Always prefer reviews with the same targetRef as the pull request
+     * currently has.
      */
-    static List<Review> filterActiveReviews(List<Review> allReviews) {
+    static List<Review> filterActiveReviews(List<Review> allReviews, String targetRef) {
         var reviewPerUser = new LinkedHashMap<HostUser, Review>();
         for (var review : allReviews) {
-            reviewPerUser.put(review.reviewer(), review);
+            if (reviewPerUser.containsKey(review.reviewer())) {
+                var prevReview = reviewPerUser.get(review.reviewer());
+                var prevReviewCorrectTarget = prevReview.targetRef().equals(targetRef);
+                var reviewCorrectTarget = review.targetRef().equals(targetRef);
+                var reviewNewer = prevReview.createdAt().isBefore(review.createdAt());
+
+                if ((prevReviewCorrectTarget && reviewCorrectTarget && reviewNewer)
+                        || (!prevReviewCorrectTarget && !reviewCorrectTarget && reviewNewer)
+                        || (!prevReviewCorrectTarget && reviewCorrectTarget)) {
+                    reviewPerUser.put(review.reviewer(), review);
+                }
+            } else {
+                reviewPerUser.put(review.reviewer(), review);
+            }
         }
-        return new ArrayList<>(reviewPerUser.values());
+        return List.copyOf(reviewPerUser.values());
     }
 
     Hash commit(Hash finalHead, Namespace namespace, String censusDomain, String sponsorId, Hash original) throws IOException, CommitFailure {
@@ -160,13 +175,13 @@ public class CheckablePullRequest {
             committer = author;
         }
 
-        var activeReviews = filterActiveReviews(pr.reviews());
+        var activeReviews = filterActiveReviews(pr.reviews(), pr.targetRef());
         var commitMessage = commitMessage(finalHead, activeReviews, namespace, false, original);
         return PullRequestUtils.createCommit(pr, localRepo, finalHead, author, committer, commitMessage);
     }
 
     Hash amendManualReviewers(Hash commit, Namespace namespace, Hash original) throws IOException {
-        var activeReviews = filterActiveReviews(pr.reviews());
+        var activeReviews = filterActiveReviews(pr.reviews(), pr.targetRef());
         var originalCommitMessage = commitMessage(commit, activeReviews, namespace, false, original);
         var amendedCommitMessage = commitMessage(commit, activeReviews, namespace, true, original);
 

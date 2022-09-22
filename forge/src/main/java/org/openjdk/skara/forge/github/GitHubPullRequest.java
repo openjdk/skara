@@ -34,7 +34,6 @@ import java.net.URI;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -82,6 +81,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public List<Review> reviews() {
+        var currentTargetRef = targetRef();
         var reviews = request.get("pulls/" + json.get("number").toString() + "/reviews").execute().stream()
                              .map(JSONValue::asObject)
                              .filter(obj -> !(obj.get("state").asString().equals("COMMENTED") && obj.get("body").asString().isEmpty()))
@@ -107,15 +107,16 @@ public class GitHubPullRequest implements PullRequest {
                                  var id = obj.get("id").asInt();
                                  var body = obj.get("body").asString();
                                  var createdAt = ZonedDateTime.parse(obj.get("submitted_at").asString());
-                                 return new Review(createdAt, reviewer, verdict, hash, id, body);
+                                 return new Review(createdAt, reviewer, verdict, hash, id, body, currentTargetRef);
                              })
                              .collect(Collectors.toList());
 
-        // The base ref cannot change for repos only using a single branch
-        if (!repository.multipleBranches()) {
-            return reviews;
-        }
+        var targetRefChanges = targetRefChanges();
+        return PullRequest.calculateReviewTargetRefs(reviews, targetRefChanges);
+    }
 
+    @Override
+    public List<RefChange> targetRefChanges() {
         // If the base ref has changed after a review, we treat those as invalid - unless it was a PreIntegration ref
         var parts = repository.name().split("/");
         var owner = parts[0];
@@ -139,23 +140,15 @@ public class GitHubPullRequest implements PullRequest {
                 "  }\n" +
                 "}";
         var data = host.graphQL()
-                       .post()
-                       .body(JSON.object().put("query", query))
-                       .execute()
-                       .get("data");
-        var lastBaseRefChange = data.get("repository").get("pullRequest").get("timelineItems").get("nodes").stream()
-                                    .map(JSONValue::asObject)
-                                    .filter(obj -> !PreIntegrations.isPreintegrationBranch(obj.get("currentRefName").asString()))
-                                    .filter(obj -> !PreIntegrations.isPreintegrationBranch(obj.get("previousRefName").asString()))
-                                    .map(obj -> ZonedDateTime.parse(obj.get("createdAt").asString()))
-                                    .max(Comparator.comparing(Function.identity()));
-        if (lastBaseRefChange.isPresent()) {
-            reviews = reviews.stream()
-                             .filter(r -> r.createdAt().isAfter(lastBaseRefChange.get()))
-                             .collect(Collectors.toList());;
-        }
-
-        return reviews;
+                .post()
+                .body(JSON.object().put("query", query))
+                .execute()
+                .get("data");
+        return data.get("repository").get("pullRequest").get("timelineItems").get("nodes").stream()
+                .map(JSONValue::asObject)
+                .map(obj -> new RefChange(obj.get("previousRefName").asString(), obj.get("currentRefName").asString(),
+                        ZonedDateTime.parse(obj.get("createdAt").asString())))
+                .toList();
     }
 
     @Override

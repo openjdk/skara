@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge.gitlab;
 
+import java.util.regex.Matcher;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
@@ -108,9 +109,12 @@ public class GitLabMergeRequest implements PullRequest {
             return List.of();
         }
 
-        var approvals = request.get("notes").execute().stream()
+        var currentTargetRef = targetRef();
+        var notes = request.get("notes").execute();
+        var reviews = notes.stream()
                                .map(JSONValue::asObject)
                                .filter(obj -> obj.get("system").asBoolean())
+                               // This matches both approved and unapproved notes
                                .filter(obj -> obj.get("body").asString().contains("approved this merge request"))
                                .map(obj -> {
                                    var reviewerObj = obj.get("author").asObject();
@@ -128,9 +132,32 @@ public class GitLabMergeRequest implements PullRequest {
                                        }
                                    }
                                    var id = obj.get("id").asInt();
-                                   return new Review(createdAt, reviewer, verdict, hash, id, "");
+                                   return new Review(createdAt, reviewer, verdict, hash, id, "", currentTargetRef);
                                }).toList();
-        return approvals;
+        var targetRefChanges = targetRefChanges(notes);
+        return PullRequest.calculateReviewTargetRefs(reviews, targetRefChanges);
+    }
+
+    private static final Pattern REF_CHANGES_PATTERN = Pattern.compile("changed target branch from `(.*)` to `(.*)`");
+    private List<RefChange> targetRefChanges(JSONValue notes) {
+        return notes.stream()
+                .map(JSONValue::asObject)
+                .filter(obj -> obj.get("system").asBoolean())
+                .map(obj -> {
+                    var matcher = REF_CHANGES_PATTERN.matcher(obj.get("body").asString());
+                    if (matcher.matches()) {
+                        return new RefChange(matcher.group(1), matcher.group(2), ZonedDateTime.parse(obj.get("created_at").asString()));
+                    } else {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    @Override
+    public List<RefChange> targetRefChanges() {
+        return targetRefChanges(request.get("notes").execute());
     }
 
     @Override

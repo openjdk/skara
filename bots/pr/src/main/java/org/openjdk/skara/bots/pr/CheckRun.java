@@ -500,19 +500,24 @@ class CheckRun {
                                .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                                .map(review -> {
                                    var entry = " * " + formatReviewer(review.reviewer());
-                                   var hash = review.hash();
-                                   if (hash.isPresent()) {
-                                       if (!hash.get().equals(pr.headHash())) {
-                                           if (ignoreStaleReviews) {
-                                               entry += " 🔄 Re-review required (review applies to [" + hash.get().abbreviate()
-                                                     + "](" + pr.filesUrl(hash.get()) + "))";
-                                           } else {
-                                               entry += " ⚠️ Review applies to [" + hash.get().abbreviate()
-                                                       + "](" + pr.filesUrl(hash.get()) + ")";
-                                           }
-                                       }
+                                   if (!review.targetRef().equals(pr.targetRef())) {
+                                       entry += " 🔄 Re-review required (review applies to pull request targeting [" + review.targetRef()
+                                               + "](" + pr.repository().webUrl(new Branch(review.targetRef())) + "))";
                                    } else {
-                                       entry += " 🔄 Re-review required (review applies to a commit that is no longer present)";
+                                       var hash = review.hash();
+                                       if (hash.isPresent()) {
+                                           if (!hash.get().equals(pr.headHash())) {
+                                               if (ignoreStaleReviews) {
+                                                   entry += " 🔄 Re-review required (review applies to [" + hash.get().abbreviate()
+                                                           + "](" + pr.filesUrl(hash.get()) + "))";
+                                               } else {
+                                                   entry += " ⚠️ Review applies to [" + hash.get().abbreviate()
+                                                           + "](" + pr.filesUrl(hash.get()) + ")";
+                                               }
+                                           }
+                                       } else {
+                                           entry += " 🔄 Re-review required (review applies to a commit that is no longer present)";
+                                       }
                                    }
                                    return entry;
                                })

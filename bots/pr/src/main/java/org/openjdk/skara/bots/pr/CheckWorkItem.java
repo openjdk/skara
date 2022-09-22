@@ -77,7 +77,8 @@ class CheckWorkItem extends PullRequestWorkItem {
             var approverString = reviews.stream()
                                         .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                                         .filter(review -> review.hash().isPresent())
-                                        .map(review -> encodeReviewer(review.reviewer(), censusInstance) + review.hash().orElseThrow().hex())
+                                        .map(review -> encodeReviewer(review.reviewer(), censusInstance) + review.targetRef()
+                                                + review.hash().orElseThrow().hex())
                                         .sorted()
                                         .collect(Collectors.joining());
             var commentString = comments.stream()
@@ -231,7 +232,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         var labels = new HashSet<>(pr.labelNames());
 
         // Filter out the active reviews
-        var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews);
+        var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews, pr.targetRef());
         if (!currentCheckValid(census, comments, activeReviews, labels)) {
             if (labels.contains("integrated")) {
                 log.info("Skipping check of integrated PR");

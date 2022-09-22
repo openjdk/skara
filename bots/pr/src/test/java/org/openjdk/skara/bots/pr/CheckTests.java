@@ -1509,6 +1509,41 @@ class CheckTests {
             assertFalse(pr.store().labelNames().contains("ready"));
             assertTrue(pr.store().labelNames().contains("rfr"));
             assertTrue(pr.store().body().contains("Re-review required"));
+
+            // Approve again
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved again");
+
+            // Change the target ref of the PR
+            localRepo.push(masterHash, author.url(), "other-branch", true);
+            pr.setTargetRef("other-branch");
+
+            // Check the status again
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The PR should no longer be ready, as the review is stale
+            assertFalse(pr.store().labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("rfr"));
+            assertTrue(pr.store().body().contains("Re-review required"));
+
+            // Approve yet again
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved again");
+
+            // Check the status again
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The PR should be flagged as ready
+            assertTrue(pr.store().labelNames().contains("ready"));
+            assertFalse(pr.store().body().contains("Re-review required"));
+
+            // Change target ref back to the original branch
+            pr.setTargetRef("master");
+
+            // Check the status again
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The PR should be flagged as ready, since the old review with that target is now valid again
+            assertTrue(pr.store().labelNames().contains("ready"));
+            assertFalse(pr.store().body().contains("Re-review required"));
         }
     }
 

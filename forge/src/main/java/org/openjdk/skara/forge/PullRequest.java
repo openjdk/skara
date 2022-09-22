@@ -37,7 +37,7 @@ public interface PullRequest extends Issue {
     HostedRepository repository();
 
     /**
-     * List of reviews, in descending chronological order.
+     * List of reviews.
      * @return
      */
     List<Review> reviews();
@@ -111,6 +111,12 @@ public interface PullRequest extends Issue {
      * @return
      */
     String targetRef();
+
+    /**
+     * Returns a list of all targetRef change events.
+     * @return
+     */
+    List<RefChange> targetRefChanges();
 
     /**
      * List of completed checks on the given hash.
@@ -205,5 +211,35 @@ public interface PullRequest extends Issue {
      */
     static String commitHashMessage(Hash hash) {
         return hash != null ? "Pushed as commit " + hash.hex() + "." : "";
+    }
+
+    /**
+     * Helper method for implementations of this interface. Creates a new list
+     * of Review objects with the targetRef field updated to match the target
+     * ref change events. Ideally this method should have been part of a common
+     * super class, but there isn't one.
+     */
+    static List<Review> calculateReviewTargetRefs(List<Review> reviews, List<RefChange> events) {
+        if (events.isEmpty()) {
+            return reviews;
+        }
+        var sortedEvents = events.stream()
+                .sorted(Comparator.comparing(RefChange::createdAt))
+                .toList();
+        var lastTargetRef = sortedEvents.get(events.size() - 1).curRefName();
+        return reviews.stream().map(orig -> {
+                    for (var event : sortedEvents) {
+                        if (event.createdAt().isAfter(orig.createdAt())
+                                && !PreIntegrations.isPreintegrationBranch(event.prevRefName())) {
+                            return new Review(orig, event.prevRefName());
+                        }
+                    }
+                    if (orig.targetRef().equals(lastTargetRef)) {
+                        return orig;
+                    } else {
+                        return new Review(orig, lastTargetRef);
+                    }
+                })
+                .toList();
     }
 }
