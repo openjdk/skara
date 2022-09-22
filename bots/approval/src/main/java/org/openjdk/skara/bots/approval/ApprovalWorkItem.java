@@ -30,8 +30,7 @@ import org.openjdk.skara.bot.ApprovalInfo;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.PullRequest;
-import org.openjdk.skara.issuetracker.IssueProject;
-import org.openjdk.skara.vcs.openjdk.Issue;
+import org.openjdk.skara.issuetracker.Issue;
 
 public class ApprovalWorkItem implements WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.approval");
@@ -41,13 +40,13 @@ public class ApprovalWorkItem implements WorkItem {
 
     private final HostedRepository repo;
     private final String prId;
-    private final IssueProject issueProject;
+    private final Issue issue;
     private final ApprovalInfo approvalInfo;
 
-    public ApprovalWorkItem(HostedRepository repo, String prId, IssueProject issueProject, ApprovalInfo approvalInfo) {
+    public ApprovalWorkItem(HostedRepository repo, String prId, Issue issue, ApprovalInfo approvalInfo) {
         this.repo = repo;
         this.prId = prId;
-        this.issueProject = issueProject;
+        this.issue = issue;
         this.approvalInfo = approvalInfo;
     }
 
@@ -91,17 +90,6 @@ public class ApprovalWorkItem implements WorkItem {
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         var pr = repo.pullRequest(prId);
-        var vcsIssue = Issue.fromStringRelaxed(pr.title());
-        if (vcsIssue.isEmpty()) {
-            log.info("No issue found in title for " + describe(pr));
-            return List.of();
-        }
-        var issueOpt = vcsIssue.flatMap(value -> issueProject.issue(value.shortId()));
-        if (issueOpt.isEmpty()) {
-            log.info("No issue found in JBS for " + describe(pr));
-            return List.of();
-        }
-        var issue = issueOpt.get();
 
         if (!hasApprovalProgress(pr)) {
             log.info("The PR body of " + describe(pr) + " doesn't have the approval progress, adding the approval update marker.");

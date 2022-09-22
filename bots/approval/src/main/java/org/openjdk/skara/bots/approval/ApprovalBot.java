@@ -57,7 +57,7 @@ public class ApprovalBot implements Bot {
             var itemsPerIssue = PullRequestUtils.pullRequestCommentLink(issue).stream()
                     .flatMap(uri -> repositories.stream().flatMap(r -> r.parsePullRequestUrl(uri.toString()).stream()))
                     .filter(pr -> pr.isOpen() && requiresApproval(pr))
-                    .map(pr -> new ApprovalWorkItem(pr.repository(), pr.id(), issue.project(),
+                    .map(pr -> new ApprovalWorkItem(pr.repository(), pr.id(), issue,
                             approvalInfos.stream().filter(info -> approvalInfoMatch(info, pr)).findFirst().get()))
                     .collect(Collectors.toList());
             items.addAll(itemsPerIssue);
