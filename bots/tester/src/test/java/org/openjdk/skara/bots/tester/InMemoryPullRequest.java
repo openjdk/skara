@@ -337,4 +337,9 @@ class InMemoryPullRequest implements PullRequest {
     public Optional<Hash> findIntegratedCommitHash() {
         return Optional.empty();
     }
+
+    @Override
+    public Object comparisonSnapshot() {
+        return this;
+    }
 }

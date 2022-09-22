@@ -53,14 +53,16 @@ public interface HostedRepository {
     List<PullRequest> openPullRequests();
 
     /**
-     * Returns a list of all pull requests (both open and closed) that have been updated after the
-     * provided time, ordered by latest updated first. If there are many pull requests that
-     * match, the list may have been truncated.
+     * Returns a list of all pull requests (both open and closed) that have
+     * been updated after or on the given time, with a resolution given by
+     * Host::timeStampQueryPrecision, ordered by latest updated first. If there
+     * are many pull requests that match, the list may have been truncated.
      */
     List<PullRequest> pullRequestsAfter(ZonedDateTime updatedAfter);
 
     /**
-     * Returns a list of all open pull requests that have been updated after the given time.
+     * Returns a list of all open pull requests that have been updated after or on
+     * the given time, with a resolution given by Host::timeStampQueryPrecision.
      */
     List<PullRequest> openPullRequestsAfter(ZonedDateTime updatedAfter);
     List<PullRequest> findPullRequestsWithComment(String author, String body);

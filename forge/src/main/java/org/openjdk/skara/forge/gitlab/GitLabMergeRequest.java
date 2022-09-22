@@ -48,6 +48,9 @@ public class GitLabMergeRequest implements PullRequest {
     // Label objects is expensive. This list is always sorted.
     private List<String> labels;
 
+    // Lazy cache for comparisonSnapshot
+    private Object comparisonSnapshot;
+
     GitLabMergeRequest(GitLabRepository repository, GitLabHost host, JSONValue jsonValue, RestRequest request) {
         this.repository = repository;
         this.host = host;
@@ -826,6 +829,18 @@ public class GitLabMergeRequest implements PullRequest {
     @Override
     public Optional<Hash> findIntegratedCommitHash() {
         return findIntegratedCommitHash(List.of(repository.forge().currentUser().id()));
+    }
+
+    /**
+     * For GitLabMergeRequest, a snapshot comparison needs to include the comments
+     * and reviews, which are both part of the general "notes".
+     */
+    @Override
+    public Object comparisonSnapshot() {
+        if (comparisonSnapshot == null) {
+            comparisonSnapshot = List.of(json, request.get("notes").execute());
+        }
+        return comparisonSnapshot;
     }
 
     /**

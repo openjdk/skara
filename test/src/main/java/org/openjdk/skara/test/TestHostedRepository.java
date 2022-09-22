@@ -90,7 +90,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     @Override
     public List<PullRequest> pullRequestsAfter(ZonedDateTime updatedAfter) {
         return host.getPullRequests(this).stream()
-                   .filter(pr -> pr.updatedAt().isAfter(updatedAfter))
+                   .filter(pr -> !pr.updatedAt().isBefore(updatedAfter))
                    .sorted(Comparator.comparing(PullRequest::updatedAt).reversed())
                    .collect(Collectors.toList());
     }
@@ -99,7 +99,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     public List<PullRequest> openPullRequestsAfter(ZonedDateTime updatedAfter) {
         return host.getPullRequests(this).stream()
                 .filter(pr -> pr.state().equals(Issue.State.OPEN))
-                .filter(pr -> pr.updatedAt().isAfter(updatedAfter))
+                .filter(pr -> !pr.updatedAt().isBefore(updatedAfter))
                 .collect(Collectors.toList());
     }
 

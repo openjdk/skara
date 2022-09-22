@@ -3,12 +3,14 @@ package org.openjdk.skara.issuetracker;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.openjdk.skara.test.HostCredentials;
 import org.openjdk.skara.test.TestHost;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class IssuePollerTests {
 
@@ -84,7 +86,6 @@ public class IssuePollerTests {
         try (var credentials = new HostCredentials(testInfo)) {
             var issueProject = credentials.getIssueProject();
             var testHost = (TestHost) issueProject.issueTracker();
-            testHost.setTimeStampQueryPrecision(Duration.ofNanos(2));
             var issuePoller = new IssuePoller(issueProject, Duration.ZERO);
 
             // Create issue and poll for it
@@ -112,17 +113,14 @@ public class IssuePollerTests {
             assertEquals(0, issues.size());
             issuePoller.lastBatchHandled();
 
-            // With the extremely short precision of 2 nanos, enough time should now
-            // have passed between the two previous polls so that the poller is now
-            // padding the fetch query with the precision duration.
-            // We can prove that by updating the updatedAt of issue1 to something after
-            // the last updatedAt but before last updatedAt + precision. If the fetch
-            // call would return it, then isUpdated should also return true, and
-            // updatedIssues() would then return issue1.
+            // With padding triggered, no issues should be returned even at the query
+            // level.
             var lastFoundUpdatedAt = issue1.store().lastUpdate();
-            issue1.store().setLastUpdate(lastFoundUpdatedAt.plus(Duration.ofNanos(1)));
             issues = issuePoller.updatedIssues();
             assertEquals(0, issues.size());
+            assertTrue(issuePoller.getCurrentQueryResult().issues().isEmpty(),
+                    "Nothing should have been returned by the query but contained: "
+                            + issuePoller.getCurrentQueryResult().issues());
             issuePoller.lastBatchHandled();
 
             // Update to something just after the lastUpdate + precision and poll

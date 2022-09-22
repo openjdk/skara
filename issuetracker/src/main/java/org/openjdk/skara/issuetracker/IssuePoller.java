@@ -20,8 +20,8 @@ public class IssuePoller {
     private final ZonedDateTime initialUpdatedAt;
     private final Map<String, Issue> retryMap = new HashMap<>();
 
-    private record QueryResult(Map<String, Issue> issues, ZonedDateTime maxUpdatedAt,
-                               Instant afterQuery, List<Issue> result) {}
+    record QueryResult(Map<String, Issue> issues, ZonedDateTime maxUpdatedAt,
+                       Instant afterQuery, List<Issue> result) {}
     private QueryResult current;
     private QueryResult prev;
 
@@ -160,5 +160,10 @@ public class IssuePoller {
                 return Stream.concat(issues.stream(), retries.stream()).toList();
             }
         }
+    }
+
+    // Expose the query results to tests
+    QueryResult getCurrentQueryResult() {
+        return current;
     }
 }
