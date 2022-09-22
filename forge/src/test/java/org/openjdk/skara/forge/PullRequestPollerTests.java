@@ -209,10 +209,12 @@ public class PullRequestPollerTests {
             prPoller.retryPullRequest(pr2);
             prs = prPoller.updatedPullRequests();
             assertEquals(1, prs.size());
+            assertEquals(pr2.id(), prs.get(0).id());
 
             // Call again without calling .lastBatchHandled, the retry should be included again
             prs = prPoller.updatedPullRequests();
             assertEquals(1, prs.size());
+            assertEquals(pr2.id(), prs.get(0).id());
             prPoller.lastBatchHandled();
 
             // Mark a PR for retry far in the future, it should not be included
@@ -318,6 +320,12 @@ public class PullRequestPollerTests {
             assertEquals(0, prs.size());
             // The query should still return pr3
             assertTrue(prPoller.getCurrentQueryResult().pullRequests().containsKey(pr3.id()));
+
+            // The same should happen again until we call lastBatchHandled()
+            prs = prPoller.updatedPullRequests();
+            assertEquals(0, prs.size());
+            // The query should still return pr3
+            assertTrue(prPoller.getCurrentQueryResult().pullRequests().containsKey(pr3.id()));
             prPoller.lastBatchHandled();
 
             // Now even the query should not include p3, but we should get the new pr4
@@ -327,6 +335,25 @@ public class PullRequestPollerTests {
             assertEquals(1, prs.size());
             assertEquals(pr4.id(), prs.get(0).id());
             assertFalse(prPoller.getCurrentQueryResult().pullRequests().containsKey(pr3.id()));
+
+            // The same should happen again until we call lastBatchHandled()
+            prs = prPoller.updatedPullRequests();
+            assertEquals(1, prs.size());
+            assertEquals(pr4.id(), prs.get(0).id());
+            assertFalse(prPoller.getCurrentQueryResult().pullRequests().containsKey(pr3.id()));
+            prPoller.lastBatchHandled();
+
+            // Since we got a result, positive padding should be disabled again.
+            prs = prPoller.updatedPullRequests();
+            assertEquals(0, prs.size());
+            assertEquals(1, prPoller.getCurrentQueryResult().pullRequests().size());
+            assertTrue(prPoller.getCurrentQueryResult().pullRequests().containsKey(pr4.id()));
+
+            // The same should happen again until we call lastBatchHandled()
+            prs = prPoller.updatedPullRequests();
+            assertEquals(0, prs.size());
+            assertEquals(1, prPoller.getCurrentQueryResult().pullRequests().size());
+            assertTrue(prPoller.getCurrentQueryResult().pullRequests().containsKey(pr4.id()));
             prPoller.lastBatchHandled();
         }
     }

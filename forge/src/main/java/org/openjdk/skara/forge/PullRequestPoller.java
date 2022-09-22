@@ -58,16 +58,15 @@ public class PullRequestPoller {
      * out if future results have been updated or not.
      */
     record QueryResult(Map<String, PullRequest> pullRequests, Map<String, Object> comparisonSnapshots,
-                       ZonedDateTime maxUpdatedAt, Instant afterQuery, List<PullRequest> result) {}
+                       ZonedDateTime maxUpdatedAt, Instant afterQuery, List<PullRequest> result,
+                       /*
+                        * When enough time has passed since the last time we returned results, applying
+                        * negative padding to the updatedAt query parameter is no longer needed. This
+                        * is indicated using this boolean.
+                        */
+                       boolean negativePaddingNeeded) {}
     private QueryResult current;
     private QueryResult prev;
-
-    /**
-     * When enough time has passed since the last time we returned results, applying
-     * negative padding to the updatedAt query parameter is no longer needed. This
-     * is indicated using this boolean.
-     */
-    private boolean negativePaddingNeeded = true;
 
     public PullRequestPoller(HostedRepository repository, boolean includeClosed) {
         this.repository = repository;
@@ -110,23 +109,27 @@ public class PullRequestPoller {
                 .filter(this::isUpdated)
                 .toList();
 
+        // If nothing was left after filtering. Update the paddingNeeded state if enough time
+        // has passed since last we found something.
+        boolean negativePaddingNeeded = true;
+        if (filtered.isEmpty()) {
+            if (prev != null) {
+                // The afterQuery value that we save should be the time when we last
+                // found something after filtering.
+                afterQuery = prev.afterQuery;
+                if (prev.afterQuery.isBefore(beforeQuery.minus(negativeQueryPadding)
+                        .minus(positiveQueryPadding))) {
+                    negativePaddingNeeded = false;
+                }
+            }
+        }
+
         var withRetries = addRetries(filtered);
 
         var result = processQuarantined(withRetries);
 
-        // If nothing is to be returned. Update the paddingNeeded state if enough time
-        // has passed since last we found something.
-        if (result.isEmpty()) {
-            if (prev != null && prev.afterQuery.isBefore(beforeQuery.minus(negativeQueryPadding)
-                    .minus(positiveQueryPadding))) {
-                negativePaddingNeeded = false;
-            }
-        } else {
-            negativePaddingNeeded = true;
-        }
-
         // Save the state of the current query results
-        current = new QueryResult(pullRequestMap, comparisonSnapshots, maxUpdatedAt, afterQuery, result);
+        current = new QueryResult(pullRequestMap, comparisonSnapshots, maxUpdatedAt, afterQuery, result, negativePaddingNeeded);
 
         log.info("Found " + result.size() + " updated pull requests for " + repository.name());
         return result;
@@ -198,7 +201,7 @@ public class PullRequestPoller {
                 return repository.openPullRequests();
             }
         } else {
-            var queryUpdatedAt = negativePaddingNeeded
+            var queryUpdatedAt = prev.negativePaddingNeeded
                     ? prev.maxUpdatedAt.minus(negativeQueryPadding) : prev.maxUpdatedAt.plus(positiveQueryPadding);
             if (includeClosed) {
                 log.fine("Fetching open and closed pull requests updated after " + queryUpdatedAt + " for " + repository.name());
