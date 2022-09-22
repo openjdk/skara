@@ -969,11 +969,12 @@ class CheckRun {
                 Please note that approval discussions should take place in the issue and not in the pull request.
                 """);
         message.append(APPROVAL_SUGGESTION_MARKER);
+        var messageStr = message.toString();
         var existing = findComment(comments, APPROVAL_SUGGESTION_MARKER);
-        if (existing.isPresent()) {
-            pr.updateComment(existing.get().id(), message.toString());
-        } else {
+        if (existing.isEmpty()) {
             pr.addComment(message.toString());
+        } else if(!messageStr.equals(existing.get().body())) {
+            pr.updateComment(existing.get().id(), message.toString());
         }
     }
 
