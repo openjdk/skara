@@ -116,17 +116,12 @@ public class ApprovalWorkItem implements WorkItem {
                         + "adding the missed fix request label for it.");
                 issue.addLabel(approvalInfo.requestLabel());
             }
-            if (pr.labelNames().contains("approval")) {
-                log.info("The issue " + issue.id() + " has the approval or disapproval label, "
-                        + "removing the `approval` blocked label for " + describe(pr));
-                pr.removeLabel("approval");
-            }
             if (issue.labelNames().contains(approvalInfo.approvalLabel()) && !hasApprovalProgressChecked(pr)) {
                 log.info("The issue " + issue.id() + " has the approval label and the approval progress of the "
                         + describe(pr) + " is not checked, adding the approval update marker.");
                 addUpdateMarker(pr);
             }
-            if (issue.labelNames().contains(approvalInfo.disapprovalLabel()) && pr.isOpen()) {
+            if (issue.labelNames().contains(approvalInfo.disapprovalLabel()) && hasApprovalProgressChecked(pr)) {
                 log.info("The issue " + issue.id() + " has the disapproval label and the approval progress of the "
                         + describe(pr) + " is checked, adding the approval update marker.");
                 addUpdateMarker(pr);

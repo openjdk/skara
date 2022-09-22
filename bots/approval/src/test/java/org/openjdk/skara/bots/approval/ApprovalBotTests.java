@@ -89,8 +89,6 @@ public class ApprovalBotTests {
             // run the approval pull request bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The bot should remove the `approval` label of the pull request.
-            assertFalse(pr.store().labelNames().contains("approval"));
             // The bot should add the approval update marker.
             assertTrue(pr.store().body().contains(APPROVAL_UPDATE_MARKER));
         }
@@ -142,8 +140,6 @@ public class ApprovalBotTests {
             // run the approval pull request bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The bot should remove the `approval` label of the pull request.
-            assertFalse(pr.store().labelNames().contains("approval"));
             // The bot should add the approval update marker.
             assertTrue(pr.store().body().contains(APPROVAL_UPDATE_MARKER));
         }
@@ -246,8 +242,6 @@ public class ApprovalBotTests {
             // run the approval pull request bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The pull request shouldn't have the `approval` label.
-            assertFalse(pr.store().labelNames().contains("approval"));
             // The bot should add the approval update marker.
             assertTrue(pr.store().body().contains(APPROVAL_UPDATE_MARKER));
         }
