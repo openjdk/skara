@@ -27,32 +27,31 @@ import java.nio.file.Path;
 import java.util.List;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.issuetracker.Issue;
 
-public class ApprovalCommand implements CommandHandler {
+public class ApproveCommand implements CommandHandler {
     // The tags to re-run the CheckWorkItem of the PRBot.
     private static final String APPROVAL_MARKER = "<!-- approval: 'yes' -->";
     private static final String DISAPPROVAL_MARKER = "<!-- approval: 'no' -->";
 
     private static void showHelp(PrintWriter writer) {
         writer.println("""
-                usage: `/approval [yes|no|y|n]`
+                usage: `/approve [yes|no|y|n]`
 
                 examples:
-                * `/approval`
-                * `/approval yes`
-                * `/approval no`
+                * `/approve`
+                * `/approve yes`
+                * `/approve no`
 
-                Note: Only the repository maintainers are allowed to use the `approval` command.
+                Note: Only the repository maintainers are allowed to use the `approve` command.
                 """);
     }
 
-    private void approvalReply(PullRequest pr, PrintWriter writer) {
+    private void approveReply(PullRequest pr, PrintWriter writer) {
         writer.println("@" + pr.author().username() + " this pull request was approved by the maintainer.");
         writer.println(APPROVAL_MARKER);
     }
 
-    private void disapprovalReply(PullRequest pr, PrintWriter writer) {
+    private void disapproveReply(PullRequest pr, PrintWriter writer) {
         writer.println(String.format("@%s this pull request was rejected by the maintainer. "
                 + "This pull request will be closed.", pr.author().username()));
         writer.println(DISAPPROVAL_MARKER);
@@ -62,13 +61,13 @@ public class ApprovalCommand implements CommandHandler {
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath,
                        CommandInvocation command, List<Comment> allComments, PrintWriter reply, PullRequestWorkItem workItem) {
         if (!workItem.requiresApproval()) {
-            reply.println("the `approval` command can only be used on pull requests targeting branches and repositories that require approval.");
+            reply.println("the `approve` command can only be used on pull requests targeting branches and repositories that require approval.");
             return;
         }
 
         var commandUser = censusInstance.namespace().get(command.user().id());
         if (!workItem.isMaintainer(commandUser)) {
-            reply.println("only the repository maintainers are allowed to use the `approval` command.");
+            reply.println("only the repository maintainers are allowed to use the `approve` command.");
             return;
         }
 
@@ -101,7 +100,7 @@ public class ApprovalCommand implements CommandHandler {
             if (pr.labelNames().contains("approval")) {
                 pr.removeLabel("approval");
             }
-            disapprovalReply(pr, reply);
+            disapproveReply(pr, reply);
             return;
         }
 
@@ -127,7 +126,7 @@ public class ApprovalCommand implements CommandHandler {
         if (pr.labelNames().contains("approval")) {
             pr.removeLabel("approval");
         }
-        approvalReply(pr, reply);
+        approveReply(pr, reply);
     }
 
     @Override

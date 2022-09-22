@@ -62,7 +62,7 @@ public class CommandExtractor {
             Map.entry("clean", new CleanCommand()),
             Map.entry("open", new OpenCommand()),
             Map.entry("backport", new BackportCommand()),
-            Map.entry("approval", new ApprovalCommand()),
+            Map.entry("approve", new ApproveCommand()),
             Map.entry("request-approval", new RequestApprovalCommand()),
             Map.entry("tag", new TagCommand())
     );

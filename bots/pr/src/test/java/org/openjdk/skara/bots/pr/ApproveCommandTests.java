@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.openjdk.skara.bots.pr.PullRequestCommandWorkItem.VALID_BOT_COMMAND_MARKER;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
@@ -41,7 +40,7 @@ import org.openjdk.skara.test.HostCredentials;
 import org.openjdk.skara.test.TemporaryDirectory;
 import org.openjdk.skara.test.TestBotRunner;
 
-public class ApprovalCommandTests {
+public class ApproveCommandTests {
     @Test
     void testNormal(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
@@ -112,9 +111,9 @@ public class ApprovalCommandTests {
             assertFalse(issue2.store().labelNames().contains("master-fix-no"));
             assertFalse(issue3.store().labelNames().contains("master-fix-no"));
 
-            // Approve the update change by using the command `approval`.
+            // Approve the update change by using the command `approve`.
             var maintainerPr = maintainer.pullRequest(pr.id());
-            maintainerPr.addComment("/approval yes\n" + VALID_BOT_COMMAND_MARKER);
+            maintainerPr.addComment("/approve yes\n" + VALID_BOT_COMMAND_MARKER);
 
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
@@ -145,8 +144,8 @@ public class ApprovalCommandTests {
                     .count();
             assertEquals(1, commentSize);
 
-            // Reject the update change by using the command `approval`.
-            maintainerPr.addComment("/approval no\n" + VALID_BOT_COMMAND_MARKER);
+            // Reject the update change by using the command `approve`.
+            maintainerPr.addComment("/approve no\n" + VALID_BOT_COMMAND_MARKER);
 
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
@@ -178,7 +177,7 @@ public class ApprovalCommandTests {
             assertEquals(1, commentSize);
 
             // Approve the update change again.
-            maintainerPr.addComment("/approval yes\n" + VALID_BOT_COMMAND_MARKER);
+            maintainerPr.addComment("/approve yes\n" + VALID_BOT_COMMAND_MARKER);
 
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
@@ -282,9 +281,9 @@ public class ApprovalCommandTests {
             assertFalse(issue2.store().labelNames().contains("master-fix-no"));
             assertFalse(issue3.store().labelNames().contains("master-fix-no"));
 
-            // Approve the update change by using the command `approval`.
+            // Approve the update change by using the command `approve`.
             var maintainerPr = maintainer.pullRequest(pr.id());
-            maintainerPr.addComment("/approval yes\n" + VALID_BOT_COMMAND_MARKER);
+            maintainerPr.addComment("/approve yes\n" + VALID_BOT_COMMAND_MARKER);
 
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
@@ -357,9 +356,9 @@ public class ApprovalCommandTests {
             assertFalse(issue2.store().labelNames().contains("master-fix-no"));
             assertFalse(issue3.store().labelNames().contains("master-fix-no"));
 
-            // Reject the update change by using the command `approval`.
+            // Reject the update change by using the command `approve`.
             maintainerPr = maintainer.pullRequest(anotherPr.id());
-            maintainerPr.addComment("/approval no\n" + VALID_BOT_COMMAND_MARKER);
+            maintainerPr.addComment("/approve no\n" + VALID_BOT_COMMAND_MARKER);
 
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
@@ -432,14 +431,14 @@ public class ApprovalCommandTests {
 
             // Approve the update change.
             var maintainerPr = maintainer.pullRequest(pr.id());
-            maintainerPr.addComment("/approval yes\n" + VALID_BOT_COMMAND_MARKER);
+            maintainerPr.addComment("/approve yes\n" + VALID_BOT_COMMAND_MARKER);
 
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should reply a comment.
             var commentSize = pr.store().comments().stream()
-                    .filter(comment -> comment.body().contains("the `approval` command can only be used on "
+                    .filter(comment -> comment.body().contains("the `approve` command can only be used on "
                             + "pull requests targeting branches and repositories that require approval."))
                     .count();
             assertEquals(1, commentSize);
@@ -453,14 +452,14 @@ public class ApprovalCommandTests {
 
             // Reject the update change by using the reviewer role.
             var reviewerPr = reviewer.pullRequest(anotherPr.id());
-            reviewerPr.addComment("/approval no\n" + VALID_BOT_COMMAND_MARKER);
+            reviewerPr.addComment("/approve no\n" + VALID_BOT_COMMAND_MARKER);
 
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should reply a comment.
             commentSize = anotherPr.store().comments().stream()
-                    .filter(comment -> comment.body().contains("only the repository maintainers are allowed to use the `approval` command"))
+                    .filter(comment -> comment.body().contains("only the repository maintainers are allowed to use the `approve` command"))
                     .count();
             assertEquals(1, commentSize);
         }
@@ -506,33 +505,33 @@ public class ApprovalCommandTests {
 
             // Test command typo `yea`
             var maintainerPr = maintainer.pullRequest(pr.id());
-            maintainerPr.addComment("/approval yea\n" + VALID_BOT_COMMAND_MARKER);
+            maintainerPr.addComment("/approve yea\n" + VALID_BOT_COMMAND_MARKER);
 
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should reply a help comment.
             var commentSize = pr.store().comments().stream()
-                    .filter(comment -> comment.body().contains("usage: `/approval [yes|no|y|n]`"))
+                    .filter(comment -> comment.body().contains("usage: `/approve [yes|no|y|n]`"))
                     .count();
             assertEquals(1, commentSize);
 
             // Test command typo `ni`
-            maintainerPr.addComment("/approval ni\n" + VALID_BOT_COMMAND_MARKER);
+            maintainerPr.addComment("/approve ni\n" + VALID_BOT_COMMAND_MARKER);
 
             // run the pr bot
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should reply a help comment, now the pull request has two such comments.
             commentSize = pr.store().comments().stream()
-                    .filter(comment -> comment.body().contains("usage: `/approval [yes|no|y|n]`"))
+                    .filter(comment -> comment.body().contains("usage: `/approve [yes|no|y|n]`"))
                     .count();
             assertEquals(2, commentSize);
 
             // Note: the command is case-insensitive, the arguments `Yes`, `YeS`, `No`, `nO`, `Y`, `N` can be run successfully.
 
             // Test case-insensitive
-            maintainerPr.addComment("/approval YeS\n" + VALID_BOT_COMMAND_MARKER);
+            maintainerPr.addComment("/approve YeS\n" + VALID_BOT_COMMAND_MARKER);
 
             // The pull request now shouldn't have the approved comment.
             commentSize = pr.store().comments().stream()
