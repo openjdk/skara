@@ -1041,11 +1041,6 @@ class CheckRun {
                     // Remove `approval` label of PR if the PR has been approved or disapproved.
                     pr.removeLabel("approval");
                 }
-                if (mainIssueOpt.get().labelNames().contains(workItem.disapprovalLabelName()) && pr.isOpen()) {
-                    pr.addComment(String.format("@%s this pull request was rejected by the maintainer. "
-                            + "The bot will close this pull request automatically.", pr.author().username()));
-                    pr.setState(org.openjdk.skara.issuetracker.Issue.State.CLOSED);
-                }
             }
         }
     }

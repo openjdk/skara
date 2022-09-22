@@ -102,11 +102,9 @@ public class ApprovalCommand implements CommandHandler {
                 pr.removeLabel("approval");
             }
             disapprovalReply(pr, reply);
-            pr.setState(Issue.State.CLOSED);
             return;
         }
 
-        pr.setState(Issue.State.OPEN);
         for (var vcsIssue : workItem.issues(false, false)) {
             var issueOpt = bot.issueProject().issue(vcsIssue.shortId());
             issueOpt.ifPresent(issue -> {

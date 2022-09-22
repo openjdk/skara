@@ -2348,8 +2348,6 @@ class CheckTests {
             assertFalse(issue.store().labelNames().contains("master-fix-no"));
             assertFalse(issue2.store().labelNames().contains("master-fix-no"));
             assertFalse(issue3.store().labelNames().contains("master-fix-no"));
-            // The pr is still open
-            assertTrue(pr.store().isOpen());
 
             // Test the update change is disapproved by the maintainer on the main issue.
             // Also test disapproval after approval.
@@ -2384,8 +2382,6 @@ class CheckTests {
             assertFalse(issue.store().labelNames().contains("master-fix-yes"));
             assertFalse(issue2.store().labelNames().contains("master-fix-yes"));
             assertFalse(issue3.store().labelNames().contains("master-fix-yes"));
-            // The pr is closed now.
-            assertTrue(pr.store().isClosed());
 
             // Test the update change is approved by the maintainer on the main issue.
             // Also test approval after disapproval.
@@ -2422,8 +2418,6 @@ class CheckTests {
             assertFalse(issue.store().labelNames().contains("master-fix-no"));
             assertFalse(issue2.store().labelNames().contains("master-fix-no"));
             assertFalse(issue3.store().labelNames().contains("master-fix-no"));
-            // The pr is open (actually open by the approval bot).
-            assertTrue(pr.store().isOpen());
         }
     }
 

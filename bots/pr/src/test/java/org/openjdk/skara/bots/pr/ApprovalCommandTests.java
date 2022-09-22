@@ -144,8 +144,6 @@ public class ApprovalCommandTests {
                     .filter(comment -> comment.body().contains("this pull request was approved by the maintainer"))
                     .count();
             assertEquals(1, commentSize);
-            // The pull request should be open.
-            assertTrue(pr.store().isOpen());
 
             // Reject the update change by using the command `approval`.
             maintainerPr.addComment("/approval no\n" + VALID_BOT_COMMAND_MARKER);
@@ -178,8 +176,6 @@ public class ApprovalCommandTests {
                     .filter(comment -> comment.body().contains("this pull request was rejected by the maintainer"))
                     .count();
             assertEquals(1, commentSize);
-            // The pull request should be closed.
-            assertTrue(pr.store().isClosed());
 
             // Approve the update change again.
             maintainerPr.addComment("/approval yes\n" + VALID_BOT_COMMAND_MARKER);
@@ -212,8 +208,6 @@ public class ApprovalCommandTests {
                     .filter(comment -> comment.body().contains("this pull request was approved by the maintainer"))
                     .count();
             assertEquals(2, commentSize);
-            // The pull request should be open.
-            assertTrue(pr.store().isOpen());
         }
     }
 
@@ -320,8 +314,6 @@ public class ApprovalCommandTests {
                     .filter(comment -> comment.body().contains("this pull request was approved by the maintainer"))
                     .count();
             assertEquals(1, commentSize);
-            // The pull request should be open.
-            assertTrue(pr.store().isOpen());
 
             // <---- separator ---->
 
@@ -397,8 +389,6 @@ public class ApprovalCommandTests {
                     .filter(comment -> comment.body().contains("this pull request was rejected by the maintainer"))
                     .count();
             assertEquals(1, commentSize);
-            // The pull request should be closed.
-            assertTrue(anotherPr.store().isClosed());
         }
     }
 
