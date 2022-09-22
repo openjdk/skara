@@ -47,7 +47,6 @@ public class PullRequestPoller {
     // inclusive down to a certain time resolution.
     private final Duration positiveQueryPadding;
     private final boolean includeClosed;
-    private final boolean trustUpdatedAt;
 
     private record PullRequestRetry(PullRequest pr, Instant when) {}
     private final Map<String, PullRequestRetry> retryMap = new HashMap<>();
@@ -73,11 +72,6 @@ public class PullRequestPoller {
         this.includeClosed = includeClosed;
         negativeQueryPadding = repository.forge().minTimeStampUpdateInterval();
         positiveQueryPadding = repository.forge().timeStampQueryPrecision();
-        if (!negativeQueryPadding.isZero()) {
-            trustUpdatedAt = false;
-        } else {
-            trustUpdatedAt = true;
-        }
     }
 
     /**
