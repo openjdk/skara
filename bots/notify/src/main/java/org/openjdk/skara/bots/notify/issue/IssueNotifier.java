@@ -193,18 +193,17 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
             // If prOnly is false, this is instead done when processing commits
             if (prOnly && resolve) {
                 log.info("Resolving issue " + issue.id() + " from state " + issue.state());
+                if (!issue.isFixed()) {
+                    issue.setState(Issue.State.RESOLVED);
+                } else {
+                    log.info("The issue was already resolved");
+                }
                 if (issue.assignees().isEmpty()) {
                     var username = findIssueUsername(commit, scratchPath);
                     if (username.isPresent()) {
                         var assignee = issueProject.issueTracker().user(username.get());
                         assignee.ifPresent(hostUser -> issue.setAssignees(List.of(hostUser)));
                     }
-                }
-
-                if (!issue.isFixed()) {
-                    issue.setState(Issue.State.RESOLVED);
-                } else {
-                    log.info("The issue was already resolved");
                 }
             }
         }
@@ -315,6 +314,11 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                     issue.addComment(commitNotification);
                 }
                 log.info("Resolving issue " + issue.id() + " from state " + issue.state());
+                if (!issue.isFixed()) {
+                    issue.setState(Issue.State.RESOLVED);
+                } else {
+                    log.info("The issue was already resolved");
+                }
                 var assignees = issue.assignees();
                 // Due to a bug in the backport plugin, certain users can't be assigned directly.
                 // Work around this by overwriting the assignee afterwards if the current assignee
@@ -327,11 +331,6 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                             issue.setAssignees(List.of(assignee.get()));
                         }
                     }
-                }
-                if (!issue.isFixed()) {
-                    issue.setState(Issue.State.RESOLVED);
-                } else {
-                    log.info("The issue was already resolved");
                 }
 
                 if (setFixVersion) {
