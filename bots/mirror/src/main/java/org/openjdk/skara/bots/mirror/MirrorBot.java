@@ -89,7 +89,7 @@ class MirrorBot implements Bot, WorkItem {
             } else {
                 log.info("Found existing scratch directory for " + to.name());
                 repo = Repository.get(dir).orElseGet(() -> {
-                    log.info("The existing scratch directory has problem. Now recloning " + from.name());
+                    log.info("The existing scratch directory is not a valid repository. Recloning " + from.name());
                     try {
                         Files.walk(dir)
                                 .map(Path::toFile)

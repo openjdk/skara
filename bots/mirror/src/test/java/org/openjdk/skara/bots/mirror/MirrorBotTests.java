@@ -481,8 +481,8 @@ class MirrorBotTests {
             var storage = temp.path().resolve("storage");
             var sanitizedUrl =
                     URLEncoder.encode(toHostedRepo.webUrl().toString(), StandardCharsets.UTF_8);
-            var dir_temporary = storage.resolve(sanitizedUrl);
-            Files.createDirectories(dir_temporary);
+            var temporaryDir = storage.resolve(sanitizedUrl);
+            Files.createDirectories(temporaryDir);
             var bot = new MirrorBot(storage, fromHostedRepo, toHostedRepo);
             TestBotRunner.runPeriodicItems(bot);
 
