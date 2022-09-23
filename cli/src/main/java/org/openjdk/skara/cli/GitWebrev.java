@@ -460,7 +460,7 @@ public class GitWebrev {
         }
         if (!quiet) {
             System.out.println("Webrev executed successfully, details are in the link below:");
-            System.out.println("file://" + new File(output.resolve("index.html").toUri()).getAbsoluteFile());
+            System.out.println(output.resolve("index.html").toUri());
         }
     }
 
