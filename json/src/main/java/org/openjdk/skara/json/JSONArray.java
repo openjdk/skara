@@ -159,4 +159,21 @@ public class JSONArray implements JSONValue, Iterable<JSONValue> {
     public Iterator<JSONValue> iterator() {
         return values.iterator();
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        JSONArray that = (JSONArray) o;
+        return values.equals(that.values);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(values);
+    }
 }

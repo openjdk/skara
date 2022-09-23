@@ -105,8 +105,7 @@ public class Review {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Review review;
-        review = (Review) o;
+        Review review = (Review) o;
         return id == review.id &&
                 Objects.equals(createdAt, review.createdAt) &&
                 Objects.equals(reviewer, review.reviewer) &&

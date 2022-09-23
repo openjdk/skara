@@ -31,7 +31,8 @@ public class Status {
         RENAMED,
         COPIED,
         MODIFIED,
-        UNMERGED
+        UNMERGED,
+        FILE_TYPE_CHANGED
     }
 
     private Operation op;
@@ -66,6 +67,10 @@ public class Status {
         return op == Operation.UNMERGED;
     }
 
+    public boolean isFileTypeChanged() {
+        return op == Operation.FILE_TYPE_CHANGED;
+    }
+
     public int score() {
         return score;
     }
@@ -95,6 +100,10 @@ public class Status {
             return new Status(Operation.COPIED, -1);
         }
 
+        if (c == 'T') {
+            return new Status(Operation.FILE_TYPE_CHANGED, -1);
+        }
+
         throw new IllegalArgumentException("Invalid status character: " + c);
     }
 
@@ -115,6 +124,9 @@ public class Status {
         }
         if (c == 'U') {
             return new Status(Operation.UNMERGED, -1);
+        }
+        if (c == 'T') {
+            return new Status(Operation.FILE_TYPE_CHANGED, -1);
         }
 
         var score = 0;
@@ -149,6 +161,8 @@ public class Status {
                 return "M";
             case UNMERGED:
                 return "U";
+            case FILE_TYPE_CHANGED:
+                return "T";
             case RENAMED:
                 return "R" + score;
             case COPIED:

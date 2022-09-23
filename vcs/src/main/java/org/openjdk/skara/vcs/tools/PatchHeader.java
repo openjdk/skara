@@ -103,6 +103,9 @@ public class PatchHeader {
             sourcePath = Path.of(parts[1]);
         } else if (status.isUnmerged()) {
             sourcePath = Path.of(parts[1]);
+        } else if (status.isFileTypeChanged()) {
+            sourcePath = Path.of(parts[1]);
+            targetPath = sourcePath;
         } else {
             // either copied or renamed
             sourcePath = Path.of(parts[1]);

@@ -71,11 +71,11 @@ public class Comment {
             return false;
         }
         Comment comment = (Comment) o;
-        return id.equals(comment.id) &&
-                body.equals(comment.body) &&
-                author.equals(comment.author) &&
-                createdAt.equals(comment.createdAt) &&
-                updatedAt.equals(comment.updatedAt);
+        return Objects.equals(id, comment.id) &&
+                Objects.equals(body, comment.body) &&
+                Objects.equals(author, comment.author) &&
+                Objects.equals(createdAt, comment.createdAt) &&
+                Objects.equals(updatedAt, comment.updatedAt);
     }
 
     @Override
