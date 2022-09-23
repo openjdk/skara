@@ -111,6 +111,13 @@ public class IssuePollerTests {
             Thread.sleep(1);
             issues = issuePoller.updatedIssues();
             assertEquals(0, issues.size());
+            // The query should still return the issue
+            assertEquals(1, issuePoller.getCurrentQueryResult().issues().size());
+
+            // The same should happen again until we call lastBatchHandled()
+            issues = issuePoller.updatedIssues();
+            assertEquals(0, issues.size());
+            assertEquals(1, issuePoller.getCurrentQueryResult().issues().size());
             issuePoller.lastBatchHandled();
 
             // With padding triggered, no issues should be returned even at the query
@@ -121,11 +128,22 @@ public class IssuePollerTests {
             assertTrue(issuePoller.getCurrentQueryResult().issues().isEmpty(),
                     "Nothing should have been returned by the query but contained: "
                             + issuePoller.getCurrentQueryResult().issues());
+
+            // The same should happen again until we call lastBatchHandled()
+            issues = issuePoller.updatedIssues();
+            assertEquals(0, issues.size());
+            assertTrue(issuePoller.getCurrentQueryResult().issues().isEmpty(),
+                    "Nothing should have been returned by the query but contained: "
+                            + issuePoller.getCurrentQueryResult().issues());
             issuePoller.lastBatchHandled();
 
             // Update to something just after the lastUpdate + precision and poll
             // again. Now it should be returned.
             issue1.store().setLastUpdate(lastFoundUpdatedAt.plus(Duration.ofNanos(3)));
+            issues = issuePoller.updatedIssues();
+            assertEquals(1, issues.size());
+
+            // The same should happen again until we call lastBatchHandled()
             issues = issuePoller.updatedIssues();
             assertEquals(1, issues.size());
             issuePoller.lastBatchHandled();

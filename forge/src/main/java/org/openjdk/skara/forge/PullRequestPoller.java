@@ -103,7 +103,7 @@ public class PullRequestPoller {
                 .filter(this::isUpdated)
                 .toList();
 
-        // If nothing was left after filtering. Update the paddingNeeded state if enough time
+        // If nothing was left after filtering, update the paddingNeeded state if enough time
         // has passed since last we found something.
         boolean negativePaddingNeeded = true;
         if (filtered.isEmpty()) {

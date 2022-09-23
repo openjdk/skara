@@ -21,16 +21,15 @@ public class IssuePoller {
     private final Map<String, Issue> retryMap = new HashMap<>();
 
     record QueryResult(Map<String, Issue> issues, ZonedDateTime maxUpdatedAt,
-                       Instant afterQuery, List<Issue> result) {}
+                       Instant afterQuery, List<Issue> result,
+                       /*
+                        * When enough time has passed since the last time we actually returned
+                        * results, it's possible to pad the updatedAt query parameter to avoid
+                        * receiving the same issues over and over, only to then filter them out.
+                        */
+                       boolean paddingPossible) {}
     private QueryResult current;
     private QueryResult prev;
-
-    /**
-     * When enough time has passed since the last time we actually returned
-     * results, it's possible to pad the updatedAt query parameter to avoid
-     * receiving the same issues over and over, only to then filter them out.
-     */
-    private boolean paddingPossible = false;
 
     /**
      * @param issueProject The IssueProject to poll from
@@ -64,20 +63,24 @@ public class IssuePoller {
                 .filter(this::isUpdated)
                 .toList();
 
-        var withRetries = addRetries(filtered);
-
-        // If nothing will be returned, update the paddingPossible state if enough time
+        // If nothing was left after filtering, update the paddingPossible state if enough time
         // has passed since last we found something.
-        if (withRetries.isEmpty()) {
-            if (prev != null && prev.afterQuery.isBefore(beforeQuery.minus(timeStampQueryPrecision))) {
-                paddingPossible = true;
+        boolean paddingPossible = false;
+        if (filtered.isEmpty()) {
+            if (prev != null) {
+                // The afterQuery value that we save should be the time when we last
+                // found something after filtering.
+                afterQuery = prev.afterQuery;
+                if (prev.afterQuery.isBefore(beforeQuery.minus(timeStampQueryPrecision))) {
+                    paddingPossible = true;
+                }
             }
-        } else {
-            paddingPossible = false;
         }
 
+        var withRetries = addRetries(filtered);
+
         // Save the state of the current query results
-        current = new QueryResult(issuesMap, maxUpdatedAt, afterQuery, withRetries);
+        current = new QueryResult(issuesMap, maxUpdatedAt, afterQuery, withRetries, paddingPossible);
 
         log.info("Found " + withRetries.size() + " updated issues for " + issueProject.name());
         return withRetries;
@@ -105,7 +108,7 @@ public class IssuePoller {
         ZonedDateTime queryAfter;
         if (prev == null || prev.maxUpdatedAt == null) {
             queryAfter = initialUpdatedAt;
-        } else if (paddingPossible) {
+        } else if (prev.paddingPossible) {
             // If we haven't found any actual results for long enough,
             // we can pad on the query precision to avoid fetching the
             // last returned issue over and over.
