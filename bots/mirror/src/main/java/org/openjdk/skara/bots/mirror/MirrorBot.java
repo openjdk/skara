@@ -88,8 +88,17 @@ class MirrorBot implements Bot, WorkItem {
                 repo = Repository.mirror(from.url(), dir);
             } else {
                 log.info("Found existing scratch directory for " + to.name());
-                repo = Repository.get(dir).orElseThrow(() -> {
-                        return new RuntimeException("Repository in " + dir + " has vanished");
+                repo = Repository.get(dir).orElseGet(() -> {
+                    log.info("The existing scratch directory is not a valid repository. Recloning " + from.name());
+                    try {
+                        Files.walk(dir)
+                                .map(Path::toFile)
+                                .sorted(Comparator.reverseOrder())
+                                .forEach(File::delete);
+                        return Repository.mirror(from.url(), dir);
+                    } catch (IOException io) {
+                        throw new RuntimeException(io);
+                    }
                 });
             }
 
@@ -111,7 +120,6 @@ class MirrorBot implements Bot, WorkItem {
                     }
                 }
             }
-
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
