@@ -196,14 +196,18 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                     log.info("Resolving issue which status is not open, the status is " + issue.state());
                 } else {
                     log.info("Resolving issue " + issue.id());
-                }
-                issue.setState(Issue.State.RESOLVED);
-                if (issue.assignees().isEmpty()) {
-                    var username = findIssueUsername(commit, scratchPath);
-                    if (username.isPresent()) {
-                        var assignee = issueProject.issueTracker().user(username.get());
-                        assignee.ifPresent(hostUser -> issue.setAssignees(List.of(hostUser)));
+                    if (issue.assignees().isEmpty()) {
+                        var username = findIssueUsername(commit, scratchPath);
+                        if (username.isPresent()) {
+                            var assignee = issueProject.issueTracker().user(username.get());
+                            assignee.ifPresent(hostUser -> issue.setAssignees(List.of(hostUser)));
+                        }
                     }
+                }
+                if (!issue.isFixed()) {
+                    issue.setState(Issue.State.RESOLVED);
+                } else {
+                    log.info("The issue has been already resolved");
                 }
             }
         }
@@ -317,20 +321,24 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                     log.info("Resolving issue which status is not open, the status is " + issue.state());
                 } else {
                     log.info("Resolving issue " + issue.id());
-                }
-                issue.setState(Issue.State.RESOLVED);
-                var assignees = issue.assignees();
-                // Due to a bug in the backport plugin, certain users can't be assigned directly.
-                // Work around this by overwriting the assignee afterwards if the current assignee
-                // is the bot user.
-                if (assignees.isEmpty() || (assignees.size() == 1 && assignees.get(0).equals(issueProject.issueTracker().currentUser()))) {
-                    if (username.isPresent()) {
-                        var assignee = issueProject.issueTracker().user(username.get());
-                        if (assignee.isPresent()) {
-                            log.info("Setting assignee for issue " + issue.id() + " to " + assignee.get());
-                            issue.setAssignees(List.of(assignee.get()));
+                    var assignees = issue.assignees();
+                    // Due to a bug in the backport plugin, certain users can't be assigned directly.
+                    // Work around this by overwriting the assignee afterwards if the current assignee
+                    // is the bot user.
+                    if (assignees.isEmpty() || (assignees.size() == 1 && assignees.get(0).equals(issueProject.issueTracker().currentUser()))) {
+                        if (username.isPresent()) {
+                            var assignee = issueProject.issueTracker().user(username.get());
+                            if (assignee.isPresent()) {
+                                log.info("Setting assignee for issue " + issue.id() + " to " + assignee.get());
+                                issue.setAssignees(List.of(assignee.get()));
+                            }
                         }
                     }
+                }
+                if (!issue.isFixed()) {
+                    issue.setState(Issue.State.RESOLVED);
+                } else {
+                    log.info("The issue has been already resolved");
                 }
 
                 if (setFixVersion) {
