@@ -1070,8 +1070,7 @@ class CheckRun {
             var integrationBlockers = botSpecificIntegrationBlockers();
 
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(visitor, additionalErrors,
-                                                additionalProgresses, integrationBlockers, isCleanBackport);
+            var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, isCleanBackport);
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
 
