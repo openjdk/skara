@@ -1778,7 +1778,7 @@ public class IssueNotifierTests {
             var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             assertEquals(Set.of("18"), fixVersions(updatedIssue));
             assertEquals(RESOLVED, updatedIssue.state());
-            assertEquals(List.of(), updatedIssue.assignees());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
             // A commit comment should have been added
             List<Comment> comments = updatedIssue.comments();
             assertEquals(1, comments.size());

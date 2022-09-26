@@ -192,15 +192,17 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
 
             // If prOnly is false, this is instead done when processing commits
             if (prOnly && resolve) {
-                if (issue.state() == Issue.State.OPEN) {
-                    log.info("Resolving issue " + issue.id());
+                log.info("Resolving issue " + issue.id() + " from state " + issue.state());
+                if (!issue.isFixed()) {
                     issue.setState(Issue.State.RESOLVED);
-                    if (issue.assignees().isEmpty()) {
-                        var username = findIssueUsername(commit, scratchPath);
-                        if (username.isPresent()) {
-                            var assignee = issueProject.issueTracker().user(username.get());
-                            assignee.ifPresent(hostUser -> issue.setAssignees(List.of(hostUser)));
-                        }
+                } else {
+                    log.info("The issue was already resolved");
+                }
+                if (issue.assignees().isEmpty()) {
+                    var username = findIssueUsername(commit, scratchPath);
+                    if (username.isPresent()) {
+                        var assignee = issueProject.issueTracker().user(username.get());
+                        assignee.ifPresent(hostUser -> issue.setAssignees(List.of(hostUser)));
                     }
                 }
             }
@@ -311,20 +313,22 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 if (!alreadyPostedComment) {
                     issue.addComment(commitNotification);
                 }
-                if (issue.state() == Issue.State.OPEN) {
-                    log.info("Resolving issue " + issue.id());
+                log.info("Resolving issue " + issue.id() + " from state " + issue.state());
+                if (!issue.isFixed()) {
                     issue.setState(Issue.State.RESOLVED);
-                    var assignees = issue.assignees();
-                    // Due to a bug in the backport plugin, certain users can't be assigned directly.
-                    // Work around this by overwriting the assignee afterwards if the current assignee
-                    // is the bot user.
-                    if (assignees.isEmpty() || (assignees.size() == 1 && assignees.get(0).equals(issueProject.issueTracker().currentUser()))) {
-                        if (username.isPresent()) {
-                            var assignee = issueProject.issueTracker().user(username.get());
-                            if (assignee.isPresent()) {
-                                log.info("Setting assignee for issue " + issue.id() + " to " + assignee.get());
-                                issue.setAssignees(List.of(assignee.get()));
-                            }
+                } else {
+                    log.info("The issue was already resolved");
+                }
+                var assignees = issue.assignees();
+                // Due to a bug in the backport plugin, certain users can't be assigned directly.
+                // Work around this by overwriting the assignee afterwards if the current assignee
+                // is the bot user.
+                if (assignees.isEmpty() || (assignees.size() == 1 && assignees.get(0).equals(issueProject.issueTracker().currentUser()))) {
+                    if (username.isPresent()) {
+                        var assignee = issueProject.issueTracker().user(username.get());
+                        if (assignee.isPresent()) {
+                            log.info("Setting assignee for issue " + issue.id() + " to " + assignee.get());
+                            issue.setAssignees(List.of(assignee.get()));
                         }
                     }
                 }
