@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.notify.mailinglist;
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.bots.notify.*;
+import org.openjdk.skara.mailinglist.Conversation;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.test.*;
 
@@ -33,6 +34,7 @@ import java.nio.file.Files;
 import java.time.Duration;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.notify.TestUtils.*;
@@ -79,9 +81,9 @@ public class MailingListNotifierTests {
                                              .build();
             updater.attachTo(notifyBot);
 
-            // No mail should be sent on the first run as there is no history
+            // One mail should be sent on first commit
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+            listServer.processIncoming();
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
             localRepo.push(editHash, repo.url(), "master");
@@ -89,6 +91,15 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
+            conversations.sort((c1, c2) -> {
+                if (c2.first().date().isAfter(c1.first().date())) {
+                    return 1;
+                } else if (c2.first().date().isBefore(c1.first().date())) {
+                    return -1;
+                }
+                return 0;
+            });
+            // get the latest email
             var email = conversations.get(0).first();
             assertEquals(listAddress, email.sender());
             assertEquals(sender, email.author());
@@ -149,9 +160,9 @@ public class MailingListNotifierTests {
                                              .build();
             updater.attachTo(notifyBot);
 
-            // No mail should be sent on the first run as there is no history
+            // One mail should be sent on first commit
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+            listServer.processIncoming();
 
             var editHash1 = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes",
                     "first_author", "first@author.example.com");
@@ -164,6 +175,15 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
+            conversations.sort((c1, c2) -> {
+                if (c2.first().date().isAfter(c1.first().date())) {
+                    return 1;
+                } else if (c2.first().date().isBefore(c1.first().date())) {
+                    return -1;
+                }
+                return 0;
+            });
+            // get the latest email
             var email = conversations.get(0).first();
             assertEquals(listAddress, email.sender());
             assertEquals(EmailAddress.from("another_author", "another@author.example.com"), email.author());
@@ -221,9 +241,9 @@ public class MailingListNotifierTests {
                                              .build();
             updater.attachTo(notifyBot);
 
-            // No mail should be sent on the first run as there is no history
+            // One mail should be sent on first commit
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+            listServer.processIncoming();
 
             var editHash1 = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes",
                                                                 "first_author", "first@author.example.com");
@@ -242,6 +262,15 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
+            conversations.sort((c1, c2) -> {
+                if (c2.first().date().isAfter(c1.first().date())) {
+                    return 1;
+                } else if (c2.first().date().isBefore(c1.first().date())) {
+                    return -1;
+                }
+                return 0;
+            });
+            // get the latest email
             var email = conversations.get(0).first();
             assertEquals(listAddress, email.sender());
             assertEquals(EmailAddress.from("merge_author", "merge@author.example.com"), email.author());
@@ -299,9 +328,9 @@ public class MailingListNotifierTests {
                                              .build();
             updater.attachTo(notifyBot);
 
-            // No mail should be sent on the first run as there is no history
+            // One mail should be sent on first commit
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+            listServer.processIncoming();
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes",
                     "author", "author@test.test",
@@ -311,6 +340,15 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
+            conversations.sort((c1, c2) -> {
+                if (c2.first().date().isAfter(c1.first().date())) {
+                    return 1;
+                } else if (c2.first().date().isBefore(c1.first().date())) {
+                    return -1;
+                }
+                return 0;
+            });
+            // get the latest email
             var email = conversations.get(0).first();
             assertEquals(listAddress, email.sender());
             assertEquals(EmailAddress.from("committer", "committer@test.test"), email.author());
@@ -366,9 +404,10 @@ public class MailingListNotifierTests {
                                              .build();
             updater.attachTo(notifyBot);
 
-            // No mail should be sent on the first run as there is no history
+            // Two mails should be sent on first commit
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+            listServer.processIncoming();
+            listServer.processIncoming();
 
             var editHash1 = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
             localRepo.push(editHash1, repo.url(), "master");
@@ -379,6 +418,15 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
+            conversations.sort((c1, c2) -> {
+                if (c2.first().date().isAfter(c1.first().date())) {
+                    return 1;
+                } else if (c2.first().date().isBefore(c1.first().date())) {
+                    return -1;
+                }
+                return 0;
+            });
+            // get the latest email
             var email = conversations.get(0).first();
             assertEquals(listAddress, email.sender());
             assertEquals(author, email.author());
@@ -405,6 +453,14 @@ public class MailingListNotifierTests {
 
             conversations = mailmanList.conversations(Duration.ofDays(1));
             conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
+            conversations.sort((c1, c2) -> {
+                if (c2.first().date().isAfter(c1.first().date())) {
+                    return 1;
+                } else if (c2.first().date().isBefore(c1.first().date())) {
+                    return -1;
+                }
+                return 0;
+            });
             email = conversations.get(0).first();
             assertEquals(author, email.author());
             assertEquals(listAddress, email.sender());
@@ -469,9 +525,10 @@ public class MailingListNotifierTests {
             localRepo.push(masterHash, repo.url(), "master", true);
             localRepo.push(masterHash, repo.url(), "other", true);
 
-            // No mail should be sent on the first run as there is no history
+            // Two mails should be sent on first commit
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+            listServer.processIncoming();
+            listServer.processIncoming();
 
             localRepo.checkout(masterHash, true);
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
@@ -499,11 +556,16 @@ public class MailingListNotifierTests {
 
             // This one should generate a plain integration mail
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            assertEquals(2, conversations.size());
+            assertEquals(4, conversations.size());
+            conversations.sort((c1, c2) -> {
+                if (c2.first().date().isAfter(c1.first().date())) {
+                    return 1;
+                } else if (c2.first().date().isBefore(c1.first().date())) {
+                    return -1;
+                }
+                return 0;
+            });
             var secondEmail = conversations.get(0).first();
-            if (secondEmail.subject().contains("RFR")) {
-                secondEmail = conversations.get(1).first();
-            }
             assertEquals("git: test: other: 23456789: More fixes", secondEmail.subject());
         }
     }
@@ -548,9 +610,9 @@ public class MailingListNotifierTests {
                                              .build();
             updater.attachTo(notifyBot);
 
-            // No mail should be sent on the first run as there is no history
+            // One mail should be sent on first commit
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+            listServer.processIncoming();
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
             localRepo.push(editHash, repo.url(), "edit");
@@ -584,11 +646,18 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
-            assertEquals(2, conversations.size());
+            conversations.sort((c1, c2) -> {
+                if (c2.first().date().isAfter(c1.first().date())) {
+                    return 1;
+                } else if (c2.first().date().isBefore(c1.first().date())) {
+                    return -1;
+                }
+                return 0;
+            });
+            assertEquals(3, conversations.size());
 
-            var prConversation = conversations.get(0);
-            var pushConversation = conversations.get(1);
+            var prConversation = conversations.get(1);
+            var pushConversation = conversations.get(0);
             assertEquals(1, prConversation.allMessages().size());
 
             var pushEmail = pushConversation.first();
@@ -639,9 +708,9 @@ public class MailingListNotifierTests {
                                              .build();
             updater.attachTo(notifyBot);
 
-            // No mail should be sent on the first run as there is no history
+            // One mail should be sent on first commit
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+            listServer.processIncoming();
 
             var editHash1 = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes",
                                                                 "first_author", "first@author.example.com");
@@ -680,11 +749,18 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
-            assertEquals(2, conversations.size());
+            conversations.sort((c1, c2) -> {
+                if (c2.first().date().isAfter(c1.first().date())) {
+                    return 1;
+                } else if (c2.first().date().isBefore(c1.first().date())) {
+                    return -1;
+                }
+                return 0;
+            });
+            assertEquals(3, conversations.size());
 
-            var prConversation = conversations.get(0);
-            var pushConversation = conversations.get(1);
+            var prConversation = conversations.get(1);
+            var pushConversation = conversations.get(0);
             assertEquals(1, prConversation.allMessages().size());
 
             var pushEmail = pushConversation.first();
@@ -737,9 +813,10 @@ public class MailingListNotifierTests {
                                              .build();
             updater.attachTo(notifyBot);
 
-            // No mail should be sent on the first run as there is no history
+            // Two mails should be sent on first commit
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+            listServer.processIncoming();
+            listServer.processIncoming();
 
             localRepo.checkout(masterHash, true);
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
@@ -766,7 +843,15 @@ public class MailingListNotifierTests {
             assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            assertEquals(1, conversations.size());
+            conversations.sort((c1, c2) -> {
+                if (c2.first().date().isAfter(c1.first().date())) {
+                    return 1;
+                } else if (c2.first().date().isBefore(c1.first().date())) {
+                    return -1;
+                }
+                return 0;
+            });
+            assertEquals(3, conversations.size());
 
             var prConversation = conversations.get(0);
             assertEquals(1, prConversation.allMessages().size());
@@ -778,10 +863,17 @@ public class MailingListNotifierTests {
 
             // The change should now end up as a separate notification thread
             conversations = mailmanList.conversations(Duration.ofDays(1));
-            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
-            assertEquals(2, conversations.size());
+            conversations.sort((c1, c2) -> {
+                if (c2.first().date().isAfter(c1.first().date())) {
+                    return 1;
+                } else if (c2.first().date().isBefore(c1.first().date())) {
+                    return -1;
+                }
+                return 0;
+            });
+            assertEquals(4, conversations.size());
 
-            var pushConversation = conversations.get(1);
+            var pushConversation = conversations.get(0);
             var pushEmail = pushConversation.first();
             assertEquals(listAddress, pushEmail.sender());
             assertEquals(EmailAddress.from("testauthor", "ta@none.none"), pushEmail.author());
@@ -840,9 +932,9 @@ public class MailingListNotifierTests {
                                                    .build();
             noTagsUpdater.attachTo(notifyBot);
 
-            // No mail should be sent on the first run as there is no history
+            // One mail should be sent on first commit
             TestBotRunner.runPeriodicItems(notifyBot, scratchFolder.path());
-            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+            listServer.processIncoming();
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
             localRepo.fetch(repo.url(), "history:history");
@@ -863,7 +955,7 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            assertEquals(4, conversations.size());
+            assertEquals(5, conversations.size());
 
             for (var conversation : conversations) {
                 var email = conversation.first();
@@ -899,7 +991,11 @@ public class MailingListNotifierTests {
                     assertTrue(email.body().contains("67890123: Brand new fixes"));
                     assertTrue(email.body().contains("78901234: More brand new fixes"));
                     assertEquals(EmailAddress.from("testauthor", "ta@none.none"), email.author());
-                } else {
+                } else if(email.subject().equals("git: test: 2 new changesets")){
+                    assertTrue(email.body().contains("Initial commit"));
+                    assertTrue(email.body().contains("Lock"));
+                }
+                else {
                     fail("Mismatched subject: " + email.subject());
                 }
                 assertTrue(email.hasHeader("extra1"));
@@ -959,9 +1055,9 @@ public class MailingListNotifierTests {
                                                    .build();
             noTagsUpdater.attachTo(notifyBot);
 
-            // No mail should be sent on the first run as there is no history
+            // One mail should be sent on first commit
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+            listServer.processIncoming();
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
             localRepo.fetch(repo.url(), "history:history");
@@ -982,7 +1078,7 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            assertEquals(4, conversations.size());
+            assertEquals(5, conversations.size());
 
             for (var conversation : conversations) {
                 var email = conversation.first();
@@ -994,6 +1090,8 @@ public class MailingListNotifierTests {
                     assertEquals(EmailAddress.from("Duke Tagger", "tagger@openjdk.org"), email.author());
                 } else if (email.subject().equals("git: test: 6 new changesets")) {
                     assertEquals(EmailAddress.from("testauthor", "ta@none.none"), email.author());
+                } else if(email.subject().equals("git: test: 2 new changesets")){
+                    assertEquals(EmailAddress.from("test", "test@test.test"), email.author());
                 } else {
                     fail("Mismatched subject: " + email.subject());
                 }
@@ -1044,9 +1142,9 @@ public class MailingListNotifierTests {
                                              .build();
             updater.attachTo(notifyBot);
 
-            // No mail should be sent on the first run as there is no history
+            // One mail should be sent on first commit
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+            listServer.processIncoming();
 
             CheckableRepository.appendAndCommit(localRepo, "Another line", "12345678: Some fixes");
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
@@ -1055,6 +1153,14 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
+            conversations.sort((c1, c2) -> {
+                if (c2.first().date().isAfter(c1.first().date())) {
+                    return 1;
+                } else if (c2.first().date().isBefore(c1.first().date())) {
+                    return -1;
+                }
+                return 0;
+            });
             var email = conversations.get(0).first();
             assertEquals(listAddress, email.sender());
             assertEquals(EmailAddress.from("testauthor", "ta@none.none"), email.author());
@@ -1073,10 +1179,16 @@ public class MailingListNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
 
-            var newConversation = mailmanList.conversations(Duration.ofDays(1)).stream()
-                                             .filter(c -> !c.equals(conversations.get(0)))
-                                             .findFirst().orElseThrow();
-            email = newConversation.first();
+            var newConversations = mailmanList.conversations(Duration.ofDays(1));
+            newConversations.sort((c1, c2) -> {
+                if (c2.first().date().isAfter(c1.first().date())) {
+                    return 1;
+                } else if (c2.first().date().isBefore(c1.first().date())) {
+                    return -1;
+                }
+                return 0;
+            });
+            email = newConversations.get(0).first();
             assertEquals(listAddress, email.sender());
             assertEquals(sender, email.author());
             assertEquals(email.recipients(), List.of(listAddress));
@@ -1126,9 +1238,9 @@ public class MailingListNotifierTests {
                                              .build();
             updater.attachTo(notifyBot);
 
-            // No mail should be sent on the first run as there is no history
+            // One mail should be sent on first commit
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+            listServer.processIncoming();
 
             // Save history state
             var historyHash = localRepo.fetch(repo.url(), "history");
@@ -1139,7 +1251,7 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            assertEquals(1, conversations.size());
+            assertEquals(2, conversations.size());
 
             // Reset the history
             localRepo.push(historyHash, repo.url(), "history", true);
@@ -1148,7 +1260,7 @@ public class MailingListNotifierTests {
 
             // There should now be a duplicate mail
             conversations = mailmanList.conversations(Duration.ofDays(1));
-            assertEquals(2, conversations.size());
+            assertEquals(3, conversations.size());
         }
     }
 }

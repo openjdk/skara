@@ -75,14 +75,17 @@ public class JsonNotifierTests {
             updater.attachTo(notifyBot);
 
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertEquals(List.of(), findJsonFiles(jsonFolder, ""));
+            assertEquals(1, findJsonFiles(jsonFolder, "").size());
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "One more line", "12345678: Fixes");
             localRepo.push(editHash, repo.url(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
             var jsonFiles = findJsonFiles(jsonFolder, "");
-            assertEquals(1, jsonFiles.size());
+            assertEquals(2, jsonFiles.size());
             var jsonData = Files.readString(jsonFiles.get(0), StandardCharsets.UTF_8);
+            if (JSON.parse(jsonData).asArray().size() != 1) {
+                jsonData = Files.readString(jsonFiles.get(1), StandardCharsets.UTF_8);
+            }
             var json = JSON.parse(jsonData);
             assertEquals(1, json.asArray().size());
             assertEquals(repo.webUrl(editHash).toString(), json.asArray().get(0).get("url").asString());
@@ -124,7 +127,7 @@ public class JsonNotifierTests {
             updater.attachTo(notifyBot);
 
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertEquals(List.of(), findJsonFiles(jsonFolder, ""));
+            assertEquals(1, findJsonFiles(jsonFolder, "").size());
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
             localRepo.fetch(repo.url(), "history:history");
@@ -135,13 +138,16 @@ public class JsonNotifierTests {
 
             TestBotRunner.runPeriodicItems(notifyBot);
             var jsonFiles = findJsonFiles(jsonFolder, "");
-            assertEquals(3, jsonFiles.size());
+            assertEquals(4, jsonFiles.size());
 
             for (var file : jsonFiles) {
                 var jsonData = Files.readString(file, StandardCharsets.UTF_8);
                 var json = JSON.parse(jsonData);
 
                 if (json.asArray().get(0).contains("date")) {
+                    if (json.asArray().get(0).get("issue").asArray().size() == 0) {
+                        continue;
+                    }
                     assertEquals(2, json.asArray().size());
                     assertEquals(List.of("23456789"), json.asArray().get(0).get("issue").asArray().stream()
                                                           .map(JSONValue::asString)

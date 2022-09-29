@@ -135,8 +135,8 @@ public class UpdaterTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Both updaters should have run
-            assertEquals(1, idempotent.updateCount);
-            assertEquals(1, nonIdempotent.updateCount);
+            assertEquals(2, idempotent.updateCount);
+            assertEquals(2, nonIdempotent.updateCount);
 
             var nextEditHash = CheckableRepository.appendAndCommit(localRepo, "Yet another line", "Fix more stuff");
             localRepo.push(nextEditHash, repo.url(), "master");
@@ -146,14 +146,14 @@ public class UpdaterTests {
             assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(notifyBot));
 
             // Both updaters should have run again
-            assertEquals(2, idempotent.updateCount);
-            assertEquals(2, nonIdempotent.updateCount);
+            assertEquals(3, idempotent.updateCount);
+            assertEquals(3, nonIdempotent.updateCount);
 
             assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(notifyBot));
 
             // But now only the idempotent one should have been retried
-            assertEquals(3, idempotent.updateCount);
-            assertEquals(2, nonIdempotent.updateCount);
+            assertEquals(4, idempotent.updateCount);
+            assertEquals(3, nonIdempotent.updateCount);
         }
     }
 }

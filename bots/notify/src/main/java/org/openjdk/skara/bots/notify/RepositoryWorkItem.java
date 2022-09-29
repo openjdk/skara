@@ -63,6 +63,8 @@ public class RepositoryWorkItem implements WorkItem {
     private final StorageBuilder<UpdatedBranch> branchStorageBuilder;
     private final List<RepositoryListener> listeners;
 
+    private static final String INITIAL_GIT_HASH = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+
     RepositoryWorkItem(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<UpdatedTag> tagStorageBuilder, StorageBuilder<UpdatedBranch> branchStorageBuilder, List<RepositoryListener> listeners) {
         this.repository = repository;
         this.storagePath = storagePath;
@@ -366,11 +368,12 @@ public class RepositoryWorkItem implements WorkItem {
                     log.warning("No previous history found for any branch - resetting mark for '" + ref.name());
                     for (var listener : listeners) {
                         log.info("Resetting mark for branch '" + ref.name() + "' for listener '" + listener.name() + "'");
-                        history.setBranchHash(new Branch(ref.name()), listener.name(), ref.hash());
+                        // Initial the hash for the branches in the first commit, so that the branches will not be treated as 'new'
+                        // and the first commit will be treated as 'update', so we will get notifications
+                        history.setBranchHash(new Branch(ref.name()), listener.name(), new Hash(INITIAL_GIT_HASH));
                     }
-                } else {
-                    errors.addAll(handleRef(localRepo, history, ref, knownRefs, scratchPath));
                 }
+                errors.addAll(handleRef(localRepo, history, ref, knownRefs, scratchPath));
             }
             if (!errors.isEmpty()) {
                 errors.forEach(error -> log.log(Level.WARNING, error.getMessage(), error));
