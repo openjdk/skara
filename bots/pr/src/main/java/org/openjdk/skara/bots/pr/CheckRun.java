@@ -935,8 +935,13 @@ class CheckRun {
                 pr.updateComment(existing.get().id(), message);
             }
         } else if (existing.isPresent()) {
-            log.info("Updating merge ready comment as no longer ready");
-            pr.updateComment(existing.get().id(), getMergeNoLongerReadyComment());
+            String noLongerReadyComment = getMergeNoLongerReadyComment();
+            if (!existing.get().body().equals(noLongerReadyComment)) {
+                log.info("Updating merge ready comment as no longer ready");
+                pr.updateComment(existing.get().id(), noLongerReadyComment);
+            } else {
+                log.info("No longer ready comment already exists, no need to update the comment");
+            }
         }
     }
 
