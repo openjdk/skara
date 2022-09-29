@@ -91,16 +91,9 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            conversations.sort((c1, c2) -> {
-                if (c2.first().date().isAfter(c1.first().date())) {
-                    return 1;
-                } else if (c2.first().date().isBefore(c1.first().date())) {
-                    return -1;
-                }
-                return 0;
-            });
+            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
             // get the latest email
-            var email = conversations.get(0).first();
+            var email = conversations.get(1).first();
             assertEquals(listAddress, email.sender());
             assertEquals(sender, email.author());
             assertEquals(email.recipients(), List.of(listAddress));
@@ -175,16 +168,12 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            conversations.sort((c1, c2) -> {
-                if (c2.first().date().isAfter(c1.first().date())) {
-                    return 1;
-                } else if (c2.first().date().isBefore(c1.first().date())) {
-                    return -1;
-                }
-                return 0;
-            });
+            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
             // get the latest email
             var email = conversations.get(0).first();
+            if (email.body().contains("Initial commit")) {
+                email = conversations.get(1).first();
+            }
             assertEquals(listAddress, email.sender());
             assertEquals(EmailAddress.from("another_author", "another@author.example.com"), email.author());
             assertEquals(email.recipients(), List.of(listAddress));
@@ -262,16 +251,9 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            conversations.sort((c1, c2) -> {
-                if (c2.first().date().isAfter(c1.first().date())) {
-                    return 1;
-                } else if (c2.first().date().isBefore(c1.first().date())) {
-                    return -1;
-                }
-                return 0;
-            });
+            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
             // get the latest email
-            var email = conversations.get(0).first();
+            var email = conversations.get(1).first();
             assertEquals(listAddress, email.sender());
             assertEquals(EmailAddress.from("merge_author", "merge@author.example.com"), email.author());
             assertEquals(email.recipients(), List.of(listAddress));
@@ -340,16 +322,9 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            conversations.sort((c1, c2) -> {
-                if (c2.first().date().isAfter(c1.first().date())) {
-                    return 1;
-                } else if (c2.first().date().isBefore(c1.first().date())) {
-                    return -1;
-                }
-                return 0;
-            });
+            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
             // get the latest email
-            var email = conversations.get(0).first();
+            var email = conversations.get(1).first();
             assertEquals(listAddress, email.sender());
             assertEquals(EmailAddress.from("committer", "committer@test.test"), email.author());
             assertEquals(email.recipients(), List.of(listAddress));
@@ -418,16 +393,12 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            conversations.sort((c1, c2) -> {
-                if (c2.first().date().isAfter(c1.first().date())) {
-                    return 1;
-                } else if (c2.first().date().isBefore(c1.first().date())) {
-                    return -1;
-                }
-                return 0;
-            });
+            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
             // get the latest email
-            var email = conversations.get(0).first();
+            var email = conversations.get(1).first();
+            if (email.body().contains("Initial commit")) {
+                email = conversations.get(2).first();
+            }
             assertEquals(listAddress, email.sender());
             assertEquals(author, email.author());
             assertEquals(email.recipients(), List.of(listAddress));
@@ -453,14 +424,6 @@ public class MailingListNotifierTests {
 
             conversations = mailmanList.conversations(Duration.ofDays(1));
             conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
-            conversations.sort((c1, c2) -> {
-                if (c2.first().date().isAfter(c1.first().date())) {
-                    return 1;
-                } else if (c2.first().date().isBefore(c1.first().date())) {
-                    return -1;
-                }
-                return 0;
-            });
             email = conversations.get(0).first();
             assertEquals(author, email.author());
             assertEquals(listAddress, email.sender());
@@ -557,15 +520,8 @@ public class MailingListNotifierTests {
             // This one should generate a plain integration mail
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(4, conversations.size());
-            conversations.sort((c1, c2) -> {
-                if (c2.first().date().isAfter(c1.first().date())) {
-                    return 1;
-                } else if (c2.first().date().isBefore(c1.first().date())) {
-                    return -1;
-                }
-                return 0;
-            });
-            var secondEmail = conversations.get(0).first();
+            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
+            var secondEmail = conversations.get(2).first();
             assertEquals("git: test: other: 23456789: More fixes", secondEmail.subject());
         }
     }
@@ -646,18 +602,11 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            conversations.sort((c1, c2) -> {
-                if (c2.first().date().isAfter(c1.first().date())) {
-                    return 1;
-                } else if (c2.first().date().isBefore(c1.first().date())) {
-                    return -1;
-                }
-                return 0;
-            });
+            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
             assertEquals(3, conversations.size());
 
-            var prConversation = conversations.get(1);
-            var pushConversation = conversations.get(0);
+            var prConversation = conversations.get(0);
+            var pushConversation = conversations.get(2);
             assertEquals(1, prConversation.allMessages().size());
 
             var pushEmail = pushConversation.first();
@@ -749,21 +698,16 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            conversations.sort((c1, c2) -> {
-                if (c2.first().date().isAfter(c1.first().date())) {
-                    return 1;
-                } else if (c2.first().date().isBefore(c1.first().date())) {
-                    return -1;
-                }
-                return 0;
-            });
+            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
             assertEquals(3, conversations.size());
 
-            var prConversation = conversations.get(1);
-            var pushConversation = conversations.get(0);
+            var prConversation = conversations.get(0);
             assertEquals(1, prConversation.allMessages().size());
 
-            var pushEmail = pushConversation.first();
+            var pushEmail = conversations.get(1).first();
+            if (pushEmail.body().contains("Initial commit")) {
+                pushEmail = conversations.get(2).first();
+            }
             assertEquals(listAddress, pushEmail.sender());
             assertEquals(EmailAddress.from("unrelated_author", "unrelated@author.example.com"), pushEmail.author());
             assertEquals(pushEmail.recipients(), List.of(listAddress));
@@ -843,14 +787,7 @@ public class MailingListNotifierTests {
             assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            conversations.sort((c1, c2) -> {
-                if (c2.first().date().isAfter(c1.first().date())) {
-                    return 1;
-                } else if (c2.first().date().isBefore(c1.first().date())) {
-                    return -1;
-                }
-                return 0;
-            });
+            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
             assertEquals(3, conversations.size());
 
             var prConversation = conversations.get(0);
@@ -863,17 +800,10 @@ public class MailingListNotifierTests {
 
             // The change should now end up as a separate notification thread
             conversations = mailmanList.conversations(Duration.ofDays(1));
-            conversations.sort((c1, c2) -> {
-                if (c2.first().date().isAfter(c1.first().date())) {
-                    return 1;
-                } else if (c2.first().date().isBefore(c1.first().date())) {
-                    return -1;
-                }
-                return 0;
-            });
+            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
             assertEquals(4, conversations.size());
 
-            var pushConversation = conversations.get(0);
+            var pushConversation = conversations.get(2);
             var pushEmail = pushConversation.first();
             assertEquals(listAddress, pushEmail.sender());
             assertEquals(EmailAddress.from("testauthor", "ta@none.none"), pushEmail.author());
@@ -1153,15 +1083,8 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            conversations.sort((c1, c2) -> {
-                if (c2.first().date().isAfter(c1.first().date())) {
-                    return 1;
-                } else if (c2.first().date().isBefore(c1.first().date())) {
-                    return -1;
-                }
-                return 0;
-            });
-            var email = conversations.get(0).first();
+            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
+            var email = conversations.get(1).first();
             assertEquals(listAddress, email.sender());
             assertEquals(EmailAddress.from("testauthor", "ta@none.none"), email.author());
             assertEquals(email.recipients(), List.of(listAddress));
@@ -1179,16 +1102,9 @@ public class MailingListNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
 
-            var newConversations = mailmanList.conversations(Duration.ofDays(1));
-            newConversations.sort((c1, c2) -> {
-                if (c2.first().date().isAfter(c1.first().date())) {
-                    return 1;
-                } else if (c2.first().date().isBefore(c1.first().date())) {
-                    return -1;
-                }
-                return 0;
-            });
-            email = newConversations.get(0).first();
+            conversations = mailmanList.conversations(Duration.ofDays(1));
+            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
+            email = conversations.get(2).first();
             assertEquals(listAddress, email.sender());
             assertEquals(sender, email.author());
             assertEquals(email.recipients(), List.of(listAddress));
