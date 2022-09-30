@@ -48,7 +48,7 @@ public class TestIssue implements Issue {
     protected final String title;
     protected final State state;
     // Mimic JiraIssue where labels are part of the main JSON object
-    private final List<Label> labels;
+    private List<Label> labels;
     protected ZonedDateTime lastUpdate;
 
     protected TestIssue(TestIssueStore store, HostUser user) {
@@ -182,6 +182,7 @@ public class TestIssue implements Issue {
 
     @Override
     public void addLabel(String label) {
+        labels = null;
         var now = ZonedDateTime.now();
         store.labels().put(label, now);
         store.setLastUpdate(now);
@@ -189,12 +190,14 @@ public class TestIssue implements Issue {
 
     @Override
     public void removeLabel(String label) {
+        labels = null;
         store.labels().remove(label);
         store.setLastUpdate(ZonedDateTime.now());
     }
 
     @Override
     public void setLabels(List<String> labels) {
+        this.labels = null;
         store.labels().clear();
         var now = ZonedDateTime.now();
         for (var label : labels) {
@@ -205,6 +208,9 @@ public class TestIssue implements Issue {
 
     @Override
     public List<Label> labels() {
+        if (labels == null) {
+            labels = store.labels().keySet().stream().map(Label::new).collect(Collectors.toList());
+        }
         return labels;
     }
 

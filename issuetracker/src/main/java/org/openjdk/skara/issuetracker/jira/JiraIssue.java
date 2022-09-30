@@ -38,18 +38,22 @@ import java.util.stream.*;
 public class JiraIssue implements Issue {
     private final JiraProject jiraProject;
     private final RestRequest request;
-    private final JSONValue json;
+    private JSONValue json;
     private final boolean needSecurity;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.issuetracker.jira");
 
     private static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
+    private List<Label> labels;
+
     JiraIssue(JiraProject jiraProject, RestRequest request, JSONValue json) {
         this.jiraProject = jiraProject;
         this.request = request;
         this.json = json;
-
+        this.labels = json.get("fields").get("labels").stream()
+                .map(s -> new Label(s.asString()))
+                .collect(Collectors.toList());
         needSecurity = jiraProject.jiraHost().securityLevel().isPresent();
     }
 
@@ -260,6 +264,7 @@ public class JiraIssue implements Issue {
 
     @Override
     public void addLabel(String label) {
+        labels = null;
         var query = JSON.object()
                         .put("update", JSON.object()
                                            .put("labels", JSON.array().add(JSON.object()
@@ -269,6 +274,7 @@ public class JiraIssue implements Issue {
 
     @Override
     public void removeLabel(String label) {
+        labels = null;
         var query = JSON.object()
                         .put("update", JSON.object()
                                            .put("labels", JSON.array().add(JSON.object()
@@ -278,6 +284,7 @@ public class JiraIssue implements Issue {
 
     @Override
     public void setLabels(List<String> labels) {
+        this.labels = null;
         var labelsArray = JSON.array();
         for (var label : labels) {
             labelsArray.add(label);
@@ -291,9 +298,13 @@ public class JiraIssue implements Issue {
 
     @Override
     public List<Label> labels() {
-        return json.get("fields").get("labels").stream()
-                   .map(s -> new Label(s.asString()))
-                   .collect(Collectors.toList());
+        if(labels == null){
+            json = request.get("").execute();
+            labels = json.get("fields").get("labels").stream()
+                    .map(s -> new Label(s.asString()))
+                    .collect(Collectors.toList());
+        }
+        return labels;
     }
 
     @Override
