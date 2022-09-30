@@ -931,14 +931,18 @@ class CheckRun {
                 log.info("Adding merge ready comment");
                 pr.addComment(message);
             } else {
-                log.info("Updating merge ready comment");
-                pr.updateComment(existing.get().id(), message);
+                if (!existing.get().body().equals(message)) {
+                    log.info("Updating merge ready comment");
+                    pr.updateComment(existing.get().id(), message);
+                } else {
+                    log.info("Merge ready comment already exists, no need to update the comment");
+                }
             }
         } else if (existing.isPresent()) {
-            String noLongerReadyComment = getMergeNoLongerReadyComment();
-            if (!existing.get().body().equals(noLongerReadyComment)) {
-                log.info("Updating merge ready comment as no longer ready");
-                pr.updateComment(existing.get().id(), noLongerReadyComment);
+            var message = getMergeNoLongerReadyComment();
+            if (!existing.get().body().equals(message)) {
+                log.info("Updating no longer ready comment");
+                pr.updateComment(existing.get().id(), message);
             } else {
                 log.info("No longer ready comment already exists, no need to update the comment");
             }
