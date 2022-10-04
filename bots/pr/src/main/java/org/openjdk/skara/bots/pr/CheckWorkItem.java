@@ -54,6 +54,7 @@ class CheckWorkItem extends PullRequestWorkItem {
     CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime prUpdatedAt) {
         super(bot, prId, errorHandler, prUpdatedAt);
     }
+
     private String encodeReviewer(HostUser reviewer, CensusInstance censusInstance) {
         var census = censusInstance.census();
         var project = censusInstance.project();
