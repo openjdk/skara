@@ -47,7 +47,7 @@ public class TestIssue implements Issue {
     protected final String body;
     protected final String title;
     protected final State state;
-    // Mimic JiraIssue where labels are part of the main JSON object
+    // Labels are cached but still kept up to date
     private List<Label> labels;
     protected ZonedDateTime lastUpdate;
 
@@ -197,13 +197,13 @@ public class TestIssue implements Issue {
 
     @Override
     public void setLabels(List<String> labels) {
-        this.labels = null;
         store.labels().clear();
         var now = ZonedDateTime.now();
         for (var label : labels) {
             store.labels().put(label, now);
         }
         store.setLastUpdate(ZonedDateTime.now());
+        this.labels = labels.stream().map(Label::new).collect(Collectors.toList());
     }
 
     @Override

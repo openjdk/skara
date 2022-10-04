@@ -38,7 +38,7 @@ import java.util.stream.*;
 public class JiraIssue implements Issue {
     private final JiraProject jiraProject;
     private final RestRequest request;
-    private JSONValue json;
+    private final JSONValue json;
     private final boolean needSecurity;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.issuetracker.jira");
@@ -284,7 +284,6 @@ public class JiraIssue implements Issue {
 
     @Override
     public void setLabels(List<String> labels) {
-        this.labels = null;
         var labelsArray = JSON.array();
         for (var label : labels) {
             labelsArray.add(label);
@@ -294,13 +293,13 @@ public class JiraIssue implements Issue {
                                            .put("labels", JSON.array().add(JSON.object()
                                                                                .put("set", labelsArray))));
         request.put("").body(query).execute();
+        this.labels = labels.stream().map(Label::new).collect(Collectors.toList());
     }
 
     @Override
     public List<Label> labels() {
-        if(labels == null){
-            json = request.get("").execute();
-            labels = json.get("fields").get("labels").stream()
+        if (labels == null) {
+            labels = request.get("").execute().get("fields").get("labels").stream()
                     .map(s -> new Label(s.asString()))
                     .collect(Collectors.toList());
         }
