@@ -935,7 +935,7 @@ class CheckRun {
                     log.info("Updating merge ready comment");
                     pr.updateComment(existing.get().id(), message);
                 } else {
-                    log.info("Merge ready comment already exists, no need to update the comment");
+                    log.info("Merge ready comment already exists, no need to update");
                 }
             }
         } else if (existing.isPresent()) {
@@ -944,7 +944,7 @@ class CheckRun {
                 log.info("Updating no longer ready comment");
                 pr.updateComment(existing.get().id(), message);
             } else {
-                log.info("No longer ready comment already exists, no need to update the comment");
+                log.info("No longer ready comment already exists, no need to update");
             }
         }
     }
