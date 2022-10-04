@@ -43,7 +43,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 class CheckWorkItem extends PullRequestWorkItem {
-    private final Pattern metadataComments = Pattern.compile("<!-- (?:(add|remove) (?:contributor|reviewer))|(?:summary: ')|(?:solves: ')|(?:additional required reviewers)|(?:jep: ')|(?:csr: ')");
+    private final Pattern metadataComments = Pattern.compile("<!-- (?:backport)|(?:(add|remove) (?:contributor|reviewer))|(?:summary: ')|(?:solves: ')|(?:additional required reviewers)|(?:jep: ')|(?:csr: ')");
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     static final Pattern ISSUE_ID_PATTERN = Pattern.compile("^(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)"
             + "(?::(?<space>[\\s\u00A0\u2007\u202F]+)(?<title>.+))?$");
@@ -51,17 +51,9 @@ class CheckWorkItem extends PullRequestWorkItem {
     private static final Pattern BACKPORT_ISSUE_TITLE_PATTERN = Pattern.compile("^Backport\\s*(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)\\s*$");
     private static final String ELLIPSIS = "…";
 
-    private boolean backportOriginalCommitHashMightChanged = false;
-
     CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime prUpdatedAt) {
         super(bot, prId, errorHandler, prUpdatedAt);
     }
-
-    CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime prUpdatedAt, boolean backportOriginalCommitHashMightChanged) {
-        super(bot, prId, errorHandler, prUpdatedAt);
-        this.backportOriginalCommitHashMightChanged = backportOriginalCommitHashMightChanged;
-    }
-
     private String encodeReviewer(HostUser reviewer, CensusInstance censusInstance) {
         var census = censusInstance.census();
         var project = censusInstance.project();
@@ -239,7 +231,7 @@ class CheckWorkItem extends PullRequestWorkItem {
 
         // Filter out the active reviews
         var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews);
-        if (!currentCheckValid(census, comments, activeReviews, labels) || backportOriginalCommitHashMightChanged) {
+        if (!currentCheckValid(census, comments, activeReviews, labels)) {
             if (labels.contains("integrated")) {
                 log.info("Skipping check of integrated PR");
                 // We still need to make sure any commands get run or are able to finish a
@@ -308,7 +300,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     comment.add(text);
                     pr.addComment(String.join("\n", comment));
                     pr.addLabel("backport");
-                    return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt, true));
+                    return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt));
                 } else {
                     var botUser = pr.repository().forge().currentUser();
                     var text = "<!-- backport error -->\n" +
