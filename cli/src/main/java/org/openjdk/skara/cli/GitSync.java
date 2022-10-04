@@ -362,7 +362,7 @@ public class GitSync {
                 logVerbose("Skipping branch " + name);
                 continue;
             }
-            if (ignore.matcher(name).matches()) {
+            if (!branches.contains(name) && ignore.matcher(name).matches()) {
                 logVerbose("Skipping branch " + name);
                 continue;
             }

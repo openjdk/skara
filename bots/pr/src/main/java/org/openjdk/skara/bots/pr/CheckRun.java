@@ -495,8 +495,8 @@ class CheckRun {
                                .collect(Collectors.joining("\n"));
     }
 
-    private Optional<String> getReviewersList(List<Review> reviews) {
-        var reviewers = reviews.stream()
+    private Optional<String> getReviewersList() {
+        var reviewers = activeReviews.stream()
                                .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                                .map(review -> {
                                    var entry = " * " + formatReviewer(review.reviewer());
@@ -526,7 +526,7 @@ class CheckRun {
         // Check for manually added reviewers
         if (!ignoreStaleReviews) {
             var namespace = censusInstance.namespace();
-            var allReviewers = CheckablePullRequest.reviewerNames(reviews, namespace);
+            var allReviewers = CheckablePullRequest.reviewerNames(activeReviews, namespace);
             var additionalEntries = new ArrayList<String>();
             for (var additional : Reviewers.reviewers(pr.repository().forge().currentUser(), comments)) {
                 if (!allReviewers.contains(additional)) {
@@ -552,7 +552,7 @@ class CheckRun {
         return name + " `<" + contributor.address() + ">`";
     }
 
-    private Optional<String> getContributorsList(List<Comment> comments) {
+    private Optional<String> getContributorsList() {
         var contributors = Contributors.contributors(pr.repository().forge().currentUser(), comments)
                                        .stream()
                                        .map(c -> " * " + formatContributor(c))
@@ -571,7 +571,7 @@ class CheckRun {
                                      .replaceAll("\\s+", " "));
     }
 
-    private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor,
+    private String getStatusMessage(PullRequestCheckIssueVisitor visitor,
                                     List<String> additionalErrors, Map<String, Boolean> additionalProgresses,
                                     List<String> integrationBlockers, boolean isCleanBackport) {
         var progressBody = new StringBuilder();
@@ -660,12 +660,12 @@ class CheckRun {
             }
         }
 
-        getReviewersList(reviews).ifPresent(reviewers -> {
+        getReviewersList().ifPresent(reviewers -> {
             progressBody.append("\n\n### Reviewers\n");
             progressBody.append(reviewers);
         });
 
-        getContributorsList(comments).ifPresent(contributors -> {
+        getContributorsList().ifPresent(contributors -> {
             progressBody.append("\n\n### Contributors\n");
             progressBody.append(contributors);
         });
@@ -752,7 +752,7 @@ class CheckRun {
         };
     }
 
-    private Optional<Comment> findComment(List<Comment> comments, String marker) {
+    private Optional<Comment> findComment(String marker) {
         var self = pr.repository().forge().currentUser();
         return comments.stream()
                        .filter(comment -> comment.author().equals(self))
@@ -760,7 +760,7 @@ class CheckRun {
                        .findAny();
     }
 
-    private String getMergeReadyComment(String commitMessage, List<Review> reviews) {
+    private String getMergeReadyComment(String commitMessage) {
         var message = new StringBuilder();
         message.append("@");
         message.append(pr.author().username());
@@ -861,7 +861,7 @@ class CheckRun {
             message.append(censusInstance.project().name());
             message.append(") an existing Committer must agree to ");
             message.append("[sponsor](https://openjdk.org/sponsor/) your change. ");
-            var candidates = reviews.stream()
+            var candidates = activeReviews.stream()
                                     .filter(review -> censusInstance.isCommitter(review.reviewer()))
                                     .map(review -> "@" + review.reviewer().username())
                                     .collect(Collectors.joining(", "));
@@ -894,7 +894,7 @@ class CheckRun {
     }
 
     private void addFullNameWarningComment() {
-        var existing = findComment(comments, fullNameWarningMarker);
+        var existing = findComment(fullNameWarningMarker);
         if (existing.isPresent()) {
             // Only warn once
             return;
@@ -927,11 +927,11 @@ class CheckRun {
         }
     }
 
-    private void updateMergeReadyComment(boolean isReady, String commitMessage, List<Comment> comments, List<Review> reviews, boolean rebasePossible) {
-        var existing = findComment(comments, mergeReadyMarker);
+    private void updateMergeReadyComment(boolean isReady, String commitMessage, boolean rebasePossible) {
+        var existing = findComment(mergeReadyMarker);
         if (isReady && rebasePossible) {
             addFullNameWarningComment();
-            var message = getMergeReadyComment(commitMessage, reviews);
+            var message = getMergeReadyComment(commitMessage);
             if (existing.isEmpty()) {
                 log.info("Adding merge ready comment");
                 pr.addComment(message);
@@ -945,8 +945,8 @@ class CheckRun {
         }
     }
 
-    private void addSourceBranchWarningComment(List<Comment> comments) {
-        var existing = findComment(comments, sourceBranchWarningMarker);
+    private void addSourceBranchWarningComment() {
+        var existing = findComment(sourceBranchWarningMarker);
         if (existing.isPresent()) {
             // Only add the comment once per PR
             return;
@@ -977,8 +977,8 @@ class CheckRun {
         pr.addComment(message);
     }
 
-    private void addOutdatedComment(List<Comment> comments) {
-        var existing = findComment(comments, outdatedHelpMarker);
+    private void addOutdatedComment() {
+        var existing = findComment(outdatedHelpMarker);
         if (existing.isPresent()) {
             // Only add the comment once per PR
             return;
@@ -999,8 +999,8 @@ class CheckRun {
         pr.addComment(message);
     }
 
-    private void addMergeCommitWarningComment(List<Comment> comments) {
-        var existing = findComment(comments, mergeCommitWarningMarker);
+    private void addMergeCommitWarningComment() {
+        var existing = findComment(mergeCommitWarningMarker);
         if (existing.isPresent()) {
             // Only add the comment once per PR
             return;
@@ -1075,8 +1075,7 @@ class CheckRun {
             var integrationBlockers = botSpecificIntegrationBlockers();
 
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(comments, activeReviews, visitor, additionalErrors,
-                                                additionalProgresses, integrationBlockers, isCleanBackport);
+            var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, isCleanBackport);
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
 
@@ -1095,7 +1094,7 @@ class CheckRun {
                                       integrationBlockers.isEmpty();
             }
 
-            updateMergeReadyComment(readyForIntegration, commitMessage, comments, activeReviews, rebasePossible);
+            updateMergeReadyComment(readyForIntegration, commitMessage, rebasePossible);
             if (readyForIntegration && rebasePossible) {
                 newLabels.add("ready");
             } else {
@@ -1103,7 +1102,7 @@ class CheckRun {
             }
             if (!rebasePossible) {
                 if (!labels.contains("failed-auto-merge")) {
-                    addOutdatedComment(comments);
+                    addOutdatedComment();
                 }
                 newLabels.add("merge-conflict");
             } else {
@@ -1113,12 +1112,12 @@ class CheckRun {
             if (pr.sourceRepository().isPresent()) {
                 var branchNames = pr.repository().branches().stream().map(HostedBranch::name).collect(Collectors.toSet());
                 if (!pr.repository().url().equals(pr.sourceRepository().get().url()) && branchNames.contains(pr.sourceRef())) {
-                    addSourceBranchWarningComment(comments);
+                    addSourceBranchWarningComment();
                 }
             }
 
             if (!PullRequestUtils.isMerge(pr) && PullRequestUtils.containsForeignMerge(pr, localRepo)) {
-                addMergeCommitWarningComment(comments);
+                addMergeCommitWarningComment();
             }
 
             // Ensure that the ready for sponsor label is up to date

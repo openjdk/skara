@@ -658,8 +658,16 @@ public class GitLabMergeRequest implements PullRequest {
                         Stream.of(label))
                 .collect(Collectors.toSet());
         request.put("")
-               .body("labels", String.join(",", labels))
-               .execute();
+                .body("labels", String.join(",", labels))
+                // Temporary workaround for GitLab returning 500 when changing labels.
+                // The labels are still modified.
+                .onError(response -> {
+                    if (response.statusCode() == 500) {
+                        return Optional.of(JSON.of());
+                    }
+                    return Optional.empty();
+                })
+                .execute();
         this.labels = labels.stream().sorted().toList();
     }
 
@@ -671,8 +679,16 @@ public class GitLabMergeRequest implements PullRequest {
                 .filter(l -> !l.equals(label))
                 .collect(Collectors.toSet());
         request.put("")
-               .body("labels", String.join(",", labels))
-               .execute();
+                .body("labels", String.join(",", labels))
+                // Temporary workaround for GitLab returning 500 when changing labels.
+                // The labels are still modified.
+                .onError(response -> {
+                    if (response.statusCode() == 500) {
+                        return Optional.of(JSON.of());
+                    }
+                    return Optional.empty();
+                })
+                .execute();
         this.labels = labels.stream().sorted().toList();
     }
 
