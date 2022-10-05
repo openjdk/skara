@@ -82,7 +82,7 @@ public class GitLabMergeRequest implements PullRequest {
         if (author.isPresent()) {
             return author.get();
         } else {
-            throw new IllegalArgumentException("Unknown username: " + username);
+            throw new RuntimeException("Author of GitLab merge request unknown: " + username + "(maybe the user is inactive)");
         }
     }
 
