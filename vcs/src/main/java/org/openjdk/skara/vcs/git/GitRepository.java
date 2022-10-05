@@ -1647,4 +1647,11 @@ public class GitRepository implements Repository {
             return p.await().status() == 0;
         }
     }
+
+    @Override
+    public int getExistingCommits() throws IOException {
+        try (var p = capture("git", "rev-list", "--all", "--count")) {
+            return Integer.valueOf(await(p).stdout().get(0));
+        }
+    }
 }

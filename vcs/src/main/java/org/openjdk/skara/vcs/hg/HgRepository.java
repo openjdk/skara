@@ -1494,4 +1494,10 @@ public class HgRepository implements Repository {
             return p.await().status() == 0;
         }
     }
+
+    @Override
+    public int getExistingCommits() throws IOException {
+        //TODO:: implement it later, return 10 here so that it will maintain the previous behavior
+        return 10;
+    }
 }

@@ -1179,4 +1179,84 @@ public class MailingListNotifierTests {
             assertEquals(3, conversations.size());
         }
     }
+
+    @Test
+    void testMailingListWithExistingRepo(TestInfo testInfo) throws IOException {
+        try (var listServer = new TestMailmanServer();
+             var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var notifyBot = NotifyBot.newBuilder()
+                    .repository(repo)
+                    .storagePath(storageFolder)
+                    .branches(Pattern.compile("master"))
+                    .tagStorageBuilder(tagStorage)
+                    .branchStorageBuilder(branchStorage)
+                    .prStateStorageBuilder(prStateStorage)
+                    .build();
+            var updater = MailingListNotifier.newBuilder()
+                    .server(mailmanServer)
+                    .recipient(listAddress)
+                    .sender(sender)
+                    .reportNewTags(false)
+                    .reportNewBranches(false)
+                    .reportNewBuilds(false)
+                    .headers(Map.of("extra1", "value1", "extra2", "value2"))
+                    .allowedAuthorDomains(Pattern.compile("none"))
+                    .build();
+            updater.attachTo(notifyBot);
+
+            CheckableRepository.appendAndCommit(localRepo,"commit1", "commit1");
+            CheckableRepository.appendAndCommit(localRepo,"commit2", "commit2");
+            var updateHash = CheckableRepository.appendAndCommit(localRepo,"commit3", "commit3");
+            localRepo.push(updateHash,repo.url(),"master");
+
+            // No mail should be sent on first commit because it has a long history(commit times > 5)
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming());
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
+            localRepo.push(editHash, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+            listServer.processIncoming();
+
+            var conversations = mailmanList.conversations(Duration.ofDays(1));
+            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
+            // get the latest email
+            var email = conversations.get(0).first();
+            assertEquals(listAddress, email.sender());
+            assertEquals(sender, email.author());
+            assertEquals(email.recipients(), List.of(listAddress));
+            assertTrue(email.subject().contains(": 23456789: More fixes"));
+            assertFalse(email.subject().contains("master"));
+            assertTrue(email.body().contains("Changeset: " + editHash.abbreviate()));
+            assertTrue(email.body().contains("23456789: More fixes"));
+            assertFalse(email.body().contains("Committer"));
+            assertFalse(email.body().contains(masterHash.abbreviate()));
+            assertTrue(email.hasHeader("extra1"));
+            assertEquals("value1", email.headerValue("extra1"));
+            assertTrue(email.hasHeader("extra2"));
+            assertEquals("value2", email.headerValue("extra2"));
+            assertTrue(email.hasHeader("X-Git-URL"));
+            assertEquals(repo.webUrl().toString(), email.headerValue("X-Git-URL"));
+            assertTrue(email.hasHeader("X-Git-Changeset"));
+            assertEquals(editHash.hex(), email.headerValue("X-Git-Changeset"));
+        }
+    }
+
 }

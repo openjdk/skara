@@ -65,6 +65,8 @@ public class RepositoryWorkItem implements WorkItem {
 
     private static final String INITIAL_GIT_HASH = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
 
+    private static final int THRESHOLD = 5;
+
     RepositoryWorkItem(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<UpdatedTag> tagStorageBuilder, StorageBuilder<UpdatedBranch> branchStorageBuilder, List<RepositoryListener> listeners) {
         this.repository = repository;
         this.storagePath = storagePath;
@@ -363,14 +365,28 @@ public class RepositoryWorkItem implements WorkItem {
             }
 
             boolean hasBranchHistory = !history.isEmpty();
+            int existingCommits = localRepo.getExistingCommits();
             for (var ref : knownRefs) {
                 if (!hasBranchHistory) {
                     log.warning("No previous history found for any branch - resetting mark for '" + ref.name());
-                    for (var listener : listeners) {
-                        log.info("Resetting mark for branch '" + ref.name() + "' for listener '" + listener.name() + "'");
-                        // Initial the hash for the branches in the first commit, so that the branches will not be treated as 'new'
-                        // and the first commit will be treated as 'update', so we will get notifications
-                        history.setBranchHash(new Branch(ref.name()), listener.name(), new Hash(INITIAL_GIT_HASH));
+                    if (existingCommits <= THRESHOLD) {
+                        // In this case, the repo will be considered as a new repo, notify bot will notify start from the first commit
+                        log.info("This is a new repo");
+                        for (var listener : listeners) {
+                            log.info("Resetting mark for branch '" + ref.name() + "' for listener '" + listener.name() + "'");
+                            // Initial the hash for the branches in the first commit, so that the branches will not be treated as 'new'
+                            // and the first commit will be treated as 'update', so we will get notifications
+                            history.setBranchHash(new Branch(ref.name()), listener.name(), new Hash(INITIAL_GIT_HASH));
+                        }
+                    } else {
+                        // In this case, the repo will be considered as an existing repo with history, notify bot will only notify on new commits
+                        log.info("This is an existing repo with history");
+                        for (var listener : listeners) {
+                            log.info("Resetting mark for branch '" + ref.name() + "' for listener '" + listener.name() + "'");
+                            // Initial the hash for the branches in the first commit, so that the branches will not be treated as 'new'
+                            // and the first commit will be treated as 'update', so we will get notifications
+                            history.setBranchHash(new Branch(ref.name()), listener.name(), ref.hash());
+                        }
                     }
                 }
                 errors.addAll(handleRef(localRepo, history, ref, knownRefs, scratchPath));

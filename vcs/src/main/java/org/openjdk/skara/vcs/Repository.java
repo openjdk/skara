@@ -297,4 +297,6 @@ public interface Repository extends ReadOnlyRepository {
             GitRepository.mirror(from, to) :
             HgRepository.clone(from, to, true, null); // hg does not have concept of "mirror"
     }
+
+    int getExistingCommits() throws IOException;
 }
