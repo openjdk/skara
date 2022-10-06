@@ -48,7 +48,7 @@ public class GitRepository implements Repository {
     private final Path dir;
     private final Logger log = Logger.getLogger("org.openjdk.skara.vcs.git");
     private Path cachedRoot = null;
-    private static final Hash EMPTY_TREE = new Hash("4b825dc642cb6eb9a060e54bf8d69288fbee4904");
+    public static final Hash EMPTY_TREE = new Hash("4b825dc642cb6eb9a060e54bf8d69288fbee4904");
 
     public static void ignoreConfiguration() {
         currentEnv = NO_CONFIG_ENV;
@@ -1649,9 +1649,9 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public int getExistingCommits() throws IOException {
+    public int commitCount() throws IOException {
         try (var p = capture("git", "rev-list", "--all", "--count")) {
-            return Integer.valueOf(await(p).stdout().get(0));
+            return Integer.parseInt(await(p).stdout().get(0));
         }
     }
 }

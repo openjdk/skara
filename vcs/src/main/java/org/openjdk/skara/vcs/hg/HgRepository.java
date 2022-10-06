@@ -1496,8 +1496,9 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public int getExistingCommits() throws IOException {
-        //TODO:: implement it later, return 10 here so that it will maintain the previous behavior
-        return 10;
+    public int commitCount() throws IOException {
+        try (var p = capture("hg", "id", "--num", "--rev","tip")) {
+            return Integer.parseInt(await(p).stdout().get(0)) + 1;
+        }
     }
 }

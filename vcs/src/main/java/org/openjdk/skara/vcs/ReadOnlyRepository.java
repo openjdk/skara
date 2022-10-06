@@ -167,4 +167,6 @@ public interface ReadOnlyRepository {
     }
 
     Optional<Tag.Annotated> annotate(Tag tag) throws IOException;
+
+    int commitCount() throws IOException;
 }

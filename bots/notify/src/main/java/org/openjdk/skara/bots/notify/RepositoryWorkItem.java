@@ -37,6 +37,8 @@ import java.util.logging.*;
 import java.util.regex.Pattern;
 import java.util.stream.*;
 
+import static org.openjdk.skara.vcs.git.GitRepository.EMPTY_TREE;
+
 /**
  * A RepositoryWorkItem acts on changes to a particular repository. Multiple kinds
  * of listeners can be notified about various types of changes. Some listeners can
@@ -63,9 +65,7 @@ public class RepositoryWorkItem implements WorkItem {
     private final StorageBuilder<UpdatedBranch> branchStorageBuilder;
     private final List<RepositoryListener> listeners;
 
-    private static final String INITIAL_GIT_HASH = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
-
-    private static final int THRESHOLD = 5;
+    private static final int NEW_REPOSITORY_COMMIT_THRESHOLD = 5;
 
     RepositoryWorkItem(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<UpdatedTag> tagStorageBuilder, StorageBuilder<UpdatedBranch> branchStorageBuilder, List<RepositoryListener> listeners) {
         this.repository = repository;
@@ -365,26 +365,24 @@ public class RepositoryWorkItem implements WorkItem {
             }
 
             boolean hasBranchHistory = !history.isEmpty();
-            int existingCommits = localRepo.getExistingCommits();
             for (var ref : knownRefs) {
                 if (!hasBranchHistory) {
                     log.warning("No previous history found for any branch - resetting mark for '" + ref.name());
-                    if (existingCommits <= THRESHOLD) {
+                    int existingCommits = localRepo.commitCount();
+                    if (existingCommits <= NEW_REPOSITORY_COMMIT_THRESHOLD) {
                         // In this case, the repo will be considered as a new repo, notify bot will notify start from the first commit
-                        log.info("This is a new repo");
+                        log.info("This is a new repo, starting notifications from the very first commit");
                         for (var listener : listeners) {
                             log.info("Resetting mark for branch '" + ref.name() + "' for listener '" + listener.name() + "'");
-                            // Initial the hash for the branches in the first commit, so that the branches will not be treated as 'new'
-                            // and the first commit will be treated as 'update', so we will get notifications
-                            history.setBranchHash(new Branch(ref.name()), listener.name(), new Hash(INITIAL_GIT_HASH));
+                            // Initialize the mark for the branches with special Git empty tree hash to trigger notifications on all existing commits.
+                            history.setBranchHash(new Branch(ref.name()), listener.name(), EMPTY_TREE);
                         }
                     } else {
                         // In this case, the repo will be considered as an existing repo with history, notify bot will only notify on new commits
-                        log.info("This is an existing repo with history");
+                        log.info("This is an existing repo with history, starting notifications from commits after " + ref.hash());
                         for (var listener : listeners) {
                             log.info("Resetting mark for branch '" + ref.name() + "' for listener '" + listener.name() + "'");
-                            // Initial the hash for the branches in the first commit, so that the branches will not be treated as 'new'
-                            // and the first commit will be treated as 'update', so we will get notifications
+                            // Initialize the mark for the branches with the current HEAD hash. Notifications will start on future commits.
                             history.setBranchHash(new Branch(ref.name()), listener.name(), ref.hash());
                         }
                     }

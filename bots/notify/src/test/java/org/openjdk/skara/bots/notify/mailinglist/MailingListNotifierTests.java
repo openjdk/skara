@@ -1226,7 +1226,7 @@ public class MailingListNotifierTests {
             var updateHash = CheckableRepository.appendAndCommit(localRepo,"commit3", "commit3");
             localRepo.push(updateHash,repo.url(),"master");
 
-            // No mail should be sent on first commit because it has a long history(commit times > 5)
+            // No mail should be sent on first commit because it has a long history(commit count > 5)
             TestBotRunner.runPeriodicItems(notifyBot);
             assertThrows(RuntimeException.class, () -> listServer.processIncoming());
 
