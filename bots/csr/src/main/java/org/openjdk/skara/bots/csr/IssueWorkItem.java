@@ -56,13 +56,28 @@ class IssueWorkItem implements WorkItem {
         return botName() + "/IssueWorkItem@" + csrIssue.id();
     }
 
+    /**
+     * Concurrency between IssueWorkItems is ok as long as they aren't processing the
+     * same issue and are spawned from the same bot instance.
+     */
     @Override
     public boolean concurrentWith(WorkItem other) {
         if (!(other instanceof IssueWorkItem otherItem)) {
             return true;
         }
 
-        return !csrIssue.project().name().equals(otherItem.csrIssue.project().name());
+        if (!csrIssue.project().name().equals(otherItem.csrIssue.project().name())) {
+            return true;
+        }
+
+        if (!csrIssue.id().equals(otherItem.csrIssue.id())) {
+            return true;
+        }
+
+        if (!bot.equals(otherItem.bot)) {
+            return true;
+        }
+        return false;
     }
 
     @Override
