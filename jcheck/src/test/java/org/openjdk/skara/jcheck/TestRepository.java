@@ -337,4 +337,9 @@ class TestRepository implements ReadOnlyRepository {
     public boolean contains(Hash h) {
         return false;
     }
+
+    @Override
+    public int commitCount() throws IOException {
+        return 0;
+    }
 }
