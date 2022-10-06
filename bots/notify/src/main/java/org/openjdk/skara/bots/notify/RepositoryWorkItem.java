@@ -368,9 +368,7 @@ public class RepositoryWorkItem implements WorkItem {
             for (var ref : knownRefs) {
                 if (!hasBranchHistory) {
                     log.warning("No previous history found for any branch - resetting mark for '" + ref.name());
-                    int existingCommits = localRepo.commitCount();
-                    if (existingCommits <= NEW_REPOSITORY_COMMIT_THRESHOLD) {
-                        // In this case, the repo will be considered as a new repo, notify bot will notify start from the first commit
+                    if (localRepo.commitCount() <= NEW_REPOSITORY_COMMIT_THRESHOLD) {
                         log.info("This is a new repo, starting notifications from the very first commit");
                         for (var listener : listeners) {
                             log.info("Resetting mark for branch '" + ref.name() + "' for listener '" + listener.name() + "'");
@@ -378,7 +376,6 @@ public class RepositoryWorkItem implements WorkItem {
                             history.setBranchHash(new Branch(ref.name()), listener.name(), EMPTY_TREE);
                         }
                     } else {
-                        // In this case, the repo will be considered as an existing repo with history, notify bot will only notify on new commits
                         log.info("This is an existing repo with history, starting notifications from commits after " + ref.hash());
                         for (var listener : listeners) {
                             log.info("Resetting mark for branch '" + ref.name() + "' for listener '" + listener.name() + "'");
