@@ -342,4 +342,9 @@ class TestRepository implements ReadOnlyRepository {
     public int commitCount() throws IOException {
         return 0;
     }
+
+    @Override
+    public Hash initialHash() {
+        return null;
+    }
 }
