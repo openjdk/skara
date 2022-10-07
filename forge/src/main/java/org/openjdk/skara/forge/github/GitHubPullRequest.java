@@ -787,7 +787,7 @@ public class GitHubPullRequest implements PullRequest {
      * For GitHubPullRequest, the json represents the complete snapshot
      */
     @Override
-    public Object comparisonSnapshot() {
+    public Object snapshot() {
         return json;
     }
 }

@@ -339,7 +339,7 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
-    public Object comparisonSnapshot() {
+    public Object snapshot() {
         return this;
     }
 }

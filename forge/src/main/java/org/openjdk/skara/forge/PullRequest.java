@@ -211,5 +211,5 @@ public interface PullRequest extends Issue {
      * Returns an object that represents a complete snapshot of this pull request.
      * Used for detecting if anything has changed between two snapshots.
      */
-    Object comparisonSnapshot();
+    Object snapshot();
 }

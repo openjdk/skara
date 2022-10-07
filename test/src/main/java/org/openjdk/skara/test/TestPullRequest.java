@@ -280,7 +280,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     }
 
     @Override
-    public Object comparisonSnapshot() {
+    public Object snapshot() {
         return List.of(this, comments(), reviews());
     }
 

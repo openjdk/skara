@@ -836,7 +836,7 @@ public class GitLabMergeRequest implements PullRequest {
      * and reviews, which are both part of the general "notes".
      */
     @Override
-    public Object comparisonSnapshot() {
+    public Object snapshot() {
         if (comparisonSnapshot == null) {
             comparisonSnapshot = List.of(json, request.get("notes").execute());
         }

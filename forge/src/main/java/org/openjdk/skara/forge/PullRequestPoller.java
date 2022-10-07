@@ -210,7 +210,7 @@ public class PullRequestPoller {
     private Map<String, Object> fetchComparisonSnapshots(List<PullRequest> prs, ZonedDateTime maxUpdatedAt) {
         return prs.stream()
                 .filter(pr -> !pr.updatedAt().isBefore(maxUpdatedAt.minus(negativeQueryPadding)))
-                .collect(Collectors.toMap(Issue::id, PullRequest::comparisonSnapshot));
+                .collect(Collectors.toMap(Issue::id, PullRequest::snapshot));
     }
 
     /**
@@ -226,7 +226,7 @@ public class PullRequestPoller {
         if (prPrev == null || pr.updatedAt().isAfter(prPrev.updatedAt())) {
             return true;
         }
-        if (!pr.comparisonSnapshot().equals(prev.comparisonSnapshots.get(pr.id()))) {
+        if (!pr.snapshot().equals(prev.comparisonSnapshots.get(pr.id()))) {
             return true;
         }
         return false;
