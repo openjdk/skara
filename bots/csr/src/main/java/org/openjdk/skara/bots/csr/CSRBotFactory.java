@@ -23,7 +23,6 @@
 package org.openjdk.skara.bots.csr;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import org.openjdk.skara.bot.*;
 
 import java.util.ArrayList;
@@ -50,13 +49,17 @@ public class CSRBotFactory implements BotFactory {
         var ret = new ArrayList<Bot>();
         var prBots = new ArrayList<Bot>();
         var specific = configuration.specific();
-        var issueProjects = new HashSet<IssueProject>();
+        var issueProjects = new HashMap<String, IssueProject>();
         var repositories = new HashMap<IssueProject, List<HostedRepository>>();
 
         for (var project : specific.get("projects").asArray()) {
             var repo = configuration.repository(project.get("repository").asString());
-            var issueProject = configuration.issueProject(project.get("issues").asString());
-            issueProjects.add(issueProject);
+            var issuesString = project.get("issues").asString();
+            var issueProject = issueProjects.get(issuesString);
+            if (issueProject == null) {
+                issueProject = configuration.issueProject(issuesString);
+                issueProjects.put(issuesString, issueProject);
+            }
             if (!repositories.containsKey(issueProject)) {
                 repositories.put(issueProject, new ArrayList<>());
             }
@@ -65,7 +68,7 @@ public class CSRBotFactory implements BotFactory {
             prBots.add(new CSRPullRequestBot(repo, issueProject));
         }
 
-        for (IssueProject issueProject : issueProjects) {
+        for (IssueProject issueProject : issueProjects.values()) {
             ret.add(new CSRIssueBot(issueProject, repositories.get(issueProject)));
         }
         // Need to add the PR bots after the issue bots, so that issue bots are called first
