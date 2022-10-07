@@ -45,7 +45,7 @@ public class TestPullRequestStore extends TestIssueStore {
     private boolean draft;
     private ZonedDateTime lastForcePushTime;
     private Hash headHash;
-    private final List<RefChange> targetRefChanges = new ArrayList<>();
+    private final List<ReferenceChange> targetReferenceChanges = new ArrayList<>();
 
     public TestPullRequestStore(String id, HostUser author, String title, List<String> body,
             TestHostedRepository sourceRepository, String targetRef, String sourceRef, boolean draft) {
@@ -110,12 +110,12 @@ public class TestPullRequestStore extends TestIssueStore {
     }
 
     public void setTargetRef(String targetRef) {
-        targetRefChanges.add(new RefChange(this.targetRef, targetRef, ZonedDateTime.now()));
+        targetReferenceChanges.add(new ReferenceChange(this.targetRef, targetRef, ZonedDateTime.now()));
         this.targetRef = targetRef;
     }
 
-    public List<RefChange> targetRefChanges() {
-        return targetRefChanges;
+    public List<ReferenceChange> targetRefChanges() {
+        return targetReferenceChanges;
     }
 
     public void setSourceRef(String sourceRef) {

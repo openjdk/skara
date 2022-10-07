@@ -161,7 +161,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     }
 
     @Override
-    public List<RefChange> targetRefChanges() {
+    public List<ReferenceChange> targetRefChanges() {
         return store().targetRefChanges();
     }
 

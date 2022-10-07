@@ -339,7 +339,7 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
-    public List<RefChange> targetRefChanges() {
+    public List<ReferenceChange> targetRefChanges() {
         return List.of();
     }
 }

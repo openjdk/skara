@@ -501,8 +501,8 @@ class CheckRun {
                                .map(review -> {
                                    var entry = " * " + formatReviewer(review.reviewer());
                                    if (!review.targetRef().equals(pr.targetRef())) {
-                                       entry += " 🔄 Re-review required (review applies to pull request targeting [" + review.targetRef()
-                                               + "](" + pr.repository().webUrl(new Branch(review.targetRef())) + "))";
+                                       entry += " 🔄 Re-review required (review was made when pull request targeted the [" + review.targetRef()
+                                               + "](" + pr.repository().webUrl(new Branch(review.targetRef())) + ") branch)";
                                    } else {
                                        var hash = review.hash();
                                        if (hash.isPresent()) {

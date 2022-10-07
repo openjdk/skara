@@ -116,7 +116,7 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public List<RefChange> targetRefChanges() {
+    public List<ReferenceChange> targetRefChanges() {
         // If the base ref has changed after a review, we treat those as invalid - unless it was a PreIntegration ref
         var parts = repository.name().split("/");
         var owner = parts[0];
@@ -132,7 +132,7 @@ public class GitHubPullRequest implements PullRequest {
                 "          ... on BaseRefChangedEvent {\n" +
                 "            currentRefName,\n" +
                 "            previousRefName,\n" +
-                "            createdAt\n" +
+                "            at\n" +
                 "          }\n" +
                 "        }\n" +
                 "      }\n" +
@@ -146,8 +146,8 @@ public class GitHubPullRequest implements PullRequest {
                 .get("data");
         return data.get("repository").get("pullRequest").get("timelineItems").get("nodes").stream()
                 .map(JSONValue::asObject)
-                .map(obj -> new RefChange(obj.get("previousRefName").asString(), obj.get("currentRefName").asString(),
-                        ZonedDateTime.parse(obj.get("createdAt").asString())))
+                .map(obj -> new ReferenceChange(obj.get("previousRefName").asString(), obj.get("currentRefName").asString(),
+                        ZonedDateTime.parse(obj.get("at").asString())))
                 .toList();
     }
 

@@ -116,7 +116,7 @@ public interface PullRequest extends Issue {
      * Returns a list of all targetRef change events.
      * @return
      */
-    List<RefChange> targetRefChanges();
+    List<ReferenceChange> targetRefChanges();
 
     /**
      * List of completed checks on the given hash.
@@ -219,25 +219,25 @@ public interface PullRequest extends Issue {
      * ref change events. Ideally this method should have been part of a common
      * super class, but there isn't one.
      */
-    static List<Review> calculateReviewTargetRefs(List<Review> reviews, List<RefChange> events) {
+    static List<Review> calculateReviewTargetRefs(List<Review> reviews, List<ReferenceChange> events) {
         if (events.isEmpty()) {
             return reviews;
         }
         var sortedEvents = events.stream()
-                .sorted(Comparator.comparing(RefChange::createdAt))
+                .sorted(Comparator.comparing(ReferenceChange::at))
                 .toList();
-        var lastTargetRef = sortedEvents.get(events.size() - 1).curRefName();
+        var lastTargetRef = sortedEvents.get(events.size() - 1).to();
         return reviews.stream().map(orig -> {
                     for (var event : sortedEvents) {
-                        if (event.createdAt().isAfter(orig.createdAt())
-                                && !PreIntegrations.isPreintegrationBranch(event.prevRefName())) {
-                            return new Review(orig, event.prevRefName());
+                        if (event.at().isAfter(orig.createdAt())
+                                && !PreIntegrations.isPreintegrationBranch(event.from())) {
+                            return orig.withTargetRef(event.from());
                         }
                     }
                     if (orig.targetRef().equals(lastTargetRef)) {
                         return orig;
                     } else {
-                        return new Review(orig, lastTargetRef);
+                        return orig.withTargetRef(lastTargetRef);
                     }
                 })
                 .toList();

@@ -365,9 +365,9 @@ public class UnifiedDiffParserTests {
             "+                          var id = o.get(\"note\").get(\"id\").asstring();\n" +
             "+                          supplier<hash> hash = () -> commitwithcomment(o.get(\"target_title\").asstring(),\n" +
             "+                                                                        body,\n" +
-            "+                                                                        createdAt,\n" +
+            "+                                                                        at,\n" +
             "+                                                                        user);\n" +
-            "+                          return new CommitComment(hash, null, -1, id, body, user, createdAt, createdAt);\n" +
+            "+                          return new CommitComment(hash, null, -1, id, body, user, at, at);\n" +
             "                       })\n" +
             "                       .collect(Collectors.toList());\n" +
             "     }\n";

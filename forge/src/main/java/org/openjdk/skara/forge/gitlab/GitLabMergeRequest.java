@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.forge.gitlab;
 
-import java.util.regex.Matcher;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
@@ -140,14 +139,14 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     private static final Pattern REF_CHANGES_PATTERN = Pattern.compile("changed target branch from `(.*)` to `(.*)`");
-    private List<RefChange> targetRefChanges(JSONValue notes) {
+    private List<ReferenceChange> targetRefChanges(JSONValue notes) {
         return notes.stream()
                 .map(JSONValue::asObject)
                 .filter(obj -> obj.get("system").asBoolean())
                 .map(obj -> {
                     var matcher = REF_CHANGES_PATTERN.matcher(obj.get("body").asString());
                     if (matcher.matches()) {
-                        return new RefChange(matcher.group(1), matcher.group(2), ZonedDateTime.parse(obj.get("created_at").asString()));
+                        return new ReferenceChange(matcher.group(1), matcher.group(2), ZonedDateTime.parse(obj.get("created_at").asString()));
                     } else {
                         return null;
                     }
@@ -157,7 +156,7 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
-    public List<RefChange> targetRefChanges() {
+    public List<ReferenceChange> targetRefChanges() {
         return targetRefChanges(request.get("notes").execute());
     }
 

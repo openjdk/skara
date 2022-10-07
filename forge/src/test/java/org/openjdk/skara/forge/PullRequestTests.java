@@ -20,8 +20,8 @@ public class PullRequestTests {
     void calculateReviewTargetRefs2Changes() {
         var now = ZonedDateTime.now();
 
-        var refChange1 = new RefChange("first", "second", now.minus(Duration.ofMinutes(4)));
-        var refChange2 = new RefChange("second", "third", now.minus(Duration.ofMinutes(2)));
+        var refChange1 = new ReferenceChange("first", "second", now.minus(Duration.ofMinutes(4)));
+        var refChange2 = new ReferenceChange("second", "third", now.minus(Duration.ofMinutes(2)));
 
         var review1 = newReview(now.minus(Duration.ofMinutes(5)), 1, "third");
         var review2 = newReview(now.minus(Duration.ofMinutes(3)), 2, "third");
@@ -39,8 +39,8 @@ public class PullRequestTests {
     void calculateReviewTargetRefsPreIntegrationBranch() {
         var now = ZonedDateTime.now();
 
-        var refChange1 = new RefChange("first", "pr/4711", now.minus(Duration.ofMinutes(4)));
-        var refChange2 = new RefChange("pr/4711", "third", now.minus(Duration.ofMinutes(2)));
+        var refChange1 = new ReferenceChange("first", "pr/4711", now.minus(Duration.ofMinutes(4)));
+        var refChange2 = new ReferenceChange("pr/4711", "third", now.minus(Duration.ofMinutes(2)));
 
         var review1 = newReview(now.minus(Duration.ofMinutes(5)), 1, "");
         var review2 = newReview(now.minus(Duration.ofMinutes(3)), 2, "");
@@ -58,8 +58,8 @@ public class PullRequestTests {
     void calculateReviewTargetRefsPreIntegrationBranchLast() {
         var now = ZonedDateTime.now();
 
-        var refChange1 = new RefChange("first", "pr/4711", now.minus(Duration.ofMinutes(4)));
-        var refChange2 = new RefChange("pr/4711", "pr/4712", now.minus(Duration.ofMinutes(2)));
+        var refChange1 = new ReferenceChange("first", "pr/4711", now.minus(Duration.ofMinutes(4)));
+        var refChange2 = new ReferenceChange("pr/4711", "pr/4712", now.minus(Duration.ofMinutes(2)));
 
         var review1 = newReview(now.minus(Duration.ofMinutes(5)), 1, "");
         var review2 = newReview(now.minus(Duration.ofMinutes(3)), 2, "foo");

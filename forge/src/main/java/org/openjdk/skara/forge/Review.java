@@ -49,14 +49,8 @@ public class Review {
         this.targetRef = targetRef;
     }
 
-    public Review(Review other, String targetRef) {
-        this.createdAt = other.createdAt;
-        this.reviewer = other.reviewer;
-        this.verdict = other.verdict;
-        this.hash = other.hash;
-        this.id = other.id;
-        this.body = other.body;
-        this.targetRef = targetRef;
+    public Review withTargetRef(String targetRef) {
+        return new Review(createdAt, reviewer, verdict, hash, id, body, targetRef);
     }
 
     public ZonedDateTime createdAt() {
