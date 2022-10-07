@@ -50,6 +50,8 @@ public class HgRepository implements Repository {
     private final Path dir;
     private final Logger log = Logger.getLogger("org.openjdk.skara.vcs.hg");
 
+    private static final Hash NULL_REVISION = new Hash("0000000000000000000000000000000000000000");
+
     public static void ignoreConfiguration() {
         currentEnv = NO_CONFIG_ENV;
     }
@@ -1500,5 +1502,10 @@ public class HgRepository implements Repository {
         try (var p = capture("hg", "id", "--num", "--rev", "tip")) {
             return Integer.parseInt(await(p).stdout().get(0)) + 1;
         }
+    }
+
+    @Override
+    public Hash initialHash() {
+        return NULL_REVISION;
     }
 }

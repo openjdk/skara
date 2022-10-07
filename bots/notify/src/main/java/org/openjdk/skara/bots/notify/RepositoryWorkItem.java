@@ -37,8 +37,6 @@ import java.util.logging.*;
 import java.util.regex.Pattern;
 import java.util.stream.*;
 
-import static org.openjdk.skara.vcs.git.GitRepository.EMPTY_TREE;
-
 /**
  * A RepositoryWorkItem acts on changes to a particular repository. Multiple kinds
  * of listeners can be notified about various types of changes. Some listeners can
@@ -373,7 +371,7 @@ public class RepositoryWorkItem implements WorkItem {
                         for (var listener : listeners) {
                             log.info("Resetting mark for branch '" + ref.name() + "' for listener '" + listener.name() + "'");
                             // Initialize the mark for the branches with special Git empty tree hash to trigger notifications on all existing commits.
-                            history.setBranchHash(new Branch(ref.name()), listener.name(), EMPTY_TREE);
+                            history.setBranchHash(new Branch(ref.name()), listener.name(), localRepo.initialHash());
                         }
                     } else {
                         log.info("This is an existing repo with history, starting notifications from commits after " + ref.hash());
