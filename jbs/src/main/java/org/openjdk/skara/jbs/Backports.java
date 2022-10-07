@@ -37,6 +37,8 @@ public class Backports {
     private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final static Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
+    private static final Pattern FEATURE_FAMILY_PATTERN = Pattern.compile("^([^\\d]*)(\\d*)$");
+
     private static boolean isPrimaryIssue(Issue issue) {
         var properties = issue.properties();
         if (!properties.containsKey("issuetype")) {
@@ -155,7 +157,25 @@ public class Backports {
             if (mainVersion.isEmpty()) {
                 return false;
             }
-            return mainVersion.get().equals(poolVersion.get());
+            if (mainVersion.get().equals(poolVersion.get())) {
+                return true;
+            }
+        }
+        var versionMatcher = FEATURE_FAMILY_PATTERN.matcher(majorVersion);
+        if (versionMatcher.matches()) {
+            var numericMajorVersion = versionMatcher.group(2);
+            if (!numericMajorVersion.equals(majorVersion)) {
+                var numericPoolVersion = JdkVersion.parse(numericMajorVersion + "-pool");
+                if (numericPoolVersion.isPresent()) {
+                    var mainVersion = mainFixVersion(issue);
+                    if (mainVersion.isEmpty()) {
+                        return false;
+                    }
+                    if (mainVersion.get().equals(numericPoolVersion.get())) {
+                        return true;
+                    }
+                }
+            }
         }
         return false;
     }
@@ -301,8 +321,6 @@ public class Backports {
                     .collect(Collectors.toList());
     }
 
-    private static final Pattern featureFamilyPattern = Pattern.compile("^([^\\d]*)(\\d*)$");
-
     /**
      * Classifies a given version as belonging to one or more release streams.
      *
@@ -317,7 +335,7 @@ public class Backports {
     private static List<String> releaseStreams(JdkVersion jdkVersion) {
         List<String> ret = new ArrayList<String>();
         try {
-            var featureFamilyMatcher = featureFamilyPattern.matcher(jdkVersion.feature());
+            var featureFamilyMatcher = FEATURE_FAMILY_PATTERN.matcher(jdkVersion.feature());
             if (!featureFamilyMatcher.matches()) {
                 log.warning("Cannot parse feature family: " + jdkVersion.feature());
                 return ret;
@@ -464,7 +482,7 @@ public class Backports {
         }
 
         // JEP-322 interim releases (second digit > 0) should be excluded from evaluation
-        var featureFamilyMatcher = featureFamilyPattern.matcher(version.feature());
+        var featureFamilyMatcher = FEATURE_FAMILY_PATTERN.matcher(version.feature());
         if (featureFamilyMatcher.matches()) {
             var featureVersion = featureFamilyMatcher.group(2);
             if (featureVersion.length() > 0) {
