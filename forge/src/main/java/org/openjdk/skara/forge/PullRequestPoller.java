@@ -10,9 +10,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.Issue;
-import org.openjdk.skara.vcs.Hash;
 
 /**
  * A PullRequestPoller handles querying for new and updated pull requests. It
@@ -42,11 +40,13 @@ public class PullRequestPoller {
     private static final Duration CLOSED_PR_AGE_LIMIT = Duration.ofDays(7);
 
     private final HostedRepository repository;
-    private final Duration queryPadding;
+    // Negative query padding is used to compensate for the forge only updating
+    // timestamps on pull requests once for set minimum duration.
+    private final Duration negativeQueryPadding;
+    // Positive query padding is used to work around timestamp queries being
+    // inclusive down to a certain time resolution.
+    private final Duration positiveQueryPadding;
     private final boolean includeClosed;
-    private final boolean trustUpdatedAt;
-    private final boolean checkComments;
-    private final boolean checkReviews;
 
     private record PullRequestRetry(PullRequest pr, Instant when) {}
     private final Map<String, PullRequestRetry> retryMap = new HashMap<>();
@@ -56,53 +56,32 @@ public class PullRequestPoller {
      * This record represents all the query results data needed to correctly figure
      * out if future results have been updated or not.
      */
-    private record QueryResult(Map<String, PullRequest> pullRequests, Map<String, List<Comment>> comments,
-                               Map<String, List<Review>> reviews, ZonedDateTime maxUpdatedAt,
-                               Instant afterQuery, List<PullRequest> result) {}
+    record QueryResult(Map<String, PullRequest> pullRequests, Map<String, Object> comparisonSnapshots,
+                       ZonedDateTime maxUpdatedAt, Instant afterQuery, List<PullRequest> result,
+                       /*
+                        * When enough time has passed since the last time we returned results, applying
+                        * negative padding to the updatedAt query parameter is no longer needed. This
+                        * is indicated using this boolean.
+                        */
+                       boolean negativePaddingNeeded) {}
     private QueryResult current;
     private QueryResult prev;
 
-    /**
-     * When enough time has past since the last time we actually received results
-     * padding the updatedAt query parameter is no longer needed. This is indicated
-     * using this boolean.
-     */
-    private boolean paddingNeeded = true;
-
-    public PullRequestPoller(HostedRepository repository, boolean includeClosed, boolean commentsRelevant,
-            boolean reviewsRelevant) {
+    public PullRequestPoller(HostedRepository repository, boolean includeClosed) {
         this.repository = repository;
         this.includeClosed = includeClosed;
-        queryPadding = repository.forge().minTimeStampUpdateInterval();
-        if (!queryPadding.isZero()) {
-            trustUpdatedAt = false;
-            checkComments = commentsRelevant;
-            checkReviews = reviewsRelevant;
-        } else {
-            trustUpdatedAt = true;
-            checkComments = false;
-            checkReviews = false;
-        }
+        negativeQueryPadding = repository.forge().minTimeStampUpdateInterval();
+        positiveQueryPadding = repository.forge().timeStampQueryPrecision();
     }
 
     /**
-     * The main API method. Call this go get updated PRs. When done processing the results
+     * The main API method. Call this to get updated PRs. When done processing the results
      * call lastBatchHandled() to acknowledge that all the returned PRs have been handled
      * and should not be included in the next call of this method.
      */
     public List<PullRequest> updatedPullRequests() {
         var beforeQuery = Instant.now();
         List<PullRequest> prs = queryPullRequests();
-
-        // If nothing was found. Update the paddingNeeded state if enough time
-        // has passed since last we found something.
-        if (prs.isEmpty()) {
-            if (prev != null && prev.afterQuery.isBefore(beforeQuery.minus(queryPadding))) {
-                paddingNeeded = false;
-            }
-        } else {
-            paddingNeeded = true;
-        }
         var afterQuery = Instant.now();
 
         // Convert the query result into a map
@@ -116,25 +95,35 @@ public class PullRequestPoller {
                 .max(Comparator.naturalOrder())
                 .orElseGet(() -> prev != null ? prev.maxUpdatedAt : null);
 
-        // If checking comments, save the current state of comments for future
-        // comparisons.
-        var commentsMap = fetchComments(prs, maxUpdatedAt);
-
-        // If checking reviews, save the current state of reviews for future
-        // comparisons.
-        var reviewsMap = fetchReviews(prs, maxUpdatedAt);
+        // Save the current comparisonSnapshots
+        var comparisonSnapshots = fetchComparisonSnapshots(prs, maxUpdatedAt);
 
         // Filter the results
         var filtered = prs.stream()
                 .filter(this::isUpdated)
                 .toList();
 
+        // If nothing was left after filtering, update the paddingNeeded state if enough time
+        // has passed since last we found something.
+        boolean negativePaddingNeeded = true;
+        if (filtered.isEmpty()) {
+            if (prev != null) {
+                // The afterQuery value that we save should be the time when we last
+                // found something after filtering.
+                afterQuery = prev.afterQuery;
+                if (prev.afterQuery.isBefore(beforeQuery.minus(negativeQueryPadding)
+                        .minus(positiveQueryPadding))) {
+                    negativePaddingNeeded = false;
+                }
+            }
+        }
+
         var withRetries = addRetries(filtered);
 
         var result = processQuarantined(withRetries);
 
         // Save the state of the current query results
-        current = new QueryResult(pullRequestMap, commentsMap, reviewsMap, maxUpdatedAt, afterQuery, result);
+        current = new QueryResult(pullRequestMap, comparisonSnapshots, maxUpdatedAt, afterQuery, result, negativePaddingNeeded);
 
         log.info("Found " + result.size() + " updated pull requests for " + repository.name());
         return result;
@@ -206,7 +195,8 @@ public class PullRequestPoller {
                 return repository.openPullRequests();
             }
         } else {
-            var queryUpdatedAt = paddingNeeded ? prev.maxUpdatedAt.minus(queryPadding) : prev.maxUpdatedAt;
+            var queryUpdatedAt = prev.negativePaddingNeeded
+                    ? prev.maxUpdatedAt.minus(negativeQueryPadding) : prev.maxUpdatedAt.plus(positiveQueryPadding);
             if (includeClosed) {
                 log.fine("Fetching open and closed pull requests updated after " + queryUpdatedAt + " for " + repository.name());
                 return repository.pullRequestsAfter(queryUpdatedAt);
@@ -217,31 +207,16 @@ public class PullRequestPoller {
         }
     }
 
-    private Map<String, List<Comment>> fetchComments(List<PullRequest> prs, ZonedDateTime maxUpdatedAt) {
-        if (checkComments) {
-            return prs.stream()
-                    .filter(pr -> pr.updatedAt().isAfter(maxUpdatedAt.minus(queryPadding)))
-                    .collect(Collectors.toMap(Issue::id, Issue::comments));
-        } else {
-            return Map.of();
-        }
-    }
-
-    private Map<String, List<Review>> fetchReviews(List<PullRequest> prs, ZonedDateTime maxUpdatedAt) {
-        if (checkReviews) {
-            return prs.stream()
-                    .filter(pr -> pr.updatedAt().isAfter(maxUpdatedAt.minus(queryPadding)))
-                    .collect(Collectors.toMap(Issue::id, PullRequest::reviews));
-        } else {
-            return Map.of();
-        }
+    private Map<String, Object> fetchComparisonSnapshots(List<PullRequest> prs, ZonedDateTime maxUpdatedAt) {
+        return prs.stream()
+                .filter(pr -> !pr.updatedAt().isBefore(maxUpdatedAt.minus(negativeQueryPadding)))
+                .collect(Collectors.toMap(Issue::id, PullRequest::snapshot));
     }
 
     /**
-     * Evaluates if a PR has been updated since the previous query result. If we
-     * can trust updatedAt from the forge, it's a simple comparison, otherwise
-     * we need to compare the complete contents of the PR object, as well as
-     * comments and/or reviews as configured.
+     * Evaluates if a PR has been updated since the previous query result.
+     * First checks updatedAt and then the comparisonSnapshot of the PR if
+     * present in the prev data.
      */
     private boolean isUpdated(PullRequest pr) {
         if (prev == null) {
@@ -251,16 +226,8 @@ public class PullRequestPoller {
         if (prPrev == null || pr.updatedAt().isAfter(prPrev.updatedAt())) {
             return true;
         }
-        if (!trustUpdatedAt) {
-            if (!pr.equals(prPrev)) {
-                return true;
-            }
-            if (checkComments && !pr.comments().equals(prev.comments.get(pr.id()))) {
-                return true;
-            }
-            if (checkReviews && !pr.reviews().equals(prev.reviews.get(pr.id()))) {
-                return true;
-            }
+        if (!pr.snapshot().equals(prev.comparisonSnapshots.get(pr.id()))) {
+            return true;
         }
         return false;
     }
@@ -320,5 +287,10 @@ public class PullRequestPoller {
                             pastQuarantine.stream())
                     .toList();
         }
+    }
+
+    // Expose the query results to tests
+    QueryResult getCurrentQueryResult() {
+        return current;
     }
 }

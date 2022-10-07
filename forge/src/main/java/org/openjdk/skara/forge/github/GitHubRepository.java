@@ -173,7 +173,7 @@ public class GitHubRepository implements HostedRepository {
                       .maxPages(1)
                       .execute().asArray().stream()
                       .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
-                      .filter(pr -> pr.updatedAt().isAfter(updatedAfter))
+                      .filter(pr -> !pr.updatedAt().isBefore(updatedAfter))
                       .collect(Collectors.toList());
     }
 
@@ -183,7 +183,7 @@ public class GitHubRepository implements HostedRepository {
                 .param("state", "open")
                 .execute().asArray().stream()
                 .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
-                .filter(pr -> pr.updatedAt().isAfter(updatedAfter))
+                .filter(pr -> !pr.updatedAt().isBefore(updatedAfter))
                 .collect(Collectors.toList());
     }
 

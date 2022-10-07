@@ -936,12 +936,21 @@ class CheckRun {
                 log.info("Adding merge ready comment");
                 pr.addComment(message);
             } else {
-                log.info("Updating merge ready comment");
-                pr.updateComment(existing.get().id(), message);
+                if (!existing.get().body().equals(message)) {
+                    log.info("Updating merge ready comment");
+                    pr.updateComment(existing.get().id(), message);
+                } else {
+                    log.info("Merge ready comment already exists, no need to update");
+                }
             }
         } else if (existing.isPresent()) {
-            log.info("Updating merge ready comment as no longer ready");
-            pr.updateComment(existing.get().id(), getMergeNoLongerReadyComment());
+            var message = getMergeNoLongerReadyComment();
+            if (!existing.get().body().equals(message)) {
+                log.info("Updating no longer ready comment");
+                pr.updateComment(existing.get().id(), message);
+            } else {
+                log.info("No longer ready comment already exists, no need to update");
+            }
         }
     }
 

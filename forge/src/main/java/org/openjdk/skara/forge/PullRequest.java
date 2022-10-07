@@ -214,6 +214,12 @@ public interface PullRequest extends Issue {
     }
 
     /**
+     * Returns an object that represents a complete snapshot of this pull request.
+     * Used for detecting if anything has changed between two snapshots.
+     */
+    Object snapshot();
+
+    /**
      * Helper method for implementations of this interface. Creates a new list
      * of Review objects with the targetRef field updated to match the target
      * ref change events. Ideally this method should have been part of a common

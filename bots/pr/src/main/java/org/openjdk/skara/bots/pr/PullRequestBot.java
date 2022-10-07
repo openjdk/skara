@@ -102,7 +102,7 @@ class PullRequestBot implements Bot {
         this.enableJep = enableJep;
 
         autoLabelled = new HashSet<>();
-        poller = new PullRequestPoller(repo, true, true, true);
+        poller = new PullRequestPoller(repo, true);
 
         // Only check recently updated when starting up to avoid congestion
         lastFullUpdate = Instant.now();

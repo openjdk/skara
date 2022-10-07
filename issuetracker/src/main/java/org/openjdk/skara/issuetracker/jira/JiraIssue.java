@@ -45,11 +45,15 @@ public class JiraIssue implements Issue {
 
     private static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
+    private List<Label> labels;
+
     JiraIssue(JiraProject jiraProject, RestRequest request, JSONValue json) {
         this.jiraProject = jiraProject;
         this.request = request;
         this.json = json;
-
+        this.labels = json.get("fields").get("labels").stream()
+                .map(s -> new Label(s.asString()))
+                .collect(Collectors.toList());
         needSecurity = jiraProject.jiraHost().securityLevel().isPresent();
     }
 
@@ -260,6 +264,7 @@ public class JiraIssue implements Issue {
 
     @Override
     public void addLabel(String label) {
+        labels = null;
         var query = JSON.object()
                         .put("update", JSON.object()
                                            .put("labels", JSON.array().add(JSON.object()
@@ -269,6 +274,7 @@ public class JiraIssue implements Issue {
 
     @Override
     public void removeLabel(String label) {
+        labels = null;
         var query = JSON.object()
                         .put("update", JSON.object()
                                            .put("labels", JSON.array().add(JSON.object()
@@ -287,13 +293,17 @@ public class JiraIssue implements Issue {
                                            .put("labels", JSON.array().add(JSON.object()
                                                                                .put("set", labelsArray))));
         request.put("").body(query).execute();
+        this.labels = labels.stream().map(Label::new).collect(Collectors.toList());
     }
 
     @Override
     public List<Label> labels() {
-        return json.get("fields").get("labels").stream()
-                   .map(s -> new Label(s.asString()))
-                   .collect(Collectors.toList());
+        if (labels == null) {
+            labels = request.get("").execute().get("fields").get("labels").stream()
+                    .map(s -> new Label(s.asString()))
+                    .collect(Collectors.toList());
+        }
+        return labels;
     }
 
     @Override
