@@ -170,5 +170,8 @@ public interface ReadOnlyRepository {
 
     int commitCount() throws IOException;
 
+    /**
+     * Returns the special hash that references the virtual commit before the first real commit in a repository.
+     */
     Hash initialHash();
 }
