@@ -279,6 +279,11 @@ public class TestPullRequest extends TestIssue implements PullRequest {
         return findIntegratedCommitHash(List.of(repository().forge().currentUser().id()));
     }
 
+    @Override
+    public Object snapshot() {
+        return List.of(this, comments(), reviews());
+    }
+
     /**
      * Mimic GitHub/GitLab where the labels are fetched lazily and cached.
      * In GitLabMergeRequest, the labels are actually part of the main json, but

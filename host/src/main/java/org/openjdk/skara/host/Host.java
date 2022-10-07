@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.host;
 
+import java.time.Duration;
 import java.util.Optional;
 
 public interface Host {
@@ -30,4 +31,13 @@ public interface Host {
     HostUser currentUser();
     boolean isMemberOf(String groupId, HostUser user);
     String hostname();
+    /**
+     * The precision at which timeStamp based queries are supported for this
+     * Host. The default is 1 nanosecond, knowing this can be used to avoid
+     * re-querying for the same Issues over and over (as timestamp based
+     * queries are often inclusive).
+     */
+    default Duration timeStampQueryPrecision() {
+        return Duration.ofNanos(1);
+    }
 }

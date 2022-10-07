@@ -34,6 +34,11 @@ public interface IssueProject {
     Issue createIssue(String title, List<String> body, Map<String, JSONValue> properties);
     Optional<Issue> issue(String id);
     List<Issue> issues();
+
+    /**
+     * Find all issues that have been updated after or on the given time, with
+     * a resolution given by Host::timeStampQueryPrecision.
+     */
     List<Issue> issues(ZonedDateTime updatedAfter);
     String name();
 
@@ -45,8 +50,8 @@ public interface IssueProject {
     Optional<Issue> jepIssue(String jepId);
 
     /**
-     * Find all issues of CSR type updated after the given timestamp.
-     * Note that time queries in Jira are only on minute resolution.
+     * Find all issues of CSR type updated after or on the given time, with
+     * a resolution given by Host::timeStampQueryPrecision.
      * @param updatedAfter Timestamp
      * @return List of issues found
      */

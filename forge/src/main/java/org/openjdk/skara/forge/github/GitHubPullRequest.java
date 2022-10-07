@@ -782,4 +782,12 @@ public class GitHubPullRequest implements PullRequest {
     public Optional<Hash> findIntegratedCommitHash() {
         return findIntegratedCommitHash(List.of(repository.forge().currentUser().id()));
     }
+
+    /**
+     * For GitHubPullRequest, the json represents the complete snapshot
+     */
+    @Override
+    public Object snapshot() {
+        return json;
+    }
 }

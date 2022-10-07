@@ -206,4 +206,10 @@ public interface PullRequest extends Issue {
     static String commitHashMessage(Hash hash) {
         return hash != null ? "Pushed as commit " + hash.hex() + "." : "";
     }
+
+    /**
+     * Returns an object that represents a complete snapshot of this pull request.
+     * Used for detecting if anything has changed between two snapshots.
+     */
+    Object snapshot();
 }

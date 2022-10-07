@@ -3,14 +3,14 @@ package org.openjdk.skara.forge;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZonedDateTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.test.HostCredentials;
 import org.openjdk.skara.test.TestHost;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class PullRequestPollerTests {
 
@@ -18,7 +18,7 @@ public class PullRequestPollerTests {
     void onlyOpen(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var repo = credentials.getHostedRepository();
-            var prPoller = new PullRequestPoller(repo, false, true, true);
+            var prPoller = new PullRequestPoller(repo, false);
 
             // Create closed PR that should never be returned
             var prClosed = credentials.createPullRequest(repo, null, null, "Foo");
@@ -54,7 +54,7 @@ public class PullRequestPollerTests {
     void includeClosed(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var repo = credentials.getHostedRepository();
-            var prPoller = new PullRequestPoller(repo, true, true, true);
+            var prPoller = new PullRequestPoller(repo, true);
 
             // Create a and an open closed PR, that should both be returned
             var prClosed = credentials.createPullRequest(repo, null, null, "Foo");
@@ -99,7 +99,7 @@ public class PullRequestPollerTests {
             var repo = credentials.getHostedRepository();
             var forge = repo.forge();
             ((TestHost) forge).setMinTimeStampUpdateInterval(Duration.ofDays(1));
-            var prPoller = new PullRequestPoller(repo, true, false, false);
+            var prPoller = new PullRequestPoller(repo, true);
 
             // Create a closed PR and poll for it
             var pr = credentials.createPullRequest(repo, "master", "master", "Foo");
@@ -111,6 +111,7 @@ public class PullRequestPollerTests {
             // Poll for it again
             prs = prPoller.updatedPullRequests();
             assertEquals(0, prs.size());
+            assertFalse(prPoller.getCurrentQueryResult().pullRequests().isEmpty());
             prPoller.lastBatchHandled();
 
             // Add a new label but make sure the updatedAt time was not updated. This should trigger an update.
@@ -119,22 +120,6 @@ public class PullRequestPollerTests {
             pr.store().setLastUpdate(prevUpdatedAt);
             prs = prPoller.updatedPullRequests();
             assertEquals(1, prs.size());
-            prPoller.lastBatchHandled();
-
-            // Add comment while keeping the updatedAt time unchanged. This should not trigger an update
-            prevUpdatedAt = pr.updatedAt();
-            pr.addComment("foo");
-            pr.store().setLastUpdate(prevUpdatedAt);
-            prs = prPoller.updatedPullRequests();
-            assertEquals(0, prs.size());
-            prPoller.lastBatchHandled();
-
-            // Add review while keeping the updatedAt time unchanged. This should not trigger an update
-            prevUpdatedAt = pr.updatedAt();
-            pr.addReview(Review.Verdict.APPROVED, "foo");
-            pr.store().setLastUpdate(prevUpdatedAt);
-            prs = prPoller.updatedPullRequests();
-            assertEquals(0, prs.size());
             prPoller.lastBatchHandled();
         }
     }
@@ -148,7 +133,7 @@ public class PullRequestPollerTests {
             var repo = credentials.getHostedRepository();
             var forge = repo.forge();
             ((TestHost) forge).setMinTimeStampUpdateInterval(Duration.ofDays(1));
-            var prPoller = new PullRequestPoller(repo, true, true, false);
+            var prPoller = new PullRequestPoller(repo, true);
 
             // Create a PR and poll for it
             var pr = credentials.createPullRequest(repo, "master", "master", "Foo");
@@ -159,6 +144,7 @@ public class PullRequestPollerTests {
             // Poll for it again
             prs = prPoller.updatedPullRequests();
             assertEquals(0, prs.size());
+            assertFalse(prPoller.getCurrentQueryResult().pullRequests().isEmpty());
             prPoller.lastBatchHandled();
 
             // Add a new comment but make sure the updatedAt time was not updated. This should trigger an update.
@@ -185,55 +171,7 @@ public class PullRequestPollerTests {
             assertEquals(1, prs.size());
             prPoller.lastBatchHandled();
 
-            // Add review while keeping updatedAt unchanged. This should not trigger an update.
-            prevUpdatedAt = pr.updatedAt();
-            pr.addReview(Review.Verdict.APPROVED, "foo");
-            pr.store().setLastUpdate(prevUpdatedAt);
-            prs = prPoller.updatedPullRequests();
-            assertEquals(0, prs.size());
-            prPoller.lastBatchHandled();
-        }
-    }
-
-    /**
-     * Tests polling with padding needed and creating/modifying reviews
-     */
-    @Test
-    void queryPaddingReview(TestInfo testInfo) throws IOException {
-        try (var credentials = new HostCredentials(testInfo)) {
-            var repo = credentials.getHostedRepository();
-            var forge = repo.forge();
-            ((TestHost) forge).setMinTimeStampUpdateInterval(Duration.ofDays(1));
-            var prPoller = new PullRequestPoller(repo, true, false, true);
-
-            // Create a PR and poll for it
-            var pr = credentials.createPullRequest(repo, "master", "master", "Foo");
-            var prs = prPoller.updatedPullRequests();
-            assertEquals(1, prs.size());
-            prPoller.lastBatchHandled();
-
-            // Poll for it again
-            prs = prPoller.updatedPullRequests();
-            assertEquals(0, prs.size());
-            prPoller.lastBatchHandled();
-
-            // Add a label but make sure the updatedAt time was not updated. This should trigger an update.
-            var prevUpdatedAt = pr.updatedAt();
-            pr.addLabel("foo");
-            pr.store().setLastUpdate(prevUpdatedAt);
-            prs = prPoller.updatedPullRequests();
-            assertEquals(1, prs.size());
-            prPoller.lastBatchHandled();
-
-            // Add comment while keeping updatedAt unchanged. This should not trigger an update
-            prevUpdatedAt = pr.updatedAt();
-            pr.addComment("foo");
-            pr.store().setLastUpdate(prevUpdatedAt);
-            prs = prPoller.updatedPullRequests();
-            assertEquals(0, prs.size());
-            prPoller.lastBatchHandled();
-
-            // Add review while keeping updatedAt unchanged. This should trigger an update
+            // Add review while keeping updatedAt unchanged. This should trigger an update.
             prevUpdatedAt = pr.updatedAt();
             pr.addReview(Review.Verdict.APPROVED, "foo");
             pr.store().setLastUpdate(prevUpdatedAt);
@@ -247,7 +185,7 @@ public class PullRequestPollerTests {
     void retries(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var repo = credentials.getHostedRepository();
-            var prPoller = new PullRequestPoller(repo, false, true, true);
+            var prPoller = new PullRequestPoller(repo, false);
 
             // Create PR
             var pr1 = credentials.createPullRequest(repo, null, null, "Foo");
@@ -271,10 +209,12 @@ public class PullRequestPollerTests {
             prPoller.retryPullRequest(pr2);
             prs = prPoller.updatedPullRequests();
             assertEquals(1, prs.size());
+            assertEquals(pr2.id(), prs.get(0).id());
 
             // Call again without calling .lastBatchHandled, the retry should be included again
             prs = prPoller.updatedPullRequests();
             assertEquals(1, prs.size());
+            assertEquals(pr2.id(), prs.get(0).id());
             prPoller.lastBatchHandled();
 
             // Mark a PR for retry far in the future, it should not be included
@@ -296,7 +236,7 @@ public class PullRequestPollerTests {
     void quarantine(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var repo = credentials.getHostedRepository();
-            var prPoller = new PullRequestPoller(repo, false, false, false);
+            var prPoller = new PullRequestPoller(repo, false);
 
             // Create PR
             var pr1 = credentials.createPullRequest(repo, null, null, "Foo");
@@ -341,6 +281,79 @@ public class PullRequestPollerTests {
             prPoller.quarantinePullRequest(pr1, Instant.now().plus(Duration.ofDays(1)));
             prs = prPoller.updatedPullRequests();
             assertEquals(0, prs.size());
+            prPoller.lastBatchHandled();
+        }
+    }
+
+    @Test
+    void positivePadding(TestInfo testInfo) throws IOException, InterruptedException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var repo = credentials.getHostedRepository();
+            var forge = repo.forge();
+            ((TestHost) forge).setMinTimeStampUpdateInterval(Duration.ofNanos(1));
+            ((TestHost) forge).setTimeStampQueryPrecision(Duration.ofNanos(1));
+            ZonedDateTime base = ZonedDateTime.now();
+            var prPoller = new PullRequestPoller(repo, false);
+
+            // Create a PR with updatedAt set to 'base', and poll it so lastUpdatedAt is now 'base'
+            var pr1 = credentials.createPullRequest(repo, null, null, "Foo");
+            pr1.store().setLastUpdate(base);
+            var prs = prPoller.updatedPullRequests();
+            assertEquals(1, prs.size());
+            prPoller.lastBatchHandled();
+
+            // Create two more PRs, with updatedAt just before and just after 'base'
+            var pr2 = credentials.createPullRequest(repo, null, null, "Foo");
+            pr2.store().setLastUpdate(base.minus(Duration.ofNanos(2)));
+            var pr3 = credentials.createPullRequest(repo, null, null, "Foo");
+            pr3.store().setLastUpdate(base.plus(Duration.ofNanos(2)));
+            // The negative padding is not big enough to include pr2 and pr1 has already been returned
+            prs = prPoller.updatedPullRequests();
+            assertEquals(1, prs.size());
+            assertEquals(pr3.id(), prs.get(0).id());
+            assertTrue(prPoller.getCurrentQueryResult().pullRequests().containsKey(pr1.id()));
+            prPoller.lastBatchHandled();
+
+            // Sleep a minimal amount and query again to trigger positive padding
+            Thread.sleep(1);
+            prs = prPoller.updatedPullRequests();
+            assertEquals(0, prs.size());
+            // The query should still return pr3
+            assertTrue(prPoller.getCurrentQueryResult().pullRequests().containsKey(pr3.id()));
+
+            // The same should happen again until we call lastBatchHandled()
+            prs = prPoller.updatedPullRequests();
+            assertEquals(0, prs.size());
+            // The query should still return pr3
+            assertTrue(prPoller.getCurrentQueryResult().pullRequests().containsKey(pr3.id()));
+            prPoller.lastBatchHandled();
+
+            // Now even the query should not include p3, but we should get the new pr4
+            var pr4 = credentials.createPullRequest(repo, null, null, "Foo");
+            pr4.store().setLastUpdate(base.plus(Duration.ofNanos(4)));
+            prs = prPoller.updatedPullRequests();
+            assertEquals(1, prs.size());
+            assertEquals(pr4.id(), prs.get(0).id());
+            assertFalse(prPoller.getCurrentQueryResult().pullRequests().containsKey(pr3.id()));
+
+            // The same should happen again until we call lastBatchHandled()
+            prs = prPoller.updatedPullRequests();
+            assertEquals(1, prs.size());
+            assertEquals(pr4.id(), prs.get(0).id());
+            assertFalse(prPoller.getCurrentQueryResult().pullRequests().containsKey(pr3.id()));
+            prPoller.lastBatchHandled();
+
+            // Since we got a result, positive padding should be disabled again.
+            prs = prPoller.updatedPullRequests();
+            assertEquals(0, prs.size());
+            assertEquals(1, prPoller.getCurrentQueryResult().pullRequests().size());
+            assertTrue(prPoller.getCurrentQueryResult().pullRequests().containsKey(pr4.id()));
+
+            // The same should happen again until we call lastBatchHandled()
+            prs = prPoller.updatedPullRequests();
+            assertEquals(0, prs.size());
+            assertEquals(1, prPoller.getCurrentQueryResult().pullRequests().size());
+            assertTrue(prPoller.getCurrentQueryResult().pullRequests().containsKey(pr4.id()));
             prPoller.lastBatchHandled();
         }
     }

@@ -258,4 +258,9 @@ public class GitLabHost implements Forge {
     public Duration minTimeStampUpdateInterval() {
         return Duration.ofMinutes(1);
     }
+
+    @Override
+    public Duration timeStampQueryPrecision() {
+        return Duration.ofSeconds(1);
+    }
 }
