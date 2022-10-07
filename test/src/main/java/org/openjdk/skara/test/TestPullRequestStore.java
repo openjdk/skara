@@ -27,7 +27,6 @@ import java.io.UncheckedIOException;
 import java.time.ZonedDateTime;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
-import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.vcs.Hash;
 
 import java.util.*;
@@ -46,6 +45,7 @@ public class TestPullRequestStore extends TestIssueStore {
     private boolean draft;
     private ZonedDateTime lastForcePushTime;
     private Hash headHash;
+    private final List<ReferenceChange> targetReferenceChanges = new ArrayList<>();
 
     public TestPullRequestStore(String id, HostUser author, String title, List<String> body,
             TestHostedRepository sourceRepository, String targetRef, String sourceRef, boolean draft) {
@@ -110,7 +110,12 @@ public class TestPullRequestStore extends TestIssueStore {
     }
 
     public void setTargetRef(String targetRef) {
+        targetReferenceChanges.add(new ReferenceChange(this.targetRef, targetRef, ZonedDateTime.now()));
         this.targetRef = targetRef;
+    }
+
+    public List<ReferenceChange> targetRefChanges() {
+        return targetReferenceChanges;
     }
 
     public void setSourceRef(String sourceRef) {

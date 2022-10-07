@@ -37,7 +37,7 @@ public interface PullRequest extends Issue {
     HostedRepository repository();
 
     /**
-     * List of reviews, in descending chronological order.
+     * List of reviews.
      * @return
      */
     List<Review> reviews();
@@ -111,6 +111,12 @@ public interface PullRequest extends Issue {
      * @return
      */
     String targetRef();
+
+    /**
+     * Returns a list of all targetRef change events.
+     * @return
+     */
+    List<ReferenceChange> targetRefChanges();
 
     /**
      * List of completed checks on the given hash.
@@ -212,4 +218,34 @@ public interface PullRequest extends Issue {
      * Used for detecting if anything has changed between two snapshots.
      */
     Object snapshot();
+
+    /**
+     * Helper method for implementations of this interface. Creates a new list
+     * of Review objects with the targetRef field updated to match the target
+     * ref change events. Ideally this method should have been part of a common
+     * super class, but there isn't one.
+     */
+    static List<Review> calculateReviewTargetRefs(List<Review> reviews, List<ReferenceChange> events) {
+        if (events.isEmpty()) {
+            return reviews;
+        }
+        var sortedEvents = events.stream()
+                .sorted(Comparator.comparing(ReferenceChange::at))
+                .toList();
+        var lastTargetRef = sortedEvents.get(events.size() - 1).to();
+        return reviews.stream().map(orig -> {
+                    for (var event : sortedEvents) {
+                        if (event.at().isAfter(orig.createdAt())
+                                && !PreIntegrations.isPreintegrationBranch(event.from())) {
+                            return orig.withTargetRef(event.from());
+                        }
+                    }
+                    if (orig.targetRef().equals(lastTargetRef)) {
+                        return orig;
+                    } else {
+                        return orig.withTargetRef(lastTargetRef);
+                    }
+                })
+                .toList();
+    }
 }

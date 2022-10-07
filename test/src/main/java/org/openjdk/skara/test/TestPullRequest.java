@@ -83,7 +83,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
 
     @Override
     public List<Review> reviews() {
-        return new ArrayList<>(store().reviews());
+        return PullRequest.calculateReviewTargetRefs(store().reviews(), targetRefChanges());
     }
 
     @Override
@@ -92,7 +92,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
             var review = new Review(ZonedDateTime.now(), user,
                                     verdict, targetRepository.localRepository().resolve(store().sourceRef()).orElseThrow(),
                                     store().reviews().size(),
-                                    body);
+                                    body, targetRef);
 
             store().reviews().add(review);
             store().setLastUpdate(ZonedDateTime.now());
@@ -158,6 +158,11 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public String targetRef() {
         return targetRef;
+    }
+
+    @Override
+    public List<ReferenceChange> targetRefChanges() {
+        return store().targetRefChanges();
     }
 
     @Override

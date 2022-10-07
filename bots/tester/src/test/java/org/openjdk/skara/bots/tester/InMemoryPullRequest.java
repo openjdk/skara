@@ -342,4 +342,9 @@ class InMemoryPullRequest implements PullRequest {
     public Object snapshot() {
         return this;
     }
+
+    @Override
+    public List<ReferenceChange> targetRefChanges() {
+        return List.of();
+    }
 }

@@ -36,14 +36,21 @@ public class Review {
     private final Hash hash;
     private final int id;
     private final String body;
+    private final String targetRef;
 
-    public Review(ZonedDateTime createdAt, HostUser reviewer, Verdict verdict, Hash hash, int id, String body) {
+    public Review(ZonedDateTime createdAt, HostUser reviewer, Verdict verdict, Hash hash, int id, String body,
+            String targetRef) {
         this.createdAt = createdAt;
         this.reviewer = reviewer;
         this.verdict = verdict;
         this.hash = hash;
         this.id = id;
         this.body = body;
+        this.targetRef = targetRef;
+    }
+
+    public Review withTargetRef(String targetRef) {
+        return new Review(createdAt, reviewer, verdict, hash, id, body, targetRef);
     }
 
     public ZonedDateTime createdAt() {
@@ -74,6 +81,10 @@ public class Review {
         return Optional.ofNullable(body);
     }
 
+    public String targetRef() {
+        return targetRef;
+    }
+
     public enum Verdict {
         NONE,
         APPROVED,
@@ -94,11 +105,12 @@ public class Review {
                 Objects.equals(reviewer, review.reviewer) &&
                 verdict == review.verdict &&
                 Objects.equals(hash, review.hash) &&
-                Objects.equals(body, review.body);
+                Objects.equals(body, review.body) &&
+                Objects.equals(targetRef, review.targetRef);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(createdAt, reviewer, verdict, hash, id, body);
+        return Objects.hash(createdAt, reviewer, verdict, hash, id, body, targetRef);
     }
 }
