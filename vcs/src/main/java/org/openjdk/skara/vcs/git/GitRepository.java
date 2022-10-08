@@ -1647,4 +1647,16 @@ public class GitRepository implements Repository {
             return p.await().status() == 0;
         }
     }
+
+    @Override
+    public int commitCount() throws IOException {
+        try (var p = capture("git", "rev-list", "--all", "--count")) {
+            return Integer.parseInt(await(p).stdout().get(0));
+        }
+    }
+
+    @Override
+    public Hash initialHash() {
+        return EMPTY_TREE;
+    }
 }

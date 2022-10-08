@@ -63,6 +63,8 @@ public class RepositoryWorkItem implements WorkItem {
     private final StorageBuilder<UpdatedBranch> branchStorageBuilder;
     private final List<RepositoryListener> listeners;
 
+    private static final int NEW_REPOSITORY_COMMIT_THRESHOLD = 5;
+
     RepositoryWorkItem(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<UpdatedTag> tagStorageBuilder, StorageBuilder<UpdatedBranch> branchStorageBuilder, List<RepositoryListener> listeners) {
         this.repository = repository;
         this.storagePath = storagePath;
@@ -364,13 +366,23 @@ public class RepositoryWorkItem implements WorkItem {
             for (var ref : knownRefs) {
                 if (!hasBranchHistory) {
                     log.warning("No previous history found for any branch - resetting mark for '" + ref.name());
-                    for (var listener : listeners) {
-                        log.info("Resetting mark for branch '" + ref.name() + "' for listener '" + listener.name() + "'");
-                        history.setBranchHash(new Branch(ref.name()), listener.name(), ref.hash());
+                    if (localRepo.commitCount() <= NEW_REPOSITORY_COMMIT_THRESHOLD) {
+                        log.info("This is a new repo, starting notifications from the very first commit");
+                        for (var listener : listeners) {
+                            log.info("Resetting mark for branch '" + ref.name() + "' for listener '" + listener.name() + "'");
+                            // Initialize the mark for the branches with special Git empty tree hash to trigger notifications on all existing commits.
+                            history.setBranchHash(new Branch(ref.name()), listener.name(), localRepo.initialHash());
+                        }
+                    } else {
+                        log.info("This is an existing repo with history, starting notifications from commits after " + ref.hash());
+                        for (var listener : listeners) {
+                            log.info("Resetting mark for branch '" + ref.name() + "' for listener '" + listener.name() + "'");
+                            // Initialize the mark for the branches with the current HEAD hash. Notifications will start on future commits.
+                            history.setBranchHash(new Branch(ref.name()), listener.name(), ref.hash());
+                        }
                     }
-                } else {
-                    errors.addAll(handleRef(localRepo, history, ref, knownRefs, scratchPath));
                 }
+                errors.addAll(handleRef(localRepo, history, ref, knownRefs, scratchPath));
             }
             if (!errors.isEmpty()) {
                 errors.forEach(error -> log.log(Level.WARNING, error.getMessage(), error));
