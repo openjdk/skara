@@ -132,7 +132,7 @@ public class GitHubPullRequest implements PullRequest {
                 "          ... on BaseRefChangedEvent {\n" +
                 "            currentRefName,\n" +
                 "            previousRefName,\n" +
-                "            at\n" +
+                "            createdAt\n" +
                 "          }\n" +
                 "        }\n" +
                 "      }\n" +
@@ -147,7 +147,7 @@ public class GitHubPullRequest implements PullRequest {
         return data.get("repository").get("pullRequest").get("timelineItems").get("nodes").stream()
                 .map(JSONValue::asObject)
                 .map(obj -> new ReferenceChange(obj.get("previousRefName").asString(), obj.get("currentRefName").asString(),
-                        ZonedDateTime.parse(obj.get("at").asString())))
+                        ZonedDateTime.parse(obj.get("createdAt").asString())))
                 .toList();
     }
 

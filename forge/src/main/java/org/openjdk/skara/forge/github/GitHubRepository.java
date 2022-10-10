@@ -347,7 +347,7 @@ public class GitHubRepository implements HostedRepository {
             "  repository(owner: \"" + owner + "\", name: \"" + name + "\") {",
             "    commitComments(last: 100) {",
             "      nodes {",
-            "        at,",
+            "        createdAt,",
             "        updatedAt,",
             "        author {,",
             "          login,",
@@ -380,7 +380,7 @@ public class GitHubRepository implements HostedRepository {
                            .filter(o -> !excludeAuthors.contains(o.get("author").get("databaseId").asInt()))
                            .map(o -> {
                                var hash = new Hash(o.get("commit").get("oid").asString());
-                               var createdAt = ZonedDateTime.parse(o.get("at").asString());
+                               var createdAt = ZonedDateTime.parse(o.get("createdAt").asString());
                                var updatedAt = ZonedDateTime.parse(o.get("updatedAt").asString());
                                var id = String.valueOf(o.get("databaseId").asInt());
                                var body = o.get("body").asString();
