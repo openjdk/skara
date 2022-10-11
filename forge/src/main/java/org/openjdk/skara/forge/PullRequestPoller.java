@@ -37,7 +37,9 @@ public class PullRequestPoller {
 
     private static final Logger log = Logger.getLogger(PullRequestPoller.class.getName());
 
-    private static final Duration CLOSED_PR_AGE_LIMIT = Duration.ofDays(7);
+    // The max age for closed PRs for the initial query, and the furthest
+    // back subsequent queries will ever search.
+    private static final ZonedDateTime UPDATED_AT_QUERY_LIMIT = ZonedDateTime.now().minus(Duration.ofDays(7));
 
     private final HostedRepository repository;
     // Negative query padding is used to compensate for the forge only updating
@@ -92,8 +94,9 @@ public class PullRequestPoller {
         // been found at all so far).
         var maxUpdatedAt = prs.stream()
                 .map(PullRequest::updatedAt)
+                .filter(updatedAt -> updatedAt.isAfter(UPDATED_AT_QUERY_LIMIT))
                 .max(Comparator.naturalOrder())
-                .orElseGet(() -> prev != null ? prev.maxUpdatedAt : null);
+                .orElseGet(() -> prev != null ? prev.maxUpdatedAt : UPDATED_AT_QUERY_LIMIT);
 
         // Save the current comparisonSnapshots
         var comparisonSnapshots = fetchComparisonSnapshots(prs, maxUpdatedAt);
@@ -188,7 +191,7 @@ public class PullRequestPoller {
                 // The pullRequests(ZonedDateTime) call has a size limit, so may leave some out.
                 // There may also be open PRs that haven't been updated since the closed age limit.
                 var openPrs = repository.openPullRequests();
-                var allPrs = repository.pullRequestsAfter(ZonedDateTime.now().minus(CLOSED_PR_AGE_LIMIT));
+                var allPrs = repository.pullRequestsAfter(UPDATED_AT_QUERY_LIMIT);
                 return Stream.concat(openPrs.stream(), allPrs.stream().filter(pr -> !pr.isOpen())).toList();
             } else {
                 log.fine("Fetching all open pull requests for " + repository.name());
