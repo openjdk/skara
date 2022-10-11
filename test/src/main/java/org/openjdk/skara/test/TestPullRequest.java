@@ -83,7 +83,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
 
     @Override
     public List<Review> reviews() {
-        return PullRequest.calculateReviewTargetRefs(store().reviews(), targetRefChanges());
+        return List.copyOf(PullRequest.calculateReviewTargetRefs(store().reviews(), targetRefChanges()));
     }
 
     @Override

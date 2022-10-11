@@ -102,7 +102,7 @@ public class TestIssue implements Issue {
 
     @Override
     public List<Comment> comments() {
-        return new ArrayList<>(store.comments());
+        return List.copyOf(store.comments());
     }
 
     @Override
