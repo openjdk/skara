@@ -658,15 +658,9 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public void addLabel(String label) {
-        // GitLab does not allow adding/removing single labels, only setting the full list
-        // We retrieve the list again here to try to minimize the race condition window
-        var currentJson = request.get("").execute().asObject();
-        var labels = Stream.concat(currentJson.get("labels").stream()
-                                .map(JSONValue::asString),
-                        Stream.of(label))
-                .collect(Collectors.toSet());
+        labels = null;
         request.put("")
-                .body("labels", String.join(",", labels))
+                .body("add_labels", label)
                 // Temporary workaround for GitLab returning 500 when changing labels.
                 // The labels are still modified.
                 .onError(response -> {
@@ -676,18 +670,13 @@ public class GitLabMergeRequest implements PullRequest {
                     return Optional.empty();
                 })
                 .execute();
-        this.labels = labels.stream().sorted().toList();
     }
 
     @Override
     public void removeLabel(String label) {
-        var currentJson = request.get("").execute().asObject();
-        var labels = currentJson.get("labels").stream()
-                .map(JSONValue::asString)
-                .filter(l -> !l.equals(label))
-                .collect(Collectors.toSet());
+        labels = null;
         request.put("")
-                .body("labels", String.join(",", labels))
+                .body("remove_labels", label)
                 // Temporary workaround for GitLab returning 500 when changing labels.
                 // The labels are still modified.
                 .onError(response -> {
@@ -697,7 +686,6 @@ public class GitLabMergeRequest implements PullRequest {
                     return Optional.empty();
                 })
                 .execute();
-        this.labels = labels.stream().sorted().toList();
     }
 
     @Override
@@ -710,6 +698,12 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public List<Label> labels() {
+        if (labels == null) {
+            labels = request.get("").execute().get("labels").stream()
+                    .map(JSONValue::asString)
+                    .sorted()
+                    .collect(Collectors.toList());
+        }
         return labels.stream()
                 .map(this::labelNameToLabel)
                 // Avoid throwing NPE for unknown labels
