@@ -698,13 +698,7 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public List<Label> labels() {
-        if (labels == null) {
-            labels = request.get("").execute().get("labels").stream()
-                    .map(JSONValue::asString)
-                    .sorted()
-                    .collect(Collectors.toList());
-        }
-        return labels.stream()
+        return labelNames().stream()
                 .map(this::labelNameToLabel)
                 // Avoid throwing NPE for unknown labels
                 .filter(Objects::nonNull)
@@ -713,6 +707,12 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public List<String> labelNames() {
+        if (labels == null) {
+            labels = request.get("").execute().get("labels").stream()
+                    .map(JSONValue::asString)
+                    .sorted()
+                    .collect(Collectors.toList());
+        }
         return labels;
     }
 
