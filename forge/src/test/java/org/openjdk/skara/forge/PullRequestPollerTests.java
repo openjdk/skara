@@ -357,4 +357,34 @@ public class PullRequestPollerTests {
             prPoller.lastBatchHandled();
         }
     }
+
+    /**
+     * Tests that an old open PR will not cause subsequent calls to return a younger
+     * but still too old closed PR.
+     */
+    @Test
+    void noResurrectClosed(TestInfo testInfo) throws IOException, InterruptedException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var repo = credentials.getHostedRepository();
+            var prPoller = new PullRequestPoller(repo, true);
+
+            var pr1 = credentials.createPullRequest(repo, null, null, "Foo");
+            pr1.setState(Issue.State.CLOSED);
+            pr1.store().setLastUpdate(ZonedDateTime.now().minus(Duration.ofDays(10)));
+
+            var pr2 = credentials.createPullRequest(repo, null, null, "Foo2");
+            pr2.store().setLastUpdate(ZonedDateTime.now().minus(Duration.ofDays(20)));
+
+            // First run should find the open PR but not the closed one, as it's older than 7 days
+            var prs = prPoller.updatedPullRequests();
+            assertEquals(1, prs.size());
+            assertEquals(pr2.id(), prs.get(0).id());
+            prPoller.lastBatchHandled();
+
+            // Second call should not find any PR
+            prs = prPoller.updatedPullRequests();
+            assertEquals(0, prs.size());
+            prPoller.lastBatchHandled();
+        }
+    }
 }
