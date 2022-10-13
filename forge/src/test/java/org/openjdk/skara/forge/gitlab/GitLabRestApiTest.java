@@ -75,4 +75,34 @@ public class GitLabRestApiTest {
         var nonVersionUrl = gitLabMergeRequest.filesUrl(new Hash(settings.getProperty("gitlab.nonversion.hash")));
         assertEquals(settings.getProperty("gitlab.nonversion.url"), nonVersionUrl.toString());
     }
+
+    @Test
+    void testLabels() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var username = settings.getProperty("gitlab.user");
+        var token = settings.getProperty("gitlab.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
+        var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
+
+        // Get the labels
+        var labels = gitLabMergeRequest.labelNames();
+        assertEquals(1, labels.size());
+        assertEquals("test", labels.get(0));
+
+        // Add a label
+        gitLabMergeRequest.addLabel("test1");
+        labels = gitLabMergeRequest.labelNames();
+        assertEquals(2, labels.size());
+        assertEquals("test", labels.get(0));
+        assertEquals("test1", labels.get(1));
+
+        // Remove a label
+        gitLabMergeRequest.removeLabel("test1");
+        labels = gitLabMergeRequest.labelNames();
+        assertEquals(1, labels.size());
+        assertEquals("test", labels.get(0));
+    }
 }
