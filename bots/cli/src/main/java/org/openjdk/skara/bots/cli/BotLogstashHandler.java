@@ -47,6 +47,10 @@ public class BotLogstashHandler extends StreamHandler {
     // Optionally store all futures for testing purposes
     private Collection<Future<HttpResponse<Void>>> futures;
 
+    record RegexReplacement(Pattern pattern, String replacement) {}
+
+    private List<RegexReplacement> regexReplacements = new ArrayList<>();
+
     private static class ExtraField {
         String name;
         String value;
@@ -81,6 +85,10 @@ public class BotLogstashHandler extends StreamHandler {
         extraFields.add(extraField);
     }
 
+    void addReplacement(String pattern, String replacement) {
+        regexReplacements.add(new RegexReplacement(Pattern.compile(pattern), replacement));
+    }
+
     private Map<String, String> getExtraFields(LogRecord record) {
         var ret = new HashMap<String, String>();
         for (var extraField : extraFields) {
@@ -97,6 +105,20 @@ public class BotLogstashHandler extends StreamHandler {
         return ret;
     }
 
+    private String applyReplacements(String s) {
+        CharSequence ret = s;
+        for (RegexReplacement regexReplacement : regexReplacements) {
+            var matcher = regexReplacement.pattern.matcher(ret);
+            var sb = new StringBuilder();
+            while (matcher.find()) {
+                matcher.appendReplacement(sb, regexReplacement.replacement);
+            }
+            matcher.appendTail(sb);
+            ret = sb;
+        }
+        return ret.toString();
+    }
+
     @Override
     public void publish(LogRecord record) {
         if (record.getLevel().intValue() < getLevel().intValue()) {
@@ -107,7 +129,7 @@ public class BotLogstashHandler extends StreamHandler {
         query.put("@timestamp", dateTimeFormatter.format(record.getInstant()));
         query.put("level", level.getName());
         query.put("level_value", level.intValue());
-        query.put("message", record.getMessage());
+        query.put("message", applyReplacements(record.getMessage()));
 
         if (record.getLoggerName() != null) {
             query.put("logger_name", record.getLoggerName());
