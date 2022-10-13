@@ -661,14 +661,6 @@ public class GitLabMergeRequest implements PullRequest {
         labels = null;
         request.put("")
                 .body("add_labels", label)
-                // Temporary workaround for GitLab returning 500 when changing labels.
-                // The labels are still modified.
-                .onError(response -> {
-                    if (response.statusCode() == 500) {
-                        return Optional.of(JSON.of());
-                    }
-                    return Optional.empty();
-                })
                 .execute();
     }
 
@@ -677,14 +669,6 @@ public class GitLabMergeRequest implements PullRequest {
         labels = null;
         request.put("")
                 .body("remove_labels", label)
-                // Temporary workaround for GitLab returning 500 when changing labels.
-                // The labels are still modified.
-                .onError(response -> {
-                    if (response.statusCode() == 500) {
-                        return Optional.of(JSON.of());
-                    }
-                    return Optional.empty();
-                })
                 .execute();
     }
 
