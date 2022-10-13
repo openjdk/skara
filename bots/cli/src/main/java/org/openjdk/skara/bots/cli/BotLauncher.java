@@ -98,6 +98,11 @@ public class BotLauncher {
                     }
                 }
             }
+            if (logstashConf.contains("replacements")) {
+                for (var field : logstashConf.get("replacements").asArray()) {
+                    handler.addReplacement(field.get("pattern").asString(), field.get("replacement").asString());
+                }
+            }
             handler.setLevel(level);
             var dateTimeFormatter = DateTimeFormatter.ISO_INSTANT
                     .withLocale(Locale.getDefault())
