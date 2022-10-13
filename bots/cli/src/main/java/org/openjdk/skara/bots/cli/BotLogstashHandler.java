@@ -47,9 +47,9 @@ public class BotLogstashHandler extends StreamHandler {
     // Optionally store all futures for testing purposes
     private Collection<Future<HttpResponse<Void>>> futures;
 
-    record RegexReplacement(Pattern pattern, String replacement) {}
+    private record RegexReplacement(Pattern pattern, String replacement) {}
 
-    private List<RegexReplacement> regexReplacements = new ArrayList<>();
+    private final List<RegexReplacement> regexReplacements = new ArrayList<>();
 
     private static class ExtraField {
         String name;
