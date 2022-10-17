@@ -152,4 +152,8 @@ public class JEPBot implements Bot, WorkItem {
     public String name() {
         return NAME;
     }
+
+    public IssueProject getIssueProject() {
+        return issueProject;
+    }
 }

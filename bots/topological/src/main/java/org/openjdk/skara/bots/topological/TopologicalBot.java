@@ -199,4 +199,8 @@ class TopologicalBot implements Bot, WorkItem {
     public String name() {
         return TopologicalBotFactory.NAME;
     }
+
+    public List<Branch> getBranches() {
+        return branches;
+    }
 }

@@ -155,4 +155,16 @@ class MirrorBot implements Bot, WorkItem {
     public String name() {
         return MirrorBotFactory.NAME;
     }
+
+    public List<Pattern> getBranchPatterns() {
+        return branchPatterns;
+    }
+
+    public boolean isIncludeTags() {
+        return includeTags;
+    }
+
+    public boolean isShouldMirrorEverything() {
+        return shouldMirrorEverything;
+    }
 }

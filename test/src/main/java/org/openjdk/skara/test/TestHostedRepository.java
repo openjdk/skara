@@ -55,6 +55,30 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         commitComments = new HashMap<>();
     }
 
+    /**
+     * Creates an instance without a backing local repository that will not support any actual repository interaction
+     */
+    public TestHostedRepository(String projectName) {
+        super(null, projectName);
+        this.host = null;
+        this.projectName = projectName;
+        this.localRepository = null;
+        pullRequestPattern = null;
+        commitComments = new HashMap<>();
+    }
+
+    /**
+     * Creates an instance without a backing local repository that will not support any actual repository interaction
+     */
+    public TestHostedRepository(TestHost host, String projectName) {
+        super(host, projectName);
+        this.host = host;
+        this.projectName = projectName;
+        this.localRepository = null;
+        pullRequestPattern = null;
+        commitComments = new HashMap<>();
+    }
+
     @Override
     public Forge forge() {
         return host;

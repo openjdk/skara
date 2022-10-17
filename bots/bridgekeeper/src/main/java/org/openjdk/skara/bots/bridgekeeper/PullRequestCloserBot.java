@@ -157,4 +157,8 @@ public class PullRequestCloserBot implements Bot {
     public String toString() {
         return "PullRequestCloserBot@" + remoteRepo.name();
     }
+
+    public Type getType() {
+        return type;
+    }
 }

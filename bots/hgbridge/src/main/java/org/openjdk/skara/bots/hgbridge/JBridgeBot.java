@@ -159,4 +159,8 @@ public class JBridgeBot implements Bot, WorkItem {
     public String workItemName() {
         return botName();
     }
+
+    public ExporterConfig getExporterConfig() {
+        return exporterConfig;
+    }
 }

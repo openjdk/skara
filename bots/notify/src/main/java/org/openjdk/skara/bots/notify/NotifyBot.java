@@ -155,4 +155,14 @@ public class NotifyBot implements Bot, Emitter {
     public String name() {
         return NotifyBotFactory.NAME;
     }
+
+    public Pattern getBranches() {
+        return branches;
+    }
+
+    public Map<String, Pattern> getReadyComments() {
+        return readyComments;
+    }
+
+
 }
