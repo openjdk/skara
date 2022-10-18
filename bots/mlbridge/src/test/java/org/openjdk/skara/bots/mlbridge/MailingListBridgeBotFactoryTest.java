@@ -110,7 +110,8 @@ class MailingListBridgeBotFactoryTest {
                                 "label3"
                               ]
                             }
-                          ]
+                          ],
+                          "issues": "https://test.test.com/issueProject"
                         }
                       ]
                     }
@@ -200,7 +201,7 @@ class MailingListBridgeBotFactoryTest {
             assertEquals("[rfr]", mailingListBridgeBot3.readyLabels().toString());
             assertEquals("{test_user[bot]=<!-- Welcome message -->}", mailingListBridgeBot3.readyComments().toString());
             assertEquals("{Approved=test5}", mailingListBridgeBot3.headers().toString());
-            assertEquals("https://bugs.test.org/browse/", mailingListBridgeBot3.issueTracker().toString());
+            assertEquals("https://test.test.com/issueProject", mailingListBridgeBot3.issueTracker().toString());
             assertEquals(Duration.ofSeconds(5), mailingListBridgeBot3.sendInterval());
             assertEquals(Duration.ofMinutes(2), mailingListBridgeBot3.cooldown());
             assertTrue(mailingListBridgeBot3.repoInSubject());

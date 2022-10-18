@@ -33,7 +33,8 @@ class TestBotFactoryTest {
                       "repositories": [
                         "repo1",
                         "repo2"
-                      ]
+                      ],
+                      "role": "role1"
                     }
                     """;
             var jsonConfig = JWCC.parse(jsonString).asObject();

@@ -26,7 +26,7 @@ class CensusSyncBotFactoryTest {
                         "version": 2
                       }
                     ]
-                  }
+                }
                 """;
         var jsonConfig = JWCC.parse(jsonString).asObject();
 

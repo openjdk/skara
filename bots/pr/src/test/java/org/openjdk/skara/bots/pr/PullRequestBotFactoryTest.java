@@ -23,6 +23,10 @@ class PullRequestBotFactoryTest {
                           "command2": "test2"
                         }
                       },
+                      "exclude-commit-comments-from": [
+                          1,
+                          2
+                      ],
                       "blockers": {
                         "test": "Signature needs verify"
                       },
