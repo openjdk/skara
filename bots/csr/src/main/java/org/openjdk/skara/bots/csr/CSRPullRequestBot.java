@@ -91,4 +91,8 @@ class CSRPullRequestBot implements Bot {
     public String name() {
         return CSRBotFactory.NAME;
     }
+
+    public IssueProject getProject() {
+        return project;
+    }
 }

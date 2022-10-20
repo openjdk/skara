@@ -84,6 +84,14 @@ public class TestBotFactory {
     }
 
     public Bot create(String name, JSONObject configuration) {
+        var bots = createBots(name, configuration);
+        if (bots.size() != 1) {
+            throw new RuntimeException("Factory did not create a bot instance");
+        }
+        return bots.get(0);
+    }
+
+    public List<Bot> createBots(String name, JSONObject configuration) {
         var finalConfiguration = JSON.object();
         for (var defaultField : defaultConfiguration.fields()) {
             finalConfiguration.put(defaultField.name(), defaultField.value());
@@ -101,10 +109,13 @@ public class TestBotFactory {
             @Override
             public HostedRepository repository(String name) {
                 var repoName = name.split(":")[0];
-                if (!hostedRepositories.containsKey(repoName)) {
-                    throw new RuntimeException("Unknown repository: " + repoName);
+                if (!hostedRepositories.containsKey(repoName) && !hostedRepositories.containsKey(name)) {
+                    throw new RuntimeException("Unknown repository: " + repoName + " or " + name);
                 }
-                return hostedRepositories.get(repoName);
+                if(hostedRepositories.get(repoName) !=null){
+                    return hostedRepositories.get(repoName);
+                }
+                return hostedRepositories.get(name);
             }
 
             @Override
@@ -117,7 +128,7 @@ public class TestBotFactory {
 
             @Override
             public ContinuousIntegration continuousIntegration(String name) {
-                throw new RuntimeException("not implemented yet");
+                return null;
             }
 
             @Override
@@ -147,11 +158,7 @@ public class TestBotFactory {
         var factories = BotFactory.getBotFactories();
         for (var factory : factories) {
             if (factory.name().equals(name)) {
-                var bots = factory.create(botConfiguration);
-                if (bots.size() != 1) {
-                    throw new RuntimeException("Factory did not create a bot instance");
-                }
-                return bots.get(0);
+                return factory.create(botConfiguration);
             }
         }
         throw new RuntimeException("Failed to find bot factory with name: " + name);

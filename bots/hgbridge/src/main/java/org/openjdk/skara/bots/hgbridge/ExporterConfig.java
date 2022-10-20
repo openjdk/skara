@@ -191,4 +191,28 @@ class ExporterConfig {
 
         return new HgToGitConverter(replacements, corrections, lowercase, punctuated, authors, contributors, sponsors);
     }
+
+    public String getConfigurationRef() {
+        return configurationRef;
+    }
+
+    public List<String> getReplacementsFile() {
+        return replacementsFile;
+    }
+
+    public List<String> getCorrectionsFile() {
+        return correctionsFile;
+    }
+
+    public List<String> getAuthorsFile() {
+        return authorsFile;
+    }
+
+    public List<String> getContributorsFile() {
+        return contributorsFile;
+    }
+
+    public List<String> getSponsorsFile() {
+        return sponsorsFile;
+    }
 }

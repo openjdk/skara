@@ -95,7 +95,7 @@ class ForwardBot implements Bot, WorkItem {
 
     @Override
     public String toString() {
-        return "FowardBot@(" + fromHostedRepo.name() + ":" + fromBranch.name() +
+        return "ForwardBot@(" + fromHostedRepo.name() + ":" + fromBranch.name() +
                            "-> " + toHostedRepo.name() + ":" + toBranch.name() + ")";
     }
 

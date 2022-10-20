@@ -181,4 +181,8 @@ public class PullRequestPrunerBot implements Bot {
     public String toString() {
         return "PullRequestPrunerBot";
     }
+
+    public Map<HostedRepository, Duration> getMaxAges() {
+        return maxAges;
+    }
 }

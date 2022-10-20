@@ -622,4 +622,8 @@ class MergeBot implements Bot, WorkItem {
     public String workItemName() {
         return botName();
     }
+
+    public List<Spec> getSpecs() {
+        return specs;
+    }
 }
