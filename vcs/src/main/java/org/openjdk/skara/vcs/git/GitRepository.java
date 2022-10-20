@@ -1499,7 +1499,7 @@ public class GitRepository implements Repository {
 
     @Override
     public void addSubmodule(String pullPath, Path path) throws IOException {
-        try (var p = capture("git", "submodule", "add", pullPath, path.toString())) {
+        try (var p = capture("git", "-c", "protocol.file.allow=always", "submodule", "add", pullPath, path.toString())) {
             await(p);
         }
     }
