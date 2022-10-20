@@ -613,4 +613,73 @@ public class ReviewersTests {
             assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 0, 0, 0, 0)));
         }
     }
+
+    @Test
+    void testReviewCommentsAfterApprovedReview(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(integrator.forge().currentUser().id())
+                    .addAuthor(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
+
+            var reviewerPr = integrator.pullRequest(pr.id());
+
+            // Approve it as another user
+            reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(prBot);
+            // The pr should contain 'Ready' label
+            var updatedPr = author.pullRequest(pr.id());
+            assertTrue(updatedPr.labelNames().contains("ready"));
+
+            // Add a review comment
+            reviewerPr.addReview(Review.Verdict.NONE, "Just a comment1");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(prBot);
+            // The pr should still contain 'Ready' label
+            updatedPr = author.pullRequest(pr.id());
+            assertTrue(updatedPr.labelNames().contains("ready"));
+
+            // Add a review comment
+            reviewerPr.addReview(Review.Verdict.NONE, "Just a comment2");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(prBot);
+            // The pr should still contain 'Ready' label
+            updatedPr = author.pullRequest(pr.id());
+            assertTrue(updatedPr.labelNames().contains("ready"));
+
+            // Disapprove this pr
+            reviewerPr.addReview(Review.Verdict.DISAPPROVED, "Disapproved");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(prBot);
+            // The pr should not contain 'Ready' label
+            updatedPr = author.pullRequest(pr.id());
+            assertFalse(updatedPr.labelNames().contains("ready"));
+
+            // Add a review comment
+            reviewerPr.addReview(Review.Verdict.NONE, "Just a comment3");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(prBot);
+            // The pr should still not contain 'Ready' label
+            updatedPr = author.pullRequest(pr.id());
+            assertFalse(updatedPr.labelNames().contains("ready"));
+        }
+    }
 }
