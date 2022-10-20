@@ -646,40 +646,35 @@ public class ReviewersTests {
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
             // The pr should contain 'Ready' label
-            var updatedPr = author.pullRequest(pr.id());
-            assertTrue(updatedPr.labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("ready"));
 
             // Add a review comment
             reviewerPr.addReview(Review.Verdict.NONE, "Just a comment1");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
             // The pr should still contain 'Ready' label
-            updatedPr = author.pullRequest(pr.id());
-            assertTrue(updatedPr.labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("ready"));
 
             // Add a review comment
             reviewerPr.addReview(Review.Verdict.NONE, "Just a comment2");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
             // The pr should still contain 'Ready' label
-            updatedPr = author.pullRequest(pr.id());
-            assertTrue(updatedPr.labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("ready"));
 
             // Disapprove this pr
             reviewerPr.addReview(Review.Verdict.DISAPPROVED, "Disapproved");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
             // The pr should not contain 'Ready' label
-            updatedPr = author.pullRequest(pr.id());
-            assertFalse(updatedPr.labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("ready"));
 
             // Add a review comment
             reviewerPr.addReview(Review.Verdict.NONE, "Just a comment3");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
             // The pr should still not contain 'Ready' label
-            updatedPr = author.pullRequest(pr.id());
-            assertFalse(updatedPr.labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("ready"));
         }
     }
 }
