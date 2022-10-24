@@ -51,6 +51,10 @@ class PullRequestBotFactoryTest {
                           ],
                           "24h": [
                             "24h_test"
+                          ],
+                          "integrators": [
+                            "integrator1",
+                            "integrator2"
                           ]
                         }
                       },
@@ -82,14 +86,18 @@ class PullRequestBotFactoryTest {
             assertEquals("PullRequestBot@repo2", pullRequestBot1.toString());
             assertEquals("used to run tests", pullRequestBot1.externalPullRequestCommands().get("test"));
             assertEquals("TEST", pullRequestBot1.issueProject().name());
-            assertEquals("census",pullRequestBot1.censusRepo().name());
-            assertEquals("master",pullRequestBot1.censusRef());
-            assertEquals("{test=used to run tests}",pullRequestBot1.externalPullRequestCommands().toString());
-            assertEquals("{test=Signature needs verify}",pullRequestBot1.blockingCheckLabels().toString());
-            assertEquals("[rfr]",pullRequestBot1.twoReviewersLabels().toString());
-            assertEquals("[24h_test]",pullRequestBot1.twentyFourHoursLabels().toString());
+            assertEquals("census", pullRequestBot1.censusRepo().name());
+            assertEquals("master", pullRequestBot1.censusRef());
+            assertEquals("{test=used to run tests}", pullRequestBot1.externalPullRequestCommands().toString());
+            assertEquals("{test=Signature needs verify}", pullRequestBot1.blockingCheckLabels().toString());
+            assertEquals("[rfr]", pullRequestBot1.twoReviewersLabels().toString());
+            assertEquals("[24h_test]", pullRequestBot1.twentyFourHoursLabels().toString());
             assertFalse(pullRequestBot1.ignoreStaleReviews());
-            assertEquals(".*",pullRequestBot1.allowedTargetBranches().toString());
+            assertEquals(".*", pullRequestBot1.allowedTargetBranches().toString());
+            var integrators = pullRequestBot1.integrators();
+            assertEquals(2, integrators.size());
+            assertTrue(integrators.contains("integrator1"));
+            assertTrue(integrators.contains("integrator2"));
         }
     }
 }
