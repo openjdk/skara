@@ -167,7 +167,7 @@ public class PullRequestBotFactory implements BotFactory {
             if (repo.value().contains("integrators")) {
                 var integrators = repo.value().get("integrators")
                         .stream()
-                        .map(integrator -> integrator.asString())
+                        .map(JSONValue::asString)
                         .collect(Collectors.toSet());
                 botBuilder.integrators(integrators);
             }
