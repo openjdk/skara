@@ -236,7 +236,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     @Override
     public void visit(MessageIssue issue) {
         var message = String.join("\n", issue.commit().message());
-        log.info("Incorrectly formatted commit message: " + message);
+        log.warning("Incorrectly formatted commit message: " + message);
         addFailureMessage(issue.check(), "Incorrectly formatted commit message");
     }
 
