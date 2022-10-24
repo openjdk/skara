@@ -388,7 +388,7 @@ class SummaryTests {
     }
 
     @Test
-    void invalidSummaryTest(TestInfo testInfo) throws IOException{
+    void invalidSummaryTest(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -429,7 +429,7 @@ class SummaryTests {
 
             pr.addComment("/summary normal comment");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr,"Setting summary to `normal comment`");
+            assertLastCommentContains(pr, "Setting summary to `normal comment`");
 
             System.out.println(pr.store().comments());
         }
