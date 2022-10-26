@@ -25,6 +25,7 @@ package org.openjdk.skara.forge.gitlab;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.host.Credential;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.test.ManualTestSettings;
 import org.openjdk.skara.vcs.Hash;
@@ -33,6 +34,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * To be able to run the tests, you need to remove or comment out the @Disabled annotation first.
@@ -104,5 +106,27 @@ public class GitLabRestApiTest {
         labels = gitLabMergeRequest.labelNames();
         assertEquals(1, labels.size());
         assertEquals("test", labels.get(0));
+    }
+
+    @Test
+    void testOversizeComment() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var username = settings.getProperty("gitlab.user");
+        var token = settings.getProperty("gitlab.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
+        var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
+
+        // Test add comment
+        Comment comment = gitLabMergeRequest.addComment("1".repeat(1000000));
+        assertTrue(comment.body().contains("This comment is too long"));
+        assertTrue(comment.body().contains("1"));
+
+        // Test update comment
+        Comment updateComment = gitLabMergeRequest.updateComment(comment.id(), "2".repeat(2000000));
+        assertTrue(updateComment.body().contains("This comment is too long"));
+        assertTrue(updateComment.body().contains("2"));
     }
 }
