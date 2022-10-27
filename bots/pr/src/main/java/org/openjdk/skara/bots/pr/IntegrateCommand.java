@@ -46,11 +46,13 @@ public class IntegrateCommand implements CommandHandler {
         auto,
         manual,
         defer,
-        undefer
+        undefer,
+        delegate,
+        undelegate
     }
 
     private void showHelp(PrintWriter reply) {
-        reply.println("usage: `/integrate [auto|manual|defer|undefer|<hash>]`");
+        reply.println("usage: `/integrate [auto|manual|defer|undefer|delegate|undelegate<hash>]`");
     }
 
     private Optional<String> checkProblem(Map<String, Check> performedChecks, String checkName, PullRequest pr) {
@@ -99,10 +101,10 @@ public class IntegrateCommand implements CommandHandler {
         }
 
         if (!command.user().equals(pr.author()) && !command.user().equals(pr.repository().forge().currentUser())) {
-            if (pr.labelNames().contains("deferred")) {
+            if (pr.labelNames().contains("delegated")) {
                 // Check that the command user is a committer
                 if (!censusInstance.isCommitter(command.user())) {
-                    reply.print("Only project committers are allowed to issue the `integrate` command on a deferred pull request.");
+                    reply.print("Only project committers are allowed to issue the `integrate` command on a delegated pull request.");
                     return;
                 }
                 // Check that no extra arguments are added
@@ -137,16 +139,22 @@ public class IntegrateCommand implements CommandHandler {
             reply.println("This pull request will have to be integrated manually using the " +
                     "[/integrate](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) pull request command.");
             return;
-        } else if (commandArg == Command.defer) {
-            pr.addLabel("deferred");
-            reply.println("Integration of this pull request has been deferred and may be completed by any project committer using the " +
+        } else if (commandArg == Command.defer || commandArg == Command.delegate) {
+            pr.addLabel("delegated");
+            if (commandArg == Command.defer) {
+                reply.println("FutureWarning: /integrate defer is deprecated and will be moved in a future version. Use /integrate delegate instead.");
+            }
+            reply.println("Integration of this pull request has been delegated and may be completed by any project committer using the " +
                     "[/integrate](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) pull request command.");
             return;
-        } else if (commandArg == Command.undefer) {
-            if (pr.labelNames().contains("deferred")) {
-                reply.println("Integration of this pull request is no longer deferred and may only be integrated by the author (@" + pr.author().username() + ")using the " +
+        } else if (commandArg == Command.undefer || commandArg == Command.undelegate) {
+            if (commandArg == Command.undefer) {
+                reply.println("FutureWarning: /integrate undefer is deprecated and will be moved in a future version. Use /integrate undelegate instead.");
+            }
+            if (pr.labelNames().contains("delegated")) {
+                reply.println("Integration of this pull request is no longer delegated and may only be integrated by the author (@" + pr.author().username() + ")using the " +
                         "[/integrate](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) pull request command.");
-                pr.removeLabel("deferred");
+                pr.removeLabel("delegated");
             }
             reply.println("This pull request may now only be integrated by the author");
             return;
@@ -324,8 +332,8 @@ public class IntegrateCommand implements CommandHandler {
         pr.setState(PullRequest.State.CLOSED);
         pr.removeLabel("ready");
         pr.removeLabel("rfr");
-        if (pr.labelNames().contains("deferred")) {
-            pr.removeLabel("deferred");
+        if (pr.labelNames().contains("delegated")) {
+            pr.removeLabel("delegated");
         }
         if (pr.labelNames().contains("sponsor")) {
             pr.removeLabel("sponsor");

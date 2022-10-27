@@ -1308,7 +1308,7 @@ class IntegrateTests {
     }
 
     @Test
-    void defer(TestInfo testInfo) throws IOException {
+    void delegate(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var pushedFolder = new TemporaryDirectory()) {
@@ -1339,15 +1339,41 @@ class IntegrateTests {
             // Approve it as another user
             var reviewerPr = reviewer.pullRequest(authorPr.id());
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
-
-            // Issue /integrate defer command and verify the PR gets deferred
+            // Issue /integrate defer command and verify deprecated message is printed and the PR gets delegated
             authorPr.addComment("/integrate defer");
             TestBotRunner.runPeriodicItems(mergeBot);
             var deferred = authorPr.comments().stream()
-                    .filter(comment -> comment.body().contains("Integration of this pull request has been deferred"))
+                    .filter(comment -> comment.body().contains("Integration of this pull request has been delegated"))
                     .count();
-            assertEquals(1, deferred, "Missing deferred message");
-            assertTrue(authorPr.store().labelNames().contains("deferred"));
+            var deprecated = authorPr.comments().stream()
+                    .filter(comment -> comment.body().contains("/integrate defer is deprecated"))
+                    .count();
+            assertEquals(1, deferred, "Missing delegated message");
+            assertEquals(1, deprecated, "Missing deprecated message");
+            assertTrue(authorPr.store().labelNames().contains("delegated"));
+
+            // Issue /integrate undefer and verify deprecated message is printed the PR is no longer delegated
+            authorPr.addComment("/integrate undefer");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var undeferred = authorPr.comments().stream()
+                    .filter(comment -> comment.body().contains("Integration of this pull request is no longer delegated and may only be integrated by the author"))
+                    .count();
+            deprecated = authorPr.comments().stream()
+                    .filter(comment -> comment.body().contains("/integrate undefer is deprecated"))
+                    .count();
+            assertEquals(1, undeferred, "Missing undelegated message");
+            assertEquals(1, deprecated, "Missing deprecated message");
+            assertFalse(authorPr.store().labelNames().contains("delegated"));
+
+
+            // Issue /integrate delegate command and verify the PR gets delegated
+            authorPr.addComment("/integrate delegate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var delegated = authorPr.comments().stream()
+                    .filter(comment -> comment.body().contains("Integration of this pull request has been delegated"))
+                    .count();
+            assertEquals(2, delegated, "Missing delegated message");
+            assertTrue(authorPr.store().labelNames().contains("delegated"));
 
             // Try to integrate by non committer
             var badIntegratorPr = badIntegrator.pullRequest(authorPr.id());
@@ -1355,20 +1381,20 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot);
             var onlyCommitters = authorPr.comments().stream()
                     .filter(comment -> comment.body()
-                            .contains("Only project committers are allowed to issue the `integrate` command on a deferred pull request."))
+                            .contains("Only project committers are allowed to issue the `integrate` command on a delegated pull request."))
                     .count();
             assertEquals(1, onlyCommitters, "Missing error about only committers can integrate");
 
-            // Issue /integrate undefer and verify the PR is no longer deferred
-            authorPr.addComment("/integrate undefer");
+            // Issue /integrate undelegate and verify the PR is no longer delegated
+            authorPr.addComment("/integrate undelegate");
             TestBotRunner.runPeriodicItems(mergeBot);
-            var undeferred = authorPr.comments().stream()
-                    .filter(comment -> comment.body().contains("Integration of this pull request is no longer deferred and may only be integrated by the author"))
+            var undelegated = authorPr.comments().stream()
+                    .filter(comment -> comment.body().contains("Integration of this pull request is no longer delegated and may only be integrated by the author"))
                     .count();
-            assertEquals(1, undeferred, "Missing undeferred message");
-            assertFalse(authorPr.store().labelNames().contains("deferred"));
+            assertEquals(2, undelegated, "Missing undelegated message");
+            assertFalse(authorPr.store().labelNames().contains("delegated"));
 
-            // Try integrating as another committer, which should fail since the PR is currently not deferred
+            // Try integrating as another committer, which should fail since the PR is currently not delegated
             var integratorPr = integrator.pullRequest(authorPr.id());
             integratorPr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -1378,10 +1404,10 @@ class IntegrateTests {
                     .count();
             assertEquals(1, nonAuthor, "Missing only author can integrate message");
 
-            // Defer again
-            authorPr.addComment("/integrate defer");
+            // Delegate again
+            authorPr.addComment("/integrate delegate");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertTrue(authorPr.store().labelNames().contains("deferred"));
+            assertTrue(authorPr.store().labelNames().contains("delegated"));
 
             // Try to issue /integrate with an invalid command for a non author
             integratorPr.addComment("/integrate auto");
@@ -1410,9 +1436,9 @@ class IntegrateTests {
             assertEquals("integrationcommitter4@openjdk.org", headCommit.committer().email());
             assertTrue(authorPr.store().labelNames().contains("integrated"));
 
-            // Ready and deferred labels should have been removed
+            // Ready and delegated labels should have been removed
             assertFalse(authorPr.store().labelNames().contains("ready"));
-            assertFalse(authorPr.store().labelNames().contains("deferred"));
+            assertFalse(authorPr.store().labelNames().contains("delegated"));
         }
     }
 
