@@ -142,14 +142,14 @@ public class IntegrateCommand implements CommandHandler {
         } else if (commandArg == Command.defer || commandArg == Command.delegate) {
             pr.addLabel("delegated");
             if (commandArg == Command.defer) {
-                reply.println("FutureWarning: /integrate defer is deprecated and will be moved in a future version. Use /integrate delegate instead.");
+                reply.println("Warning: `/integrate defer` is deprecated and will be removed in a future version. Use `/integrate delegate` instead.");
             }
             reply.println("Integration of this pull request has been delegated and may be completed by any project committer using the " +
                     "[/integrate](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) pull request command.");
             return;
         } else if (commandArg == Command.undefer || commandArg == Command.undelegate) {
             if (commandArg == Command.undefer) {
-                reply.println("FutureWarning: /integrate undefer is deprecated and will be moved in a future version. Use /integrate undelegate instead.");
+                reply.println("Warning: `/integrate undefer` is deprecated and will be removed in a future version. Use `/integrate undelegate` instead.");
             }
             if (pr.labelNames().contains("delegated")) {
                 reply.println("Integration of this pull request is no longer delegated and may only be integrated by the author (@" + pr.author().username() + ")using the " +
