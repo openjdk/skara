@@ -139,13 +139,13 @@ public class GitHubRestApiTests {
         var testPr = testRepo.pullRequest("99");
 
         // Test add comment
-        Comment comment = testPr.addComment("1".repeat(1000000));
-        assertTrue(comment.body().contains("This comment is too long"));
+        Comment comment = testPr.addComment("1".repeat(1_000_000));
+        assertTrue(comment.body().contains("..."));
         assertTrue(comment.body().contains("1"));
 
         // Test update comment
-        Comment updateComment = testPr.updateComment(comment.id(), "2".repeat(2000000));
-        assertTrue(updateComment.body().contains("This comment is too long"));
+        Comment updateComment = testPr.updateComment(comment.id(), "2".repeat(2_000_000));
+        assertTrue(updateComment.body().contains("..."));
         assertTrue(updateComment.body().contains("2"));
     }
 }

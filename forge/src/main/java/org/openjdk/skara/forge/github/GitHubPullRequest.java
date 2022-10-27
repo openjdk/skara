@@ -46,7 +46,7 @@ public class GitHubPullRequest implements PullRequest {
 
     private List<Label> labels = null;
 
-    private static final int GITHUB_PR_COMMENT_BODY_MAX_SIZE = 20000;
+    private static final int GITHUB_PR_COMMENT_BODY_MAX_SIZE = 64_000;
 
     GitHubPullRequest(GitHubRepository repository, JSONValue jsonValue, RestRequest request) {
         this.host = (GitHubHost)repository.forge();
@@ -790,10 +790,7 @@ public class GitHubPullRequest implements PullRequest {
 
     public String limitBodySize(String body) {
         if (body.length() > GITHUB_PR_COMMENT_BODY_MAX_SIZE) {
-            return "⚠️This comment is too long, only the first "
-                    + GITHUB_PR_COMMENT_BODY_MAX_SIZE
-                    + " characters will be displayed!\n\n"
-                    + body.substring(0, GITHUB_PR_COMMENT_BODY_MAX_SIZE)
+            return body.substring(0, GITHUB_PR_COMMENT_BODY_MAX_SIZE)
                     + "...";
         }
         return body;

@@ -120,13 +120,13 @@ public class GitLabRestApiTest {
         var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
 
         // Test add comment
-        Comment comment = gitLabMergeRequest.addComment("1".repeat(1000000));
-        assertTrue(comment.body().contains("This comment is too long"));
+        Comment comment = gitLabMergeRequest.addComment("1".repeat(1_000_000));
+        assertTrue(comment.body().contains("..."));
         assertTrue(comment.body().contains("1"));
 
         // Test update comment
-        Comment updateComment = gitLabMergeRequest.updateComment(comment.id(), "2".repeat(2000000));
-        assertTrue(updateComment.body().contains("This comment is too long"));
+        Comment updateComment = gitLabMergeRequest.updateComment(comment.id(), "2".repeat(2_000_000));
+        assertTrue(updateComment.body().contains("..."));
         assertTrue(updateComment.body().contains("2"));
     }
 }

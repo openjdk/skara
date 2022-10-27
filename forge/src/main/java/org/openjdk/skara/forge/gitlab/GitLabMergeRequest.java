@@ -51,7 +51,7 @@ public class GitLabMergeRequest implements PullRequest {
     // Lazy cache for comparisonSnapshot
     private Object comparisonSnapshot;
 
-    private static final int GITLAB_MR_COMMENT_BODY_MAX_SIZE = 20000;
+    private static final int GITLAB_MR_COMMENT_BODY_MAX_SIZE = 64_000;
 
     GitLabMergeRequest(GitLabRepository repository, GitLabHost host, JSONValue jsonValue, RestRequest request) {
         this.repository = repository;
@@ -896,10 +896,7 @@ public class GitLabMergeRequest implements PullRequest {
 
     private String limitBodySize(String body) {
         if (body.length() > GITLAB_MR_COMMENT_BODY_MAX_SIZE) {
-            return "⚠️This comment is too long, only the first "
-                    + GITLAB_MR_COMMENT_BODY_MAX_SIZE
-                    + " characters will be displayed!\n\n"
-                    + body.substring(0, GITLAB_MR_COMMENT_BODY_MAX_SIZE)
+            return body.substring(0, GITLAB_MR_COMMENT_BODY_MAX_SIZE)
                     + "...";
         }
         return body;
