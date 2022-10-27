@@ -1346,7 +1346,7 @@ class IntegrateTests {
                     .filter(comment -> comment.body().contains("Integration of this pull request has been delegated"))
                     .count();
             var deprecated = authorPr.comments().stream()
-                    .filter(comment -> comment.body().contains("/integrate defer is deprecated"))
+                    .filter(comment -> comment.body().contains("`/integrate defer` is deprecated"))
                     .count();
             assertEquals(1, deferred, "Missing delegated message");
             assertEquals(1, deprecated, "Missing deprecated message");
@@ -1359,7 +1359,7 @@ class IntegrateTests {
                     .filter(comment -> comment.body().contains("Integration of this pull request is no longer delegated and may only be integrated by the author"))
                     .count();
             deprecated = authorPr.comments().stream()
-                    .filter(comment -> comment.body().contains("/integrate undefer is deprecated"))
+                    .filter(comment -> comment.body().contains("`/integrate undefer` is deprecated"))
                     .count();
             assertEquals(1, undeferred, "Missing undelegated message");
             assertEquals(1, deprecated, "Missing deprecated message");
