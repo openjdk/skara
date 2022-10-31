@@ -48,6 +48,7 @@ class IssueNotifierBuilder {
     private HostedRepository originalRepository;
     private boolean resolve = true;
     private Set<String> tagIgnoreOpt = Set.of();
+    private boolean tagMatchPrefix = false;
 
     IssueNotifierBuilder issueProject(IssueProject issueProject) {
         this.issueProject = issueProject;
@@ -145,6 +146,11 @@ class IssueNotifierBuilder {
         return this;
     }
 
+    public IssueNotifierBuilder tagMatchPrefix(boolean tagMatchPrefix) {
+        this.tagMatchPrefix = tagMatchPrefix;
+        return this;
+    }
+
     public boolean prOnly() {
         return prOnly;
     }
@@ -158,6 +164,6 @@ class IssueNotifierBuilder {
         return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
                 setFixVersion, fixVersions, altFixVersions, jbsBackport, prOnly,
                 repoOnly, buildName, censusRepository, censusRef, namespace, useHeadVersion, originalRepository,
-                resolve, tagIgnoreOpt);
+                resolve, tagIgnoreOpt, tagMatchPrefix);
     }
 }

@@ -130,6 +130,9 @@ public class IssueNotifierFactory implements NotifierFactory {
                         .map(JSONValue::asString)
                         .collect(Collectors.toSet()));
             }
+            if (tag.contains("matchprefix")) {
+                builder.tagMatchPrefix(tag.get("matchprefix").asBoolean());
+            }
         }
 
         return builder.build();
