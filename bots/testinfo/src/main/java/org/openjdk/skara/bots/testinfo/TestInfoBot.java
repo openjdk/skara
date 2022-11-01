@@ -33,12 +33,11 @@ import java.util.logging.Logger;
 
 public class TestInfoBot implements Bot {
     private final HostedRepository repo;
-    private final Map<String, Instant> expirations = new ConcurrentHashMap<>();
-
-    private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
+    private final PullRequestPoller poller;
 
     TestInfoBot(HostedRepository repo) {
         this.repo = repo;
+        this.poller = new PullRequestPoller(repo, true);
     }
 
     private String pullRequestToKey(PullRequest pr) {
@@ -47,24 +46,12 @@ public class TestInfoBot implements Bot {
 
     @Override
     public List<WorkItem> getPeriodicItems() {
-        var prs = repo.pullRequestsAfter(ZonedDateTime.now().minus(Duration.ofDays(1)));
-        var ret = new ArrayList<WorkItem>();
-        for (var pr : prs) {
-            if (pr.sourceRepository().isEmpty()) {
-                continue;
-            }
-
-            var expirationKey = pullRequestToKey(pr);
-            if (expirations.containsKey(expirationKey)) {
-                var expiresAt = expirations.get(expirationKey);
-                if (expiresAt.isAfter(Instant.now())) {
-                    continue;
-                }
-            }
-
-            ret.add(new TestInfoBotWorkItem(pr, expiresIn -> expirations.put(expirationKey, Instant.now().plus(expiresIn))));
-        }
-        return ret;
+        var prs = poller.updatedPullRequests();
+        return prs.stream()
+                .filter(pr -> pr.sourceRepository().isPresent())
+                .map(pr -> (WorkItem) new TestInfoBotWorkItem(pr,
+                        recheckIn -> poller.retryPullRequest(pr, Instant.now().plus(recheckIn))))
+                .toList();
     }
 
     @Override
