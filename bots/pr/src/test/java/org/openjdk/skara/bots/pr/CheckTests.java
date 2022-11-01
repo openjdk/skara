@@ -2175,7 +2175,7 @@ class CheckTests {
     }
 
     @Test
-    void problemListsIssue(TestInfo testInfo) throws IOException {
+    void testProblemListsIssue(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
