@@ -2182,14 +2182,14 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
             var issueProject = credentials.getIssueProject();
 
-
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).issueProject(issueProject).build();
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"), Set.of("author", "reviewers", "whitespace", "problemlists"), "0.1");
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
+                    Path.of("appendable.txt"), Set.of("author", "reviewers", "whitespace", "problemlists"), "0.1");
 
             // Add problemlists configuration to conf
             try (var output = new FileWriter(tempFolder.path().resolve(".jcheck/conf").toFile(), true)) {
