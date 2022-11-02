@@ -29,7 +29,7 @@ import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.PosixFilePermission;
@@ -2171,6 +2171,57 @@ class CheckTests {
             assertFalse(pr.store().body().contains(backportIssue.title()));
             assertFalse(pr.store().body().contains(backportCsr.id()));
             assertFalse(pr.store().body().contains(backportCsr.title()));
+        }
+    }
+
+    @Test
+    void testProblemListsIssue(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).issueProject(issueProject).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
+                    Path.of("appendable.txt"), Set.of("author", "reviewers", "whitespace", "problemlists"), "0.1");
+
+            // Add problemlists configuration to conf
+            try (var output = new FileWriter(tempFolder.path().resolve(".jcheck/conf").toFile(), true)) {
+                output.append("\n[checks \"problemlists\"]\n");
+                output.append("dirs=test/jdk\n");
+            }
+
+            // Create ProblemList.txt
+            Files.createDirectories(tempFolder.path().resolve("test/jdk"));
+            var problemList = tempFolder.path().resolve("test/jdk/ProblemList.txt");
+            try (var output = Files.newBufferedWriter(problemList)) {
+                output.append("test 1 windows-all");
+            }
+            localRepo.add(tempFolder.path().resolve(".jcheck/conf"));
+            localRepo.add(problemList);
+            localRepo.commit("add problemList.txt", "testauthor", "ta@none.none");
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "A line");
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+
+            var issue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
+
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id());
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertTrue(pr.store().labelNames().contains("rfr"));
+            assertFalse(pr.store().labelNames().contains("ready"));
+            assertTrue(pr.store().body().contains("1 is used in problem lists"));
         }
     }
 }

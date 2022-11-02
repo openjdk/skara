@@ -284,6 +284,5 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     @Override
     public void visit(ProblemListsIssue issue) {
         addFailureMessage(issue.check(), issue.issue() + " is used in problem lists: " + issue.files());
-        readyForReview = false;
     }
 }
