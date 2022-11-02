@@ -149,7 +149,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     @Override
     public void visit(InvalidReviewersIssue e) {
         var invalid = String.join(", ", e.invalid());
-        throw new IllegalStateException("Invalid reviewers " + invalid);
+        addFailureMessage(e.check(), "Invalid reviewers " + invalid);
     }
 
     @Override
@@ -236,7 +236,8 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     @Override
     public void visit(MessageIssue issue) {
         var message = String.join("\n", issue.commit().message());
-        throw new IllegalStateException("Incorrectly formatted commit message: " + message);
+        log.warning("Incorrectly formatted commit message: " + message);
+        addFailureMessage(issue.check(), "Incorrectly formatted commit message");
     }
 
     @Override
