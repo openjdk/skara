@@ -323,7 +323,6 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         checks.add(check);
     }
 
-
     @Override
     public WorkflowStatus workflowStatus() {
         return WorkflowStatus.ENABLED;
