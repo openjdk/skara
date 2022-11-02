@@ -62,7 +62,10 @@ public class BackportCommand implements CommandHandler {
     public void handle(PullRequestBot bot, HostedCommit commit, LimitedCensusInstance censusInstance,
             Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (censusInstance.contributor(command.user()).isEmpty()) {
-            reply.println("Only OpenJDK [contributors](https://openjdk.org/bylaws#contributor) can use the `/backport` command");
+            reply.println("To use the `/backport` command, you need to be in the OpenJDK [census](https://openjdk.org/census)"
+                    + " and your GitHub account needs to be linked with your OpenJDK username"
+                    + " ([how to associate your GitHub account with your OpenJDK username]"
+                    + "(https://wiki.openjdk.org/display/skara#Skara-AssociatingyourGitHubaccountandyourOpenJDKusername)).");
             return;
         }
 
