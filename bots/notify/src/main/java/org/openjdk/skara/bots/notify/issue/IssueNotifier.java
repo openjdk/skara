@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.notify.issue;
 
+import java.util.regex.Pattern;
 import org.openjdk.skara.bots.notify.*;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
@@ -48,8 +49,8 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     private final boolean commitLink;
     private final URI commitIcon;
     private final boolean setFixVersion;
-    private final Map<String, String> fixVersions;
-    private final Map<String, List<String>> altFixVersions;
+    private final LinkedHashMap<Pattern, String> fixVersions;
+    private final LinkedHashMap<Pattern, List<Pattern>> altFixVersions;
     private final JbsBackport jbsBackport;
     private final boolean prOnly;
     private final boolean repoOnly;
@@ -79,7 +80,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     private CensusInstance census = null;
 
     IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
-                  boolean setFixVersion, Map<String, String> fixVersions, Map<String, List<String>> altFixVersions,
+                  boolean setFixVersion, LinkedHashMap<Pattern, String> fixVersions, LinkedHashMap<Pattern, List<Pattern>> altFixVersions,
                   JbsBackport jbsBackport, boolean prOnly, boolean repoOnly, String buildName,
                   HostedRepository censusRepository, String censusRef, String namespace, boolean useHeadVersion,
                   HostedRepository originalRepository, boolean resolve, Set<String> tagIgnoreOpt) {
@@ -355,15 +356,13 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
 
     private Optional<Issue> findAltFixedVersionIssue(Issue issue, Branch branch) {
         if (altFixVersions != null) {
-            for (var altFixVersionString : altFixVersions.getOrDefault(branch.name(), List.of())) {
-                var altFixVersion = JdkVersion.parse(altFixVersionString).orElseThrow();
-                var altBackport = Backports.findIssue(issue, altFixVersion);
-                if (altBackport.isPresent()) {
-                    if (altBackport.get().isFixed()) {
-                        return altBackport;
-                    }
-                }
-            }
+            var matchingBranchPattern = altFixVersions.keySet().stream()
+                    .filter(pattern -> pattern.matcher(branch.toString()).matches())
+                    .findFirst();
+            return matchingBranchPattern.flatMap(branchPattern -> altFixVersions.get(branchPattern).stream()
+                    .map(versionPattern -> Backports.findFixedIssue(issue, versionPattern))
+                    .flatMap(Optional::stream)
+                    .findFirst());
         }
         return Optional.empty();
     }
@@ -479,21 +478,26 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     }
 
     private String getRequestedVersion(Repository localRepository, Commit commit, String branch) {
-        var requestedVersion = fixVersions != null ? fixVersions.getOrDefault(branch, null) : null;
-        if (requestedVersion == null) {
-            try {
-                var hash = (useHeadVersion ? localRepository.resolve(branch).orElseThrow() : commit.hash());
-                var conf = localRepository.lines(Path.of(".jcheck/conf"), hash);
-                if (conf.isPresent()) {
-                    var parsed = JCheckConfiguration.parse(conf.get());
-                    var version = parsed.general().version();
-                    requestedVersion = version.orElse(null);
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+        if (fixVersions != null) {
+            var matchingPattern = fixVersions.keySet().stream()
+                    .filter(pattern -> pattern.matcher(branch).matches())
+                    .findFirst();
+            if (matchingPattern.isPresent()) {
+                return fixVersions.get(matchingPattern.get());
             }
         }
-        return requestedVersion;
+        try {
+            var hash = (useHeadVersion ? localRepository.resolve(branch).orElseThrow() : commit.hash());
+            var conf = localRepository.lines(Path.of(".jcheck/conf"), hash);
+            if (conf.isPresent()) {
+                var parsed = JCheckConfiguration.parse(conf.get());
+                var version = parsed.general().version();
+                return version.orElse(null);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
     }
 
     @Override
