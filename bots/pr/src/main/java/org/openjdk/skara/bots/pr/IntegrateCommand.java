@@ -52,7 +52,7 @@ public class IntegrateCommand implements CommandHandler {
     }
 
     private void showHelp(PrintWriter reply) {
-        reply.println("usage: `/integrate [auto|manual|delegate|undelegate<hash>]`");
+        reply.println("usage: `/integrate [auto|manual|delegate|undelegate|<hash>]`");
     }
 
     private Optional<String> checkProblem(Map<String, Check> performedChecks, String checkName, PullRequest pr) {
