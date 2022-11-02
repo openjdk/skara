@@ -140,9 +140,10 @@ public class CheckablePullRequest {
                 var reviewCorrectTarget = review.targetRef().equals(targetRef);
                 var reviewNewer = prevReview.createdAt().isBefore(review.createdAt());
 
-                if ((prevReviewCorrectTarget && reviewCorrectTarget && reviewNewer)
+                if ((!review.verdict().equals(Review.Verdict.NONE))
+                        && ((prevReviewCorrectTarget && reviewCorrectTarget && reviewNewer)
                         || (!prevReviewCorrectTarget && !reviewCorrectTarget && reviewNewer)
-                        || (!prevReviewCorrectTarget && reviewCorrectTarget)) {
+                        || (!prevReviewCorrectTarget && reviewCorrectTarget))) {
                     reviewPerUser.put(review.reviewer(), review);
                 }
             } else {
