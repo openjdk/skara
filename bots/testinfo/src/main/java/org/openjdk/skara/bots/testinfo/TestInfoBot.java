@@ -31,6 +31,19 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
+/**
+ * The TestInfoBot copies 'checks' from the source repository of a PR to the
+ * PR itself. In GitHub, these checks are usually workflow/action runs which
+ * users may have activated on their personal forks. By copying them to a PR,
+ * reviewers can easily see the status of the last workflow runs directly in
+ * the PR.
+ * <p>
+ * The bot polls for work using the standard PullRequestPoller, so will
+ * process any updated PR. Depending on the outcome of this processing, the
+ * TestInfoBotWorkItem calls back to the bot with a re-check request which
+ * causes the bot to submit that PR again after the specified amount of time,
+ * or earlier if another change the PR has been detected.
+ */
 public class TestInfoBot implements Bot {
     private final HostedRepository repo;
     private final PullRequestPoller poller;
@@ -38,10 +51,6 @@ public class TestInfoBot implements Bot {
     TestInfoBot(HostedRepository repo) {
         this.repo = repo;
         this.poller = new PullRequestPoller(repo, true);
-    }
-
-    private String pullRequestToKey(PullRequest pr) {
-        return pr.id() + "#" + pr.headHash().hex();
     }
 
     @Override
