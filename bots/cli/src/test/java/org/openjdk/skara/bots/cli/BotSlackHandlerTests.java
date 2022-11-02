@@ -45,14 +45,29 @@ class BotSlackHandlerTests {
     void simple() throws IOException {
 
         try (var receiver = new RestReceiver()) {
-            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", Duration.ofSeconds(1), new HashMap<>());
+            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", "testc", Duration.ofSeconds(1), new HashMap<>());
             var record = new LogRecord(Level.INFO, "Hello");
             handler.publish(record);
 
             var requests = receiver.getRequests();
             assertEquals(1, requests.size(), requests.toString());
             assertEquals("test", requests.get(0).get("username").asString());
-            assertTrue(requests.get(0).get("text").asString().contains("Hello"));
+            assertEquals("`testc` `INFO` Hello", requests.get(0).get("text").asString());
+        }
+    }
+
+    @Test
+    void noUser() throws IOException {
+
+        try (var receiver = new RestReceiver()) {
+            var handler = new BotSlackHandler(receiver.getEndpoint(), null, null, Duration.ofSeconds(1), new HashMap<>());
+            var record = new LogRecord(Level.INFO, "Hello");
+            handler.publish(record);
+
+            var requests = receiver.getRequests();
+            assertEquals(1, requests.size(), requests.toString());
+            assertNull(requests.get(0).get("username"));
+            assertEquals("`INFO` Hello", requests.get(0).get("text").asString());
         }
     }
 
@@ -60,7 +75,7 @@ class BotSlackHandlerTests {
     void throttled() throws IOException, InterruptedException {
         try (var receiver = new RestReceiver()) {
             final var maxDuration = Duration.ofMillis(1500);
-            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", maxDuration, new HashMap<>());
+            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", null, maxDuration, new HashMap<>());
 
             // Post until we hit throttling
             var posted = 0;
@@ -96,7 +111,7 @@ class BotSlackHandlerTests {
     @Test
     void unthrottled() throws IOException, InterruptedException {
         try (var receiver = new RestReceiver()) {
-            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", Duration.ofMillis(1), new HashMap<>());
+            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", null, Duration.ofMillis(1), new HashMap<>());
             var record = new LogRecord(Level.INFO, "Hello");
             handler.publish(record);
             Thread.sleep(10);
@@ -117,7 +132,7 @@ class BotSlackHandlerTests {
         try (var receiver = new RestReceiver()) {
             var details = new HashMap<String, String>();
             details.put(".*error: (xyz).*", "http://go.to/$1");
-            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", Duration.ofMillis(1), details);
+            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", null, Duration.ofMillis(1), details);
 
             var record = new LogRecord(Level.INFO, "Something bad happened. error: xyz occurred");
             handler.publish(record);
@@ -139,7 +154,7 @@ class BotSlackHandlerTests {
         try (var receiver = new RestReceiver()) {
             var details = new HashMap<String, String>();
             details.put(".*error: (xyz).*", "http://go.to/$1");
-            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", Duration.ofMillis(1), details);
+            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", null, Duration.ofMillis(1), details);
 
             var record = new LogRecord(Level.INFO, "Something bad happened. error: abc occurred");
             handler.publish(record);
@@ -156,7 +171,7 @@ class BotSlackHandlerTests {
     @Test
     void taskLog() throws IOException {
         try (var receiver = new RestReceiver()) {
-            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", Duration.ZERO, new HashMap<>());
+            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", null, Duration.ZERO, new HashMap<>());
 
             LoggingBot.runOnce(handler, log -> {
                 log.warning("Hello");
@@ -176,7 +191,7 @@ class BotSlackHandlerTests {
         try (var receiver = new RestReceiver()) {
             var details = new HashMap<String, String>();
             details.put("error: (def) occured$", "http://go.to/$1");
-            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", Duration.ZERO, details);
+            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", null, Duration.ZERO, details);
 
             LoggingBot.runOnce(handler, log -> {
                 log.warning("Hello");

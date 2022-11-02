@@ -38,15 +38,17 @@ class BotSlackHandler extends BotTaskAggregationHandler {
 
     private final RestRequest webhook;
     private final String username;
+    private final String configName;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.cli");;
     private final Duration minimumSeparation;
     private final Map<Pattern, String> linkPatterns;
     private Instant lastUpdate;
     private int dropCount;
 
-    BotSlackHandler(URI webhookUrl, String username, Duration minimumSeparation, Map<String, String> links) {
+    BotSlackHandler(URI webhookUrl, String username, String configName, Duration minimumSeparation, Map<String, String> links) {
         webhook = new RestRequest(webhookUrl);
         this.username = username;
+        this.configName = configName;
         this.minimumSeparation = minimumSeparation;
         linkPatterns = links.entrySet().stream()
                             .collect(Collectors.toMap(entry -> Pattern.compile(entry.getKey(),
@@ -117,7 +119,7 @@ class BotSlackHandler extends BotTaskAggregationHandler {
 
         var important = task.stream()
                             .filter(record -> record.getLevel().intValue() >= getLevel().intValue())
-                            .map(record -> "`" + record.getLevel().getName() + "` " + record.getMessage())
+                            .map(this::formatMessage)
                             .collect(Collectors.joining("\n"));
         publishToSlack(important);
     }
@@ -128,7 +130,15 @@ class BotSlackHandler extends BotTaskAggregationHandler {
             return;
         }
 
-        var message = "`" + record.getLevel().getName() + "` " + record.getMessage();
-        publishToSlack(message);
+        publishToSlack(formatMessage(record));
+    }
+
+    private String formatMessage(LogRecord record) {
+        var message = new StringBuilder();
+        if (configName != null) {
+            message.append("`").append(configName).append("` ");
+        }
+        message.append("`").append(record.getLevel().getName()).append("` ").append(record.getMessage());
+        return message.toString();
     }
 }
