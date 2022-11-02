@@ -51,6 +51,8 @@ public class GitLabMergeRequest implements PullRequest {
     // Lazy cache for comparisonSnapshot
     private Object comparisonSnapshot;
 
+    private static final int GITLAB_MR_COMMENT_BODY_MAX_SIZE = 64_000;
+
     GitLabMergeRequest(GitLabRepository repository, GitLabHost host, JSONValue jsonValue, RestRequest request) {
         this.repository = repository;
         this.host = host;
@@ -396,6 +398,7 @@ public class GitLabMergeRequest implements PullRequest {
     @Override
     public Comment addComment(String body) {
         log.fine("Posting a new comment");
+        body = limitBodySize(body);
         var comment = request.post("notes")
                              .body("body", body)
                              .execute();
@@ -412,6 +415,7 @@ public class GitLabMergeRequest implements PullRequest {
     @Override
     public Comment updateComment(String id, String body) {
         log.fine("Updating existing comment " + id);
+        body =  limitBodySize(body);
         var comment = request.put("notes/" + id)
                              .body("body", body)
                              .execute();
@@ -888,5 +892,13 @@ public class GitLabMergeRequest implements PullRequest {
     @Override
     public int hashCode() {
         return Objects.hash(json);
+    }
+
+    private String limitBodySize(String body) {
+        if (body.length() > GITLAB_MR_COMMENT_BODY_MAX_SIZE) {
+            return body.substring(0, GITLAB_MR_COMMENT_BODY_MAX_SIZE)
+                    + "...";
+        }
+        return body;
     }
 }

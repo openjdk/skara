@@ -26,6 +26,7 @@ import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.host.Credential;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.test.ManualTestSettings;
@@ -128,5 +129,23 @@ public class GitHubRestApiTests {
         // `43336822` is the id of the `openjdk` bot(a GitHub App).
         jdkHashOpt = jdkPr.findIntegratedCommitHash(List.of("43336822"));
         assertTrue(jdkHashOpt.isPresent());
+    }
+
+    @Test
+    void testOversizeComment() {
+        var testRepoOpt = githubHost.repository("openjdk/playground");
+        assumeTrue(testRepoOpt.isPresent());
+        var testRepo = testRepoOpt.get();
+        var testPr = testRepo.pullRequest("99");
+
+        // Test add comment
+        Comment comment = testPr.addComment("1".repeat(1_000_000));
+        assertTrue(comment.body().contains("..."));
+        assertTrue(comment.body().contains("1"));
+
+        // Test update comment
+        Comment updateComment = testPr.updateComment(comment.id(), "2".repeat(2_000_000));
+        assertTrue(updateComment.body().contains("..."));
+        assertTrue(updateComment.body().contains("2"));
     }
 }
