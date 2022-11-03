@@ -130,23 +130,31 @@ public class CommitCommandWorkItem implements WorkItem {
         if (nextCommand.isEmpty()) {
             log.info("No new commit comments found, stopping further processing");
         } else {
-            var census = LimitedCensusInstance.createLimitedCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(),
-                                               scratchPath.resolve("census"), bot.repo(), commit.hash().hex(),
-                                               bot.confOverrideRepository().orElse(null),
-                                               bot.confOverrideName(),
-                                               bot.confOverrideRef());
+            Optional<LimitedCensusInstance> census = Optional.empty();
             var command = nextCommand.get();
-            if (census.isEmpty()) {
+            try {
+                census = LimitedCensusInstance.createLimitedCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(),
+                        scratchPath.resolve("census"), bot.repo(), commit.hash().hex(),
+                        bot.confOverrideRepository().orElse(null),
+                        bot.confOverrideName(),
+                        bot.confOverrideRef());
+            } catch (MissingJCheckConfException e) {
                 var comment = String.format(commandReplyMarker, command.id()) + "\n" +
-                              "@" + command.user().username() +
-                              " there is no `.jcheck/conf` present at revision " +
-                              commit.hash().abbreviate() + " - cannot process command.";
+                        "@" + command.user().username() +
+                        " there is no `.jcheck/conf` present at revision " +
+                        commit.hash().abbreviate() + " - cannot process command.";
                 bot.repo().addCommitComment(commit.hash(), comment);
-            } else {
-                processCommand(scratchPath, commit, census.get(), command, allComments);
+                return List.of();
+            } catch (InvalidJCheckConfException e) {
+                var comment = String.format(commandReplyMarker, command.id()) + "\n" +
+                        "@" + command.user().username() +
+                        " invalid `.jcheck/conf` present at revision " +
+                        commit.hash().abbreviate() + " - cannot process command.";
+                bot.repo().addCommitComment(commit.hash(), comment);
+                return List.of();
             }
+            processCommand(scratchPath, commit, census.get(), command, allComments);
         }
-
         return List.of();
     }
 

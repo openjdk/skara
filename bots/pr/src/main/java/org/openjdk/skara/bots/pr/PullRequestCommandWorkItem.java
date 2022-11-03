@@ -196,8 +196,13 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
 
-        var census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
-                                           bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef()).orElseThrow();
+        CensusInstance census = null;
+        try {
+            census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
+                    bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef()).orElseThrow();
+        } catch (InvalidJCheckConfException | MissingJCheckConfException e) {
+            throw new RuntimeException(e);
+        }
         var command = nextCommand.get();
         log.info("Processing command: " + command.id() + " - " + command.name());
 

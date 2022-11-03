@@ -224,12 +224,36 @@ class CheckWorkItem extends PullRequestWorkItem {
         // First determine if the current state of the PR has already been checked
         var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-
-        var census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
-                                           bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef()).orElseThrow();
+        CensusInstance census = null;
         var comments = pr.comments();
         var allReviews = pr.reviews();
         var labels = new HashSet<>(pr.labelNames());
+        try {
+            census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
+                    bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef()).orElseThrow();
+        } catch (MissingJCheckConfException e) {
+            if (bot.confOverrideRepository().isEmpty()) {
+                var text = " ⚠️ @" + pr.author().username() + " The `.jcheck/conf` in the target branch of this pull request is missing completely. "
+                        + "Until that is resolved, this pull request cannot be processed. Please notify the repository owner.";
+                addErrorComment(text, comments);
+            } else {
+                var text = " ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository could not be resolved. "
+                        + "Until that is resolved, this pull request cannot be processed. Please notify a Skara admin.";
+                addErrorComment(text, comments);
+            }
+            return List.of();
+        } catch (InvalidJCheckConfException e) {
+            if (bot.confOverrideRepository().isEmpty()) {
+                var text = " ⚠️ @" + pr.author().username() + " The `.jcheck/conf` in the target branch of this pull request is invalid. "
+                        + "Until that is resolved, this pull request cannot be processed. Please notify the repository owner.";
+                addErrorComment(text, comments);
+            } else {
+                var text = " ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository could not be resolved. "
+                        + "Until that is resolved, this pull request cannot be processed. Please notify a Skara admin.";
+                addErrorComment(text, comments);
+            }
+            return List.of();
+        }
 
         // Filter out the active reviews
         var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews, pr.targetRef());
@@ -251,7 +275,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                                 ":warning: @" + pr.author().username() + " the given backport hash `" + hash.hex() +
                                 "` is an ancestor of your proposed change. Please update the title with the hash for" +
                                 " the change you are backporting.";
-                        addBackportErrorComment(text, comments);
+                        addErrorComment(text, comments);
                         return List.of();
                     }
                 } catch (IOException e) {
@@ -267,7 +291,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                                    ":warning: @" + pr.author().username() + " the commit `" + hash.hex() + "`" +
                                    " does not refer to an issue in project [" +
                                    bot.issueProject().name() + "](" + bot.issueProject().webUrl() + ").";
-                        addBackportErrorComment(text, comments);
+                        addErrorComment(text, comments);
                         return List.of();
                     }
 
@@ -278,7 +302,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                                    ":warning: @" + pr.author().username() + " the issue with id `" + id + "` from commit " +
                                    "`" + hash.hex() + "` does not exist in project [" +
                                    bot.issueProject().name() + "](" + bot.issueProject().webUrl() + ").";
-                        addBackportErrorComment(text, comments);
+                        addErrorComment(text, comments);
                         return List.of();
                     }
                     pr.setTitle(id + ": " + issue.get().title());
@@ -308,7 +332,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     var text = "<!-- backport error -->\n" +
                             ":warning: @" + pr.author().username() + " could not find any commit with hash `" +
                             hash.hex() + "`. Please update the title with the hash for an existing commit.";
-                    addBackportErrorComment(text, comments);
+                    addErrorComment(text, comments);
                     return List.of();
                 }
             }
@@ -324,7 +348,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     var text = "<!-- backport error -->\n" +
                             ":warning: @" + pr.author().username() + " the issue prefix `" + prefix + "` does not" +
                             " match project [" + project.name() + "](" + project.webUrl() + ").";
-                    addBackportErrorComment(text, comments);
+                    addErrorComment(text, comments);
                     return List.of();
                 }
                 var issue = project.issue(id);
@@ -332,7 +356,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     var text = "<!-- backport error -->\n" +
                             ":warning: @" + pr.author().username() + " the issue with id `" + id + "` " +
                             "does not exist in project [" + project.name() + "](" + project.webUrl() + ").";
-                    addBackportErrorComment(text, comments);
+                    addErrorComment(text, comments);
                     return List.of();
                 }
                 pr.setTitle(id + ": " + issue.get().title());
@@ -388,7 +412,7 @@ class CheckWorkItem extends PullRequestWorkItem {
     /**
      * Only adds comment if not already present
      */
-    private void addBackportErrorComment(String text, List<Comment> comments) {
+    private void addErrorComment(String text, List<Comment> comments) {
         var botUser = pr.repository().forge().currentUser();
         if (comments.stream()
                 .filter(c -> c.author().equals(botUser))

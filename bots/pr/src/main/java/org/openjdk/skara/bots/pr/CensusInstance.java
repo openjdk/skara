@@ -50,14 +50,14 @@ class CensusInstance extends LimitedCensusInstance {
 
     static Optional<CensusInstance> createCensusInstance(HostedRepositoryPool hostedRepositoryPool,
                                  HostedRepository censusRepo, String censusRef, Path folder, PullRequest pr,
-                                 HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
+                                 HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) throws InvalidJCheckConfException, MissingJCheckConfException {
         return createCensusInstance(hostedRepositoryPool, censusRepo, censusRef, folder, pr.repository(), pr.targetRef(),
                       confOverrideRepo, confOverrideName, confOverrideRef);
     }
 
     static Optional<CensusInstance> createCensusInstance(HostedRepositoryPool hostedRepositoryPool,
                                  HostedRepository censusRepo, String censusRef, Path folder, HostedRepository repository, String ref,
-                                 HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
+                                 HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) throws InvalidJCheckConfException, MissingJCheckConfException {
         var limitedCensusInstance = LimitedCensusInstance.createLimitedCensusInstance(hostedRepositoryPool, censusRepo,
                 censusRef, folder, repository, ref, confOverrideRepo, confOverrideName, confOverrideRef);
         return limitedCensusInstance.map(l ->
