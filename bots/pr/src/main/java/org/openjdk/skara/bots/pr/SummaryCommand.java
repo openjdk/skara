@@ -28,9 +28,11 @@ import org.openjdk.skara.issuetracker.Comment;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class SummaryCommand implements CommandHandler {
+    private static final Pattern INVALID_SUMMARY_PATTERN = Pattern.compile("(^(Co-authored-by:)(.*))|(^(Reviewed-by:)(.*))|(^(Backport-of:)(.*))|(^[0-9]+:(.*))");
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!command.user().equals(pr.author())) {
@@ -50,17 +52,28 @@ public class SummaryCommand implements CommandHandler {
             var summary = command.args().lines()
                                  .map(String::strip)
                                  .collect(Collectors.joining("\n"));
-            var action = currentSummary.isPresent() ? "Updating existing" : "Setting";
-            if (summary.contains("\n")) {
-                reply.println(action + " summary to:\n" +
-                                      "\n" +
-                                      "```\n" +
-                                      summary +
-                                      "\n```");
+            if (!checkSummary(summary)) {
+                reply.println("Invalid summary:\n" +
+                        "\n" +
+                        "```\n" +
+                        summary +
+                        "\n```\n" +
+                        "A summary line cannot start with any of the following: " +
+                        "`<issue-id>:`, `Co-authored-by:`, `Reviewed-by:`, `Backport-of:`. " +
+                        "See [JEP 357](https://openjdk.org/jeps/357) for details.");
             } else {
-                reply.println(action + " summary to `" + summary + "`");
+                var action = currentSummary.isPresent() ? "Updating existing" : "Setting";
+                if (summary.contains("\n")) {
+                    reply.println(action + " summary to:\n" +
+                            "\n" +
+                            "```\n" +
+                            summary +
+                            "\n```");
+                } else {
+                    reply.println(action + " summary to `" + summary + "`");
+                }
+                reply.println(Summary.setSummaryMarker(summary));
             }
-            reply.println(Summary.setSummaryMarker(summary));
         }
     }
 
@@ -76,6 +89,16 @@ public class SummaryCommand implements CommandHandler {
 
     @Override
     public boolean allowedInBody() {
+        return true;
+    }
+
+    private boolean checkSummary(String summary) {
+        String[] lines = summary.split("\n");
+        for (String line : lines) {
+            if (INVALID_SUMMARY_PATTERN.matcher(line).matches()) {
+                return false;
+            }
+        }
         return true;
     }
 }

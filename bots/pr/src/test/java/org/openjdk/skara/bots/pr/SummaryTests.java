@@ -386,4 +386,52 @@ class SummaryTests {
                                               "```");
         }
     }
+
+    @Test
+    void invalidSummaryTest(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(integrator.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            pr.addComment("/summary Co-authored-by: user1");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "Invalid summary");
+
+            pr.addComment("/summary first line\n Reviewed-by: user1");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "Invalid summary");
+
+            pr.addComment("/summary Backport-of: 12434");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "Invalid summary");
+
+            pr.addComment("/summary 1642: TITLE");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "Invalid summary");
+
+            pr.addComment("/summary normal comment");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "Setting summary to `normal comment`");
+
+            System.out.println(pr.store().comments());
+        }
+    }
 }
