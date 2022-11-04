@@ -2308,7 +2308,7 @@ class CheckTests {
 
             // Make .jcheck/conf invalid
             try (var output = new FileWriter(tempFolder.path().resolve(".jcheck/conf").toFile(), true)) {
-                output.append("\n6r4tt32etdffyufv");
+                output.append("\nRandomCharacters");
             }
             localRepo.add(tempFolder.path().resolve(".jcheck/conf"));
             var masterHash = localRepo.commit("make .jcheck/conf invalid", "testauthor", "ta@none.none");
@@ -2439,7 +2439,7 @@ class CheckTests {
             localRepo.checkout(jCheckBranch);
             var checkConf = tempFolder.path().resolve("jcheck.conf");
             try (var output = new FileWriter(checkConf.toFile(), true)) {
-                output.append("\n6r4tt32etdffyufv");
+                output.append("\nRandomCharacters");
             }
             localRepo.add(checkConf);
             var confHash = localRepo.commit("restore conf", "testauthor", "ta@none.none");

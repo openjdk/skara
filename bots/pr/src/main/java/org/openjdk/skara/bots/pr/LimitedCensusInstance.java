@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.openjdk.skara.census.Census;
 import org.openjdk.skara.census.Contributor;
@@ -15,6 +16,7 @@ import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.HostedRepositoryPool;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
+import org.openjdk.skara.network.UncheckedRestException;
 
 class MissingJCheckConfException extends Exception {
     public MissingJCheckConfException() {
@@ -68,16 +70,15 @@ class LimitedCensusInstance {
     }
 
     private static Optional<JCheckConfiguration> configuration(HostedRepository remoteRepo, String name, String ref) {
-        Optional<List<String>> conf;
+        Optional<List<String>> conf = Optional.empty();
         try {
             conf = Optional.of(Arrays.stream(remoteRepo.fileContents(name, ref).split("\n")).toList());
-        } catch (RuntimeException e) {
-            if (e.getMessage().contains("Request returned bad status:")) {
-                if (!e.getMessage().contains("404")) {
-                    throw e;
-                }
+        } catch (NoSuchElementException ignored) {
+            // NoSuchElementException will only work for tests
+        } catch (UncheckedRestException e) {
+            if (e.getStatusCode() != 404) {
+                throw e;
             }
-            conf = Optional.empty();
         }
         return conf.map(JCheckConfiguration::parse);
     }
@@ -95,10 +96,9 @@ class LimitedCensusInstance {
                         confOverrideRef);
             }
             return configuration;
+        } catch (UncheckedRestException e) {
+            throw e;
         } catch (RuntimeException e) {
-            if (e.getMessage().contains("Request returned bad status:")) {
-                throw e;
-            }
             throw new InvalidJCheckConfException(e);
         }
     }
