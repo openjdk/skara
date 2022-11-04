@@ -55,11 +55,12 @@ public class TestInfoBot implements Bot {
 
     @Override
     public List<WorkItem> getPeriodicItems() {
+        var now = Instant.now();
         var prs = poller.updatedPullRequests();
         return prs.stream()
                 .filter(pr -> pr.sourceRepository().isPresent())
                 .map(pr -> (WorkItem) new TestInfoBotWorkItem(pr,
-                        recheckIn -> poller.retryPullRequest(pr, Instant.now().plus(recheckIn))))
+                        delay -> poller.retryPullRequest(pr, now.plus(delay))))
                 .toList();
     }
 

@@ -36,12 +36,12 @@ public class TestInfoBotWorkItem implements WorkItem {
     // This is a callback to the bot telling it that this PR needs a recheck after the
     // specified duration. If this isn't called, then the PR will only be rechecked if
     // it is updated by someone else.
-    private final Consumer<Duration> recheckIn;
+    private final Consumer<Duration> retry;
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
 
-    TestInfoBotWorkItem(PullRequest pr, Consumer<Duration> recheckIn) {
+    TestInfoBotWorkItem(PullRequest pr, Consumer<Duration> retry) {
         this.pr = pr;
-        this.recheckIn = recheckIn;
+        this.retry = retry;
     }
 
     @Override
@@ -98,11 +98,11 @@ public class TestInfoBotWorkItem implements WorkItem {
             if (noticeCheck == null) {
                 pr.createCheck(testingNotConfiguredNotice(pr));
             }
-            // It's pretty unlikely that a user suddenly enables workflows. I think we
-            // can be pretty lax with automatically discovering this. Touching the PR
+            // It's pretty unlikely that a user suddenly enables workflows. We can
+            // be pretty lax with automatically discovering this. Touching the PR
             // will always trigger an immediate recheck anyway.
             if (pr.isOpen()) {
-                recheckIn.accept(Duration.ofMinutes(30));
+                retry.accept(Duration.ofMinutes(30));
             }
         } else if (sourceRepo.workflowStatus() == WorkflowStatus.DISABLED) {
             // Explicitly disabled - could possibly post a notice
@@ -113,7 +113,7 @@ public class TestInfoBotWorkItem implements WorkItem {
                 // looking as long as the PR is open.
                 log.fine("No checks found to summarize - waiting");
                 if (pr.isOpen()) {
-                    recheckIn.accept(Duration.ofMinutes(2));
+                    retry.accept(Duration.ofMinutes(2));
                 }
             } else {
                 Optional<Duration> expiresIn = TestResults.expiresIn(sourceChecks);
@@ -122,14 +122,14 @@ public class TestInfoBotWorkItem implements WorkItem {
                     // to longer recheck intervals if the PR hasn't been updated in the
                     // last 24h and is still open.
                     if (pr.updatedAt().isAfter(ZonedDateTime.now().minus(Duration.ofDays(1)))) {
-                        recheckIn.accept(expiresIn.get());
+                        retry.accept(expiresIn.get());
                     } else if (pr.isOpen()) {
-                        recheckIn.accept(Duration.ofMinutes(30));
+                        retry.accept(Duration.ofMinutes(30));
                     }
                 } else if (pr.isOpen()) {
                     // All current checks are finished, as long as PR is open, keep rechecking
                     // at regular, but much longer intervals.
-                    recheckIn.accept(Duration.ofMinutes(30));
+                    retry.accept(Duration.ofMinutes(30));
                 }
             }
 
