@@ -76,7 +76,7 @@ public class BotLauncher {
             }
             var handler = new BotSlackHandler(URIBuilder.base(config.get("log").get("slack").get("webhook").asString()).build(),
                     config.get("log").get("slack").get("username").asString(),
-                    config.get("log").get("slack").get("configname").asString(),
+                    config.get("log").get("slack").get("prefix").asString(),
                     maxRate,
                     details);
             handler.setLevel(level);

@@ -45,7 +45,7 @@ class BotSlackHandlerTests {
     void simple() throws IOException {
 
         try (var receiver = new RestReceiver()) {
-            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", "testc", Duration.ofSeconds(1), new HashMap<>());
+            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", "`testc` ", Duration.ofSeconds(1), new HashMap<>());
             var record = new LogRecord(Level.INFO, "Hello");
             handler.publish(record);
 

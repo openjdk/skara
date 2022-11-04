@@ -38,17 +38,17 @@ class BotSlackHandler extends BotTaskAggregationHandler {
 
     private final RestRequest webhook;
     private final String username;
-    private final String configName;
+    private final String prefix;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.cli");;
     private final Duration minimumSeparation;
     private final Map<Pattern, String> linkPatterns;
     private Instant lastUpdate;
     private int dropCount;
 
-    BotSlackHandler(URI webhookUrl, String username, String configName, Duration minimumSeparation, Map<String, String> links) {
+    BotSlackHandler(URI webhookUrl, String username, String prefix, Duration minimumSeparation, Map<String, String> links) {
         webhook = new RestRequest(webhookUrl);
         this.username = username;
-        this.configName = configName;
+        this.prefix = prefix;
         this.minimumSeparation = minimumSeparation;
         linkPatterns = links.entrySet().stream()
                             .collect(Collectors.toMap(entry -> Pattern.compile(entry.getKey(),
@@ -135,8 +135,8 @@ class BotSlackHandler extends BotTaskAggregationHandler {
 
     private String formatMessage(LogRecord record) {
         var message = new StringBuilder();
-        if (configName != null) {
-            message.append("`").append(configName).append("` ");
+        if (prefix != null) {
+            message.append(prefix);
         }
         message.append("`").append(record.getLevel().getName()).append("` ").append(record.getMessage());
         return message.toString();
