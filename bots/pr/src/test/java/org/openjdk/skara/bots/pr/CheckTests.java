@@ -2224,4 +2224,119 @@ class CheckTests {
             assertTrue(pr.store().body().contains("1 is used in problem lists"));
         }
     }
+
+    @Test
+    void testJCheckConfCheck(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+
+            // Remove .jcheck/conf
+            localRepo.remove(localRepo.root().resolve(".jcheck/conf"));
+            localRepo.commit("no conf", "testauthor", "ta@none.none");
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // write new conf
+            Files.createDirectories(tempFolder.path().resolve(".jcheck"));
+            var checkConf = tempFolder.path().resolve(".jcheck/conf");
+            try (var output = Files.newBufferedWriter(checkConf)) {
+                output.append("[general]\n");
+                output.append("project=test\n");
+                output.append("jbs=tstprj\n");
+                output.append("\n");
+                output.append("[checks]\n");
+                output.append("error=");
+                output.append(String.join(",", Set.of("author", "reviewers", "whitespace", "jcheckconf")));
+                output.append("\n\n");
+                output.append("[census]\n");
+                output.append("version=0\n");
+                output.append("domain=openjdk.org\n");
+                output.append("\n");
+                output.append("[checks \"whitespace\"]\n");
+                output.append("files=.*\\.txt\n");
+                output.append("\n");
+                output.append("[checks \"reviewers\"]\n");
+                output.append("reviewers=1\n");
+            }
+            localRepo.add(checkConf);
+            masterHash = localRepo.commit("add conf to master", "testauthor", "ta@none.none");
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Create a new branch
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.SUCCESS, check.status());
+
+            // Make .jcheck/conf invalid
+            try (var output = new FileWriter(checkConf.toFile(), true)) {
+                output.append("\nRandomCharacters");
+            }
+            localRepo.add(checkConf);
+            var invalidHash = localRepo.commit("add conf to master", "testauthor", "ta@none.none");
+            localRepo.push(invalidHash, author.url(), "edit", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+            checks = pr.checks(invalidHash);
+            assertEquals(1, checks.size());
+            check = checks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, check.status());
+            assertTrue(pr.store().body().contains(".jcheck/conf is invalid: line 17: entry must be of form 'key = value'"));
+
+            // Restore .jcheck/conf
+            try (var output = Files.newBufferedWriter(checkConf)) {
+                output.append("[general]\n");
+                output.append("project=test\n");
+                output.append("jbs=tstprj\n");
+                output.append("\n");
+                output.append("[checks]\n");
+                output.append("error=");
+                output.append(String.join(",", Set.of("author", "reviewers", "whitespace", "jcheckconf")));
+                output.append("\n\n");
+                output.append("[census]\n");
+                output.append("version=0\n");
+                output.append("domain=openjdk.org\n");
+                output.append("\n");
+                output.append("[checks \"whitespace\"]\n");
+                output.append("files=.*\\.txt\n");
+                output.append("\n");
+                output.append("[checks \"reviewers\"]\n");
+                output.append("reviewers=1\n");
+            }
+            localRepo.add(checkConf);
+            var restoreHash = localRepo.commit("restore .jcheck/conf", "testauthor", "ta@none.none");
+            localRepo.push(restoreHash, author.url(), "edit", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+            checks = pr.checks(restoreHash);
+            assertEquals(1, checks.size());
+            check = checks.get("jcheck");
+            assertEquals(CheckStatus.SUCCESS, check.status());
+        }
+    }
 }

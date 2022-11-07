@@ -285,4 +285,10 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     public void visit(ProblemListsIssue issue) {
         addFailureMessage(issue.check(), issue.issue() + " is used in problem lists: " + issue.files());
     }
+
+    @Override
+    public void visit(JCheckConfIssue issue) {
+        addFailureMessage(issue.check(), ".jcheck/conf is invalid: " + issue.getErrorMessage());
+        readyForReview = false;
+    }
 }
