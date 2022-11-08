@@ -18,7 +18,7 @@ public class JCheckConfCheckTests {
         List<String> conf;
 
         public JCheckConfTestRepository(List<String> text) {
-            conf = text;
+            conf = List.copyOf(text);
         }
 
         @Override
@@ -30,7 +30,7 @@ public class JCheckConfCheckTests {
         }
 
         public void setConf(List<String> text) {
-            conf = text;
+            conf = List.copyOf(text);
         }
     }
 
