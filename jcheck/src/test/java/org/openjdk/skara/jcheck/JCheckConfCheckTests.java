@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class JCheckConfCheckTests {
 
-    private static class JCheckConfTestRepository extends TestRepository {
+    private class JCheckConfTestRepository extends TestRepository {
         List<String> conf;
 
         public JCheckConfTestRepository(List<String> text) {
@@ -43,8 +43,6 @@ public class JCheckConfCheckTests {
 
     private static final JCheckConfiguration conf = JCheckConfiguration.parse(CONFIGURATION);
 
-    private static ReadOnlyRepository repo = new JCheckConfTestRepository(CONFIGURATION);
-
     private List<Issue> toList(Iterator<Issue> i) {
         var list = new ArrayList<Issue>();
         while (i.hasNext()) {
@@ -70,7 +68,7 @@ public class JCheckConfCheckTests {
     void validJCheckConfTest() {
         var commit = commit(0, "Bugfix");
         var message = message(commit);
-        var check = new JCheckConfCheck(repo);
+        var check = new JCheckConfCheck(new JCheckConfTestRepository(CONFIGURATION));
         var issues = toList(check.check(commit, message, conf, null));
         assertEquals(0, issues.size());
     }
@@ -79,9 +77,10 @@ public class JCheckConfCheckTests {
     void invalidJCheckConfTest() {
         var commit = commit(0, "Bugfix");
         var message = message(commit);
+        var repo = new JCheckConfTestRepository(CONFIGURATION);
         var check = new JCheckConfCheck(repo);
 
-        ((JCheckConfTestRepository) repo).setConf(List.of(
+        repo.setConf(List.of(
                 "[general] 36542",
                 "project = test",
                 "[checks]",
@@ -91,7 +90,7 @@ public class JCheckConfCheckTests {
         assertEquals(1, issues.size());
         assertEquals("line 0: section header must end with ']'", ((JCheckConfIssue) issues.get(0)).getErrorMessage());
 
-        ((JCheckConfTestRepository) repo).setConf(List.of(
+        repo.setConf(List.of(
                 "[general]",
                 "project = test",
                 "[checks]",
