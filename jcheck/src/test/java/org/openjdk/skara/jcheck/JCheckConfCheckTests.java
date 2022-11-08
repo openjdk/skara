@@ -18,19 +18,19 @@ public class JCheckConfCheckTests {
         List<String> conf;
 
         public JCheckConfTestRepository(List<String> text) {
-            conf = List.copyOf(text);
+            conf = text;
         }
 
         @Override
         public Optional<List<String>> lines(Path p, Hash h) throws IOException {
-            if (p.toString().equals(".jcheck/conf")) {
+            if (p.toString().contains("conf")) {
                 return Optional.of(conf);
             }
             return super.lines(p, h);
         }
 
         public void setConf(List<String> text) {
-            conf = List.copyOf(text);
+            conf = text;
         }
     }
 
