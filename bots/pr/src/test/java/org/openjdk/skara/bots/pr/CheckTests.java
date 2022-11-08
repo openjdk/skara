@@ -2292,6 +2292,7 @@ class CheckTests {
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
+            assertTrue(pr.store().labelNames().contains("rfr"));
 
             // Make .jcheck/conf invalid
             try (var output = new FileWriter(checkConf.toFile(), true)) {
@@ -2307,6 +2308,7 @@ class CheckTests {
             check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
             assertTrue(pr.store().body().contains(".jcheck/conf is invalid: line 17: entry must be of form 'key = value'"));
+            assertFalse(pr.store().labelNames().contains("rfr"));
 
             // Restore .jcheck/conf
             try (var output = Files.newBufferedWriter(checkConf)) {
@@ -2337,6 +2339,7 @@ class CheckTests {
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
+            assertTrue(pr.store().labelNames().contains("rfr"));
         }
     }
 }
