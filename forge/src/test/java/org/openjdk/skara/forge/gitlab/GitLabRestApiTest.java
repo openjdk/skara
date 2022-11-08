@@ -129,4 +129,19 @@ public class GitLabRestApiTest {
         assertTrue(updateComment.body().contains("..."));
         assertTrue(updateComment.body().contains("2"));
     }
+
+    @Test
+    void testLatestBody() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var username = settings.getProperty("gitlab.user");
+        var token = settings.getProperty("gitlab.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
+        var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
+
+        String latestBody = gitLabMergeRequest.latestBody();
+        assertEquals("This is a body", latestBody);
+    }
 }

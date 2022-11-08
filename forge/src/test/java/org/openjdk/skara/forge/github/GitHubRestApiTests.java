@@ -148,4 +148,15 @@ public class GitHubRestApiTests {
         assertTrue(updateComment.body().contains("..."));
         assertTrue(updateComment.body().contains("2"));
     }
+
+    @Test
+    void testLatestBody(){
+        var testRepoOpt = githubHost.repository("openjdk/playground");
+        assumeTrue(testRepoOpt.isPresent());
+        var testRepo = testRepoOpt.get();
+        var testPr = testRepo.pullRequest("99");
+
+        String latestBody = testPr.latestBody();
+        assertEquals("test", latestBody);
+    }
 }

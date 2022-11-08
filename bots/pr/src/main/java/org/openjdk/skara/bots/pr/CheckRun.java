@@ -738,9 +738,14 @@ class CheckRun {
         }
         var newBody = originalBody + "\n\n" + progressMarker + "\n" + message;
 
-        // TODO? Retrieve the body again here to lower the chance of concurrent updates
-        log.info("Updating PR body");
-        pr.setBody(newBody);
+        // Retrieve the body again here to lower the chance of concurrent updates
+        if (pr.body().equals(pr.latestBody())) {
+            log.info("Updating PR body");
+            pr.setBody(newBody);
+        } else {
+            log.info("PR body has been modified, won't update PR body this time");
+            return description;
+        }
         return newBody;
     }
 

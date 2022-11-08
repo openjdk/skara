@@ -795,4 +795,9 @@ public class GitHubPullRequest implements PullRequest {
         }
         return body;
     }
+
+    @Override
+    public String latestBody() {
+        return request.get("pulls/" + json.get("number").toString()).execute().get("body").asString();
+    }
 }
