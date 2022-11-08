@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class JCheckConfCheckTests {
 
-    private class JCheckConfTestRepository extends TestRepository {
+    private static class JCheckConfTestRepository extends TestRepository {
         List<String> conf;
 
         public JCheckConfTestRepository(List<String> text) {
@@ -43,7 +43,7 @@ public class JCheckConfCheckTests {
 
     private static final JCheckConfiguration conf = JCheckConfiguration.parse(CONFIGURATION);
 
-    private ReadOnlyRepository repo = new JCheckConfTestRepository(CONFIGURATION);
+    private static ReadOnlyRepository repo = new JCheckConfTestRepository(CONFIGURATION);
 
     private List<Issue> toList(Iterator<Issue> i) {
         var list = new ArrayList<Issue>();
