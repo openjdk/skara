@@ -260,7 +260,7 @@ public class CommitCommandTests {
 
             // Look at the reply
             var replies = author.commitComments(masterHash);
-            CommitCommandAsserts.assertLastCommentContains(replies, "there is no `.jcheck/conf` present");
+            CommitCommandAsserts.assertLastCommentContains(replies, "There is no `.jcheck/conf` present at revision");
             CommitCommandAsserts.assertLastCommentContains(replies, "cannot process command");
         }
     }
