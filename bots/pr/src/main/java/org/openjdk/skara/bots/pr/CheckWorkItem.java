@@ -233,7 +233,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef()).orElseThrow();
         } catch (MissingJCheckConfException e) {
             if (bot.confOverrideRepository().isEmpty()) {
-                var text = " ⚠️ @" + pr.author().username() + " The `.jcheck/conf` in the target branch of this pull request is missing completely. "
+                var text = " ⚠️ @" + pr.author().username() + " No `.jcheck/conf` found in the target branch of this pull request. "
                         + "Until that is resolved, this pull request cannot be processed. Please notify the repository owner.";
                 addErrorComment(text, comments);
             } else {
