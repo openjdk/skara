@@ -139,6 +139,7 @@ public class CommitCommandWorkItem implements WorkItem {
                         bot.confOverrideName(),
                         bot.confOverrideRef());
             } catch (MissingJCheckConfException e) {
+                log.info("No .jcheck/conf found: " + e);
                 var comment = String.format(commandReplyMarker, command.id()) + "\n" +
                         "@" + command.user().username() +
                         " There is no `.jcheck/conf` present at revision " +
@@ -146,6 +147,7 @@ public class CommitCommandWorkItem implements WorkItem {
                 bot.repo().addCommitComment(commit.hash(), comment);
                 return List.of();
             } catch (InvalidJCheckConfException e) {
+                log.info("Invalid .jcheck/conf: " + e);
                 var comment = String.format(commandReplyMarker, command.id()) + "\n" +
                         "@" + command.user().username() +
                         " Invalid `.jcheck/conf` present at revision " +

@@ -233,10 +233,12 @@ class CheckWorkItem extends PullRequestWorkItem {
                     bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
         } catch (MissingJCheckConfException e) {
             if (bot.confOverrideRepository().isEmpty()) {
+                log.info("No .jcheck/conf found in repo " + bot.repo().name() + ": " + e);
                 var text = " ⚠️ @" + pr.author().username() + " No `.jcheck/conf` found in the target branch of this pull request. "
                         + "Until that is resolved, this pull request cannot be processed. Please notify the repository owner.";
                 addErrorComment(text, comments);
             } else {
+                log.info("No .jcheck/conf found in external repo " + bot.confOverrideRepository().get().name() + ": " + e);
                 var text = " ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository could not be found. "
                         + "Until that is resolved, this pull request cannot be processed. Please notify a Skara admin.";
                 addErrorComment(text, comments);
@@ -244,10 +246,12 @@ class CheckWorkItem extends PullRequestWorkItem {
             return List.of();
         } catch (InvalidJCheckConfException e) {
             if (bot.confOverrideRepository().isEmpty()) {
+                log.info("Invalid .jcheck/conf found in repo " + bot.repo().name() + ": " + e);
                 var text = " ⚠️ @" + pr.author().username() + " The `.jcheck/conf` in the target branch of this pull request is invalid. "
                         + "Until that is resolved, this pull request cannot be processed. Please notify the repository owner.";
                 addErrorComment(text, comments);
             } else {
+                log.info("Invalid .jcheck/conf found in external repo " + bot.confOverrideRepository().get().name() + ": " + e);
                 var text = " ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository is invalid. "
                         + "Until that is resolved, this pull request cannot be processed. Please notify a Skara admin.";
                 addErrorComment(text, comments);
