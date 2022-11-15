@@ -237,7 +237,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                         + "Until that is resolved, this pull request cannot be processed. Please notify the repository owner.";
                 addErrorComment(text, comments);
             } else {
-                var text = " ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository could not be resolved. "
+                var text = " ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository could not be found. "
                         + "Until that is resolved, this pull request cannot be processed. Please notify a Skara admin.";
                 addErrorComment(text, comments);
             }
