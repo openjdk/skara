@@ -2263,7 +2263,7 @@ class CheckTests {
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
             var comments = pr.store().comments();
-            assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " The `.jcheck/conf` in the target branch of this pull request is missing completely. "
+            assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " No `.jcheck/conf` found in the target branch of this pull request. "
                     + "Until that is resolved, this pull request cannot be processed. Please notify the repository owner."));
             // Make sure the warning message will be sent only once
             TestBotRunner.runPeriodicItems(checkBot);
@@ -2385,14 +2385,14 @@ class CheckTests {
             // Check the status (should become ready immediately as reviewercount is overridden to 0)
             TestBotRunner.runPeriodicItems(checkBot);
             var comments = pr.store().comments();
-            assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository could not be resolved. "
+            assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository could not be found. "
                     + "Until that is resolved, this pull request cannot be processed. Please notify a Skara admin."));
             // Make sure the warning message will be sent only once
             TestBotRunner.runPeriodicItems(checkBot);
             TestBotRunner.runPeriodicItems(checkBot);
             assertEquals(1, pr.store().comments().size());
 
-            // upload .jcheck/conf to jcheck-branch
+            // Upload .jcheck/conf to jcheck-branch
             var jCheckBranch = localRepo.branch(masterHash, "jcheck-branch");
             localRepo.checkout(jCheckBranch);
             var checkConf = tempFolder.path().resolve("jcheck.conf");
@@ -2434,7 +2434,7 @@ class CheckTests {
             var newMasterHash = localRepo.commit("No more conf", "duke", "duke@openjdk.org");
             localRepo.push(newMasterHash, author.url(), "master");
 
-            // upload invalid jcheck.conf to conf repo
+            // Upload invalid jcheck.conf to conf repo
             var jCheckBranch = localRepo.branch(masterHash, "jcheck-branch");
             localRepo.checkout(jCheckBranch);
             var checkConf = tempFolder.path().resolve("jcheck.conf");
@@ -2456,7 +2456,7 @@ class CheckTests {
             // Check the status (should become ready immediately as reviewercount is overridden to 0)
             TestBotRunner.runPeriodicItems(checkBot);
             var comments = pr.store().comments();
-            assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository could not be resolved. "
+            assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository is invalid. "
                     + "Until that is resolved, this pull request cannot be processed. Please notify a Skara admin."));
             // Make sure the warning message will be sent only once
             TestBotRunner.runPeriodicItems(checkBot);

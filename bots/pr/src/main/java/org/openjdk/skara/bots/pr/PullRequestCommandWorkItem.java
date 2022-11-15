@@ -199,7 +199,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         CensusInstance census = null;
         try {
             census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
-                    bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef()).orElseThrow();
+                    bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
         } catch (InvalidJCheckConfException | MissingJCheckConfException e) {
             throw new RuntimeException(e);
         }

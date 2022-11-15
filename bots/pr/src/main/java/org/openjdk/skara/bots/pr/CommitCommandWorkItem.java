@@ -130,7 +130,7 @@ public class CommitCommandWorkItem implements WorkItem {
         if (nextCommand.isEmpty()) {
             log.info("No new commit comments found, stopping further processing");
         } else {
-            Optional<LimitedCensusInstance> census = Optional.empty();
+            LimitedCensusInstance census;
             var command = nextCommand.get();
             try {
                 census = LimitedCensusInstance.createLimitedCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(),
@@ -153,7 +153,7 @@ public class CommitCommandWorkItem implements WorkItem {
                 bot.repo().addCommitComment(commit.hash(), comment);
                 return List.of();
             }
-            processCommand(scratchPath, commit, census.get(), command, allComments);
+            processCommand(scratchPath, commit, census, command, allComments);
         }
         return List.of();
     }

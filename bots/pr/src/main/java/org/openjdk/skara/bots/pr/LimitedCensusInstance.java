@@ -44,7 +44,7 @@ class LimitedCensusInstance {
         this.namespace = namespace;
     }
 
-    static Optional<LimitedCensusInstance> createLimitedCensusInstance(HostedRepositoryPool hostedRepositoryPool,
+    static LimitedCensusInstance createLimitedCensusInstance(HostedRepositoryPool hostedRepositoryPool,
             HostedRepository censusRepo, String censusRef, Path folder, HostedRepository repository, String ref,
             HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) throws MissingJCheckConfException, InvalidJCheckConfException {
         Path repoFolder = getRepoFolder(hostedRepositoryPool, censusRepo, censusRef, folder);
@@ -54,7 +54,7 @@ class LimitedCensusInstance {
                     confOverrideName, confOverrideRef).orElseThrow(MissingJCheckConfException::new);
             var census = Census.parse(repoFolder);
             var namespace = namespace(census, repository.namespace());
-            return Optional.of(new LimitedCensusInstance(census, configuration, namespace));
+            return new LimitedCensusInstance(census, configuration, namespace);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot parse census at " + repoFolder, e);
         }

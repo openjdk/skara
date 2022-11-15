@@ -230,7 +230,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         var labels = new HashSet<>(pr.labelNames());
         try {
             census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
-                    bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef()).orElseThrow();
+                    bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
         } catch (MissingJCheckConfException e) {
             if (bot.confOverrideRepository().isEmpty()) {
                 var text = " ⚠️ @" + pr.author().username() + " No `.jcheck/conf` found in the target branch of this pull request. "
