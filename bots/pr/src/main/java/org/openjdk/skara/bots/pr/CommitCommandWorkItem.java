@@ -148,7 +148,7 @@ public class CommitCommandWorkItem implements WorkItem {
             } catch (InvalidJCheckConfException e) {
                 var comment = String.format(commandReplyMarker, command.id()) + "\n" +
                         "@" + command.user().username() +
-                        " invalid `.jcheck/conf` present at revision " +
+                        " Invalid `.jcheck/conf` present at revision " +
                         commit.hash().abbreviate() + " - cannot process command.";
                 bot.repo().addCommitComment(commit.hash(), comment);
                 return List.of();
