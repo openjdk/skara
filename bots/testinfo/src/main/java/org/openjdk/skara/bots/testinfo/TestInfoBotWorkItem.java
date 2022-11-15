@@ -146,7 +146,7 @@ public class TestInfoBotWorkItem implements WorkItem {
                 var current = targetChecks.get(check.name());
                 if ((current.status() != check.status()) ||
                         (!current.summary().equals(check.summary())) ||
-                        (!current.title().equals(check.summary()))) {
+                        (!current.title().equals(check.title()))) {
                     pr.updateCheck(check);
                 } else {
                     log.fine("Not updating unchanged check: " + check.name());
