@@ -78,8 +78,8 @@ public class BotLauncher {
             var username = slack.get("username");
             var prefix = slack.get("prefix");
             var handler = new BotSlackHandler(URIBuilder.base(slack.get("webhook").asString()).build(),
-                    username.isNull() ? null : username.asString(),
-                    prefix.isNull() ? null : prefix.asString(),
+                    username == null ? null : username.asString(),
+                    prefix == null ? null : prefix.asString(),
                     maxRate,
                     details);
             handler.setLevel(level);
