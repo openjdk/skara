@@ -29,6 +29,7 @@ import org.openjdk.skara.issuetracker.Comment;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.*;
 import java.util.stream.*;
@@ -139,20 +140,42 @@ public class CommitCommandWorkItem implements WorkItem {
                         bot.confOverrideName(),
                         bot.confOverrideRef());
             } catch (MissingJCheckConfException e) {
-                log.info("No .jcheck/conf found: " + e);
-                var comment = String.format(commandReplyMarker, command.id()) + "\n" +
-                        "@" + command.user().username() +
-                        " There is no `.jcheck/conf` present at revision " +
-                        commit.hash().abbreviate() + " - cannot process command.";
-                bot.repo().addCommitComment(commit.hash(), comment);
+                if (bot.confOverrideRepository().isEmpty()) {
+                    log.log(Level.SEVERE, "No .jcheck/conf found in repo " + bot.repo().name(), e);
+                    var comment = String.format(commandReplyMarker, command.id()) + "\n" +
+                            "@" + command.user().username() +
+                            " There is no `.jcheck/conf` present at revision " +
+                            commit.hash().abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(commit.hash(), comment);
+                } else {
+                    log.log(Level.SEVERE, "Jcheck configuration file " + bot.confOverrideName()
+                            + " not found in external repo " + bot.confOverrideRepository().get().name(), e);
+                    var comment = String.format(commandReplyMarker, command.id()) + "\n" +
+                            "@" + command.user().username() +
+                            " There is no Jcheck configuration file " + bot.confOverrideName()
+                            + " present in external repo " + bot.confOverrideRepository().get().name() + " at revision "
+                            + commit.hash().abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(commit.hash(), comment);
+                }
                 return List.of();
             } catch (InvalidJCheckConfException e) {
-                log.info("Invalid .jcheck/conf: " + e);
-                var comment = String.format(commandReplyMarker, command.id()) + "\n" +
-                        "@" + command.user().username() +
-                        " Invalid `.jcheck/conf` present at revision " +
-                        commit.hash().abbreviate() + " - cannot process command.";
-                bot.repo().addCommitComment(commit.hash(), comment);
+                if (bot.confOverrideRepository().isEmpty()) {
+                    log.log(Level.SEVERE, "Invalid .jcheck/conf found in repo " + bot.repo().name(), e);
+                    var comment = String.format(commandReplyMarker, command.id()) + "\n" +
+                            "@" + command.user().username() +
+                            " Invalid `.jcheck/conf` present at revision " +
+                            commit.hash().abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(commit.hash(), comment);
+                } else {
+                    log.log(Level.SEVERE, "Invalid Jcheck configuration file " + bot.confOverrideName()
+                            + " in external repo " + bot.confOverrideRepository().get().name(), e);
+                    var comment = String.format(commandReplyMarker, command.id()) + "\n" +
+                            "@" + command.user().username() +
+                            " Invalid Jcheck configuration file " + bot.confOverrideName() + " present in external repo "
+                            + bot.confOverrideRepository().get().name() + " at revision " +
+                            commit.hash().abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(commit.hash(), comment);
+                }
                 return List.of();
             }
             processCommand(scratchPath, commit, census, command, allComments);
