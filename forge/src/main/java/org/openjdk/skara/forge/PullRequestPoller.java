@@ -136,9 +136,9 @@ public class PullRequestPoller {
     }
 
     /**
-     * After calling getUpdatedPullRequests(), this method must be called to acknowledge
+     * After calling updatedPullRequests(), this method must be called to acknowledge
      * that all the PRs returned have been handled. If not, the previous results will be
-     * included in the next call to getUpdatedPullRequests() again.
+     * included in the next call to updatedPullRequests() again.
      * <p>
      * This method must be called before any retry/quarantine method is called for a pr
      * returned by the last updatedPullRequest call, otherwise retries may be lost.

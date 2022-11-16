@@ -87,9 +87,9 @@ public class IssuePoller {
     }
 
     /**
-     * After calling getUpdatedIssues(), this method must be called to acknowledge
+     * After calling updatedIssues(), this method must be called to acknowledge
      * that all the issues returned have been handled. If not, the previous results will be
-     * included in the next call to getUpdatedIssues() again.
+     * included in the next call to updatedIssues() again.
      */
     public synchronized void lastBatchHandled() {
         if (current != null) {
