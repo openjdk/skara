@@ -64,19 +64,22 @@ public class BotLauncher {
 
         if (config.get("log").asObject().contains("slack")) {
             var maxRate = Duration.ofMinutes(10);
-            if (config.get("log").get("slack").asObject().contains("maxrate")) {
-                maxRate = Duration.parse(config.get("log").get("slack").get("maxrate").asString());
+            JSONValue slack = config.get("log").get("slack");
+            if (slack.asObject().contains("maxrate")) {
+                maxRate = Duration.parse(slack.get("maxrate").asString());
             }
-            var level = Level.parse(config.get("log").get("slack").get("level").asString());
+            var level = Level.parse(slack.get("level").asString());
             Map<String, String> details = new HashMap<>();
-            if (config.get("log").get("slack").asObject().contains("details")) {
-                details = config.get("log").get("slack").get("details").asArray().stream()
+            if (slack.asObject().contains("details")) {
+                details = slack.get("details").asArray().stream()
                                 .collect(Collectors.toMap(o -> o.get("pattern").asString(),
                                                           o -> o.get("link").asString()));
             }
-            var handler = new BotSlackHandler(URIBuilder.base(config.get("log").get("slack").get("webhook").asString()).build(),
-                    config.get("log").get("slack").get("username").asString(),
-                    config.get("log").get("slack").get("prefix").asString(),
+            var username = slack.get("username");
+            var prefix = slack.get("prefix");
+            var handler = new BotSlackHandler(URIBuilder.base(slack.get("webhook").asString()).build(),
+                    username == null ? null : username.asString(),
+                    prefix == null ? null : prefix.asString(),
                     maxRate,
                     details);
             handler.setLevel(level);
