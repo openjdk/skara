@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.csr;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -34,6 +35,7 @@ import org.openjdk.skara.bot.Bot;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.IssuePoller;
 import org.openjdk.skara.issuetracker.IssueProject;
 
 /**
@@ -42,20 +44,26 @@ import org.openjdk.skara.issuetracker.IssueProject;
  * re-evaluated.
  */
 public class CSRIssueBot implements Bot {
-    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.csr");
-
     private final IssueProject issueProject;
     private final List<HostedRepository> repositories;
-    // Keeps track of updatedAt timestamps from the previous call to getPeriodicItems,
-    // so we can avoid re-evaluating issues that are returned again without any actual
-    // update.
-    private Map<String, ZonedDateTime> issueUpdatedAt = new HashMap<>();
-    // The last found updatedAt from any issue.
-    private ZonedDateTime lastUpdatedAt;
+    private final IssuePoller poller;
 
     public CSRIssueBot(IssueProject issueProject, List<HostedRepository> repositories) {
         this.issueProject = issueProject;
         this.repositories = repositories;
+        // The CSRPullRequestBot will initially evaluate all active PRs so there
+        // is no need to look at any issues older than the start time of the bot
+        // here. A padding of 10 minutes for the initial query should cover any
+        // potential time difference between local and remote, as well as timing
+        // issues between the first run of each bot, without the risk of
+        // returning excessive amounts of Issues in the first run.
+        this.poller = new IssuePoller(issueProject, Duration.ofMinutes(10)) {
+            // Only query for CSR issues in this poller.
+            @Override
+            protected List<Issue> queryIssues(IssueProject issueProject, ZonedDateTime updatedAfter) {
+                return issueProject.csrIssues(updatedAfter);
+            }
+        };
     }
 
     @Override
@@ -65,47 +73,12 @@ public class CSRIssueBot implements Bot {
 
     @Override
     public List<WorkItem> getPeriodicItems() {
-        var ret = new ArrayList<WorkItem>();
-        // In the very first round, we just find the last updated issue to
-        // initialize lastUpdatedAt. There is no need for reacting to any CSR
-        // issue update before that, as the CSRPullRequestBot will go through
-        // every open PR at startup anyway.
-        if (lastUpdatedAt == null) {
-            var lastUpdatedIssue = issueProject.lastUpdatedIssue();
-            if (lastUpdatedIssue.isPresent()) {
-                Issue issue = lastUpdatedIssue.get();
-                lastUpdatedAt = issue.updatedAt();
-                issueUpdatedAt.put(issue.id(), issue.updatedAt());
-                log.fine("Setting lastUpdatedAt from last updated issue " + issue.id() + " updated at " + lastUpdatedAt);
-            } else {
-                // If no previous issue was found, initiate lastUpdatedAt to something far
-                // enough back so that we are guaranteed to find any new CSR issues going
-                // forward.
-                lastUpdatedAt = ZonedDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
-                log.warning("No CSR issue found, setting lastUpdatedAt to " + lastUpdatedAt);
-            }
-            return ret;
-        }
-
-        var newIssuesUpdatedAt = new HashMap<String, ZonedDateTime>();
-        var issues = issueProject.csrIssues(lastUpdatedAt);
-        for (var issue : issues) {
-            newIssuesUpdatedAt.put(issue.id(), issue.updatedAt());
-            // Update the lastUpdatedAt value with the highest found value for next call
-            if (issue.updatedAt().isAfter(lastUpdatedAt)) {
-                lastUpdatedAt = issue.updatedAt();
-            }
-            var lastUpdate = issueUpdatedAt.get(issue.id());
-            if (lastUpdate != null) {
-                if (!issue.updatedAt().isAfter(lastUpdate)) {
-                    continue;
-                }
-            }
-            var issueWorkItem = new IssueWorkItem(this, issue);
-            ret.add(issueWorkItem);
-        }
-        issueUpdatedAt = newIssuesUpdatedAt;
-        return ret;
+        var issues = poller.updatedIssues();
+        var items = issues.stream()
+                .map(i -> (WorkItem) new IssueWorkItem(this, i, e -> poller.retryIssue(i)))
+                .toList();
+        poller.lastBatchHandled();
+        return items;
     }
 
     @Override

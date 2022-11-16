@@ -55,6 +55,7 @@ public class OpenJDKTag {
      * 11.1+22          -> 11.1         11.1      +            22
      * 8u321-b03        -> 8u321        8u321     -b           3
      * jdk8u341-foo-b17 -> jdk8u341-foo 8u341-foo -b           17
+     * foo8u341-b17     -> foo8u341     foo8u341  -b           17
      */
 
     private final static String legacyOpenJDKVersionPattern = "(jdk([0-9]{1,2}(u[0-9]{1,3}(?:-[a-z0-9]+)?)?))";
@@ -63,11 +64,13 @@ public class OpenJDKTag {
     // Version pattern matching project Verona (JEP 223) based versions
     private final static String veronaVersionPattern = "((?:jdk-){0,1}([1-9](?:(?:[0-9]*)(\\.(?:0|[1-9][0-9]*)){0,6})))(?:(\\+)([0-9]+)|(-ga))";
     private final static String legacyOpenJFXVersionPattern = "(([0-9](u[0-9]{1,3})?))";
+    private final static String legacyOpenJDKProjectVersionPattern = "(([a-z]+[0-9]{1,2}(u[0-9]{1,3}(?:-[a-z0-9]+)?)?))";
 
     private final static List<Pattern> tagPatterns = List.of(Pattern.compile(legacyOpenJDKVersionPattern + legacyBuildPattern),
                                                              Pattern.compile(legacyHSVersionPattern + legacyBuildPattern),
                                                              Pattern.compile(veronaVersionPattern),
-                                                             Pattern.compile(legacyOpenJFXVersionPattern + legacyBuildPattern));
+                                                             Pattern.compile(legacyOpenJFXVersionPattern + legacyBuildPattern),
+                                                             Pattern.compile(legacyOpenJDKProjectVersionPattern + legacyBuildPattern));
 
     /**
      * Attempts to create an OpenJDKTag instance from a general Tag.
@@ -104,6 +107,16 @@ public class OpenJDKTag {
      */
     public String version() {
         return version;
+    }
+
+    /**
+     * The complete prefix, which is everything except the build number and any
+     * delimiter before it (e.g. jdk8u20, shenandoah8u332, jdk8u333-foo)
+     *
+     * @return
+     */
+    public String prefix() {
+        return prefix;
     }
 
     /**

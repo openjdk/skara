@@ -104,11 +104,12 @@ class NotifyBotFactoryTest {
                     """;
             var jsonConfig = JWCC.parse(jsonString).asObject();
 
+            var testHost = TestHost.createNew(List.of());
             var testBotFactory = TestBotFactory.newBuilder()
                     .addHostedRepository("notify", new TestHostedRepository("notify"))
-                    .addHostedRepository("repo1", new TestHostedRepository("repo1"))
-                    .addHostedRepository("repo2", new TestHostedRepository("repo2"))
-                    .addIssueProject("test_bugs/TEST", new TestIssueProject(TestHost.createNew(List.of()), "TEST"))
+                    .addHostedRepository("repo1", new TestHostedRepository(testHost, "repo1"))
+                    .addHostedRepository("repo2", new TestHostedRepository(testHost, "repo2"))
+                    .addIssueProject("test_bugs/TEST", new TestIssueProject(testHost, "TEST"))
                     .storagePath(tempFolder.path().resolve("storage"))
                     .build();
 

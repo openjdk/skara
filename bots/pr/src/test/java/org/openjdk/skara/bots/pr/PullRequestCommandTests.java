@@ -233,7 +233,7 @@ class PullRequestCommandTests {
             assertLastCommentContains(pr, "Contributor `B <b@c.d>` successfully added.");
 
             // The first command should also be reflected in the body
-            assertTrue(pr.body().contains("A `<a@b.c>`"));
+            assertTrue(pr.store().body().contains("A `<a@b.c>`"));
         }
     }
 
