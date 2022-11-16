@@ -245,6 +245,18 @@ public class Backports {
     }
 
     /**
+     * Returns issue or one of its backports that has a fixVersion matching the
+     * version pattern and is fixed.
+     */
+    public static Optional<Issue> findFixedIssue(Issue primary, Pattern versionPattern) {
+        log.fine("Searching for fixed issue with fix version matching /" + versionPattern + "/ "
+                + " for primary issue " + primary.id());
+        return Stream.concat(Stream.of(primary).filter(Issue::isFixed), findBackports(primary, true).stream())
+                .filter(i -> mainFixVersion(i).map(v -> versionPattern.matcher(v.raw()).matches()).orElse(false))
+                .findFirst();
+    }
+
+    /**
      * Find the closest issue from the provided issue list according to the provided fix version.
      * This method is similar to `findIssue`, but this method can handle all the fix versions of the issue
      * instead of only the main fix version and can receive an issue list instead of only the primary issue.

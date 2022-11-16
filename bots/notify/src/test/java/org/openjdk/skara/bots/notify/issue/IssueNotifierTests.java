@@ -1068,8 +1068,8 @@ public class IssueNotifierTests {
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
             var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object()
-                            .put("master", "8u341")
-                            .put("other", "8u341-foo"))
+                            .put("maste.", "8u341")
+                            .put("othe.", "8u341-foo"))
                     .put("buildname", "team");
             var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
 
@@ -1574,7 +1574,7 @@ public class IssueNotifierTests {
 
             var storageFolder = tempFolder.path().resolve("storage");
             var issueProject = credentials.getIssueProject();
-            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object().put("master", "12.0.2"));
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object().put(".*aster", "12.0.2"));
             var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
 
             // Initialize history
@@ -1758,6 +1758,54 @@ public class IssueNotifierTests {
             var issueProject = credentials.getIssueProject();
             var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object().put("master", "jdk-cpu"));
             jbsNotifierConfig.put("altfixversions", JSON.object().put("master", JSON.array().add("18")));
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"),
+                    Map.of("issuetype", JSON.of("Enhancement")));
+            issue.setProperty("fixVersions", JSON.array().add("18"));
+            issue.setState(RESOLVED);
+
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The fixVersion should not have been updated
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals(Set.of("18"), fixVersions(updatedIssue));
+            assertEquals(RESOLVED, updatedIssue.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
+            // A commit comment should have been added
+            List<Comment> comments = updatedIssue.comments();
+            assertEquals(1, comments.size());
+            var comment = comments.get(0);
+            assertTrue(comment.body().contains(editHash.toString()));
+            assertTrue(comment.body().contains(repo.url().toString()));
+
+            // There should be no link
+            var links = updatedIssue.links();
+            assertEquals(0, links.size());
+        }
+    }
+
+    @Test
+    void testAltFixVersionsMatchRegex(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var storageFolder = tempFolder.path().resolve("storage");
+            var issueProject = credentials.getIssueProject();
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object().put("master", "jdk-cpu"));
+            jbsNotifierConfig.put("altfixversions", JSON.object().put("m.*", JSON.array().add("1[78]")));
             var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
 
             // Initialize history

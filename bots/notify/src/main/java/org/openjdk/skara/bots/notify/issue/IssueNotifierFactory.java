@@ -22,6 +22,9 @@
  */
  package org.openjdk.skara.bots.notify.issue;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.regex.Pattern;
 import org.openjdk.skara.bot.BotConfiguration;
 import org.openjdk.skara.bots.notify.*;
 import org.openjdk.skara.host.Credential;
@@ -64,16 +67,19 @@ public class IssueNotifierFactory implements NotifierFactory {
 
         if (notifierConfiguration.contains("fixversions")) {
             builder.setFixVersion(true);
-            builder.fixVersions(notifierConfiguration.get("fixversions").fields().stream()
-                                                      .collect(Collectors.toMap(JSONObject.Field::name,
-                                                                                f -> f.value().asString())));
+            var fixVersions = new LinkedHashMap<Pattern, String>();
+            notifierConfiguration.get("fixversions").fields()
+                    .forEach(f -> fixVersions.put(Pattern.compile(f.name()), f.value().asString()));
+            builder.fixVersions(fixVersions);
         }
         if (notifierConfiguration.contains("altfixversions")) {
-            builder.altFixVersions(notifierConfiguration.get("altfixversions").fields().stream()
-                    .collect(Collectors.toMap(JSONObject.Field::name,
-                            f -> f.value().asArray().stream()
-                                    .map(JSONValue::asString)
-                                    .toList())));
+            var altFixVersions = new LinkedHashMap<Pattern, List<Pattern>>();
+            notifierConfiguration.get("altfixversions").fields()
+                    .forEach(f -> altFixVersions.put(Pattern.compile(f.name()), f.value().asArray().stream()
+                            .map(JSONValue::asString)
+                            .map(Pattern::compile)
+                            .toList()));
+            builder.altFixVersions(altFixVersions);
         }
         if (notifierConfiguration.contains("buildname")) {
             builder.buildName(notifierConfiguration.get("buildname").asString());
