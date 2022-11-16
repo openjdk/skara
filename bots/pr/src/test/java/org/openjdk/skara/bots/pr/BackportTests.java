@@ -578,8 +578,8 @@ class BackportTests {
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
             assertEquals(issue1Number + ": An issue", pr.store().title());
             assertTrue(pr.store().labelNames().contains("backport"));
-            assertFalse(pr.body().contains(ReviewersCheck.DESCRIPTION), "Reviewer requirement found in pr body");
-            assertFalse(pr.body().contains(CheckRun.MSG_EMPTY_BODY), "Body not empty requirement found in pr body");
+            assertFalse(pr.store().body().contains(ReviewersCheck.DESCRIPTION), "Reviewer requirement found in pr body");
+            assertFalse(pr.store().body().contains(CheckRun.MSG_EMPTY_BODY), "Body not empty requirement found in pr body");
 
             // The bot should have added the "clean" label
             assertTrue(pr.store().labelNames().contains("clean"));
@@ -720,7 +720,7 @@ class BackportTests {
             assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
             assertEquals(issue2Number + ": Another issue", pr.store().title());
             assertTrue(pr.store().labelNames().contains("backport"));
-            assertTrue(pr.body().contains(ReviewersCheck.DESCRIPTION), "Reviewer requirement not found in pr body");
+            assertTrue(pr.store().body().contains(ReviewersCheck.DESCRIPTION), "Reviewer requirement not found in pr body");
 
             // The bot should not have added the "clean" label
             assertFalse(pr.store().labelNames().contains("clean"));

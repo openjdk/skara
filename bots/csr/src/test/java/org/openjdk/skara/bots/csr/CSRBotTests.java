@@ -455,7 +455,7 @@ class CSRBotTests {
             // Run bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the csr update marker
-            assertFalse(pr.body().contains(csrUpdateMarker));
+            assertFalse(pr.store().body().contains(csrUpdateMarker));
 
             // Add the csr issue.
             var csr = issueProject.createIssue("This is an CSR", List.of(), Map.of());
@@ -465,11 +465,11 @@ class CSRBotTests {
             // Run just the pull request bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // Nothing should have happened
-            assertFalse(pr.body().contains(csrUpdateMarker));
+            assertFalse(pr.store().body().contains(csrUpdateMarker));
             // Run csr issue bot to trigger updates on the CSR issue
             TestBotRunner.runPeriodicItems(csrIssueBot);
             // The bot should add the csr update marker
-            assertTrue(pr.body().contains(csrUpdateMarker));
+            assertTrue(pr.store().body().contains(csrUpdateMarker));
 
             // Add csr issue and progress to the PR body
             pr.setBody("PR body\n" + progressMarker + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
@@ -477,7 +477,7 @@ class CSRBotTests {
             // Run bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the csr update marker
-            assertFalse(pr.body().contains(csrUpdateMarker));
+            assertFalse(pr.store().body().contains(csrUpdateMarker));
 
             // Set csr status to closed and approved.
             csr.setState(Issue.State.CLOSED);
@@ -485,7 +485,7 @@ class CSRBotTests {
             // un csr issue bot to trigger updates on the CSR issue
             TestBotRunner.runPeriodicItems(csrIssueBot);
             // The bot should add the csr update marker
-            assertTrue(pr.body().contains(csrUpdateMarker));
+            assertTrue(pr.store().body().contains(csrUpdateMarker));
 
             // Add csr issue and selected progress to the PR body
             pr.setBody("PR body\n" + progressMarker + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
@@ -493,7 +493,7 @@ class CSRBotTests {
             // Run bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the csr update marker
-            assertFalse(pr.body().contains(csrUpdateMarker));
+            assertFalse(pr.store().body().contains(csrUpdateMarker));
 
             // Add csr update marker to the pull request body manually.
             pr.setBody("PR body\n" + progressMarker + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
@@ -501,8 +501,8 @@ class CSRBotTests {
             // Run bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the csr update marker again. The PR should have only one csr update marker.
-            assertTrue(pr.body().contains(csrUpdateMarker));
-            assertEquals(pr.body().indexOf(csrUpdateMarker), pr.body().lastIndexOf(csrUpdateMarker));
+            assertTrue(pr.store().body().contains(csrUpdateMarker));
+            assertEquals(pr.store().body().indexOf(csrUpdateMarker), pr.store().body().lastIndexOf(csrUpdateMarker));
         }
     }
 

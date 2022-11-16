@@ -45,6 +45,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     private final Map<Hash, List<CommitComment>> commitComments;
     private Map<String, Boolean> collaborators = new HashMap<>();
     private List<Label> labels = new ArrayList<>();
+    private final Set<Check> checks = new HashSet<>();
 
     public TestHostedRepository(TestHost host, String projectName, Repository localRepository) {
         super(host, projectName);
@@ -309,9 +310,17 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
 
     @Override
     public List<Check> allChecks(Hash hash) {
-        return host.getPullRequests(this).stream()
-                   .flatMap(testPr -> testPr.checks(hash).values().stream())
-                   .collect(Collectors.toList());
+        return checks.stream()
+                .filter(check -> check.hash().equals(hash))
+                .toList();
+    }
+
+    public void createCheck(Check check) {
+        var existing = checks.stream()
+                .filter(c -> c.name().equals(check.name()))
+                .findAny();
+        existing.ifPresent(checks::remove);
+        checks.add(check);
     }
 
     @Override

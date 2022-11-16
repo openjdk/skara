@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.notify.issue;
 
+import java.util.regex.Pattern;
 import org.openjdk.skara.bots.notify.*;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
@@ -48,8 +49,8 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     private final boolean commitLink;
     private final URI commitIcon;
     private final boolean setFixVersion;
-    private final Map<String, String> fixVersions;
-    private final Map<String, List<String>> altFixVersions;
+    private final LinkedHashMap<Pattern, String> fixVersions;
+    private final LinkedHashMap<Pattern, List<Pattern>> altFixVersions;
     private final JbsBackport jbsBackport;
     private final boolean prOnly;
     private final boolean repoOnly;
@@ -73,16 +74,22 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     // do not need to be part of a tag to be considered a match.
     private final Set<String> tagIgnoreOpt;
 
+    // Should the prefix of a tag match the prefix of a fix version to be considered
+    // a match (except for the special tag prefix 'jdk' which will always be ignored
+    // when parsing a version from a tag).
+    private final boolean tagMatchPrefix;
+
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
     // Lazy loaded
     private CensusInstance census = null;
 
     IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
-                  boolean setFixVersion, Map<String, String> fixVersions, Map<String, List<String>> altFixVersions,
+                  boolean setFixVersion, LinkedHashMap<Pattern, String> fixVersions, LinkedHashMap<Pattern, List<Pattern>> altFixVersions,
                   JbsBackport jbsBackport, boolean prOnly, boolean repoOnly, String buildName,
                   HostedRepository censusRepository, String censusRef, String namespace, boolean useHeadVersion,
-                  HostedRepository originalRepository, boolean resolve, Set<String> tagIgnoreOpt) {
+                  HostedRepository originalRepository, boolean resolve, Set<String> tagIgnoreOpt,
+                  boolean tagMatchPrefix) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -102,6 +109,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.originalRepository = originalRepository;
         this.resolve = resolve;
         this.tagIgnoreOpt = tagIgnoreOpt;
+        this.tagMatchPrefix = tagMatchPrefix;
     }
 
     static IssueNotifierBuilder newBuilder() {
@@ -319,11 +327,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 } else {
                     log.info("The issue was already resolved");
                 }
-                var assignees = issue.assignees();
-                // Due to a bug in the backport plugin, certain users can't be assigned directly.
-                // Work around this by overwriting the assignee afterwards if the current assignee
-                // is the bot user.
-                if (assignees.isEmpty() || (assignees.size() == 1 && assignees.get(0).equals(issueProject.issueTracker().currentUser()))) {
+                if (issue.assignees().isEmpty()) {
                     if (username.isPresent()) {
                         var assignee = issueProject.issueTracker().user(username.get());
                         if (assignee.isPresent()) {
@@ -355,15 +359,13 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
 
     private Optional<Issue> findAltFixedVersionIssue(Issue issue, Branch branch) {
         if (altFixVersions != null) {
-            for (var altFixVersionString : altFixVersions.getOrDefault(branch.name(), List.of())) {
-                var altFixVersion = JdkVersion.parse(altFixVersionString).orElseThrow();
-                var altBackport = Backports.findIssue(issue, altFixVersion);
-                if (altBackport.isPresent()) {
-                    if (altBackport.get().isFixed()) {
-                        return altBackport;
-                    }
-                }
-            }
+            var matchingBranchPattern = altFixVersions.keySet().stream()
+                    .filter(pattern -> pattern.matcher(branch.toString()).matches())
+                    .findFirst();
+            return matchingBranchPattern.flatMap(branchPattern -> altFixVersions.get(branchPattern).stream()
+                    .map(versionPattern -> Backports.findFixedIssue(issue, versionPattern))
+                    .flatMap(Optional::stream)
+                    .findFirst());
         }
         return Optional.empty();
     }
@@ -463,37 +465,44 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
             }
         }
 
-        // The fixVersion may have a prefix in the first component that is not present
-        // in the tagVersion. e.g. 'openjdk8u342' vs '8u342'
-        var fixComponents = fixVersion.components();
-        var tagComponents = tagVersion.components();
-        // Check that the rest of the components are equal
-        if (fixComponents.size() > 0 && fixComponents.size() == tagComponents.size()
-                && fixComponents.subList(1, fixComponents.size()).equals(tagComponents.subList(1, tagComponents.size()))) {
-            var fixFirst = fixComponents.get(0);
-            var tagFirst = tagComponents.get(0);
-            // Check if the first fixVersion component has a prefix consisting of only lower case letters
-            return fixFirst.matches("[a-z]+" + tagFirst);
+        if (!tagMatchPrefix) {
+            // The fixVersion may have a prefix in the first component that is not present
+            // in the tagVersion. e.g. 'openjdk8u342' vs '8u342'
+            var fixComponents = fixVersion.components();
+            var tagComponents = tagVersion.components();
+            // Check that the rest of the components are equal
+            if (fixComponents.size() > 0 && fixComponents.size() == tagComponents.size()
+                    && fixComponents.subList(1, fixComponents.size()).equals(tagComponents.subList(1, tagComponents.size()))) {
+                var fixFirst = fixComponents.get(0);
+                var tagFirst = tagComponents.get(0);
+                // Check if the first fixVersion component has a prefix consisting of only lower case letters
+                return fixFirst.matches("[a-z]+" + tagFirst);
+            }
         }
         return false;
     }
 
     private String getRequestedVersion(Repository localRepository, Commit commit, String branch) {
-        var requestedVersion = fixVersions != null ? fixVersions.getOrDefault(branch, null) : null;
-        if (requestedVersion == null) {
-            try {
-                var hash = (useHeadVersion ? localRepository.resolve(branch).orElseThrow() : commit.hash());
-                var conf = localRepository.lines(Path.of(".jcheck/conf"), hash);
-                if (conf.isPresent()) {
-                    var parsed = JCheckConfiguration.parse(conf.get());
-                    var version = parsed.general().version();
-                    requestedVersion = version.orElse(null);
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+        if (fixVersions != null) {
+            var matchingPattern = fixVersions.keySet().stream()
+                    .filter(pattern -> pattern.matcher(branch).matches())
+                    .findFirst();
+            if (matchingPattern.isPresent()) {
+                return fixVersions.get(matchingPattern.get());
             }
         }
-        return requestedVersion;
+        try {
+            var hash = (useHeadVersion ? localRepository.resolve(branch).orElseThrow() : commit.hash());
+            var conf = localRepository.lines(Path.of(".jcheck/conf"), hash);
+            if (conf.isPresent()) {
+                var parsed = JCheckConfiguration.parse(conf.get());
+                var version = parsed.general().version();
+                return version.orElse(null);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
     }
 
     @Override

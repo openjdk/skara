@@ -379,7 +379,7 @@ class ContributorTests {
             assertLastCommentContains(pr, "successfully added.");
 
             // Verify that body is updated
-            var body = pr.body().split("\n");
+            var body = pr.store().body().split("\n");
             var contributorsHeaderIndex = -1;
             for (var i = 0; i < body.length; i++) {
                 var line = body[i];
@@ -402,7 +402,7 @@ class ContributorTests {
             assertLastCommentContains(pr, "successfully removed.");
 
             // Verify that body does not contain "Contributors" section
-            for (var line : pr.body().split("\n")) {
+            for (var line : pr.store().body().split("\n")) {
                 assertNotEquals("### Contributors", line);
             }
         }

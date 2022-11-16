@@ -73,7 +73,7 @@ public class ReviewersTests {
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
 
-            var reviewerPr = integrator.pullRequest(pr.id());
+            var reviewerPr = (TestPullRequest)integrator.pullRequest(pr.id());
 
             // No arguments
             reviewerPr.addComment("/reviewers");
@@ -81,7 +81,7 @@ public class ReviewersTests {
 
             // The bot should reply with a help message
             assertLastCommentContains(reviewerPr,"is the number of required reviewers");
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Invalid syntax
             reviewerPr.addComment("/reviewers two");
@@ -89,25 +89,25 @@ public class ReviewersTests {
 
             // The bot should reply with a help message
             assertLastCommentContains(reviewerPr,"is the number of required reviewers");
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Too many
             reviewerPr.addComment("/reviewers 7001");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"Cannot increase the required number of reviewers above 10 (requested: 7001)");
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Too few
             reviewerPr.addComment("/reviewers -3");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"Cannot decrease the required number of reviewers below 0 (requested: -3)");
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Unknown role
             reviewerPr.addComment("/reviewers 2 penguins");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"Unknown role `penguins` specified");
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Set the number
             reviewerPr.addComment("/reviewers 2");
@@ -115,7 +115,7 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 1, 0, 1, 0));
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
 
             // Set 2 of role committers
             reviewerPr.addComment("/reviewers 2 committer");
@@ -123,7 +123,7 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 1, 1, 0, 0));
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 1, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 1, 0, 0)));
 
             // Set 2 of role reviewers
             reviewerPr.addComment("/reviewers 2 reviewer");
@@ -131,7 +131,7 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 2, 0, 0, 0));
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 2, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 2, 0, 0, 0)));
 
             // Approve it as another user
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -141,7 +141,7 @@ public class ReviewersTests {
             // The PR should not yet be considered as ready for review
             var updatedPr = author.pullRequest(pr.id());
             assertFalse(updatedPr.labelNames().contains("ready"));
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 2, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 2, 0, 0, 0)));
 
             // Now reduce the number of required reviewers
             reviewerPr.addComment("/reviewers 1");
@@ -151,14 +151,14 @@ public class ReviewersTests {
             // The PR should now be considered as ready for review
             updatedPr = author.pullRequest(pr.id());
             assertTrue(updatedPr.labelNames().contains("ready"));
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Now request that the lead reviews
             reviewerPr.addComment("/reviewers 1 lead");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr, getReviewersExpectedComment(1, 0, 0, 0, 0));
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(1, 0, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(1, 0, 0, 0, 0)));
 
             // The PR should no longer be considered as ready for review
             updatedPr = author.pullRequest(pr.id());
@@ -169,7 +169,7 @@ public class ReviewersTests {
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 1, 0, 0, 0));
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // The PR should now be considered as ready for review yet again
             updatedPr = author.pullRequest(pr.id());
@@ -202,7 +202,7 @@ public class ReviewersTests {
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
 
-            var reviewerPr = integrator.pullRequest(pr.id());
+            var reviewerPr = (TestPullRequest) integrator.pullRequest(pr.id());
 
             // Set the number
             reviewerPr.addComment("/reviewers 2");
@@ -210,7 +210,7 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 1, 0, 1, 0));
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
 
             // Approve it as another user
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -221,18 +221,18 @@ public class ReviewersTests {
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"pull request has not yet been marked as ready for integration");
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
 
             // Relax the requirement
             reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // It should now work fine
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"Pushed as commit");
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
         }
     }
 
@@ -261,19 +261,19 @@ public class ReviewersTests {
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
 
-            var reviewerPr = integrator.pullRequest(pr.id());
+            var reviewerPr = (TestPullRequest)integrator.pullRequest(pr.id());
 
             // Approve it as another user
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Flag it as ready for integration
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"now ready to be sponsored");
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Set the number
             reviewerPr.addComment("/reviewers 2");
@@ -281,24 +281,24 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 1, 0, 1, 0));
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
 
             // It should not be possible to sponsor
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"PR has not yet been marked as ready for integration");
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
 
             // Relax the requirement
             reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // It should now work fine
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"Pushed as commit");
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
         }
     }
 
@@ -325,7 +325,7 @@ public class ReviewersTests {
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
 
-            var authorPR = author.pullRequest(pr.id());
+            var authorPR = (TestPullRequest)author.pullRequest(pr.id());
 
             // The author deems that two reviewers are required
             authorPR.addComment("/reviewers 2");
@@ -333,7 +333,7 @@ public class ReviewersTests {
             // The bot should reply with a success message
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(authorPR, getReviewersExpectedComment(0, 1, 0, 1, 0));
-            assertTrue(authorPR.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
+            assertTrue(authorPR.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
         }
     }
 
@@ -362,7 +362,7 @@ public class ReviewersTests {
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
 
-            var authorPR = author.pullRequest(pr.id());
+            var authorPR = (TestPullRequest)author.pullRequest(pr.id());
 
             // The author deems that two reviewers are required
             authorPR.addComment("/reviewers 2");
@@ -370,33 +370,33 @@ public class ReviewersTests {
             // The bot should reply with a success message
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(authorPR, getReviewersExpectedComment(0, 1, 0, 1, 0));
-            assertTrue(authorPR.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
+            assertTrue(authorPR.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
             // The author should not be allowed to decrease even its own /reviewers command
             authorPR.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(authorPR, "Only [Reviewers](https://openjdk.org/bylaws#reviewer) "
                     + "are allowed to decrease the number of required reviewers.");
-            assertTrue(authorPR.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
+            assertTrue(authorPR.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
 
             // Reviewer should be allowed to decrease
-            var reviewerPr = integrator.pullRequest(pr.id());
+            var reviewerPr = (TestPullRequest)integrator.pullRequest(pr.id());
             reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 1, 0, 0, 0));
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // The author should not be allowed to lower the role of the reviewers
             authorPR.addComment("/reviewers 1 contributors");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(authorPR, "Only [Reviewers](https://openjdk.org/bylaws#reviewer) "
                     + "are allowed to lower the role for additional reviewers.");
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Reviewer should be allowed to lower the role of the reviewers
             reviewerPr.addComment("/reviewers 1 contributors");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 1, 0, 0, 0));
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
         }
     }
 
@@ -425,9 +425,9 @@ public class ReviewersTests {
 
             TestBotRunner.runPeriodicItems(prBot);
 
-            var authorPR = author.pullRequest(pr.id());
+            var authorPR = (TestPullRequest)author.pullRequest(pr.id());
             assertLastCommentContains(authorPR, getReviewersExpectedComment(0, 1, 0, 1, 0));
-            assertTrue(authorPR.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
+            assertTrue(authorPR.store().body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
         }
     }
 
@@ -472,7 +472,7 @@ public class ReviewersTests {
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
 
-            var reviewerPr = integrator.pullRequest(pr.id());
+            var reviewerPr = (TestPullRequest)integrator.pullRequest(pr.id());
 
             // test role contributor
             for (int i = 1; i <= 10; i++) {
@@ -519,11 +519,11 @@ public class ReviewersTests {
         }
     }
 
-    private void verifyReviewersCommentAndProgress(PullRequest reviewerPr, PullRequestBot prBot, String command, String expectedComment, String expectedProgress) throws IOException {
+    private void verifyReviewersCommentAndProgress(TestPullRequest reviewerPr, PullRequestBot prBot, String command, String expectedComment, String expectedProgress) throws IOException {
         reviewerPr.addComment(command);
         TestBotRunner.runPeriodicItems(prBot);
         assertLastCommentContains(reviewerPr, expectedComment);
-        assertTrue(reviewerPr.body().contains(expectedProgress));
+        assertTrue(reviewerPr.store().body().contains(expectedProgress));
     }
 
     private String getReviewersExpectedComment(int leadNum, int reviewerNum, int committerNum, int authorNum, int contributorNum) {
@@ -598,19 +598,19 @@ public class ReviewersTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request", List.of(""));
-            var reviewerPr = reviewer.pullRequest(pr.id());
+            var reviewerPr = (TestPullRequest)reviewer.pullRequest(pr.id());
 
             TestBotRunner.runPeriodicItems(prBot);
             var authorPR = author.pullRequest(pr.id());
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 0, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 0, 0, 0, 0)));
 
             authorPR.addComment("/reviewers 2 reviewer");
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 2, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 2, 0, 0, 0)));
 
             reviewerPr.addComment("/reviewers 0");
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 0, 0, 0, 0)));
+            assertTrue(reviewerPr.store().body().contains(getReviewersExpectedProgress(0, 0, 0, 0, 0)));
         }
     }
 
