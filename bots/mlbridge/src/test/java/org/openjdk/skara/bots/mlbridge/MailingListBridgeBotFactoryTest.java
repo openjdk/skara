@@ -5,6 +5,7 @@ import org.openjdk.skara.bot.Bot;
 import org.openjdk.skara.json.JWCC;
 import org.openjdk.skara.test.TemporaryDirectory;
 import org.openjdk.skara.test.TestBotFactory;
+import org.openjdk.skara.test.TestHost;
 import org.openjdk.skara.test.TestHostedRepository;
 
 import java.time.Duration;
@@ -118,12 +119,13 @@ class MailingListBridgeBotFactoryTest {
                     """;
             var jsonConfig = JWCC.parse(jsonString).asObject();
 
+            var testHost = TestHost.createNew(List.of());
             var testBotFactory = TestBotFactory.newBuilder()
-                    .addHostedRepository("repo1", new TestHostedRepository("repo1"))
-                    .addHostedRepository("repo2", new TestHostedRepository("repo2"))
-                    .addHostedRepository("repo3", new TestHostedRepository("repo3"))
-                    .addHostedRepository("repo4", new TestHostedRepository("repo4"))
-                    .addHostedRepository("repo5", new TestHostedRepository("repo5"))
+                    .addHostedRepository("repo1", new TestHostedRepository(testHost, "repo1"))
+                    .addHostedRepository("repo2", new TestHostedRepository(testHost, "repo2"))
+                    .addHostedRepository("repo3", new TestHostedRepository(testHost, "repo3"))
+                    .addHostedRepository("repo4", new TestHostedRepository(testHost, "repo4"))
+                    .addHostedRepository("repo5", new TestHostedRepository(testHost, "repo5"))
                     .addHostedRepository("archive", new TestHostedRepository("archive"))
                     .addHostedRepository("census", new TestHostedRepository("census"))
                     .storagePath(tempFolder.path().resolve("storage"))

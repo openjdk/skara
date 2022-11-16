@@ -50,18 +50,15 @@ public class MailingListBridgeBot implements Bot {
     private final Map<String, Pattern> readyComments;
     private final Map<String, String> headers;
     private final URI issueTracker;
-    private final PullRequestUpdateCache updateCache;
     private final Duration sendInterval;
     private final Duration cooldown;
     private final boolean repoInSubject;
     private final Pattern branchInSubject;
     private final Path seedStorage;
-    private final CooldownQuarantine cooldownQuarantine;
+    private final PullRequestPoller poller;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
-    private ZonedDateTime lastPartialUpdate;
-    private ZonedDateTime lastFullUpdate;
     private volatile boolean labelsUpdated = false;
 
     MailingListBridgeBot(EmailAddress from, HostedRepository repo, HostedRepository archive, String archiveRef,
@@ -97,8 +94,7 @@ public class MailingListBridgeBot implements Bot {
         webrevStorage = new WebrevStorage(webrevStorageHTMLRepository, webrevStorageJSONRepository, webrevStorageRef,
                                           webrevStorageBase, webrevStorageBaseUri, from,
                                           webrevGenerateHTML, webrevGenerateJSON);
-        updateCache = new PullRequestUpdateCache();
-        cooldownQuarantine = new CooldownQuarantine();
+        poller = new PullRequestPoller(codeRepo, true);
     }
 
     static MailingListBridgeBotBuilder newBuilder() {
@@ -205,31 +201,13 @@ public class MailingListBridgeBot implements Bot {
             ret.add(new LabelsUpdaterWorkItem(this));
         }
 
-        List<PullRequest> prs;
-
-        if (lastFullUpdate == null || lastFullUpdate.isBefore(ZonedDateTime.now().minus(Duration.ofMinutes(10)))) {
-            lastFullUpdate = ZonedDateTime.now();
-            lastPartialUpdate = lastFullUpdate;
-            log.info("Fetching all open pull requests for " + codeRepo.name());
-            prs = codeRepo.openPullRequests();
-        } else {
-            log.info("Fetching recently updated pull requests (open and closed) for " + codeRepo.name());
-            prs = codeRepo.pullRequestsAfter(ZonedDateTime.now().minus(Duration.ofDays(14)));
-            lastPartialUpdate = ZonedDateTime.now();
-        }
-
-        for (var pr : prs) {
-            var quarantineStatus = cooldownQuarantine.status(pr);
-            if (quarantineStatus == CooldownQuarantine.Status.IN_QUARANTINE) {
-                continue;
-            }
-            if ((quarantineStatus == CooldownQuarantine.Status.JUST_RELEASED) ||
-                    (quarantineStatus == CooldownQuarantine.Status.NOT_IN_QUARANTINE && updateCache.needsUpdate(pr))) {
-                ret.add(new ArchiveWorkItem(pr, this,
-                                            e -> updateCache.invalidate(pr),
-                                            r -> cooldownQuarantine.updateQuarantineEnd(pr, r)));
-            }
-        }
+        List<PullRequest> prs = poller.updatedPullRequests();
+        prs.stream()
+                .map(pr -> new ArchiveWorkItem(pr, this,
+                        e -> poller.retryPullRequest(pr),
+                        r -> poller.quarantinePullRequest(pr, r)))
+                .forEach(ret::add);
+        poller.lastBatchHandled();
 
         return ret;
     }
