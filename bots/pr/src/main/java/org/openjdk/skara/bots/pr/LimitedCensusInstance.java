@@ -7,7 +7,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.openjdk.skara.census.Census;
 import org.openjdk.skara.census.Contributor;
@@ -73,8 +72,6 @@ class LimitedCensusInstance {
         Optional<List<String>> conf = Optional.empty();
         try {
             conf = Optional.of(Arrays.stream(remoteRepo.fileContents(name, ref).split("\n")).toList());
-        } catch (NoSuchElementException ignored) {
-            // NoSuchElementException will only work for tests
         } catch (UncheckedRestException e) {
             if (e.getStatusCode() != 404) {
                 throw e;
