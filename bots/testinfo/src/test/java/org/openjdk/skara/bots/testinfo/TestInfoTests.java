@@ -38,7 +38,7 @@ public class TestInfoTests {
     void simple(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
-            var author = credentials.getHostedRepository();
+            var author = (TestHostedRepository) credentials.getHostedRepository();
             var checkBot = new TestInfoBot(author);
 
             // Populate the projects repository
@@ -47,24 +47,19 @@ public class TestInfoTests {
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.url(), "master", true);
 
-            // Make a draft PR where we can add some checks
+            // Add some checks to the repository
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.url(), "preedit", true);
-            var draftPr = credentials.createPullRequest(author, "master", "preedit", "This is a pull request", true);
             var check1 = CheckBuilder.create("ps1", editHash).title("PS1");
-            draftPr.createCheck(check1.build());
-            draftPr.updateCheck(check1.complete(true).build());
+            author.createCheck(check1.complete(true).build());
             var check2 = CheckBuilder.create("ps2", editHash).title("PS2");
-            draftPr.createCheck(check2.build());
-            draftPr.updateCheck(check2.complete(false).build());
+            author.createCheck(check2.complete(false).build());
             var check3 = CheckBuilder.create("ps3", editHash).title("PS3");
-            draftPr.createCheck(check3.build());
-            draftPr.updateCheck(check3.details(URI.create("https://www.example.com")).complete(false).build());
+            author.createCheck(check3.details(URI.create("https://www.example.com")).complete(false).build());
             var check4 = CheckBuilder.create("ps4", editHash).title("PS4");
-            draftPr.createCheck(check4.build());
-            draftPr.updateCheck(check4.details(URI.create("https://www.example.com")).build());
+            author.createCheck(check4.details(URI.create("https://www.example.com")).build());
 
-            // Now make an actual PR
+            // Now make a PR
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
@@ -92,7 +87,7 @@ public class TestInfoTests {
     void update(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
-            var author = credentials.getHostedRepository();
+            var author = (TestHostedRepository) credentials.getHostedRepository();
             var checkBot = new TestInfoBot(author);
 
             // Populate the projects repository
@@ -101,13 +96,11 @@ public class TestInfoTests {
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.url(), "master", true);
 
-            // Make a draft PR where we can add some checks
+            // Add a check to the repository
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.url(), "preedit", true);
-            var draftPr1 = credentials.createPullRequest(author, "master", "preedit", "This is a pull request", true);
             var check1 = CheckBuilder.create("ps1", editHash).title("PS1");
-            draftPr1.createCheck(check1.build());
-            draftPr1.updateCheck(check1.complete(true).build());
+            author.createCheck(check1.complete(true).build());
 
             // Now make an actual PR
             localRepo.push(editHash, author.url(), "edit", true);
@@ -123,10 +116,8 @@ public class TestInfoTests {
             // And a second one
             var editHash2 = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash2, author.url(), "preedit");
-            var draftPr2 = credentials.createPullRequest(author, "master", "preedit", "This is a pull request", true);
             var check2 = CheckBuilder.create("ps2", editHash2).title("PS2");
-            draftPr2.createCheck(check2.build());
-            draftPr2.updateCheck(check2.complete(false).build());
+            author.createCheck(check2.complete(false).build());
 
             // Push an update to the PR
             localRepo.push(editHash2, author.url(), "edit", true);

@@ -33,12 +33,15 @@ import java.util.logging.Logger;
 
 public class TestInfoBotWorkItem implements WorkItem {
     private final PullRequest pr;
-    private final Consumer<Duration> expiresIn;
+    // This is a callback to the bot telling it that this PR needs a recheck after the
+    // specified duration. If this isn't called, then the PR will only be rechecked if
+    // it is updated by someone else.
+    private final Consumer<Duration> retry;
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
 
-    TestInfoBotWorkItem(PullRequest pr, Consumer<Duration> expiresIn) {
+    TestInfoBotWorkItem(PullRequest pr, Consumer<Duration> retry) {
         this.pr = pr;
-        this.expiresIn = expiresIn;
+        this.retry = retry;
     }
 
     @Override
@@ -81,7 +84,11 @@ public class TestInfoBotWorkItem implements WorkItem {
 
     @Override
     public Collection<WorkItem> run(Path scratch) {
-        var sourceRepo = pr.sourceRepository().get();
+        Optional<HostedRepository> optionalSourceRepository = pr.sourceRepository();
+        if (optionalSourceRepository.isEmpty()) {
+            return List.of();
+        }
+        var sourceRepo = optionalSourceRepository.get();
         var sourceChecks = sourceRepo.allChecks(pr.headHash());
 
         var targetChecks = pr.checks(pr.headHash());
@@ -90,18 +97,40 @@ public class TestInfoBotWorkItem implements WorkItem {
         if (sourceRepo.workflowStatus() == WorkflowStatus.NOT_CONFIGURED) {
             if (noticeCheck == null) {
                 pr.createCheck(testingNotConfiguredNotice(pr));
-                expiresIn.accept(Duration.ofMinutes(2));
+            }
+            // It's pretty unlikely that a user suddenly enables workflows. We can
+            // be pretty lax with automatically discovering this. Touching the PR
+            // will always trigger an immediate recheck anyway.
+            if (pr.isOpen()) {
+                retry.accept(Duration.ofMinutes(30));
             }
         } else if (sourceRepo.workflowStatus() == WorkflowStatus.DISABLED) {
             // Explicitly disabled - could possibly post a notice
         } else {
             var summarizedChecks = TestResults.summarize(sourceChecks);
             if (summarizedChecks.isEmpty()) {
-                // No test related checks found, they may not have started yet, so we'll keep looking
+                // No test related checks found, they may not have started yet, so we'll keep
+                // looking as long as the PR is open.
                 log.fine("No checks found to summarize - waiting");
-                expiresIn.accept(Duration.ofMinutes(2));
+                if (pr.isOpen()) {
+                    retry.accept(Duration.ofMinutes(2));
+                }
             } else {
-                expiresIn.accept(TestResults.expiresIn(sourceChecks).orElse(Duration.ofMinutes(30)));
+                Optional<Duration> expiresIn = TestResults.expiresIn(sourceChecks);
+                if (expiresIn.isPresent()) {
+                    // Workflow is currently running, recheck often to update, but revert
+                    // to longer recheck intervals if the PR hasn't been updated in the
+                    // last 24h and is still open.
+                    if (pr.updatedAt().isAfter(ZonedDateTime.now().minus(Duration.ofDays(1)))) {
+                        retry.accept(expiresIn.get());
+                    } else if (pr.isOpen()) {
+                        retry.accept(Duration.ofMinutes(30));
+                    }
+                } else if (pr.isOpen()) {
+                    // All current checks are finished, as long as PR is open, keep rechecking
+                    // at regular, but much longer intervals.
+                    retry.accept(Duration.ofMinutes(30));
+                }
             }
 
             if (noticeCheck != null && noticeCheck.status() == CheckStatus.SKIPPED) {
@@ -117,7 +146,7 @@ public class TestInfoBotWorkItem implements WorkItem {
                 var current = targetChecks.get(check.name());
                 if ((current.status() != check.status()) ||
                         (!current.summary().equals(check.summary())) ||
-                        (!current.title().equals(check.summary()))) {
+                        (!current.title().equals(check.title()))) {
                     pr.updateCheck(check);
                 } else {
                     log.fine("Not updating unchanged check: " + check.name());

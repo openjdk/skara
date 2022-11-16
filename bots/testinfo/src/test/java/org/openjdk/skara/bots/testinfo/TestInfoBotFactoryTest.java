@@ -1,8 +1,10 @@
 package org.openjdk.skara.bots.testinfo;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.json.JWCC;
 import org.openjdk.skara.test.TestBotFactory;
+import org.openjdk.skara.test.TestHost;
 import org.openjdk.skara.test.TestHostedRepository;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -20,9 +22,10 @@ class TestInfoBotFactoryTest {
                 """;
         var jsonConfig = JWCC.parse(jsonString).asObject();
 
+        var testHost = TestHost.createNew(List.of());
         var testBotFactory = TestBotFactory.newBuilder()
-                .addHostedRepository("repo1", new TestHostedRepository("repo1"))
-                .addHostedRepository("repo2", new TestHostedRepository("repo2"))
+                .addHostedRepository("repo1", new TestHostedRepository(testHost, "repo1"))
+                .addHostedRepository("repo2", new TestHostedRepository(testHost, "repo2"))
                 .build();
 
         var bots = testBotFactory.createBots(TestInfoBotFactory.NAME, jsonConfig);

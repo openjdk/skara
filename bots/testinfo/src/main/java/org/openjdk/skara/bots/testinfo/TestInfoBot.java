@@ -31,40 +31,43 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
+/**
+ * The TestInfoBot copies 'checks' from the source repository of a PR to the
+ * PR itself. In GitHub, these checks are usually workflow/action runs which
+ * users may have activated on their personal forks. By copying them to a PR,
+ * reviewers can easily see the status of the last workflow runs directly in
+ * the PR.
+ * <p>
+ * The bot polls for work using the standard PullRequestPoller, so will
+ * process any updated PR. Depending on the outcome of this processing, the
+ * TestInfoBotWorkItem calls back to the bot with a re-check request which
+ * causes the bot to submit that PR again after the specified amount of time,
+ * or earlier if another change the PR has been detected.
+ * <p>
+ * Note that if there is a check update, this will cause an update to the PR
+ * that the next call to updatedPullRequests, and subsequently getPeriodicItems
+ * will also include. So as long as there are check updates, there will
+ * essentially be a series of rechecks with only the getPeriodicItem call delay
+ * until no update was found, at which point the bot would fall back to adding
+ * the retry interval again.
+ */
 public class TestInfoBot implements Bot {
     private final HostedRepository repo;
-    private final Map<String, Instant> expirations = new ConcurrentHashMap<>();
-
-    private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
+    private final PullRequestPoller poller;
 
     TestInfoBot(HostedRepository repo) {
         this.repo = repo;
-    }
-
-    private String pullRequestToKey(PullRequest pr) {
-        return pr.id() + "#" + pr.headHash().hex();
+        this.poller = new PullRequestPoller(repo, true);
     }
 
     @Override
     public List<WorkItem> getPeriodicItems() {
-        var prs = repo.pullRequestsAfter(ZonedDateTime.now().minus(Duration.ofDays(1)));
-        var ret = new ArrayList<WorkItem>();
-        for (var pr : prs) {
-            if (pr.sourceRepository().isEmpty()) {
-                continue;
-            }
-
-            var expirationKey = pullRequestToKey(pr);
-            if (expirations.containsKey(expirationKey)) {
-                var expiresAt = expirations.get(expirationKey);
-                if (expiresAt.isAfter(Instant.now())) {
-                    continue;
-                }
-            }
-
-            ret.add(new TestInfoBotWorkItem(pr, expiresIn -> expirations.put(expirationKey, Instant.now().plus(expiresIn))));
-        }
-        return ret;
+        var prs = poller.updatedPullRequests();
+        return prs.stream()
+                .filter(pr -> pr.sourceRepository().isPresent())
+                .map(pr -> (WorkItem) new TestInfoBotWorkItem(pr,
+                        delay -> poller.retryPullRequest(pr, Instant.now().plus(delay))))
+                .toList();
     }
 
     @Override
