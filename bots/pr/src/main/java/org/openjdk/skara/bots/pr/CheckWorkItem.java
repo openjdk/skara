@@ -224,7 +224,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         // First determine if the current state of the PR has already been checked
         var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-        CensusInstance census = null;
+        CensusInstance census;
         var comments = pr.comments();
         var allReviews = pr.reviews();
         var labels = new HashSet<>(pr.labelNames());
@@ -238,7 +238,8 @@ class CheckWorkItem extends PullRequestWorkItem {
                         + "Until that is resolved, this pull request cannot be processed. Please notify the repository owner.";
                 addErrorComment(text, comments);
             } else {
-                log.info("No .jcheck/conf found in external repo " + bot.confOverrideRepository().get().name() + ": " + e);
+                log.log(Level.SEVERE, "Jcheck configuration file " + bot.confOverrideName()
+                        + " not found in external repo " + bot.confOverrideRepository().get().name(), e);
                 var text = " ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository could not be found. "
                         + "Until that is resolved, this pull request cannot be processed. Please notify a Skara admin.";
                 addErrorComment(text, comments);
@@ -251,7 +252,8 @@ class CheckWorkItem extends PullRequestWorkItem {
                         + "Until that is resolved, this pull request cannot be processed. Please notify the repository owner.";
                 addErrorComment(text, comments);
             } else {
-                log.info("Invalid .jcheck/conf found in external repo " + bot.confOverrideRepository().get().name() + ": " + e);
+                log.log(Level.SEVERE, "Invalid Jcheck configuration file " + bot.confOverrideName()
+                        + " in external repo " + bot.confOverrideRepository().get().name(), e);
                 var text = " ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository is invalid. "
                         + "Until that is resolved, this pull request cannot be processed. Please notify a Skara admin.";
                 addErrorComment(text, comments);
