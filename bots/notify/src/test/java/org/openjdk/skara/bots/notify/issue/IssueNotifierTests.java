@@ -1128,7 +1128,7 @@ public class IssueNotifierTests {
             // But not in the update backport
             assertEquals("team", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
-            // Tag it with an unrelated tag
+            // Tag it with a properly formatted tag for the foo version
             localRepo.tag(editHash, "jdk8u341-foo-b01", "Second foo tag", "duke", "duke@openjdk.org");
             localRepo.push(new Branch(repo.url().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1137,6 +1137,101 @@ public class IssueNotifierTests {
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             backportIssue = issueProject.issue(backportIssue.id()).orElseThrow();
             assertEquals("b01", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
+        }
+    }
+
+    /**
+     * Tests the optional functionality of requiring a version prefix to be matched
+     * when evaluating tags against fixVersions
+     */
+    @Test
+    void testIssueBuildAfterTagJdk8uPrefix(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var issueProject = credentials.getIssueProject();
+            var storageFolder = tempFolder.path().resolve("storage");
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object()
+                            .put("master", "8u341")
+                            .put("other", "foo8u341"))
+                    .put("buildname", "team")
+                    .put("tag", JSON.object()
+                            .put("matchprefix", true));
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+
+            // Initialize history
+            var current = localRepo.resolve("master").orElseThrow();
+            localRepo.push(current, repo.url(), "other");
+            localRepo.tag(current, "jdk8u341-b00", "First tag", "duke", "duke@openjdk.org");
+            localRepo.tag(current, "foo8u341-b00", "First foo tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            issue.setProperty("fixVersions", JSON.of("8u341"));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.url(), "other");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The changeset should be reflected in a comment in the issue and in a new backport
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            var backportIssue = updatedIssue.links().get(0).issue().orElseThrow();
+
+            var comments = updatedIssue.comments();
+            assertEquals(1, comments.size());
+            var comment = comments.get(0);
+            assertTrue(comment.body().contains(editHash.toString()));
+
+            var backportComments = backportIssue.comments();
+            assertEquals(1, backportComments.size());
+            var backportComment = backportComments.get(0);
+            assertTrue(backportComment.body().contains(editHash.toString()));
+
+            // As well as a fixVersion and a resolved in build
+            assertEquals(Set.of("8u341"), fixVersions(updatedIssue));
+            assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
+            assertEquals(Set.of("foo8u341"), fixVersions(backportIssue));
+            assertEquals("team", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
+
+            // The issue should be assigned and resolved
+            assertEquals(RESOLVED, updatedIssue.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
+            assertEquals(RESOLVED, backportIssue.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), backportIssue.assignees());
+
+            // Tag it
+            localRepo.tag(editHash, "jdk8u341-b01", "Second tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The notifier requires prefix to be matched, but the default tag prefix of "jdk"
+            // can't be overridden, so fixVersion "8u341" does still match tag "jdk8u341-b01".
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            backportIssue = issueProject.issue(backportIssue.id()).orElseThrow();
+            assertEquals("b01", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
+            // But not in the update backport
+            assertEquals("team", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
+
+            // Tag it with a properly formatted tag for the foo version
+            localRepo.tag(editHash, "foo8u341-b02", "Second foo tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The build should now be updated
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            backportIssue = issueProject.issue(backportIssue.id()).orElseThrow();
+            assertEquals("b02", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
+            // And the main issue should stay the same
+            assertEquals("b01", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
         }
     }
 

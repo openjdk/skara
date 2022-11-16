@@ -74,6 +74,11 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     // do not need to be part of a tag to be considered a match.
     private final Set<String> tagIgnoreOpt;
 
+    // Should the prefix of a tag match the prefix of a fix version to be considered
+    // a match (except for the special tag prefix 'jdk' which will always be ignored
+    // when parsing a version from a tag).
+    private final boolean tagMatchPrefix;
+
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
     // Lazy loaded
@@ -83,7 +88,8 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                   boolean setFixVersion, LinkedHashMap<Pattern, String> fixVersions, LinkedHashMap<Pattern, List<Pattern>> altFixVersions,
                   JbsBackport jbsBackport, boolean prOnly, boolean repoOnly, String buildName,
                   HostedRepository censusRepository, String censusRef, String namespace, boolean useHeadVersion,
-                  HostedRepository originalRepository, boolean resolve, Set<String> tagIgnoreOpt) {
+                  HostedRepository originalRepository, boolean resolve, Set<String> tagIgnoreOpt,
+                  boolean tagMatchPrefix) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -103,6 +109,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.originalRepository = originalRepository;
         this.resolve = resolve;
         this.tagIgnoreOpt = tagIgnoreOpt;
+        this.tagMatchPrefix = tagMatchPrefix;
     }
 
     static IssueNotifierBuilder newBuilder() {
@@ -458,17 +465,19 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
             }
         }
 
-        // The fixVersion may have a prefix in the first component that is not present
-        // in the tagVersion. e.g. 'openjdk8u342' vs '8u342'
-        var fixComponents = fixVersion.components();
-        var tagComponents = tagVersion.components();
-        // Check that the rest of the components are equal
-        if (fixComponents.size() > 0 && fixComponents.size() == tagComponents.size()
-                && fixComponents.subList(1, fixComponents.size()).equals(tagComponents.subList(1, tagComponents.size()))) {
-            var fixFirst = fixComponents.get(0);
-            var tagFirst = tagComponents.get(0);
-            // Check if the first fixVersion component has a prefix consisting of only lower case letters
-            return fixFirst.matches("[a-z]+" + tagFirst);
+        if (!tagMatchPrefix) {
+            // The fixVersion may have a prefix in the first component that is not present
+            // in the tagVersion. e.g. 'openjdk8u342' vs '8u342'
+            var fixComponents = fixVersion.components();
+            var tagComponents = tagVersion.components();
+            // Check that the rest of the components are equal
+            if (fixComponents.size() > 0 && fixComponents.size() == tagComponents.size()
+                    && fixComponents.subList(1, fixComponents.size()).equals(tagComponents.subList(1, tagComponents.size()))) {
+                var fixFirst = fixComponents.get(0);
+                var tagFirst = tagComponents.get(0);
+                // Check if the first fixVersion component has a prefix consisting of only lower case letters
+                return fixFirst.matches("[a-z]+" + tagFirst);
+            }
         }
         return false;
     }
