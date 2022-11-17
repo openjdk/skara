@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openjdk.skara.bot.WorkItem;
@@ -78,6 +79,11 @@ abstract class PullRequestWorkItem implements WorkItem {
     @Override
     public final Collection<WorkItem> run(Path scratchPath) {
         pr = bot.repo().pullRequest(prId);
+        // Check if PR is ready to be evaluated at all. This check is too expensive to run
+        // in getPeriodicItems, so call the bot from here.
+        if (!bot.isReady(pr)) {
+            return List.of();
+        }
         return prRun(scratchPath);
     }
 

@@ -112,7 +112,7 @@ class PullRequestBot implements Bot {
         return new PullRequestBotBuilder();
     }
 
-    private boolean isReady(PullRequest pr) {
+    boolean isReady(PullRequest pr) {
         var labels = new HashSet<>(pr.labelNames());
         for (var readyLabel : readyLabels) {
             if (!labels.contains(readyLabel)) {
@@ -152,9 +152,6 @@ class PullRequestBot implements Bot {
         ret.add(new CommitCommentsWorkItem(this, remoteRepo, excludeCommitCommentsFrom));
 
         for (var pr : pullRequests) {
-            if (!isReady(pr)) {
-                continue;
-            }
             if (pr.state() == Issue.State.OPEN) {
                 ret.add(new CheckWorkItem(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt()));
             } else {
