@@ -44,4 +44,5 @@ public interface IssueVisitor {
     void visit(BinaryIssue issue);
     void visit(SymlinkIssue issue);
     void visit(ProblemListsIssue problemListIssue);
+    void visit(JCheckConfIssue issue);
 }

@@ -167,7 +167,7 @@ class PullRequestWorkItem implements WorkItem {
         var csr = csrOptional.get();
 
         log.info("Found CSR " + csr.id() + " for " + describe(pr));
-        if (!hasCsrIssueAndProgress(pr, csr)) {
+        if (!hasCsrIssueAndProgress(pr, csr) && !isWithdrawnCSR(csr)) {
             // If the PR body doesn't have the CSR issue or doesn't have the CSR progress,
             // this bot need to add the csr update marker so that the PR bot can update the message of the PR body.
             log.info("The PR body doesn't have the CSR issue or progress, adding the csr update marker for " + describe(pr));
@@ -259,5 +259,18 @@ class PullRequestWorkItem implements WorkItem {
 
     public final void handleRuntimeException(RuntimeException e) {
         errorHandler.accept(e);
+    }
+
+    private boolean isWithdrawnCSR(Issue csr) {
+        if (csr.isClosed()) {
+            var resolution = csr.properties().get("resolution");
+            if (resolution != null && !resolution.isNull()) {
+                var name = resolution.get("name");
+                if (name != null && !name.isNull() && name.asString().equals("Withdrawn")) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

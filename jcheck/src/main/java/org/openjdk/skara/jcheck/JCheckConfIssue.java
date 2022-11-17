@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,20 +20,22 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-import org.openjdk.skara.bots.pr.PullRequestBotFactory;
+package org.openjdk.skara.jcheck;
 
-module org.openjdk.skara.bots.pr {
-    requires org.openjdk.skara.vcs;
-    requires org.openjdk.skara.jcheck;
-    requires org.openjdk.skara.host;
-    requires org.openjdk.skara.census;
-    requires org.openjdk.skara.ini;
-    requires org.openjdk.skara.bot;
-    requires org.openjdk.skara.process;
-    requires org.openjdk.skara.email;
-    requires org.openjdk.skara.jbs;
-    requires org.openjdk.skara.network;
-    requires java.logging;
+public class JCheckConfIssue extends CommitIssue {
+    String errorMessage;
 
-    provides org.openjdk.skara.bot.BotFactory with PullRequestBotFactory;
+    public JCheckConfIssue(Metadata metadata, String errorMessage) {
+        super(metadata);
+        this.errorMessage = errorMessage;
+    }
+
+    @Override
+    public void accept(IssueVisitor v) {
+        v.visit(this);
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
 }

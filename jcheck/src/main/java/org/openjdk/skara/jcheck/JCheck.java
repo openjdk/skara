@@ -77,7 +77,8 @@ public class JCheck {
             new ExecutableCheck(),
             new SymlinkCheck(),
             new BinaryCheck(),
-            new ProblemListsCheck(repository)
+            new ProblemListsCheck(repository),
+            new JCheckConfCheck(repository)
         );
         repositoryChecks = List.of(
             new BranchesCheck(allowedBranches),

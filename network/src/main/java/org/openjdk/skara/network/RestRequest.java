@@ -374,7 +374,7 @@ public class RestRequest {
             log.warning("Request returned bad status: " + response.statusCode());
             log.info(queryBuilder.toString());
             log.info(response.body());
-            throw new UncheckedRestException("Request returned bad status: " + response.statusCode());
+            throw new UncheckedRestException("Request returned bad status: " + response.statusCode(), response.statusCode());
         } else {
             return Optional.empty();
         }
