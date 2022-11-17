@@ -65,9 +65,7 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
 
     private void deleteBranch(PullRequest pr) {
         String branch = PreIntegrations.preIntegrateBranch(pr);
-        var branchExists = pr.repository().branches().stream()
-                         .map(HostedBranch::name)
-                         .anyMatch(name -> name.equals(branch));
+        var branchExists = pr.repository().branchHash(branch).isPresent();
         if (!branchExists) {
             log.info("Pull request pre-integration branch " + branch + " doesn't exist on remote - ignoring");
             return;

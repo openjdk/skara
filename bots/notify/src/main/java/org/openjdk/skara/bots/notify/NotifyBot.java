@@ -46,8 +46,6 @@ public class NotifyBot implements Bot, Emitter {
     private final String integratorId;
     private final PullRequestPoller poller;
 
-    private ZonedDateTime lastFullUpdate;
-
     NotifyBot(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<UpdatedTag> tagStorageBuilder,
               StorageBuilder<UpdatedBranch> branchStorageBuilder, StorageBuilder<PullRequestState> prStateStorageBuilder,
               Map<String, Pattern> readyComments, String integratorId) {
@@ -64,37 +62,6 @@ public class NotifyBot implements Bot, Emitter {
 
     public static NotifyBotBuilder newBuilder() {
         return new NotifyBotBuilder();
-    }
-
-    private boolean isOfInterest(PullRequest pr) {
-        var labels = new HashSet<>(pr.labelNames());
-        var branchExists = pr.repository().branches().stream()
-                            .map(HostedBranch::name)
-                            .anyMatch(name -> name.equals(PreIntegrations.preIntegrateBranch(pr)));
-        if (!(labels.contains("rfr") || labels.contains("integrated") || branchExists)) {
-            log.fine("PR is not yet ready - needs either 'rfr' or 'integrated' label");
-            return false;
-        }
-
-        var comments = pr.comments();
-        for (var readyComment : readyComments.entrySet()) {
-            var commentFound = false;
-            for (var comment : comments) {
-                if (comment.author().username().equals(readyComment.getKey())) {
-                    var matcher = readyComment.getValue().matcher(comment.body());
-                    if (matcher.find()) {
-                        commentFound = true;
-                        break;
-                    }
-                }
-            }
-            if (!commentFound) {
-                log.fine("PR is not yet ready - missing ready comment from '" + readyComment.getKey() +
-                                 "containing '" + readyComment.getValue().pattern() + "'");
-                return false;
-            }
-        }
-        return true;
     }
 
     @Override
@@ -120,13 +87,12 @@ public class NotifyBot implements Bot, Emitter {
             // Pull request events
             List<PullRequest> prs = poller.updatedPullRequests();
             for (var pr : prs) {
-                if (isOfInterest(pr)) {
-                    ret.add(new PullRequestWorkItem(pr,
-                            prStateStorageBuilder,
-                            prListeners,
-                            e -> poller.retryPullRequest(pr),
-                            integratorId));
-                }
+                ret.add(new PullRequestWorkItem(pr,
+                        prStateStorageBuilder,
+                        prListeners,
+                        e -> poller.retryPullRequest(pr),
+                        integratorId,
+                        readyComments));
             }
             poller.lastBatchHandled();
         }

@@ -154,8 +154,8 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public Hash branchHash(String ref) {
-        return null;
+    public Optional<Hash> branchHash(String ref) {
+        return Optional.empty();
     }
 
     @Override

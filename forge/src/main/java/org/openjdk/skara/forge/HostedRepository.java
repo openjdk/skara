@@ -87,7 +87,7 @@ public interface HostedRepository {
     Optional<WebHook> parseWebHook(JSONValue body);
     HostedRepository fork();
     long id();
-    Hash branchHash(String ref);
+    Optional<Hash> branchHash(String ref);
     List<HostedBranch> branches();
     void deleteBranch(String ref);
     List<CommitComment> commitComments(Hash hash);
