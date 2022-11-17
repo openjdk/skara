@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,27 +22,20 @@
  */
 package org.openjdk.skara.jcheck;
 
-public interface IssueVisitor {
-    void visit(TagIssue issue);
-    void visit(BranchIssue issue);
-    void visit(DuplicateIssuesIssue issue);
-    void visit(SelfReviewIssue issue);
-    void visit(TooFewReviewersIssue issue);
-    void visit(InvalidReviewersIssue issue);
-    void visit(MergeMessageIssue issue);
-    void visit(HgTagCommitIssue issue);
-    void visit(CommitterIssue issue);
-    void visit(CommitterNameIssue issue);
-    void visit(CommitterEmailIssue issue);
-    void visit(AuthorNameIssue issue);
-    void visit(AuthorEmailIssue issue);
-    void visit(WhitespaceIssue issue);
-    void visit(MessageIssue issue);
-    void visit(MessageWhitespaceIssue issue);
-    void visit(IssuesIssue issue);
-    void visit(ExecutableIssue issue);
-    void visit(BinaryIssue issue);
-    void visit(SymlinkIssue issue);
-    void visit(ProblemListsIssue problemListIssue);
-    void visit(JCheckConfIssue issue);
+public class JCheckConfIssue extends CommitIssue {
+    String errorMessage;
+
+    public JCheckConfIssue(Metadata metadata, String errorMessage) {
+        super(metadata);
+        this.errorMessage = errorMessage;
+    }
+
+    @Override
+    public void accept(IssueVisitor v) {
+        v.visit(this);
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
 }
