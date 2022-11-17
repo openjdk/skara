@@ -28,6 +28,7 @@ import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openjdk.skara.bot.WorkItem;
@@ -53,6 +54,7 @@ class PullRequestWorkItem implements WorkItem {
     private final HostedRepository repository;
     private final String prId;
     private final IssueProject project;
+    private final Consumer<RuntimeException> errorHandler;
     /**
      * The updatedAt timestamp of the external entity that triggered this WorkItem,
      * which would be either a PR or a CSR Issue. Used for tracking reaction legacy
@@ -61,11 +63,12 @@ class PullRequestWorkItem implements WorkItem {
     private final ZonedDateTime triggerUpdatedAt;
 
     public PullRequestWorkItem(HostedRepository repository, String prId, IssueProject project,
-            ZonedDateTime triggerUpdatedAt) {
+            ZonedDateTime triggerUpdatedAt, Consumer<RuntimeException> errorHandler) {
         this.repository = repository;
         this.prId = prId;
         this.project = project;
         this.triggerUpdatedAt = triggerUpdatedAt;
+        this.errorHandler = errorHandler;
     }
 
     @Override
@@ -164,7 +167,7 @@ class PullRequestWorkItem implements WorkItem {
         var csr = csrOptional.get();
 
         log.info("Found CSR " + csr.id() + " for " + describe(pr));
-        if (!hasCsrIssueAndProgress(pr, csr)) {
+        if (!hasCsrIssueAndProgress(pr, csr) && !isWithdrawnCSR(csr)) {
             // If the PR body doesn't have the CSR issue or doesn't have the CSR progress,
             // this bot need to add the csr update marker so that the PR bot can update the message of the PR body.
             log.info("The PR body doesn't have the CSR issue or progress, adding the csr update marker for " + describe(pr));
@@ -252,5 +255,22 @@ class PullRequestWorkItem implements WorkItem {
     @Override
     public String workItemName() {
         return "pr";
+    }
+
+    public final void handleRuntimeException(RuntimeException e) {
+        errorHandler.accept(e);
+    }
+
+    private boolean isWithdrawnCSR(Issue csr) {
+        if (csr.isClosed()) {
+            var resolution = csr.properties().get("resolution");
+            if (resolution != null && !resolution.isNull()) {
+                var name = resolution.get("name");
+                if (name != null && !name.isNull() && name.asString().equals("Withdrawn")) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

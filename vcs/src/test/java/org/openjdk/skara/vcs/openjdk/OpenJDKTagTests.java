@@ -151,4 +151,12 @@ class OpenJDKTagTests {
         assertEquals("8u341-foo", jdkTag.version());
         assertEquals(17, jdkTag.buildNum().orElseThrow());
     }
+
+    @Test
+    void parse8uPrefixVersion() {
+        var tag = new Tag("shenandoah8u332-b01");
+        var jdkTag = OpenJDKTag.create(tag).orElseThrow();
+        assertEquals("shenandoah8u332", jdkTag.version());
+        assertEquals(1, jdkTag.buildNum().orElseThrow());
+    }
 }

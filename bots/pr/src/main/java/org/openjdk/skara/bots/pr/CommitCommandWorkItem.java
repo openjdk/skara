@@ -29,6 +29,7 @@ import org.openjdk.skara.issuetracker.Comment;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.*;
 import java.util.stream.*;
@@ -130,23 +131,55 @@ public class CommitCommandWorkItem implements WorkItem {
         if (nextCommand.isEmpty()) {
             log.info("No new commit comments found, stopping further processing");
         } else {
-            var census = LimitedCensusInstance.createLimitedCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(),
-                                               scratchPath.resolve("census"), bot.repo(), commit.hash().hex(),
-                                               bot.confOverrideRepository().orElse(null),
-                                               bot.confOverrideName(),
-                                               bot.confOverrideRef());
+            LimitedCensusInstance census;
             var command = nextCommand.get();
-            if (census.isEmpty()) {
-                var comment = String.format(commandReplyMarker, command.id()) + "\n" +
-                              "@" + command.user().username() +
-                              " there is no `.jcheck/conf` present at revision " +
-                              commit.hash().abbreviate() + " - cannot process command.";
-                bot.repo().addCommitComment(commit.hash(), comment);
-            } else {
-                processCommand(scratchPath, commit, census.get(), command, allComments);
+            try {
+                census = LimitedCensusInstance.createLimitedCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(),
+                        scratchPath.resolve("census"), bot.repo(), commit.hash().hex(),
+                        bot.confOverrideRepository().orElse(null),
+                        bot.confOverrideName(),
+                        bot.confOverrideRef());
+            } catch (MissingJCheckConfException e) {
+                if (bot.confOverrideRepository().isEmpty()) {
+                    log.log(Level.SEVERE, "No .jcheck/conf found in repo " + bot.repo().name(), e);
+                    var comment = String.format(commandReplyMarker, command.id()) + "\n" +
+                            "@" + command.user().username() +
+                            " There is no `.jcheck/conf` present at revision " +
+                            commit.hash().abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(commit.hash(), comment);
+                } else {
+                    log.log(Level.SEVERE, "Jcheck configuration file " + bot.confOverrideName()
+                            + " not found in external repo " + bot.confOverrideRepository().get().name(), e);
+                    var comment = String.format(commandReplyMarker, command.id()) + "\n" +
+                            "@" + command.user().username() +
+                            " There is no Jcheck configuration file " + bot.confOverrideName()
+                            + " present in external repo " + bot.confOverrideRepository().get().name() + " at revision "
+                            + commit.hash().abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(commit.hash(), comment);
+                }
+                return List.of();
+            } catch (InvalidJCheckConfException e) {
+                if (bot.confOverrideRepository().isEmpty()) {
+                    log.log(Level.SEVERE, "Invalid .jcheck/conf found in repo " + bot.repo().name(), e);
+                    var comment = String.format(commandReplyMarker, command.id()) + "\n" +
+                            "@" + command.user().username() +
+                            " Invalid `.jcheck/conf` present at revision " +
+                            commit.hash().abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(commit.hash(), comment);
+                } else {
+                    log.log(Level.SEVERE, "Invalid Jcheck configuration file " + bot.confOverrideName()
+                            + " in external repo " + bot.confOverrideRepository().get().name(), e);
+                    var comment = String.format(commandReplyMarker, command.id()) + "\n" +
+                            "@" + command.user().username() +
+                            " Invalid Jcheck configuration file " + bot.confOverrideName() + " present in external repo "
+                            + bot.confOverrideRepository().get().name() + " at revision " +
+                            commit.hash().abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(commit.hash(), comment);
+                }
+                return List.of();
             }
+            processCommand(scratchPath, commit, census, command, allComments);
         }
-
         return List.of();
     }
 

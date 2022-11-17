@@ -45,6 +45,7 @@ dependencies {
     implementation project(':email')
     implementation project(':metrics')
     implementation project(':jbs')
+    implementation project(':network')
 
     testImplementation project(':test')
 }

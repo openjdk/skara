@@ -21,9 +21,11 @@ import org.openjdk.skara.issuetracker.Issue;
  * limit), are returned. After that only updated PRs should be included.
  * <p>
  * After each call for updated pull requests, the result needs to be
- * acknowledged once it has been processed by the caller. Failing to
- * acknowledge makes the next call include everything from the last call
- * again. This helps to avoid missing any updates due to errors.
+ * acknowledged once it has been processed by the caller using the
+ * lastBatchHandled method. Failing to acknowledge makes the next call include
+ * everything from the last call again. This helps to avoid missing any updates
+ * due to errors. Calling the retry/quarantine methods before lastBatchHandled
+ * for any particular PR will cause that PR to be lost.
  * <p>
  * In addition to this, it's also possible to schedule PRs for retries with
  * or without quarantine. A regular retry will not block the same PR if it
@@ -134,9 +136,16 @@ public class PullRequestPoller {
     }
 
     /**
-     * After calling getUpdatedPullRequests(), this method must be called to acknowledge
+     * After calling updatedPullRequests(), this method must be called to acknowledge
      * that all the PRs returned have been handled. If not, the previous results will be
-     * included in the next call to getUpdatedPullRequests() again.
+     * included in the next call to updatedPullRequests() again.
+     * <p>
+     * This method must be called before any retry/quarantine method is called for a pr
+     * returned by the last updatedPullRequest call, otherwise retries may be lost.
+     * <p>
+     * The typical pattern is to call this last in the getPeriodicItems/run method of a
+     * bot or WorkItem, before any generated WorkItems are published (by being returned
+     * to the bot runner).
      */
     public synchronized void lastBatchHandled() {
         if (current != null) {
@@ -158,8 +167,8 @@ public class PullRequestPoller {
     }
 
     /**
-     * Schedules a pull request to be re-evaluated after a certain time, unless it is
-     * updated before that.
+     * Schedules a pull request to be included in the next update that happens after a
+     * certain time, unless it is updated before that. Can be used to throttle retries.
      * @param pr PullRequest to retry
      * @param at Time at which to process it
      */
@@ -168,9 +177,10 @@ public class PullRequestPoller {
     }
 
     /**
-     * Schedules a pull request to be retried after a quarantine period has passed.
-     * If a quarantined pull request is returned by a query, it will be removed from
-     * the result set until the quarantine time has passed.
+     * Schedules a pull request to be included in the next update that happens after a
+     * quarantine period has passed. If a quarantined pull request is returned by a
+     * query, it will be removed from the result set until the quarantine time has
+     * passed.
      * @param pr PullRequest to quarantine
      * @param until Time at which the quarantine is lifted
      */

@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.notify.issue;
 
+import java.util.regex.Pattern;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.issuetracker.IssueProject;
 
@@ -35,8 +36,8 @@ class IssueNotifierBuilder {
     private boolean commitLink = true;
     private URI commitIcon = null;
     private boolean setFixVersion = false;
-    private Map<String, String> fixVersions = null;
-    private Map<String, List<String>> altFixVersions = null;
+    private LinkedHashMap<Pattern, String> fixVersions = null;
+    private LinkedHashMap<Pattern, List<Pattern>> altFixVersions = null;
     private JbsVault vault = null;
     private boolean prOnly = true;
     private boolean repoOnly = false;
@@ -48,6 +49,7 @@ class IssueNotifierBuilder {
     private HostedRepository originalRepository;
     private boolean resolve = true;
     private Set<String> tagIgnoreOpt = Set.of();
+    private boolean tagMatchPrefix = false;
 
     IssueNotifierBuilder issueProject(IssueProject issueProject) {
         this.issueProject = issueProject;
@@ -80,12 +82,12 @@ class IssueNotifierBuilder {
         return this;
     }
 
-    public IssueNotifierBuilder fixVersions(Map<String, String> fixVersions) {
+    public IssueNotifierBuilder fixVersions(LinkedHashMap<Pattern, String> fixVersions) {
         this.fixVersions = fixVersions;
         return this;
     }
 
-    public IssueNotifierBuilder altFixVersions(Map<String, List<String>> altFixVersions) {
+    public IssueNotifierBuilder altFixVersions(LinkedHashMap<Pattern, List<Pattern>> altFixVersions) {
         this.altFixVersions = altFixVersions;
         return this;
     }
@@ -145,6 +147,11 @@ class IssueNotifierBuilder {
         return this;
     }
 
+    public IssueNotifierBuilder tagMatchPrefix(boolean tagMatchPrefix) {
+        this.tagMatchPrefix = tagMatchPrefix;
+        return this;
+    }
+
     public boolean prOnly() {
         return prOnly;
     }
@@ -158,6 +165,6 @@ class IssueNotifierBuilder {
         return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
                 setFixVersion, fixVersions, altFixVersions, jbsBackport, prOnly,
                 repoOnly, buildName, censusRepository, censusRef, namespace, useHeadVersion, originalRepository,
-                resolve, tagIgnoreOpt);
+                resolve, tagIgnoreOpt, tagMatchPrefix);
     }
 }

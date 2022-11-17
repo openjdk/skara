@@ -91,7 +91,7 @@ public class TestIssue implements Issue {
 
     @Override
     public String body() {
-        return store.body();
+        return body;
     }
 
     @Override

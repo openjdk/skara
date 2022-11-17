@@ -27,6 +27,7 @@ import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Label;
 import org.openjdk.skara.json.JSONValue;
+import org.openjdk.skara.network.UncheckedRestException;
 import org.openjdk.skara.vcs.*;
 
 import java.io.*;
@@ -45,6 +46,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     private final Map<Hash, List<CommitComment>> commitComments;
     private Map<String, Boolean> collaborators = new HashMap<>();
     private List<Label> labels = new ArrayList<>();
+    private final Set<Check> checks = new HashSet<>();
 
     public TestHostedRepository(TestHost host, String projectName, Repository localRepository) {
         super(host, projectName);
@@ -201,6 +203,9 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
             return String.join("\n", lines.orElseThrow());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        } catch (NoSuchElementException e) {
+            // Make this method behave more like other remote repo implementations
+            throw new UncheckedRestException("Can't find file " + filename, 404);
         }
     }
 
@@ -309,9 +314,17 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
 
     @Override
     public List<Check> allChecks(Hash hash) {
-        return host.getPullRequests(this).stream()
-                   .flatMap(testPr -> testPr.checks(hash).values().stream())
-                   .collect(Collectors.toList());
+        return checks.stream()
+                .filter(check -> check.hash().equals(hash))
+                .toList();
+    }
+
+    public void createCheck(Check check) {
+        var existing = checks.stream()
+                .filter(c -> c.name().equals(check.name()))
+                .findAny();
+        existing.ifPresent(checks::remove);
+        checks.add(check);
     }
 
     @Override

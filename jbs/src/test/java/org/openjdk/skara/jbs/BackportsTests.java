@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.jbs;
 
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSON;
@@ -33,6 +34,7 @@ import java.util.stream.Collectors;
 import org.openjdk.skara.test.TestIssue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.RESOLVED_IN_BUILD;
 
 public class BackportsTests {
@@ -982,6 +984,38 @@ public class BackportsTests {
 
             backports.addBackports("8u333-foo", "8u345-foo", "8u351");
             backports.assertLabeled("8u345-foo", "8u351");
+        }
+    }
+
+    @Test
+    void findFixedIssueWithPattern(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var issueProject = credentials.getIssueProject();
+            var issue = credentials.createIssue(issueProject, "Issue");
+            issue.setProperty("issuetype", JSON.of("Bug"));
+            var backport = credentials.createIssue(issueProject, "Backport");
+            backport.setProperty("issuetype", JSON.of("Backport"));
+            backport.setState(Issue.State.RESOLVED);
+            issue.addLink(Link.create(backport, "backported by").build());
+            var backport2 = credentials.createIssue(issueProject, "Backport Foo");
+            backport2.setProperty("issuetype", JSON.of("Backport"));
+            issue.addLink(Link.create(backport2, "backported by").build());
+
+            issue.setProperty("fixVersions", JSON.array().add("17"));
+            backport.setProperty("fixVersions", JSON.array().add("16.0.2"));
+            backport2.setProperty("fixVersions", JSON.array().add("16u-cpu"));
+
+            assertEquals(backport.id(), Backports.findFixedIssue(issue, Pattern.compile("16.*")).orElseThrow().id());
+            assertTrue(Backports.findFixedIssue(issue, Pattern.compile(".*cpu")).isEmpty());
+            assertTrue(Backports.findFixedIssue(issue, Pattern.compile("17")).isEmpty());
+
+            issue.setState(Issue.State.RESOLVED);
+            // Need to reload the issue from the store for this to be picked up.
+            issue = (TestIssue) issueProject.issue(issue.id()).orElseThrow();
+            assertEquals(issue.id(), Backports.findFixedIssue(issue, Pattern.compile("17")).orElseThrow().id());
+
+            backport2.setState(Issue.State.RESOLVED);
+            assertEquals(backport2.id(), Backports.findFixedIssue(issue, Pattern.compile(".*cpu")).orElseThrow().id());
         }
     }
 }

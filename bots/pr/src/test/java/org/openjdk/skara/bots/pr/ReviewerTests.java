@@ -374,7 +374,7 @@ class ReviewerTests {
             assertLastCommentContains(pr, "successfully credited.");
 
             // Verify that body is updated
-            var body = pr.body().split("\n");
+            var body = pr.store().body().split("\n");
             var contributorsHeaderIndex = -1;
             for (var i = 0; i < body.length; i++) {
                 var line = body[i];
@@ -397,17 +397,17 @@ class ReviewerTests {
             assertLastCommentContains(pr, "successfully removed.");
 
             // Verify that body does not contain a "Reviewers" section
-            for (var line : pr.body().split("\n")) {
+            for (var line : pr.store().body().split("\n")) {
                 assertNotEquals("### Reviewers", line);
             }
-            assertFalse(pr.body().contains("Added manually"));
+            assertFalse(pr.store().body().contains("Added manually"));
 
             // Add it once more
             pr.addComment("/reviewer credit integrationauthor1");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "successfully credited.");
-            assertTrue(pr.body().contains(" * Generated Author 1 - Author ⚠️ Added manually"));
+            assertTrue(pr.store().body().contains(" * Generated Author 1 - Author ⚠️ Added manually"));
 
             // Now add an authenticated review from the same reviewer
             var integratorPr = integrator.pullRequest(pr.id());
@@ -415,8 +415,8 @@ class ReviewerTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The reviewer should no longer be listed as added manually
-            assertFalse(pr.body().contains("Added manually"));
-            assertTrue(pr.body().contains(" * Generated Author 1 (@user2 - Author)"));
+            assertFalse(pr.store().body().contains("Added manually"));
+            assertTrue(pr.store().body().contains(" * Generated Author 1 (@user2 - Author)"));
         }
     }
 
@@ -453,8 +453,8 @@ class ReviewerTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The reviewer is not added manually
-            assertFalse(pr.body().contains("Added manually"));
-            assertTrue(pr.body().contains(" * Generated Reviewer 1 (@user2 - **Reviewer**)"));
+            assertFalse(pr.store().body().contains("Added manually"));
+            assertTrue(pr.store().body().contains(" * Generated Reviewer 1 (@user2 - **Reviewer**)"));
 
             // Try to add it manually as well
             pr.addComment("/reviewer credit integrationreviewer1");
@@ -465,8 +465,8 @@ class ReviewerTests {
             assertLastCommentContains(pr,"Reviewer `integrationreviewer1` has already made an authenticated review of this PR");
 
             // The reviewer is not added manually
-            assertFalse(pr.body().contains("Added manually"));
-            assertTrue(pr.body().contains(" * Generated Reviewer 1 (@user2 - **Reviewer**)"));
+            assertFalse(pr.store().body().contains("Added manually"));
+            assertTrue(pr.store().body().contains(" * Generated Reviewer 1 (@user2 - **Reviewer**)"));
         }
     }
 
@@ -501,8 +501,8 @@ class ReviewerTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // Check the PR body
-            assertTrue(pr.body().contains(" * Generated Reviewer 1 - **Reviewer** ⚠️ Added manually"));
-            assertTrue(pr.body().contains(" * Generated Committer 3 - Committer ⚠️ Added manually"));
+            assertTrue(pr.store().body().contains(" * Generated Reviewer 1 - **Reviewer** ⚠️ Added manually"));
+            assertTrue(pr.store().body().contains(" * Generated Committer 3 - Committer ⚠️ Added manually"));
 
             // Add a real review
             var approvalPr = extra.pullRequest(pr.id());
@@ -513,10 +513,10 @@ class ReviewerTests {
             assertLastCommentContains(pr, "Reviewed-by: integrationreviewer2, integrationreviewer1, integrationcommitter3");
 
             // Check the PR body
-            assertTrue(pr.body().contains(" * Generated Reviewer 1 - **Reviewer** ⚠️ Added manually"));
-            assertTrue(pr.body().contains(" * Generated Committer 3 - Committer ⚠️ Added manually"));
-            assertTrue(pr.body().contains(" * Generated Reviewer 2 (@user3 - **Reviewer**)"));
-            assertFalse(pr.body().contains(" * Generated Reviewer 2 (@user3 - **Reviewer**) ⚠️ Added manually"));
+            assertTrue(pr.store().body().contains(" * Generated Reviewer 1 - **Reviewer** ⚠️ Added manually"));
+            assertTrue(pr.store().body().contains(" * Generated Committer 3 - Committer ⚠️ Added manually"));
+            assertTrue(pr.store().body().contains(" * Generated Reviewer 2 (@user3 - **Reviewer**)"));
+            assertFalse(pr.store().body().contains(" * Generated Reviewer 2 (@user3 - **Reviewer**) ⚠️ Added manually"));
 
             // Remove both reviewers
             pr.addComment("/reviewer remove integrationreviewer1 integrationcommitter3");
@@ -527,10 +527,10 @@ class ReviewerTests {
             assertLastCommentContains(pr, "Reviewer `integrationcommitter3` successfully removed");
 
             // Check the PR body
-            assertFalse(pr.body().contains(" * Generated Reviewer 1 - **Reviewer**"));
-            assertFalse(pr.body().contains(" * Generated Committer 3 - Committer"));
-            assertTrue(pr.body().contains(" * Generated Reviewer 2 (@user3 - **Reviewer**)"));
-            assertFalse(pr.body().contains(" * Generated Reviewer 2 (@user3 - **Reviewer**) ⚠️ Added manually"));
+            assertFalse(pr.store().body().contains(" * Generated Reviewer 1 - **Reviewer**"));
+            assertFalse(pr.store().body().contains(" * Generated Committer 3 - Committer"));
+            assertTrue(pr.store().body().contains(" * Generated Reviewer 2 (@user3 - **Reviewer**)"));
+            assertFalse(pr.store().body().contains(" * Generated Reviewer 2 (@user3 - **Reviewer**) ⚠️ Added manually"));
         }
     }
 }

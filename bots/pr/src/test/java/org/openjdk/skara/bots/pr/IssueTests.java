@@ -366,9 +366,9 @@ class IssueTests {
 
             // First check
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.body().contains(issue1.id()));
-            assertTrue(pr.body().contains("First"));
-            assertTrue(pr.body().contains("## Issue\n"));
+            assertTrue(pr.store().body().contains(issue1.id()));
+            assertTrue(pr.store().body().contains("First"));
+            assertTrue(pr.store().body().contains("## Issue\n"));
 
             // Add an extra issue
             var issue2 = issues.createIssue("Second", List.of("There"), Map.of());
@@ -377,12 +377,12 @@ class IssueTests {
             // Check that the body was updated
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.body().contains(issue1.id()));
-            assertTrue(pr.body().contains("First"));
-            assertTrue(pr.body().contains(issue2.id()));
-            assertTrue(pr.body().contains("Second"));
-            assertFalse(pr.body().contains("## Issue\n"));
-            assertTrue(pr.body().contains("## Issues\n"));
+            assertTrue(pr.store().body().contains(issue1.id()));
+            assertTrue(pr.store().body().contains("First"));
+            assertTrue(pr.store().body().contains(issue2.id()));
+            assertTrue(pr.store().body().contains("Second"));
+            assertFalse(pr.store().body().contains("## Issue\n"));
+            assertTrue(pr.store().body().contains("## Issues\n"));
         }
     }
 
@@ -414,10 +414,10 @@ class IssueTests {
 
             // First check
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.body().contains(issue1.id()));
-            assertTrue(pr.body().contains("First"));
-            assertTrue(pr.body().contains("## Issue\n"));
-            assertTrue(pr.body().contains("Issue is not open"));
+            assertTrue(pr.store().body().contains(issue1.id()));
+            assertTrue(pr.store().body().contains("First"));
+            assertTrue(pr.store().body().contains("## Issue\n"));
+            assertTrue(pr.store().body().contains("Issue is not open"));
         }
     }
 
@@ -450,10 +450,10 @@ class IssueTests {
 
             // First check
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.body().contains(issue1.id()));
-            assertTrue(pr.body().contains("First"));
-            assertTrue(pr.body().contains("## Issue\n"));
-            assertFalse(pr.body().contains("Issue is not open"));
+            assertTrue(pr.store().body().contains(issue1.id()));
+            assertTrue(pr.store().body().contains("First"));
+            assertTrue(pr.store().body().contains("## Issue\n"));
+            assertFalse(pr.store().body().contains("Issue is not open"));
         }
     }
 
@@ -727,8 +727,8 @@ class IssueTests {
                     .findFirst();
             assertEquals(Optional.empty(), previewComment, "Preview comment should not have been posted");
             // Body should contain integration blocker
-            assertTrue(pr.body().contains("Integration blocker"), "Body does not report integration blocker");
-            assertTrue(pr.body().contains("Failed to retrieve information on issue `123`"),
+            assertTrue(pr.store().body().contains("Integration blocker"), "Body does not report integration blocker");
+            assertTrue(pr.store().body().contains("Failed to retrieve information on issue `123`"),
                     "Body does not contain specific message");
         }
     }

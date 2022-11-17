@@ -2226,6 +2226,279 @@ class CheckTests {
     }
 
     @Test
+    void missingJCheckConf(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+
+            // Remove .jcheck/conf
+            localRepo.remove(localRepo.root().resolve(".jcheck/conf"));
+            localRepo.commit("no conf", "testauthor", "ta@none.none");
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Create a new branch
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+            var comments = pr.store().comments();
+            assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " No `.jcheck/conf` found in the target branch of this pull request. "
+                    + "Until that is resolved, this pull request cannot be processed. Please notify the repository owner."));
+            // Make sure the warning message will be sent only once
+            TestBotRunner.runPeriodicItems(checkBot);
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertEquals(1, pr.store().comments().size());
+
+            // Restore .jcheck/conf
+            localRepo.checkout(masterHash);
+            Files.createDirectories(tempFolder.path().resolve(".jcheck"));
+            var checkConf = tempFolder.path().resolve(".jcheck/conf");
+            writeToCheckConf(checkConf);
+            localRepo.add(checkConf);
+            var restoreHash = localRepo.commit("add conf to master", "testauthor", "ta@none.none");
+            localRepo.push(restoreHash, author.url(), "master", true);
+
+            pr.addComment(".jcheck/conf is uploaded");
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertTrue(pr.store().labelNames().contains("rfr"));
+        }
+    }
+
+    @Test
+    void invalidJCheckConf(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+
+            // Make .jcheck/conf invalid
+            try (var output = new FileWriter(tempFolder.path().resolve(".jcheck/conf").toFile(), true)) {
+                output.append("\nRandomCharacters");
+            }
+            localRepo.add(tempFolder.path().resolve(".jcheck/conf"));
+            var masterHash = localRepo.commit("make .jcheck/conf invalid", "testauthor", "ta@none.none");
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Create a new branch
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+            var comments = pr.store().comments();
+            assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " The `.jcheck/conf` in the target branch of this pull request is invalid. "
+                    + "Until that is resolved, this pull request cannot be processed. Please notify the repository owner."));
+            // Make sure the warning message will be sent only once
+            TestBotRunner.runPeriodicItems(checkBot);
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertEquals(1, pr.store().comments().size());
+
+            // Restore .jcheck/conf
+            localRepo.checkout(masterHash);
+            Files.createDirectories(tempFolder.path().resolve(".jcheck"));
+            var checkConf = tempFolder.path().resolve(".jcheck/conf");
+            writeToCheckConf(checkConf);
+            localRepo.add(checkConf);
+            var restoreHash = localRepo.commit("restore conf", "testauthor", "ta@none.none");
+            localRepo.push(restoreHash, author.url(), "master", true);
+
+            pr.addComment(".jcheck/conf is uploaded");
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertTrue(pr.store().labelNames().contains("rfr"));
+        }
+    }
+
+    @Test
+    void missingExternalJcheckConf(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var conf = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .confOverrideRepo(conf)
+                    .confOverrideName("jcheck.conf")
+                    .confOverrideRef("jcheck-branch")
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Remove conf
+            localRepo.remove(localRepo.root().resolve(".jcheck/conf"));
+            var newMasterHash = localRepo.commit("No more conf", "duke", "duke@openjdk.org");
+            localRepo.push(newMasterHash, author.url(), "master");
+
+            // Create a new branch
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status (should become ready immediately as reviewercount is overridden to 0)
+            TestBotRunner.runPeriodicItems(checkBot);
+            var comments = pr.store().comments();
+            assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository could not be found. "
+                    + "Until that is resolved, this pull request cannot be processed. Please notify a Skara admin."));
+            // Make sure the warning message will be sent only once
+            TestBotRunner.runPeriodicItems(checkBot);
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertEquals(1, pr.store().comments().size());
+
+            // Upload .jcheck/conf to jcheck-branch
+            var jCheckBranch = localRepo.branch(masterHash, "jcheck-branch");
+            localRepo.checkout(jCheckBranch);
+            var checkConf = tempFolder.path().resolve("jcheck.conf");
+            writeToCheckConf(checkConf);
+            localRepo.add(checkConf);
+            var restoreHash = localRepo.commit("restore conf", "testauthor", "ta@none.none");
+            localRepo.push(restoreHash, conf.url(), "jcheck-branch", true);
+
+            pr.addComment("jcheck.conf is uploaded");
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertTrue(pr.store().labelNames().contains("rfr"));
+        }
+    }
+
+    @Test
+    void invalidExternalJcheckConf(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var conf = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .confOverrideRepo(conf)
+                    .confOverrideName("jcheck.conf")
+                    .confOverrideRef("jcheck-branch")
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Remove conf
+            localRepo.remove(localRepo.root().resolve(".jcheck/conf"));
+            var newMasterHash = localRepo.commit("No more conf", "duke", "duke@openjdk.org");
+            localRepo.push(newMasterHash, author.url(), "master");
+
+            // Upload invalid jcheck.conf to conf repo
+            var jCheckBranch = localRepo.branch(masterHash, "jcheck-branch");
+            localRepo.checkout(jCheckBranch);
+            var checkConf = tempFolder.path().resolve("jcheck.conf");
+            try (var output = new FileWriter(checkConf.toFile(), true)) {
+                output.append("\nRandomCharacters");
+            }
+            localRepo.add(checkConf);
+            var confHash = localRepo.commit("restore conf", "testauthor", "ta@none.none");
+            localRepo.push(confHash, conf.url(), "jcheck-branch", true);
+
+            // Create a new branch
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status (should become ready immediately as reviewercount is overridden to 0)
+            TestBotRunner.runPeriodicItems(checkBot);
+            var comments = pr.store().comments();
+            assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository is invalid. "
+                    + "Until that is resolved, this pull request cannot be processed. Please notify a Skara admin."));
+            // Make sure the warning message will be sent only once
+            TestBotRunner.runPeriodicItems(checkBot);
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertEquals(1, pr.store().comments().size());
+
+            // restore jcheck.conf to jcheck-branch
+            localRepo.checkout(jCheckBranch);
+            writeToCheckConf(checkConf);
+            localRepo.add(checkConf);
+            var restoreHash = localRepo.commit("restore conf", "testauthor", "ta@none.none");
+            localRepo.push(restoreHash, conf.url(), "jcheck-branch", true);
+
+            pr.addComment("jcheck.conf is uploaded");
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertTrue(pr.store().labelNames().contains("rfr"));
+        }
+    }
+
+    private void writeToCheckConf(Path checkConf) throws IOException {
+        try (var output = Files.newBufferedWriter(checkConf)) {
+            output.append("[general]\n");
+            output.append("project=test\n");
+            output.append("jbs=tstprj\n");
+            output.append("\n");
+            output.append("[checks]\n");
+            output.append("error=");
+            output.append(String.join(",", Set.of("author", "reviewers", "whitespace")));
+            output.append("\n\n");
+            output.append("[census]\n");
+            output.append("version=0\n");
+            output.append("domain=openjdk.org\n");
+            output.append("\n");
+            output.append("[checks \"whitespace\"]\n");
+            output.append("files=.*\\.txt\n");
+            output.append("\n");
+            output.append("[checks \"reviewers\"]\n");
+            output.append("reviewers=1\n");
+        }
+    }
+
+    @Test
     void testJCheckConfCheck(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {

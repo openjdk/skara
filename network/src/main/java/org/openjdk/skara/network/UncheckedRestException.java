@@ -6,8 +6,14 @@ package org.openjdk.skara.network;
  * has already been logged.
  */
 public class UncheckedRestException extends RuntimeException {
+    int statusCode;
 
-    public UncheckedRestException(String message) {
+    public UncheckedRestException(String message, int statusCode) {
         super(message);
+        this.statusCode = statusCode;
+    }
+
+    public int getStatusCode() {
+        return statusCode;
     }
 }
