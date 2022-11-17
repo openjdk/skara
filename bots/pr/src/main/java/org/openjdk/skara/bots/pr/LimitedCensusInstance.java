@@ -5,6 +5,8 @@ import java.io.UncheckedIOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import org.openjdk.skara.census.Census;
 import org.openjdk.skara.census.Contributor;
@@ -13,7 +15,18 @@ import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.HostedRepositoryPool;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
+import org.openjdk.skara.network.UncheckedRestException;
 
+class MissingJCheckConfException extends Exception {
+    public MissingJCheckConfException() {
+    }
+}
+
+class InvalidJCheckConfException extends Exception {
+    public InvalidJCheckConfException(Throwable cause) {
+        super(cause);
+    }
+}
 /**
  * The LimitedCensusInstance does not have a Project. Use this when the project
  * may be invalid or unavailable to avoid errors, otherwise use CensusInstance
@@ -30,20 +43,17 @@ class LimitedCensusInstance {
         this.namespace = namespace;
     }
 
-    static Optional<LimitedCensusInstance> createLimitedCensusInstance(HostedRepositoryPool hostedRepositoryPool,
+    static LimitedCensusInstance createLimitedCensusInstance(HostedRepositoryPool hostedRepositoryPool,
             HostedRepository censusRepo, String censusRef, Path folder, HostedRepository repository, String ref,
-            HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
+            HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) throws MissingJCheckConfException, InvalidJCheckConfException {
         Path repoFolder = getRepoFolder(hostedRepositoryPool, censusRepo, censusRef, folder);
 
         try {
-            Optional<JCheckConfiguration> configuration = jCheckConfiguration(hostedRepositoryPool,
-                    repository, ref, confOverrideRepo, confOverrideName, confOverrideRef);
-            if (configuration.isEmpty()) {
-                return Optional.empty();
-            }
+            JCheckConfiguration configuration = jCheckConfiguration(repository, ref, confOverrideRepo,
+                    confOverrideName, confOverrideRef).orElseThrow(MissingJCheckConfException::new);
             var census = Census.parse(repoFolder);
             var namespace = namespace(census, repository.namespace());
-            return Optional.of(new LimitedCensusInstance(census, configuration.get(), namespace));
+            return new LimitedCensusInstance(census, configuration, namespace);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot parse census at " + repoFolder, e);
         }
@@ -55,27 +65,39 @@ class LimitedCensusInstance {
         if (namespace == null) {
             throw new RuntimeException("Namespace not found in census: " + hostNamespace);
         }
-
         return namespace;
     }
 
-    private static Optional<JCheckConfiguration> configuration(HostedRepositoryPool hostedRepositoryPool, HostedRepository remoteRepo, String name, String ref) throws IOException {
-        return hostedRepositoryPool.lines(remoteRepo, Path.of(name), ref).map(JCheckConfiguration::parse);
+    private static Optional<JCheckConfiguration> configuration(HostedRepository remoteRepo, String name, String ref) {
+        Optional<List<String>> conf = Optional.empty();
+        try {
+            conf = Optional.of(Arrays.stream(remoteRepo.fileContents(name, ref).split("\n")).toList());
+        } catch (UncheckedRestException e) {
+            if (e.getStatusCode() != 404) {
+                throw e;
+            }
+        }
+        return conf.map(JCheckConfiguration::parse);
     }
 
-    private static Optional<JCheckConfiguration> jCheckConfiguration(HostedRepositoryPool hostedRepositoryPool,
+    private static Optional<JCheckConfiguration> jCheckConfiguration(
             HostedRepository repository, String ref, HostedRepository confOverrideRepo, String confOverrideName,
-            String confOverrideRef) throws IOException {
+            String confOverrideRef) throws IOException, InvalidJCheckConfException {
         Optional<JCheckConfiguration> configuration;
-        if (confOverrideRepo == null) {
-            configuration = configuration(hostedRepositoryPool, repository, ".jcheck/conf", ref);
-        } else {
-            configuration = configuration(hostedRepositoryPool,
-                    confOverrideRepo,
-                    confOverrideName,
-                    confOverrideRef);
+        try {
+            if (confOverrideRepo == null) {
+                configuration = configuration(repository, ".jcheck/conf", ref);
+            } else {
+                configuration = configuration(confOverrideRepo,
+                        confOverrideName,
+                        confOverrideRef);
+            }
+            return configuration;
+        } catch (UncheckedRestException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw new InvalidJCheckConfException(e);
         }
-        return configuration;
     }
 
     private static Path getRepoFolder(HostedRepositoryPool hostedRepositoryPool, HostedRepository censusRepo, String censusRef, Path folder) {
