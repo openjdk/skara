@@ -46,8 +46,8 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     public static final String VALID_BOT_COMMAND_MARKER = "<!-- Valid self-command -->";
 
     PullRequestCommandWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler,
-            ZonedDateTime prUpdatedAt) {
-        super(bot, prId, errorHandler, prUpdatedAt);
+            ZonedDateTime prUpdatedAt, boolean needsReadyCheck) {
+        super(bot, prId, errorHandler, prUpdatedAt, needsReadyCheck);
     }
 
     private static class InvalidBodyCommandHandler implements CommandHandler {
@@ -212,7 +212,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         if (!pr.labelNames().contains("integrated") || pr.findIntegratedCommitHash().isEmpty()) {
             processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments, false);
             // Run another check to reflect potential changes from commands
-            return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt));
+            return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
         } else {
             processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments, true);
             return List.of();

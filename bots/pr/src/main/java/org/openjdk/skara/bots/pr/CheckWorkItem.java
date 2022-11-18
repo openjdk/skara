@@ -51,8 +51,9 @@ class CheckWorkItem extends PullRequestWorkItem {
     private static final Pattern BACKPORT_ISSUE_TITLE_PATTERN = Pattern.compile("^Backport\\s*(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)\\s*$");
     private static final String ELLIPSIS = "…";
 
-    CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime prUpdatedAt) {
-        super(bot, prId, errorHandler, prUpdatedAt);
+    CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime prUpdatedAt,
+            boolean needsReadyCheck) {
+        super(bot, prId, errorHandler, prUpdatedAt, needsReadyCheck);
     }
 
     private String encodeReviewer(HostUser reviewer, CensusInstance censusInstance) {
@@ -268,7 +269,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                 log.info("Skipping check of integrated PR");
                 // We still need to make sure any commands get run or are able to finish a
                 // previously interrupted run
-                return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, prUpdatedAt));
+                return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
             }
 
             var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());
@@ -332,7 +333,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     comment.add(text);
                     pr.addComment(String.join("\n", comment));
                     pr.addLabel("backport");
-                    return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt));
+                    return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
                 } else {
                     var botUser = pr.repository().forge().currentUser();
                     var text = "<!-- backport error -->\n" +
@@ -372,14 +373,14 @@ class CheckWorkItem extends PullRequestWorkItem {
                 var comment = pr.addComment(text);
                 pr.addLabel("backport");
                 logLatency("Time from PR updated to backport comment posted ", comment.createdAt(), log);
-                return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt));
+                return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
             }
 
             // If the title needs updating, we run the check again
             if (updateTitle()) {
                 var updatedPr = bot.repo().pullRequest(prId);
                 logLatency("Time from PR updated to title corrected ", updatedPr.updatedAt(), log);
-                return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt));
+                return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
             }
 
             try {
@@ -412,7 +413,7 @@ class CheckWorkItem extends PullRequestWorkItem {
             log.log(Level.INFO, "Time from labels added to /integrate posted " + latency, latency);
         }
 
-        return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, prUpdatedAt));
+        return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
     }
 
     /**
