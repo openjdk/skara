@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.pr;
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
 
@@ -407,8 +408,9 @@ class IssueTests {
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.url(), "edit", true);
-            var issue1 = issues.createIssue("First", List.of("Hello"), Map.of());
-            issue1.setState(Issue.State.RESOLVED);
+            var issue1 = (TestIssue)issues.createIssue("First", List.of("Hello"), Map.of());
+            issue1.setState(Issue.State.CLOSED);
+            issue1.store().properties().put("resolution", JSON.object().put("name", JSON.of("Not an Issue")));
             var pr = credentials.createPullRequest(author, "master", "edit",
                                                    issue1.id() + ": This is a pull request");
 
@@ -418,6 +420,41 @@ class IssueTests {
             assertTrue(pr.store().body().contains("First"));
             assertTrue(pr.store().body().contains("## Issue\n"));
             assertTrue(pr.store().body().contains("Issue is not open"));
+        }
+    }
+
+    @Test
+    void resolvedIssue(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).issueProject(issues).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var issue1 = (TestIssue)issues.createIssue("First", List.of("Hello"), Map.of());
+            issue1.setState(Issue.State.RESOLVED);
+            var pr = credentials.createPullRequest(author, "master", "edit",
+                    issue1.id() + ": This is a pull request");
+
+            // First check
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().body().contains(issue1.id()));
+            assertTrue(pr.store().body().contains("First"));
+            assertTrue(pr.store().body().contains("## Issue\n"));
+            assertTrue(pr.store().body().contains("Please consider using a Backport-style pull request."));
         }
     }
 
