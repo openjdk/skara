@@ -641,7 +641,7 @@ class CheckRun {
                                 if (!pr.labelNames().contains("backport") &&
                                         (issueType == null || !List.of("CSR", "JEP").contains(issueType.asString()))) {
                                     if (iss.get().isFixed()) {
-                                        progressBody.append("⚠️ " + iss.get().id() + " is already resolved. " +
+                                        progressBody.append(" ⚠️ Issue is already resolved. " +
                                                 "Please consider using a Backport-style pull request. " +
                                                 "You can set the PR title to `Backport <hash>` with the hash of the original fix or " +
                                                 "refer to [Backports](https://wiki.openjdk.org/display/SKARA/Backports)");
