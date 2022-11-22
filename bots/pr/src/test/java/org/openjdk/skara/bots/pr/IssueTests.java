@@ -454,7 +454,7 @@ class IssueTests {
             assertTrue(pr.store().body().contains(issue1.id()));
             assertTrue(pr.store().body().contains("First"));
             assertTrue(pr.store().body().contains("## Issue\n"));
-            assertTrue(pr.store().body().contains("Please consider using a Backport-style pull request."));
+            assertTrue(pr.store().body().contains("Consider making this a \"backport pull request\" by setting"));
         }
     }
 
