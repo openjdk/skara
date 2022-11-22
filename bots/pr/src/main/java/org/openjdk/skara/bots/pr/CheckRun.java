@@ -642,9 +642,9 @@ class CheckRun {
                                         (issueType == null || !List.of("CSR", "JEP").contains(issueType.asString()))) {
                                     if (iss.get().isFixed()) {
                                         progressBody.append(" ⚠️ Issue is already resolved. " +
-                                                "Please consider using a Backport-style pull request. " +
-                                                "You can set the PR title to `Backport <hash>` with the hash of the original fix or " +
-                                                "refer to [Backports](https://wiki.openjdk.org/display/SKARA/Backports)");
+                                                "Consider making this a \"backport pull request\" by setting " +
+                                                "the PR title to `Backport <hash>` with the hash of the original commit. " +
+                                                "See [Backports](https://wiki.openjdk.org/display/SKARA/Backports).");
                                     } else {
                                         progressBody.append(" ⚠️ Issue is not open.");
                                     }
