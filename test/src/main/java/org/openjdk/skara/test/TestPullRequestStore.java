@@ -47,6 +47,8 @@ public class TestPullRequestStore extends TestIssueStore {
     private Hash headHash;
     private final List<ReferenceChange> targetReferenceChanges = new ArrayList<>();
 
+    private ZonedDateTime lastMarkedAsReadyTime;
+
     public TestPullRequestStore(String id, HostUser author, String title, List<String> body,
             TestHostedRepository sourceRepository, String targetRef, String sourceRef, boolean draft) {
         super(id, null, author, title, body, null);
@@ -54,6 +56,9 @@ public class TestPullRequestStore extends TestIssueStore {
         this.targetRef = targetRef;
         this.sourceRef = sourceRef;
         this.draft = draft;
+        if(!draft){
+            lastMarkedAsReadyTime = ZonedDateTime.now();
+        }
     }
 
     public TestHostedRepository sourceRepository() {
@@ -124,9 +129,16 @@ public class TestPullRequestStore extends TestIssueStore {
 
     public void setDraft(boolean draft) {
         this.draft = draft;
+        if(!draft){
+            lastMarkedAsReadyTime = ZonedDateTime.now();
+        }
     }
 
     public void setLastForcePushTime(ZonedDateTime lastForcePushTime) {
         this.lastForcePushTime = lastForcePushTime;
+    }
+
+    public ZonedDateTime lastMarkedAsReadyTime() {
+        return lastMarkedAsReadyTime;
     }
 }

@@ -765,12 +765,15 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public Optional<ZonedDateTime> lastForcePushTime() {
+
+
         return request.get("issues/" + json.get("number").toString() + "/timeline")
                       .execute()
                       .stream()
                       .map(JSONValue::asObject)
                       .filter(obj -> obj.contains("event"))
                       .filter(obj -> obj.get("event").asString().equals("head_ref_force_pushed"))
+                      .filter(obj->ZonedDateTime.parse(obj.get("created_at").asString()).isAfter(lastMarkedAsReadyTime()))
                       .reduce((a, b) -> b)
                       .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()));
     }
@@ -794,5 +797,21 @@ public class GitHubPullRequest implements PullRequest {
                     + "...";
         }
         return body;
+    }
+
+    private ZonedDateTime lastMarkedAsReadyTime() {
+        ZonedDateTime readyTime = createdAt();
+        Optional<ZonedDateTime> latestTime = request.get("issues/" + json.get("number").toString() + "/timeline")
+                .execute()
+                .stream()
+                .map(JSONValue::asObject)
+                .filter(obj -> obj.contains("event"))
+                .filter(obj -> obj.get("event").asString().equals("ready_for_review"))
+                .reduce((a, b) -> b)
+                .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()));
+        if (latestTime.isPresent()) {
+            readyTime = latestTime.get();
+        }
+        return readyTime;
     }
 }
