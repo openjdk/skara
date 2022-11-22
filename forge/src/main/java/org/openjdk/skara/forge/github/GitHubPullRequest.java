@@ -765,8 +765,6 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public Optional<ZonedDateTime> lastForcePushTime() {
-
-
         return request.get("issues/" + json.get("number").toString() + "/timeline")
                       .execute()
                       .stream()
