@@ -799,17 +799,13 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     private ZonedDateTime lastMarkedAsReadyTime(JSONValue timelineJSON) {
-        ZonedDateTime readyTime = createdAt();
-        Optional<ZonedDateTime> latestTime = timelineJSON
+        return timelineJSON
                 .stream()
                 .map(JSONValue::asObject)
                 .filter(obj -> obj.contains("event"))
                 .filter(obj -> obj.get("event").asString().equals("ready_for_review"))
                 .reduce((a, b) -> b)
-                .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()));
-        if (latestTime.isPresent()) {
-            readyTime = latestTime.get();
-        }
-        return readyTime;
+                .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()))
+                .orElseGet(this::createdAt);
     }
 }
