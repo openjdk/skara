@@ -50,6 +50,12 @@ class CheckWorkItem extends PullRequestWorkItem {
     private static final Pattern BACKPORT_HASH_TITLE_PATTERN = Pattern.compile("^Backport\\s*([0-9a-z]{40})\\s*$");
     private static final Pattern BACKPORT_ISSUE_TITLE_PATTERN = Pattern.compile("^Backport\\s*(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)\\s*$");
     private static final String ELLIPSIS = "…";
+    protected static final String FORCE_PUSH_MARKER = "<!-- force-push suggestion -->";
+    protected static final String FORCE_PUSH_SUGGESTION= """
+            Please do not rebase or force-push to an active PR as it invalidates existing review comments. \
+            All changes will be squashed into a single commit automatically when integrating. \
+            See [OpenJDK Developers’ Guide](https://openjdk.org/guide/#working-with-pull-requests) for more information.
+            """;
 
     CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime prUpdatedAt,
             boolean needsReadyCheck) {
@@ -381,6 +387,20 @@ class CheckWorkItem extends PullRequestWorkItem {
                 var updatedPr = bot.repo().pullRequest(prId);
                 logLatency("Time from PR updated to title corrected ", updatedPr.updatedAt(), log);
                 return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
+            }
+
+            // Check force push
+            if (!pr.isDraft()) {
+                var lastForcePushTime = pr.lastForcePushTime();
+                if (lastForcePushTime.isPresent()) {
+                    var lastForcePushSuggestion = comments.stream()
+                            .filter(comment -> comment.body().contains(FORCE_PUSH_MARKER))
+                            .reduce((a, b) -> b);
+                    if (lastForcePushSuggestion.isEmpty() || lastForcePushSuggestion.get().createdAt().isBefore(lastForcePushTime.get())) {
+                        log.info("Found force-push for " + pr.repository().name() + "#" + pr.id() + ", adding force-push suggestion");
+                        pr.addComment("@" + pr.author().username() + " " + FORCE_PUSH_SUGGESTION + FORCE_PUSH_MARKER);
+                    }
+                }
             }
 
             try {

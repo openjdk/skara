@@ -38,6 +38,8 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.openjdk.skara.bots.pr.CheckWorkItem.FORCE_PUSH_MARKER;
+import static org.openjdk.skara.bots.pr.CheckWorkItem.FORCE_PUSH_SUGGESTION;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
 class CheckTests {
@@ -2613,6 +2615,136 @@ class CheckTests {
             check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
             assertTrue(pr.store().labelNames().contains("rfr"));
+        }
+    }
+
+    @Test
+    void testForcePush(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+            pr.addComment("initial");
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The PR shouldn't have the force-push suggestion comment
+            assertEquals(1, pr.comments().size());
+            var lastComment = pr.comments().get(pr.comments().size() - 1);
+            assertTrue(lastComment.body().contains("initial"));
+            assertFalse(lastComment.body().contains(FORCE_PUSH_MARKER));
+            assertFalse(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
+
+            // Normally push.
+            var updatedHash = CheckableRepository.appendAndCommit(localRepo, "Normally push");
+            localRepo.push(updatedHash, author.url(), "edit", false);
+            pr.addComment("Normally push");
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The PR shouldn't have the force-push suggestion comment.
+            assertEquals(2, pr.comments().size());
+            lastComment = pr.comments().get(pr.comments().size() - 1);
+            assertTrue(lastComment.body().contains("Normally push"));
+            assertFalse(lastComment.body().contains(FORCE_PUSH_MARKER));
+            assertFalse(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
+
+            // Simulate force-push.
+            updatedHash = CheckableRepository.appendAndCommit(localRepo, "test force-push");
+            localRepo.checkout(editHash);
+            localRepo.squash(updatedHash);
+            var forcePushHash = localRepo.commit("test force-push", "duke", "duke@openjdk.org");
+            localRepo.push(forcePushHash, author.url(), "edit", true);
+            pr.addComment("Force-push");
+            pr.setLastForcePushTime(ZonedDateTime.now());
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The last comment of the PR should be the force-push suggestion comment.
+            assertEquals(4, pr.comments().size());
+            lastComment = pr.comments().get(pr.comments().size() - 1);
+            assertFalse(lastComment.body().contains("Force-push"));
+            assertTrue(lastComment.body().contains(FORCE_PUSH_MARKER));
+            assertTrue(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
+
+            // Convert pr to draft
+            pr.store().setDraft(true);
+
+            // Normally push again.
+            updatedHash = CheckableRepository.appendAndCommit(localRepo, "Normally push");
+            localRepo.push(updatedHash, author.url(), "edit", false);
+            pr.addComment("Normally push in draft");
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The last comment of the PR shouldn't be the force-push suggestion comment.
+            assertEquals(5, pr.comments().size());
+            lastComment = pr.comments().get(pr.comments().size() - 1);
+            assertTrue(lastComment.body().contains("Normally push in draft"));
+            assertFalse(lastComment.body().contains(FORCE_PUSH_MARKER));
+            assertFalse(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
+
+            // Simulate force-push in draft.
+            updatedHash = CheckableRepository.appendAndCommit(localRepo, "test force-push in draft");
+            localRepo.checkout(editHash);
+            localRepo.squash(updatedHash);
+            forcePushHash = localRepo.commit("test force-push in draft", "duke", "duke@openjdk.org");
+            localRepo.push(forcePushHash, author.url(), "edit", true);
+            pr.setLastForcePushTime(ZonedDateTime.now());
+            pr.addComment("Force-push in draft");
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The last comment of the PR should not be the force-push suggestion comment.
+            assertEquals(6, pr.comments().size());
+            lastComment = pr.comments().get(pr.comments().size() - 1);
+            assertTrue(lastComment.body().contains("Force-push in draft"));
+            assertFalse(lastComment.body().contains(FORCE_PUSH_MARKER));
+            assertFalse(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
+
+            // Convert pr to ready
+            pr.store().setDraft(false);
+
+            // Nothing should happen
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertEquals(6, pr.comments().size());
+            lastComment = pr.comments().get(pr.comments().size() - 1);
+            assertTrue(lastComment.body().contains("Force-push in draft"));
+            assertFalse(lastComment.body().contains(FORCE_PUSH_MARKER));
+            assertFalse(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
+
+            // Force-push again
+            updatedHash = CheckableRepository.appendAndCommit(localRepo, "force-push again");
+            localRepo.checkout(editHash);
+            localRepo.squash(updatedHash);
+            forcePushHash = localRepo.commit("test force-push again", "duke", "duke@openjdk.org");
+            localRepo.push(forcePushHash, author.url(), "edit", true);
+            pr.setLastForcePushTime(ZonedDateTime.now());
+            pr.addComment("Force-push again");
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The last comment of the PR should be the force-push suggestion comment.
+            assertEquals(8, pr.comments().size());
+            lastComment = pr.comments().get(pr.comments().size() - 1);
+            assertFalse(lastComment.body().contains("Force-push"));
+            assertTrue(lastComment.body().contains(FORCE_PUSH_MARKER));
+            assertTrue(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
         }
     }
 }

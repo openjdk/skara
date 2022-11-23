@@ -765,14 +765,16 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public Optional<ZonedDateTime> lastForcePushTime() {
-        return request.get("issues/" + json.get("number").toString() + "/timeline")
-                      .execute()
-                      .stream()
-                      .map(JSONValue::asObject)
-                      .filter(obj -> obj.contains("event"))
-                      .filter(obj -> obj.get("event").asString().equals("head_ref_force_pushed"))
-                      .reduce((a, b) -> b)
-                      .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()));
+        var timelineJSON = request.get("issues/" + json.get("number").toString() + "/timeline")
+                .execute();
+        return timelineJSON
+                .stream()
+                .map(JSONValue::asObject)
+                .filter(obj -> obj.contains("event"))
+                .filter(obj -> obj.get("event").asString().equals("head_ref_force_pushed"))
+                .filter(obj -> ZonedDateTime.parse(obj.get("created_at").asString()).isAfter(lastMarkedAsReadyTime(timelineJSON)))
+                .reduce((a, b) -> b)
+                .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()));
     }
 
     @Override
@@ -794,5 +796,16 @@ public class GitHubPullRequest implements PullRequest {
                     + "...";
         }
         return body;
+    }
+
+    private ZonedDateTime lastMarkedAsReadyTime(JSONValue timelineJSON) {
+        return timelineJSON
+                .stream()
+                .map(JSONValue::asObject)
+                .filter(obj -> obj.contains("event"))
+                .filter(obj -> obj.get("event").asString().equals("ready_for_review"))
+                .reduce((a, b) -> b)
+                .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()))
+                .orElseGet(this::createdAt);
     }
 }
