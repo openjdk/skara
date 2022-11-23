@@ -182,8 +182,8 @@ public interface PullRequest extends Issue {
 
     /**
      * Return the last time something was force pushed while not in draft state.
-     * If there is no force-push in pull request
-     * or the restful api doesn't support force-push, return empty.
+     * If there is no force-push in pull request or the restful api doesn't
+     * support force-push, return empty.
      */
     Optional<ZonedDateTime> lastForcePushTime();
 
