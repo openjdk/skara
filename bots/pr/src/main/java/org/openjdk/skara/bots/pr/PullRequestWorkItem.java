@@ -26,6 +26,8 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openjdk.skara.bot.WorkItem;
@@ -34,9 +36,11 @@ import org.openjdk.skara.forge.PullRequest;
 import java.util.function.Consumer;
 
 abstract class PullRequestWorkItem implements WorkItem {
+    private static final Logger log = Logger.getLogger(PullRequestWorkItem.class.getName());
     final Consumer<RuntimeException> errorHandler;
     final PullRequestBot bot;
     final String prId;
+    private final boolean needsReadyCheck;
     /**
      * The updatedAt timestamp of the PR that triggered this WorkItem at the
      * time it was triggered. Used for tracking reaction latency of the bot
@@ -49,11 +53,12 @@ abstract class PullRequestWorkItem implements WorkItem {
     PullRequest pr;
 
     PullRequestWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler,
-            ZonedDateTime prUpdatedAt) {
+            ZonedDateTime prUpdatedAt, boolean needsReadyCheck) {
         this.bot = bot;
         this.prId = prId;
         this.errorHandler = errorHandler;
         this.prUpdatedAt = prUpdatedAt;
+        this.needsReadyCheck = needsReadyCheck;
     }
 
     @Override
@@ -67,6 +72,39 @@ abstract class PullRequestWorkItem implements WorkItem {
         return false;
     }
 
+    private boolean isReady() {
+        if (!needsReadyCheck) {
+            return true;
+        }
+        var labels = new HashSet<>(pr.labelNames());
+        for (var readyLabel : bot.readyLabels()) {
+            if (!labels.contains(readyLabel)) {
+                log.fine("PR is not yet ready - missing label '" + readyLabel + "'");
+                return false;
+            }
+        }
+
+        var comments = pr.comments();
+        for (var readyComment : bot.readyComments().entrySet()) {
+            var commentFound = false;
+            for (var comment : comments) {
+                if (comment.author().username().equals(readyComment.getKey())) {
+                    var matcher = readyComment.getValue().matcher(comment.body());
+                    if (matcher.find()) {
+                        commentFound = true;
+                        break;
+                    }
+                }
+            }
+            if (!commentFound) {
+                log.fine("PR is not yet ready - missing ready comment from '" + readyComment.getKey() +
+                        "containing '" + readyComment.getValue().pattern() + "'");
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Loads the PR from the remote repo at the start of run to guarantee that all
      * PullRequestWorkItems have a coherent and current view of the PR to avoid
@@ -78,6 +116,10 @@ abstract class PullRequestWorkItem implements WorkItem {
     @Override
     public final Collection<WorkItem> run(Path scratchPath) {
         pr = bot.repo().pullRequest(prId);
+        // Check if PR is ready to be evaluated at all.
+        if (!isReady()) {
+            return List.of();
+        }
         return prRun(scratchPath);
     }
 

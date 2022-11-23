@@ -112,36 +112,6 @@ class PullRequestBot implements Bot {
         return new PullRequestBotBuilder();
     }
 
-    private boolean isReady(PullRequest pr) {
-        var labels = new HashSet<>(pr.labelNames());
-        for (var readyLabel : readyLabels) {
-            if (!labels.contains(readyLabel)) {
-                log.fine("PR is not yet ready - missing label '" + readyLabel + "'");
-                return false;
-            }
-        }
-
-        var comments = pr.comments();
-        for (var readyComment : readyComments.entrySet()) {
-            var commentFound = false;
-            for (var comment : comments) {
-                if (comment.author().username().equals(readyComment.getKey())) {
-                    var matcher = readyComment.getValue().matcher(comment.body());
-                    if (matcher.find()) {
-                        commentFound = true;
-                        break;
-                    }
-                }
-            }
-            if (!commentFound) {
-                log.fine("PR is not yet ready - missing ready comment from '" + readyComment.getKey() +
-                                 "containing '" + readyComment.getValue().pattern() + "'");
-                return false;
-            }
-        }
-        return true;
-    }
-
     void scheduleRecheckAt(PullRequest pr, Instant expiresAt) {
         log.info("Setting check metadata expiration to: " + expiresAt + " for PR #" + pr.id());
         poller.retryPullRequest(pr, expiresAt);
@@ -152,14 +122,11 @@ class PullRequestBot implements Bot {
         ret.add(new CommitCommentsWorkItem(this, remoteRepo, excludeCommitCommentsFrom));
 
         for (var pr : pullRequests) {
-            if (!isReady(pr)) {
-                continue;
-            }
             if (pr.state() == Issue.State.OPEN) {
-                ret.add(new CheckWorkItem(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt()));
+                ret.add(new CheckWorkItem(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt(), true));
             } else {
                 // Closed PR's do not need to be checked
-                ret.add(new PullRequestCommandWorkItem(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt()));
+                ret.add(new PullRequestCommandWorkItem(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt(), true));
             }
         }
 
@@ -212,12 +179,20 @@ class PullRequestBot implements Bot {
         return blockingCheckLabels;
     }
 
+    public Set<String> readyLabels() {
+        return readyLabels;
+    }
+
     Set<String> twoReviewersLabels() {
         return twoReviewersLabels;
     }
 
     Set<String> twentyFourHoursLabels() {
         return twentyFourHoursLabels;
+    }
+
+    public Map<String, Pattern> readyComments() {
+        return readyComments;
     }
 
     IssueProject issueProject() {
