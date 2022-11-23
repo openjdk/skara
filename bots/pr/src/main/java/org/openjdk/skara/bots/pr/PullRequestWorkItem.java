@@ -116,8 +116,7 @@ abstract class PullRequestWorkItem implements WorkItem {
     @Override
     public final Collection<WorkItem> run(Path scratchPath) {
         pr = bot.repo().pullRequest(prId);
-        // Check if PR is ready to be evaluated at all. This check is too expensive to run
-        // in getPeriodicItems, so call the bot from here.
+        // Check if PR is ready to be evaluated at all.
         if (!isReady()) {
             return List.of();
         }
