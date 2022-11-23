@@ -389,11 +389,11 @@ class CheckWorkItem extends PullRequestWorkItem {
                 return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt));
             }
 
-            // Check Force push
+            // Check force push
             if (!pr.isDraft()) {
                 var lastForcePushTime = pr.lastForcePushTime();
                 if (lastForcePushTime.isPresent()) {
-                    var lastForcePushSuggestion = pr.comments().stream()
+                    var lastForcePushSuggestion = comments.stream()
                             .filter(comment -> comment.body().contains(FORCE_PUSH_MARKER))
                             .reduce((a, b) -> b);
                     if (lastForcePushSuggestion.isEmpty() || lastForcePushSuggestion.get().createdAt().isBefore(lastForcePushTime.get())) {

@@ -272,7 +272,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
 
     @Override
     public Optional<ZonedDateTime> lastForcePushTime() {
-        if(store().lastForcePushTime()!= null && store().lastForcePushTime().isAfter(store().lastMarkedAsReadyTime())) {
+        if (store().lastForcePushTime() != null && store().lastForcePushTime().isAfter(store().lastMarkedAsReadyTime())) {
             return Optional.ofNullable(store().lastForcePushTime());
         }
         return Optional.empty();

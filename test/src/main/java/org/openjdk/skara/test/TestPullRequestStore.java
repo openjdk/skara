@@ -56,7 +56,7 @@ public class TestPullRequestStore extends TestIssueStore {
         this.targetRef = targetRef;
         this.sourceRef = sourceRef;
         this.draft = draft;
-        if(!draft){
+        if (!draft) {
             lastMarkedAsReadyTime = ZonedDateTime.now();
         }
     }
@@ -129,7 +129,7 @@ public class TestPullRequestStore extends TestIssueStore {
 
     public void setDraft(boolean draft) {
         this.draft = draft;
-        if(!draft){
+        if (!draft) {
             lastMarkedAsReadyTime = ZonedDateTime.now();
         }
     }
