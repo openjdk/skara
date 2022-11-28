@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge.gitlab;
 
+import java.util.logging.Logger;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Label;
@@ -40,6 +41,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class GitLabRepository implements HostedRepository {
+    private static final Logger log = Logger.getLogger(GitLabRepository.class.getName());
     private final GitLabHost gitLabHost;
     private final String projectName;
     private final RestRequest request;
@@ -137,6 +139,7 @@ public class GitLabRepository implements HostedRepository {
                       .maxPages(1)
                       .execute().stream()
                       .filter(this::hasHeadHash)
+                      .map(this::refetchMergeRequest)
                       .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
                       .collect(Collectors.toList());
     }
@@ -147,6 +150,7 @@ public class GitLabRepository implements HostedRepository {
                       .param("state", "opened")
                       .execute().stream()
                       .filter(this::hasHeadHash)
+                      .map(this::refetchMergeRequest)
                       .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
                       .collect(Collectors.toList());
     }
@@ -159,6 +163,7 @@ public class GitLabRepository implements HostedRepository {
                       .maxPages(1)
                       .execute().stream()
                       .filter(this::hasHeadHash)
+                      .map(this::refetchMergeRequest)
                       .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
                       .collect(Collectors.toList());
     }
@@ -170,8 +175,37 @@ public class GitLabRepository implements HostedRepository {
                 .param("updated_after", updatedAfter.format(DateTimeFormatter.ISO_DATE_TIME))
                 .execute().stream()
                 .filter(this::hasHeadHash)
+                .map(this::refetchMergeRequest)
                 .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * This method is used to work around a bug in GitLab where list query
+     * results for merge requests sometimes return stale data. Fetching them
+     * directly using the ID will always return up-to-date data. Logs when
+     * stale data is actually detected to give us a way to empirically verify
+     * when the bug is no longer present.
+     */
+    private JSONValue refetchMergeRequest(JSONValue origData) {
+        var updatedAt = ZonedDateTime.parse(origData.get("updated_at").asString());
+        // Only do the refetch on merge requests that have been updated recently.
+        // 3 hours here is rather arbitrarily chosen. We will have to see if it
+        // is enough. Reducing unnecessary refetching when large amounts of merge
+        // requests are being processed is valuable too.
+        if (updatedAt.isAfter(ZonedDateTime.now().minus(Duration.ofHours(3)))) {
+            var id = origData.get("iid");
+            var newData = request.get("merge_requests/" + id).execute();
+            // We can't compare the full json object returned from a list and get
+            // call as they will always be different. The part we worry about is
+            // the labels.
+            if (!origData.get("labels").equals(newData.get("labels"))) {
+                log.warning("Possibly stale merge request data received for " + name() + "#" + id);
+            }
+            return newData;
+        } else {
+            return origData;
+        }
     }
 
     @Override
