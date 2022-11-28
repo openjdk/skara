@@ -27,6 +27,9 @@ import java.time.ZonedDateTime;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openjdk.skara.bot.WorkItem;
+import org.openjdk.skara.bots.notify.prbranch.PullRequestBranchNotifier;
+import org.openjdk.skara.forge.HostedBranch;
+import org.openjdk.skara.forge.PreIntegrations;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.storage.StorageBuilder;
@@ -46,13 +49,17 @@ public class PullRequestWorkItem implements WorkItem {
     private final List<PullRequestListener> listeners;
     private final Consumer<RuntimeException> errorHandler;
     private final String integratorId;
+    private final Map<String, Pattern> readyComments;
 
-    PullRequestWorkItem(PullRequest pr, StorageBuilder<PullRequestState> prStateStorageBuilder, List<PullRequestListener> listeners, Consumer<RuntimeException> errorHandler, String integratorId) {
+    PullRequestWorkItem(PullRequest pr, StorageBuilder<PullRequestState> prStateStorageBuilder,
+            List<PullRequestListener> listeners, Consumer<RuntimeException> errorHandler,
+            String integratorId, Map<String, Pattern> readyComments) {
         this.pr = pr;
         this.prStateStorageBuilder = prStateStorageBuilder;
         this.listeners = listeners;
         this.errorHandler = errorHandler;
         this.integratorId = integratorId;
+        this.readyComments = readyComments;
     }
 
     private Hash resultingCommitHash() {
@@ -183,8 +190,47 @@ public class PullRequestWorkItem implements WorkItem {
         listeners.forEach(c -> c.onStateChange(pr, scratchPath.resolve(c.name()), oldState));
     }
 
+    private boolean isOfInterest(PullRequest pr) {
+        var labels = new HashSet<>(pr.labelNames());
+        if (!(labels.contains("rfr") || labels.contains("integrated"))) {
+            // If the PullRequestBranchNotifier is configured, check for the existence of
+            // a pre-integration branch as that may need to be removed by the listener
+            // even if none of the labels match.
+            var prBranchListenerExists = listeners.stream()
+                    .anyMatch(l -> l instanceof PullRequestBranchNotifier);
+            var branchExists = prBranchListenerExists && pr.repository().branchHash(PreIntegrations.preIntegrateBranch(pr)).isPresent();
+            if (!branchExists) {
+                log.fine("PR is not yet ready - needs either 'rfr' or 'integrated' label, or a pre-integration branch present");
+                return false;
+            }
+        }
+
+        var comments = pr.comments();
+        for (var readyComment : readyComments.entrySet()) {
+            var commentFound = false;
+            for (var comment : comments) {
+                if (comment.author().username().equals(readyComment.getKey())) {
+                    var matcher = readyComment.getValue().matcher(comment.body());
+                    if (matcher.find()) {
+                        commentFound = true;
+                        break;
+                    }
+                }
+            }
+            if (!commentFound) {
+                log.fine("PR is not yet ready - missing ready comment from '" + readyComment.getKey() +
+                        "containing '" + readyComment.getValue().pattern() + "'");
+                return false;
+            }
+        }
+        return true;
+    }
+
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
+        if (!isOfInterest(pr)) {
+            return List.of();
+        }
         var historyPath = scratchPath.resolve("notify").resolve("history");
         var listenerScratchPath = scratchPath.resolve("notify").resolve("listener");
         var storage = prStateStorageBuilder

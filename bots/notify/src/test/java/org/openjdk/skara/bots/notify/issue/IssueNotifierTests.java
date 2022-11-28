@@ -722,7 +722,7 @@ public class IssueNotifierTests {
 
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);
-            var blankHistory = repo.branchHash("history");
+            var blankHistory = repo.branchHash("history").orElseThrow();
 
             // Create an issue and commit a fix
             var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";

@@ -230,10 +230,9 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public Hash branchHash(String ref) {
+    public Optional<Hash> branchHash(String ref) {
         try {
-            var hash = localRepository.resolve(ref).orElseThrow();
-            return hash;
+            return localRepository.resolve(ref);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
