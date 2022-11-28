@@ -183,24 +183,28 @@ public class GitLabRepository implements HostedRepository {
     /**
      * This method is used to work around a bug in GitLab where list query
      * results for merge requests sometimes return stale data. Fetching them
-     * directly using the ID will always return up-to-date data. Logs when
-     * stale data is actually detected to give us a way to empirically verify
-     * when the bug is no longer present.
+     * directly using the ID will always return up-to-date data. The method
+     * logs when stale data is actually detected to give us a way to
+     * empirically verify when the bug is no longer present.
      */
     private JSONValue refetchMergeRequest(JSONValue origData) {
         var updatedAt = ZonedDateTime.parse(origData.get("updated_at").asString());
         // Only do the refetch on merge requests that have been updated recently.
-        // 3 hours here is rather arbitrarily chosen. We will have to see if it
-        // is enough. Reducing unnecessary refetching when large amounts of merge
-        // requests are being processed is valuable too.
+        // The 3 hours cut off is rather arbitrarily chosen. We will have to see
+        // if it is enough. Having some kind of cut off is reasonable as we would
+        // otherwise risk running a lot of queries on the first run after a
+        // restart.
         if (updatedAt.isAfter(ZonedDateTime.now().minus(Duration.ofHours(3)))) {
             var id = origData.get("iid");
             var newData = request.get("merge_requests/" + id).execute();
-            // We can't compare the full json object returned from a list and get
-            // call as they will always be different. The part we worry about is
-            // the labels.
-            if (!origData.get("labels").equals(newData.get("labels"))) {
-                log.warning("Possibly stale merge request data received for " + name() + "#" + id);
+            // We can't compare the full json object returned from a list query
+            // and get query call as they will always be different. The part we
+            // worry about is the labels, so compare just that.
+            JSONValue origLabels = origData.get("labels");
+            JSONValue newLabels = newData.get("labels");
+            if (!origLabels.equals(newLabels)) {
+                log.warning("Possibly stale merge request data received for " + name() + "#" + id
+                        + " orig: " + origLabels + " new: " + newLabels);
             }
             return newData;
         } else {
