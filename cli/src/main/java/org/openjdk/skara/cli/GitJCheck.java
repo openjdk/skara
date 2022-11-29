@@ -106,8 +106,7 @@ public class GitJCheck {
             Option.shortcut("")
                   .fullname("conf-file")
                   .describe("FILE")
-                  .helptext("Use this file as jcheck configuration instead of .jcheck/conf, " +
-                          "this flag can only be used when 'workspace-conf' is enabled")
+                  .helptext("Use this file as jcheck configuration instead of .jcheck/conf")
                   .optional(),
             Switch.shortcut("")
                   .fullname("setup-pre-push-hook")
