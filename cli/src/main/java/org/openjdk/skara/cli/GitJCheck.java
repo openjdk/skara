@@ -98,6 +98,17 @@ public class GitJCheck {
                   .describe("CHECKS")
                   .helptext("Ignore errors from checks with the given name")
                   .optional(),
+            Option.shortcut("")
+                  .fullname("specified-conf-commit")
+                  .describe("COMMIT HASH")
+                  .helptext("Use jcheck configuration in specified commit")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("conf-file")
+                  .describe("FILE")
+                  .helptext("Use this file as jcheck configuration instead of .jcheck/conf, " +
+                          "this flag can only be used when 'workspace-conf' is enabled")
+                  .optional(),
             Switch.shortcut("")
                   .fullname("setup-pre-push-hook")
                   .helptext("Set up a pre-push hook that runs jcheck on commits to be pushed")
@@ -125,6 +136,15 @@ public class GitJCheck {
             Switch.shortcut("v")
                   .fullname("version")
                   .helptext("Print the version of this tool")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("workspace-conf")
+                  .helptext("Use jcheck configuration in current workspace")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("workspace-diff")
+                  .helptext("Run jcheck includes diff in workspace(either staged or not), " +
+                          "Please note that after run jcheck with this flag, all your staged diff will be unstaged")
                   .optional()
         );
 
@@ -213,15 +233,73 @@ public class GitJCheck {
             }
         }
 
+        JCheckConfiguration overridingConfig = null;
+        // This two flags are mutually exclusive
+        if (arguments.contains("workspace-conf") && arguments.contains("specified-conf-commit")) {
+            System.err.println(String.format("error: you can only choose one from using jcheck " +
+                    "configuration in work space or in a specified commit"));
+            return 1;
+        }
+        // Using jcheck configuration in workspace
+        if (arguments.contains("workspace-conf")) {
+            String confFileName = ".jcheck/conf";
+            if (arguments.contains("conf-file")) {
+                confFileName = arguments.get("conf-file").asString();
+            }
+            try {
+                var content = Files.readAllBytes(Path.of(confFileName));
+                var lines = new String(content, StandardCharsets.UTF_8).lines().toList();
+                overridingConfig = JCheck.parseConfiguration(lines, List.of()).get();
+            } catch (NoSuchFileException e) {
+                System.err.println(String.format("error: File %s doesn't exist!", confFileName));
+                return 1;
+            } catch (IllegalArgumentException e) {
+                System.err.println(String.format("error: Invalid jcheck configuration: %s,", e.getMessage()));
+                return 1;
+            }
+        }
+        // Using jcheck configuration in a specified commit
+        if (arguments.contains("specified-conf-commit")) {
+            var shortHash = arguments.get("specified-conf-commit").asString();
+            var confCommitHash = repo.wholeHash(shortHash);
+            if (confCommitHash.isEmpty()) {
+                System.err.println(String.format("error: commit %s is invalid!", shortHash));
+                return 1;
+            }
+            try {
+                overridingConfig = JCheck.parseConfiguration(repo, confCommitHash.get(), List.of()).get();
+            } catch (IllegalArgumentException e) {
+                System.err.println(String.format("error: Invalid jcheck configuration: %s", e.getMessage()));
+                return 1;
+            }
+        }
+        // Commit local changes temporarily
+        Boolean checkWorkspaceDiff = arguments.contains("workspace-diff");
+        Hash originHash = null;
+        if (checkWorkspaceDiff) {
+            originHash = repo.head();
+            repo.add(Paths.get("."));
+            repo.commit("temp commit", "jcheck", "jcheck@openjdk.com");
+        }
         var isLax = getSwitch("lax", arguments);
         var visitor = new JCheckCLIVisitor(ignore, isMercurial, isLax);
         var commitMessageParser = isMercurial ? CommitMessageParsers.v0 : CommitMessageParsers.v1;
         for (var range : ranges) {
-            try (var errors = JCheck.check(repo, census, commitMessageParser, range)) {
+            try (var errors = JCheck.check(repo, census, commitMessageParser, range, overridingConfig)) {
                 for (var error : errors) {
                     error.accept(visitor);
                 }
+            } catch (Exception e) {
+                System.err.println(String.format("error: JCheck failed due to exception: %s", e.getMessage()));
+                if (checkWorkspaceDiff) {
+                    repo.reset(originHash, false);
+                }
+                return 1;
             }
+        }
+        // Reset the changes
+        if (checkWorkspaceDiff) {
+            repo.reset(originHash, false);
         }
         return visitor.hasDisplayedErrors() ? 1 : 0;
     }

@@ -1508,4 +1508,10 @@ public class HgRepository implements Repository {
     public Hash initialHash() {
         return NULL_REVISION;
     }
+
+    @Override
+    public Optional<Hash> wholeHash(String hash) {
+        //TODO: implement it later or not
+        return Optional.empty();
+    }
 }

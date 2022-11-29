@@ -347,4 +347,9 @@ class TestRepository implements ReadOnlyRepository {
     public Hash initialHash() {
         return null;
     }
+
+    @Override
+    public Optional<Hash> wholeHash(String hash) {
+        return Optional.empty();
+    }
 }

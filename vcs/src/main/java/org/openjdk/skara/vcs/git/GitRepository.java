@@ -1659,4 +1659,15 @@ public class GitRepository implements Repository {
     public Hash initialHash() {
         return EMPTY_TREE;
     }
+
+    @Override
+    public Optional<Hash> wholeHash(String hash) {
+        try (var p = capture("git", "rev-parse", hash)) {
+            var res = p.await();
+            if (res.status() == 0 && res.stdout().size() == 1) {
+                return Optional.of(new Hash(res.stdout().get(0)));
+            }
+            return Optional.empty();
+        }
+    }
 }
