@@ -98,6 +98,17 @@ public class GitJCheck {
                   .describe("CHECKS")
                   .helptext("Ignore errors from checks with the given name")
                   .optional(),
+            Option.shortcut("")
+                  .fullname("conf-rev")
+                  .describe("REV")
+                  .helptext("Use .jcheck/conf in specified rev")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("conf-file")
+                  .describe("FILE")
+                  .helptext("Use this file as jcheck configuration instead of .jcheck/conf, " +
+                          "this flag can only be used when 'workspace-conf' is enabled")
+                  .optional(),
             Switch.shortcut("")
                   .fullname("setup-pre-push-hook")
                   .helptext("Set up a pre-push hook that runs jcheck on commits to be pushed")
@@ -125,6 +136,14 @@ public class GitJCheck {
             Switch.shortcut("v")
                   .fullname("version")
                   .helptext("Print the version of this tool")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("conf-staged")
+                  .helptext("Use staged .jcheck/conf")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("conf-working-tree")
+                  .helptext("Use .jcheck/conf in current working tree")
                   .optional()
         );
 
@@ -212,12 +231,81 @@ public class GitJCheck {
                 ignore.add(check.trim());
             }
         }
+        var confRev = arguments.contains("conf-rev");
+        var confStaged = arguments.contains("conf-staged");
+        var confWorkingTree = arguments.contains("conf-working-tree");
+        var confFile = arguments.contains("conf-file");
+
+        int confFlagCount = 0;
+        if (confRev) {
+            confFlagCount++;
+        }
+        if (confStaged) {
+            confFlagCount++;
+        }
+        if (confWorkingTree) {
+            confFlagCount++;
+        }
+        if (confFile) {
+            confFlagCount++;
+        }
+        // This four flags are mutually exclusive
+        if (confFlagCount > 1) {
+            System.err.println(String.format("error: you can only choose one from using jcheck " +
+                    "configuration in work space or in a specified commit"));
+            return 1;
+        }
+        JCheckConfiguration overridingConfig = null;
+        // Using jcheck configuration in a specified rev
+        if (confRev) {
+            var rev = arguments.get("conf-rev").asString();
+            var confCommitHash = repo.wholeHash(rev);
+            if (confCommitHash.isEmpty()) {
+                System.err.println(String.format("error: rev %s is invalid!", rev));
+                return 1;
+            }
+            try {
+                overridingConfig = JCheck.parseConfiguration(repo, confCommitHash.get(), List.of()).get();
+            } catch (IllegalArgumentException e) {
+                System.err.println(String.format("error: Invalid jcheck configuration: %s", e.getMessage()));
+                return 1;
+            }
+        }
+        // Using staged jcheck configuration
+        else if (confStaged) {
+            var content = repo.stagedFile(Path.of(".jcheck/conf"));
+            if (content.isEmpty()) {
+                System.err.println(String.format("error: .jcheck/conf doesn't exist!"));
+                return 1;
+            }
+            try {
+                overridingConfig = JCheck.parseConfiguration(content.get(), List.of()).get();
+            } catch (IllegalArgumentException e) {
+                System.err.println(String.format("error: Invalid jcheck configuration: %s", e.getMessage()));
+                return 1;
+            }
+        }
+        // Using pointed file as jcheck configuration or jcheck configuration in current working tree
+        else if (confFile || confWorkingTree) {
+            var fileName = confFile ? arguments.get("conf-file").asString() : ".jcheck/conf";
+            try {
+                var content = Files.readAllBytes(Path.of(fileName));
+                var lines = new String(content, StandardCharsets.UTF_8).lines().toList();
+                overridingConfig = JCheck.parseConfiguration(lines, List.of()).get();
+            } catch (NoSuchFileException e) {
+                System.err.println(String.format("error: File %s doesn't exist!", fileName));
+                return 1;
+            } catch (IllegalArgumentException e) {
+                System.err.println(String.format("error: Invalid jcheck configuration: %s,", e.getMessage()));
+                return 1;
+            }
+        }
 
         var isLax = getSwitch("lax", arguments);
         var visitor = new JCheckCLIVisitor(ignore, isMercurial, isLax);
         var commitMessageParser = isMercurial ? CommitMessageParsers.v0 : CommitMessageParsers.v1;
         for (var range : ranges) {
-            try (var errors = JCheck.check(repo, census, commitMessageParser, range)) {
+            try (var errors = JCheck.check(repo, census, commitMessageParser, range, overridingConfig)) {
                 for (var error : errors) {
                     error.accept(visitor);
                 }

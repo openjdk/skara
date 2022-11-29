@@ -256,7 +256,8 @@ public class JCheck {
     public static Issues check(ReadOnlyRepository repository,
                                Census census,
                                CommitMessageParser parser,
-                               String revisionRange) throws IOException {
+                               String revisionRange,
+                               JCheckConfiguration overridingConfig) throws IOException {
         if (repository.isEmpty()) {
             return new Issues(new ArrayList<Issue>().iterator(), null);
         }
@@ -270,7 +271,7 @@ public class JCheck {
         var branchRegex = conf.isPresent() ? conf.get().repository().branches() : ".*";
         var tagRegex = conf.isPresent() ? conf.get().repository().tags() : ".*";
 
-        return check(repository, parser, branchRegex, tagRegex, revisionRange, List.of(), null, census);
+        return check(repository, parser, branchRegex, tagRegex, revisionRange, List.of(), overridingConfig, census);
     }
 
     public static Set<Check> checksFor(ReadOnlyRepository repository, Hash hash) throws IOException {

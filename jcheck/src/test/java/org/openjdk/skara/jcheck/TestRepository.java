@@ -347,4 +347,14 @@ class TestRepository implements ReadOnlyRepository {
     public Hash initialHash() {
         return null;
     }
+
+    @Override
+    public Optional<Hash> wholeHash(String rev) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<List<String>> stagedFile(Path p) {
+        return Optional.empty();
+    }
 }

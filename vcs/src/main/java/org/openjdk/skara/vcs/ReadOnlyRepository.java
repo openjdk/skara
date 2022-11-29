@@ -174,4 +174,8 @@ public interface ReadOnlyRepository {
      * Returns the special hash that references the virtual commit before the first real commit in a repository.
      */
     Hash initialHash();
+
+    Optional<Hash> wholeHash(String rev);
+
+    Optional<List<String>> stagedFile(Path p);
 }

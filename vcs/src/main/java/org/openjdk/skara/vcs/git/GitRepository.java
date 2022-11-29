@@ -1659,4 +1659,26 @@ public class GitRepository implements Repository {
     public Hash initialHash() {
         return EMPTY_TREE;
     }
+
+    @Override
+    public Optional<Hash> wholeHash(String rev) {
+        try (var p = capture("git", "rev-parse", rev)) {
+            var res = p.await();
+            if (res.status() == 0 && res.stdout().size() == 1) {
+                return Optional.of(new Hash(res.stdout().get(0)));
+            }
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<List<String>> stagedFile(Path path) {
+        try (var p = capture("git", "cat-file", "-p", ":" + path.toString())) {
+            var res = p.await();
+            if(res.status() ==0){
+                return Optional.of(res.stdout());
+            }
+        }
+        return Optional.empty();
+    }
 }
