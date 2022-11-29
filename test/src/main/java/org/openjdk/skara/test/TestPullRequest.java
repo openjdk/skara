@@ -258,7 +258,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
                 sourceHash = targetLocalRepository.fetch(sourceUri, sourceRef);
             }
             // Find the base hash of the source and target branches.
-            var baseHash = targetLocalRepository.mergeBase(sourceHash, targetRepository.branchHash(targetRef()));
+            var baseHash = targetLocalRepository.mergeBase(sourceHash, targetRepository.branchHash(targetRef()).orElseThrow());
             return targetLocalRepository.diff(baseHash, sourceHash);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -272,7 +272,10 @@ public class TestPullRequest extends TestIssue implements PullRequest {
 
     @Override
     public Optional<ZonedDateTime> lastForcePushTime() {
-        return Optional.ofNullable(store().lastForcePushTime());
+        if (store().lastForcePushTime() != null && store().lastForcePushTime().isAfter(store().lastMarkedAsReadyTime())) {
+            return Optional.ofNullable(store().lastForcePushTime());
+        }
+        return Optional.empty();
     }
 
     public void setLastForcePushTime(ZonedDateTime lastForcePushTime) {

@@ -36,6 +36,7 @@ import org.openjdk.skara.vcs.Hash;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -147,6 +148,17 @@ public class GitHubRestApiTests {
         Comment updateComment = testPr.updateComment(comment.id(), "2".repeat(2_000_000));
         assertTrue(updateComment.body().contains("..."));
         assertTrue(updateComment.body().contains("2"));
+    }
+
+    @Test
+    void testForcePushTimeWhenPRInDraft() {
+        var testRepoOpt = githubHost.repository("openjdk/playground");
+        assumeTrue(testRepoOpt.isPresent());
+        var testRepo = testRepoOpt.get();
+        var testPr = (GitHubPullRequest) testRepo.pullRequest("107");
+
+        // Won't get the force push time when if the force push is during draft period
+        assertEquals(Optional.empty(), testPr.lastForcePushTime());
     }
 
     @Test

@@ -331,9 +331,14 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public Hash branchHash(String ref) {
-        var branch = request.get("repository/branches/" + ref).execute();
-        return new Hash(branch.get("commit").get("id").asString());
+    public Optional<Hash> branchHash(String ref) {
+        var branch = request.get("repository/branches/" + ref)
+                .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
+                .execute();
+        if (branch.contains("NOT_FOUND")) {
+            return Optional.empty();
+        }
+        return Optional.of(new Hash(branch.get("commit").get("id").asString()));
     }
 
     @Override

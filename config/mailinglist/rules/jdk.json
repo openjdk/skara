@@ -14,7 +14,6 @@
         "client": [
             "make/\\w+(Demos|X11)",
             "make/autoconf/lib-(alsa|cups|font|freetype|x11)",
-            "make/data/(font|x11)",
             "make/jdk/src/classes/build/tools/(generatenimbus|x11wrappergen)",
             "make/modules/java.desktop/",
             "make/modules/java.datatransfer/",
@@ -44,7 +43,6 @@
             "test/jdk/sun/java2d/"
         ],
         "compiler": [
-            "make/data/symbols/",
             "make/jdk/src/classes/build/tools/depend",
             "make/jdk/src/classes/build/tools/taglet/Preview.java",
             "make/langtools/",
@@ -70,9 +68,7 @@
         ],
         "core-libs": [
             "bin/idea.sh",
-            "make/data/cldr",
-            "make/data/jdwp",
-            "make/data/lsrdata",
+            "make/data/cldr/",
             "make/jdk/src/classes/build/tools/blacklistedcertsconverter",
             "make/jdk/src/classes/build/tools/classlist",
             "make/jdk/src/classes/build/tools/cldrconverter/",
@@ -108,6 +104,7 @@
             "src/java.base/share/classes/sun/util/cldr",
             "src/java.base/share/classes/sun/util/locale/",
             "src/java.base/share/classes/sun/util/resources/",
+            "src/java.base/share/data/lsrdata/",
             "src/java.base/share/legal/",
             "src/java.base/share/lib",
             "src/java.base/share/native/include/classfile_constants.h.template",
@@ -318,6 +315,7 @@
             "test/lib/jdk/test/lib/jfr/"
         ],
         "hotspot-runtime": [
+            "make/data/hotspot-symbols/",
             "src/hotspot/cpu/\\w+/(\\w*interpreter|frame|macroassembler|rdtsc|vm_version)",
             "src/hotspot/os/",
             "src/hotspot/os_cpu/",
@@ -363,13 +361,8 @@
             "test/lib/sun/hotspot/WhiteBox.java"
         ],
         "i18n": [
-            "make/data/characterdata/",
             "make/data/charsetmapping/",
             "make/data/cldr/",
-            "make/data/currency",
-            "make/data/lsrdata",
-            "make/data/tzdata/",
-            "make/data/unicodedata/",
             "make/jdk/src/classes/build/tools/cldrconverter/",
             "make/jdk/src/classes/build/tools/generatecharacter/",
             "make/jdk/src/classes/build/tools/generateemojidata",
@@ -394,6 +387,10 @@
             "src/java.base/share/classes/sun/util/cldr",
             "src/java.base/share/classes/sun/util/locale/",
             "src/java.base/share/classes/sun/util/resources/\\w*(names|locale)",
+            "src/java.base/share/data/currency/",
+            "src/java.base/share/data/lsrdata/",
+            "src/java.base/share/data/tzdata/",
+            "src/java.base/share/data/unicodedata/",
             "src/java.base/share/legal/cldr.md",
             "src/java.base/share/legal/icu.md",
             "src/java.base/share/legal/unicode.md",
@@ -452,7 +449,7 @@
             "make/ide/"
         ],
         "javadoc": [
-            "make/data/docs-resources/resources",
+            "make/data/docs-resources/",
             "make/jdk/src/classes/build/tools/taglet/",
             "src/java.base/share/classes/java/lang/doc-files/",
             "src/jdk.compiler/share/classes/com/sun/source/doctree/",
@@ -532,8 +529,6 @@
             "test/micro/org/openjdk/bench/java/nio/"
         ],
         "security": [
-            "make/data/cacerts/",
-            "make/data/publicsuffixlist/",
             "make/jdk/src/classes/build/tools/generatecacerts",
             "make/jdk/src/classes/build/tools/intpoly",
             "make/jdk/src/classes/build/tools/publicsuffixlist",
@@ -552,6 +547,8 @@
             "src/java.base/share/classes/jdk/internal/event/",
             "src/java.base/share/classes/sun/security/",
             "src/java.base/share/conf/security/",
+            "src/java.base/share/data/cacerts/",
+            "src/java.base/share/data/publicsuffixlist/",
             "src/java.base/share/legal/public_suffix.md",
             "src/java.base/share/native/libjava/\\w*(access|security)",
             "src/java.base/unix/classes/sun/net/sdp",

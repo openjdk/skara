@@ -39,7 +39,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
     LabelerWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler,
             ZonedDateTime prUpdatedAt) {
-        super(bot, prId, errorHandler, prUpdatedAt);
+        super(bot, prId, errorHandler, prUpdatedAt, false);
     }
 
     @Override

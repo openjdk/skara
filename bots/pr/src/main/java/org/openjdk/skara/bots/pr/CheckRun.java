@@ -637,10 +637,17 @@ class CheckRun {
                                 progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
                                 setExpiration(Duration.ofMinutes(10));
                             }
-                            if (iss.get().state() != org.openjdk.skara.issuetracker.Issue.State.OPEN) {
+                            if (!iss.get().isOpen()) {
                                 if (!pr.labelNames().contains("backport") &&
                                         (issueType == null || !List.of("CSR", "JEP").contains(issueType.asString()))) {
-                                    progressBody.append(" ⚠️ Issue is not open.");
+                                    if (iss.get().isFixed()) {
+                                        progressBody.append(" ⚠️ Issue is already resolved. " +
+                                                "Consider making this a \"backport pull request\" by setting " +
+                                                "the PR title to `Backport <hash>` with the hash of the original commit. " +
+                                                "See [Backports](https://wiki.openjdk.org/display/SKARA/Backports).");
+                                    } else {
+                                        progressBody.append(" ⚠️ Issue is not open.");
+                                    }
                                 }
                             }
                         } else {
