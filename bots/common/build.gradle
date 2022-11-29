@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,21 +20,26 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-import org.openjdk.skara.bots.pr.PullRequestBotFactory;
 
-module org.openjdk.skara.bots.pr {
-    requires org.openjdk.skara.vcs;
-    requires org.openjdk.skara.jcheck;
-    requires org.openjdk.skara.host;
-    requires org.openjdk.skara.census;
-    requires org.openjdk.skara.ini;
-    requires org.openjdk.skara.bot;
-    requires org.openjdk.skara.process;
-    requires org.openjdk.skara.email;
-    requires org.openjdk.skara.jbs;
-    requires org.openjdk.skara.network;
-    requires org.openjdk.skara.bots.common;
-    requires java.logging;
+module {
+    name = 'org.openjdk.skara.bots.common'
+    test {
+        requires 'org.junit.jupiter.api'
+        requires 'org.openjdk.skara.test'
+        opens 'org.openjdk.skara.bots.common' to 'org.junit.platform.commons'
+    }
+}
 
-    provides org.openjdk.skara.bot.BotFactory with PullRequestBotFactory;
+dependencies {
+    implementation project(':vcs')
+    implementation project(':host')
+    implementation project(':forge')
+    implementation project(':issuetracker')
+    implementation project(':jbs')
+    implementation project(':json')
+    implementation project(':network')
+    implementation project(':jcheck')
+    implementation project(':census')
+
+    testImplementation project(':test')
 }

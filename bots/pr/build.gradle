@@ -46,6 +46,7 @@ dependencies {
     implementation project(':metrics')
     implementation project(':jbs')
     implementation project(':network')
+    implementation project(':bots:common')
 
     testImplementation project(':test')
 }

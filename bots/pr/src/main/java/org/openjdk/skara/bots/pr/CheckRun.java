@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.bots.common.BotUtils;
 import org.openjdk.skara.census.Contributor;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
@@ -30,6 +31,7 @@ import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jbs.Backports;
 import org.openjdk.skara.jbs.JdkVersion;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
+import org.openjdk.skara.network.UncheckedRestException;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
@@ -132,19 +134,6 @@ class CheckRun {
     }
 
     /**
-     * Get the fix version from the provided PR.
-     */
-    public static Optional<JdkVersion> getVersion(PullRequest pullRequest) {
-        var confFile = pullRequest.repository().fileContents(".jcheck/conf", pullRequest.targetRef());
-        var configuration = JCheckConfiguration.parse(confFile.lines().toList());
-        var version = configuration.general().version().orElse(null);
-        if (version == null || "".equals(version)) {
-            return Optional.empty();
-        }
-        return JdkVersion.parse(version);
-    }
-
-    /**
      * Get the csr issue. Note: this `Issue` is not the issue in module `issuetracker`.
      */
     private Optional<Issue> getCsrIssue(Issue issue) {
@@ -157,7 +146,7 @@ class CheckRun {
             return Optional.empty();
         }
 
-        var versionOpt = getVersion(pr);
+        var versionOpt = BotUtils.getVersion(pr);
         if (versionOpt.isEmpty()) {
             return Optional.empty();
         }
