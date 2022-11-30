@@ -1681,7 +1681,9 @@ public class GitRepository implements Repository {
         }
         return Optional.empty();
     }
-
+    /**
+     * Creates a fake Commit instance representing the currently staged diff.
+     */
     @Override
     public Commit staged() throws IOException {
         var author = new Author("jcheck", "jcheck@none.none");
