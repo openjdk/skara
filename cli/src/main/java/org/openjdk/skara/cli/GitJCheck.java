@@ -145,7 +145,7 @@ public class GitJCheck {
                   .optional(),
             Switch.shortcut("")
                   .fullname("staged")
-                  .helptext("Run jcheck includes staged changes and by default jcheck will use staged .jcheck/conf")
+                  .helptext("Check staged changes as if they were committed")
                   .optional(),
             Switch.shortcut("")
                   .fullname("working-tree")
