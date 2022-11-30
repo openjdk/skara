@@ -751,6 +751,8 @@ class CheckRun {
             log.info("Updating PR body");
             pr.setBody(newBody);
         } else {
+            // The modification should trigger another round of checks, so
+            // no need to force a retry by throwing a RuntimeException.
             log.info("PR body has been modified, won't update PR body this time");
             return description;
         }
