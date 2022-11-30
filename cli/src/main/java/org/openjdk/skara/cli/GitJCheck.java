@@ -149,8 +149,7 @@ public class GitJCheck {
                   .optional(),
             Switch.shortcut("")
                   .fullname("working-tree")
-                  .helptext("Run jcheck includes changes in working tree and by default " +
-                          "jcheck will use .jcheck/conf in working tree")
+                  .helptext("Check changes in working tree as if they were committed")
                   .optional()
         );
 
