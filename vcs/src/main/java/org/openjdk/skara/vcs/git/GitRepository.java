@@ -1672,7 +1672,7 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Optional<List<String>> stagedFile(Path path) {
+    public Optional<List<String>> stagedFileContents(Path path) {
         try (var p = capture("git", "cat-file", "-p", ":" + path.toString())) {
             var res = p.await();
             if (res.status() == 0) {
