@@ -100,7 +100,7 @@ public class GitJCheck {
             Option.shortcut("")
                   .fullname("conf-rev")
                   .describe("REV")
-                  .helptext("Use .jcheck/conf in specified rev")
+                  .helptext("Use .jcheck/conf in the specified revision")
                   .optional(),
             Option.shortcut("")
                   .fullname("conf-file")
