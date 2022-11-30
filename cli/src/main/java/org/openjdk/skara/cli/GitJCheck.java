@@ -240,9 +240,9 @@ public class GitJCheck {
 
         var staged = arguments.contains("staged");
         var working_tree = arguments.contains("working-tree");
-        // This two flags are mutually exclusive
+        // These two flags are mutually exclusive
         if (staged && working_tree) {
-            System.err.println(String.format("error: you can only choose one from staged or working-tree"));
+            System.err.println(String.format("error: can only use one of --staged or --working-tree"));
             return 1;
         }
 
