@@ -1689,7 +1689,9 @@ public class GitRepository implements Repository {
                 author, ZonedDateTime.now(), List.of(""));
         return new Commit(commitMetaData, List.of(diffStaged()));
     }
-
+    /**
+     * Creates a fake Commit instance representing the current working tree.
+     */
     @Override
     public Commit workingTree() throws IOException {
         var author = new Author("jcheck", "jcheck@none.none");
