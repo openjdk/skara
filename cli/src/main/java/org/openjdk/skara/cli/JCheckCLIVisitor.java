@@ -55,8 +55,13 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     private String println(CommitIssue i, String message) {
-        var prefix = "[" + i.check().name() + "] " + i.severity() + ": " +
-                     i.commit().hash().abbreviate() + ": ";
+        String prefix = "[" + i.check().name() + "] " + i.severity() + ": ";
+        Hash hash = i.commit().hash();
+        if (hash.hex().equals("staged") || hash.hex().equals("working-tree")) {
+            prefix += hash.hex() + ": ";
+        } else {
+            prefix += i.commit().hash().abbreviate() + ": ";
+        }
         System.out.print(prefix);
         System.out.println(message);
         return prefix;

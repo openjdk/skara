@@ -24,10 +24,7 @@ package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
 import org.openjdk.skara.census.Census;
-import org.openjdk.skara.forge.*;
 import org.openjdk.skara.jcheck.*;
-import org.openjdk.skara.json.JSON;
-import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -39,9 +36,11 @@ import java.nio.file.*;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.logging.Level;
+
+import static org.openjdk.skara.jcheck.JCheck.STAGED_REV;
+import static org.openjdk.skara.jcheck.JCheck.WORKING_TREE_REV;
 
 public class GitJCheck {
     static String gitConfig(String key) {
@@ -143,6 +142,15 @@ public class GitJCheck {
             Switch.shortcut("")
                   .fullname("conf-working-tree")
                   .helptext("Use .jcheck/conf in current working tree")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("staged")
+                  .helptext("Run jcheck includes staged changes and by default jcheck will use staged .jcheck/conf")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("working-tree")
+                  .helptext("Run jcheck includes changes in working tree and by default " +
+                          "jcheck will use .jcheck/conf in working tree")
                   .optional()
         );
 
@@ -230,6 +238,15 @@ public class GitJCheck {
                 ignore.add(check.trim());
             }
         }
+
+        var staged = arguments.contains("staged");
+        var working_tree = arguments.contains("working-tree");
+        // This two flags are mutually exclusive
+        if (staged && working_tree) {
+            System.err.println(String.format("error: you can only choose one from staged or working-tree"));
+            return 1;
+        }
+
         var confRev = arguments.contains("conf-rev");
         var confStaged = arguments.contains("conf-staged");
         var confWorkingTree = arguments.contains("conf-working-tree");
@@ -271,7 +288,7 @@ public class GitJCheck {
             }
         }
         // Using staged jcheck configuration
-        else if (confStaged) {
+        else if (confStaged || (staged && !confFile && !confWorkingTree)) {
             var content = repo.stagedFile(Path.of(".jcheck/conf"));
             if (content.isEmpty()) {
                 System.err.println(String.format("error: .jcheck/conf doesn't exist!"));
@@ -285,7 +302,7 @@ public class GitJCheck {
             }
         }
         // Using pointed file as jcheck configuration or jcheck configuration in current working tree
-        else if (confFile || confWorkingTree) {
+        else if (confFile || confWorkingTree || working_tree) {
             var fileName = confFile ? arguments.get("conf-file").asString() : ".jcheck/conf";
             try {
                 var content = Files.readAllBytes(Path.of(fileName));
@@ -298,6 +315,15 @@ public class GitJCheck {
                 System.err.println(String.format("error: Invalid jcheck configuration: %s,", e.getMessage()));
                 return 1;
             }
+        }
+
+        if (staged) {
+            ranges.clear();
+            ranges.add(STAGED_REV);
+        }
+        if (working_tree) {
+            ranges.clear();
+            ranges.add(WORKING_TREE_REV);
         }
 
         var isLax = getSwitch("lax", arguments);

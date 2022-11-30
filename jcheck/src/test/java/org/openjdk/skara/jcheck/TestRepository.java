@@ -357,4 +357,14 @@ class TestRepository implements ReadOnlyRepository {
     public Optional<List<String>> stagedFile(Path p) {
         return Optional.empty();
     }
+
+    @Override
+    public Commit staged() {
+        return null;
+    }
+
+    @Override
+    public Commit workingTree() {
+        return null;
+    }
 }

@@ -1511,12 +1511,21 @@ public class HgRepository implements Repository {
 
     @Override
     public Optional<Hash> wholeHash(String rev) {
-        //TODO: implement it later or not
-        return Optional.empty();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Optional<List<String>> stagedFile(Path p) {
-        return Optional.empty();
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Commit staged() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Commit workingTree() {
+        throw new UnsupportedOperationException();
     }
 }

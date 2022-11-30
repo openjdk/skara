@@ -1675,10 +1675,49 @@ public class GitRepository implements Repository {
     public Optional<List<String>> stagedFile(Path path) {
         try (var p = capture("git", "cat-file", "-p", ":" + path.toString())) {
             var res = p.await();
-            if(res.status() ==0){
+            if (res.status() == 0) {
                 return Optional.of(res.stdout());
             }
         }
         return Optional.empty();
+    }
+
+    @Override
+    public Commit staged() throws IOException {
+        var author = new Author("jcheck", "jcheck@none.none");
+        var commitMetaData = new CommitMetadata(new Hash("staged"), List.of(head()), author, ZonedDateTime.now(),
+                author, ZonedDateTime.now(), List.of(""));
+        return new Commit(commitMetaData, List.of(diffStaged()));
+    }
+
+    @Override
+    public Commit workingTree() throws IOException {
+        var author = new Author("jcheck", "jcheck@none.none");
+        var commitMetaData = new CommitMetadata(new Hash("working-tree"), List.of(head()), author, ZonedDateTime.now(),
+                author, ZonedDateTime.now(), List.of(""));
+        return new Commit(commitMetaData, List.of(diff(head())));
+    }
+
+    private Diff diffStaged() throws IOException {
+        var cmd = new ArrayList<>(List.of("git", "-c", "core.quotePath=false", "diff", "--patch", "--cached",
+                "--find-renames=" + "90" + "%",
+                "--find-copies=" + "90" + "%",
+                "--find-copies-harder",
+                "--binary",
+                "--raw",
+                "--no-abbrev",
+                "--unified=0",
+                "--no-color"));
+        cmd.add(head().hex());
+
+        var p = start(cmd);
+        try {
+            var patches = GitRawDiffParser.parse(p.getInputStream());
+            await(p);
+            return new Diff(head(), null, patches);
+        } catch (Throwable t) {
+            stop(p);
+            throw t;
+        }
     }
 }

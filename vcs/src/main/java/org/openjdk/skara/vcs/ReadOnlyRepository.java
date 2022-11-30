@@ -178,4 +178,8 @@ public interface ReadOnlyRepository {
     Optional<Hash> wholeHash(String rev);
 
     Optional<List<String>> stagedFile(Path p);
+
+    Commit staged() throws IOException;
+
+    Commit workingTree() throws IOException;
 }
