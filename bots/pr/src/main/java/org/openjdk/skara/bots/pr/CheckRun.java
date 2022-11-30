@@ -745,9 +745,17 @@ class CheckRun {
         }
         var newBody = originalBody + "\n\n" + progressMarker + "\n" + message;
 
-        // TODO? Retrieve the body again here to lower the chance of concurrent updates
-        log.info("Updating PR body");
-        pr.setBody(newBody);
+        // Retrieve the body again here to lower the chance of concurrent updates
+        var latestPR = pr.repository().pullRequest(pr.id());
+        if (description.equals(latestPR.body())) {
+            log.info("Updating PR body");
+            pr.setBody(newBody);
+        } else {
+            // The modification should trigger another round of checks, so
+            // no need to force a retry by throwing a RuntimeException.
+            log.info("PR body has been modified, won't update PR body this time");
+            return description;
+        }
         return newBody;
     }
 
