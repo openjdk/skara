@@ -160,15 +160,4 @@ public class GitHubRestApiTests {
         // Won't get the force push time when if the force push is during draft period
         assertEquals(Optional.empty(), testPr.lastForcePushTime());
     }
-
-    @Test
-    void testLatestBody(){
-        var testRepoOpt = githubHost.repository("openjdk/playground");
-        assumeTrue(testRepoOpt.isPresent());
-        var testRepo = testRepoOpt.get();
-        var testPr = testRepo.pullRequest("99");
-
-        String latestBody = testPr.latestBody();
-        assertEquals("test", latestBody);
-    }
 }

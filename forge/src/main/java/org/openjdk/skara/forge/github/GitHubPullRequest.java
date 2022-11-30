@@ -808,9 +808,4 @@ public class GitHubPullRequest implements PullRequest {
                 .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()))
                 .orElseGet(this::createdAt);
     }
-
-    @Override
-    public String latestBody() {
-        return request.get("pulls/" + json.get("number").toString()).execute().get("body").asString();
-    }
 }

@@ -901,9 +901,4 @@ public class GitLabMergeRequest implements PullRequest {
         }
         return body;
     }
-
-    @Override
-    public String latestBody() {
-        return request.get().execute().get("description").asString();
-    }
 }

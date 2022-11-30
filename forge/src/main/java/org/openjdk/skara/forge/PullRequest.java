@@ -249,6 +249,4 @@ public interface PullRequest extends Issue {
                 })
                 .toList();
     }
-
-    String latestBody();
 }

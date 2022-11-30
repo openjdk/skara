@@ -746,7 +746,8 @@ class CheckRun {
         var newBody = originalBody + "\n\n" + progressMarker + "\n" + message;
 
         // Retrieve the body again here to lower the chance of concurrent updates
-        if (pr.body().equals(pr.latestBody())) {
+        var latestPR = pr.repository().pullRequest(pr.id());
+        if (description.equals(latestPR.body())) {
             log.info("Updating PR body");
             pr.setBody(newBody);
         } else {
