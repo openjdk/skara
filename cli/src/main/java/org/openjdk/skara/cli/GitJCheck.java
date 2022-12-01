@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,10 +24,7 @@ package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
 import org.openjdk.skara.census.Census;
-import org.openjdk.skara.forge.*;
 import org.openjdk.skara.jcheck.*;
-import org.openjdk.skara.json.JSON;
-import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -39,9 +36,11 @@ import java.nio.file.*;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.logging.Level;
+
+import static org.openjdk.skara.jcheck.JCheck.STAGED_REV;
+import static org.openjdk.skara.jcheck.JCheck.WORKING_TREE_REV;
 
 public class GitJCheck {
     static String gitConfig(String key) {
@@ -98,6 +97,16 @@ public class GitJCheck {
                   .describe("CHECKS")
                   .helptext("Ignore errors from checks with the given name")
                   .optional(),
+            Option.shortcut("")
+                  .fullname("conf-rev")
+                  .describe("REV")
+                  .helptext("Use .jcheck/conf in the specified revision")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("conf-file")
+                  .describe("FILE")
+                  .helptext("Use this file as jcheck configuration instead of .jcheck/conf")
+                  .optional(),
             Switch.shortcut("")
                   .fullname("setup-pre-push-hook")
                   .helptext("Set up a pre-push hook that runs jcheck on commits to be pushed")
@@ -125,6 +134,22 @@ public class GitJCheck {
             Switch.shortcut("v")
                   .fullname("version")
                   .helptext("Print the version of this tool")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("conf-staged")
+                  .helptext("Use staged .jcheck/conf")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("conf-working-tree")
+                  .helptext("Use .jcheck/conf in current working tree")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("staged")
+                  .helptext("Check staged changes as if they were committed")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("working-tree")
+                  .helptext("Check changes in working tree as if they were committed")
                   .optional()
         );
 
@@ -213,14 +238,118 @@ public class GitJCheck {
             }
         }
 
+        var revFlag = arguments.contains("rev");
+        var staged = arguments.contains("staged");
+        var workingTree = arguments.contains("working-tree");
+        int flagCount = 0;
+        if (revFlag) {
+            flagCount++;
+        }
+        if (staged) {
+            flagCount++;
+        }
+        if (workingTree) {
+            flagCount++;
+        }
+        // These three flags are mutually exclusive
+        if (flagCount > 1) {
+            System.err.println(String.format("error: can only use one of --staged, --working-tree or --rev"));
+            return 1;
+        }
+
+        var confRev = arguments.contains("conf-rev");
+        var confStaged = arguments.contains("conf-staged");
+        var confWorkingTree = arguments.contains("conf-working-tree");
+        var confFile = arguments.contains("conf-file");
+
+        int confFlagCount = 0;
+        if (confRev) {
+            confFlagCount++;
+        }
+        if (confStaged) {
+            confFlagCount++;
+        }
+        if (confWorkingTree) {
+            confFlagCount++;
+        }
+        if (confFile) {
+            confFlagCount++;
+        }
+        // These four flags are mutually exclusive
+        if (confFlagCount > 1) {
+            System.err.println(String.format("error: can only use one source for jcheck configuration"));
+            return 1;
+        }
+        JCheckConfiguration overridingConfig = null;
+        // Using jcheck configuration in a specified rev
+        if (confRev) {
+            var rev = arguments.get("conf-rev").asString();
+            if (rev == null || rev.startsWith("--")) {
+                System.err.println(String.format("error: must enter rev after --conf-rev"));
+                return 1;
+            }
+            var confCommitHash = repo.resolve(rev);
+            if (confCommitHash.isEmpty()) {
+                System.err.println(String.format("error: rev %s is invalid!", rev));
+                return 1;
+            }
+            try {
+                overridingConfig = JCheck.parseConfiguration(repo, confCommitHash.get(), List.of()).get();
+            } catch (IllegalArgumentException e) {
+                System.err.println(String.format("error: Invalid jcheck configuration: %s", e.getMessage()));
+                return 1;
+            }
+        }
+        // Using staged jcheck configuration
+        else if (confStaged || (staged && !confFile && !confWorkingTree)) {
+            var content = repo.stagedFileContents(Path.of(".jcheck/conf"));
+            if (content.isEmpty()) {
+                System.err.println(String.format("error: .jcheck/conf doesn't exist!"));
+                return 1;
+            }
+            try {
+                overridingConfig = JCheck.parseConfiguration(content.get(), List.of()).get();
+            } catch (IllegalArgumentException e) {
+                System.err.println(String.format("error: Invalid jcheck configuration: %s", e.getMessage()));
+                return 1;
+            }
+        }
+        // Using pointed file as jcheck configuration or jcheck configuration in current working tree
+        else if (confFile || confWorkingTree || workingTree) {
+            var fileName = confFile ? arguments.get("conf-file").asString() : ".jcheck/conf";
+            try {
+                var content = Files.readAllBytes(Path.of(fileName));
+                var lines = new String(content, StandardCharsets.UTF_8).lines().toList();
+                overridingConfig = JCheck.parseConfiguration(lines, List.of()).get();
+            } catch (NoSuchFileException e) {
+                System.err.println(String.format("error: File %s doesn't exist!", fileName));
+                return 1;
+            } catch (IllegalArgumentException e) {
+                System.err.println(String.format("error: Invalid jcheck configuration: %s,", e.getMessage()));
+                return 1;
+            }
+        }
+
+        if (staged) {
+            ranges.clear();
+            ranges.add(STAGED_REV);
+        }
+        if (workingTree) {
+            ranges.clear();
+            ranges.add(WORKING_TREE_REV);
+        }
+
         var isLax = getSwitch("lax", arguments);
         var visitor = new JCheckCLIVisitor(ignore, isMercurial, isLax);
         var commitMessageParser = isMercurial ? CommitMessageParsers.v0 : CommitMessageParsers.v1;
         for (var range : ranges) {
-            try (var errors = JCheck.check(repo, census, commitMessageParser, range)) {
+            try (var errors = JCheck.check(repo, census, commitMessageParser, range, overridingConfig)) {
                 for (var error : errors) {
                     error.accept(visitor);
                 }
+            } catch (Exception e) {
+                System.err.println(String.format("error: exception thrown during jcheck: %s", e.getMessage()));
+                return 1;
             }
         }
         return visitor.hasDisplayedErrors() ? 1 : 0;

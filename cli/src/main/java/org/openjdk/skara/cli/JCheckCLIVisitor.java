@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -55,8 +55,13 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     private String println(CommitIssue i, String message) {
-        var prefix = "[" + i.check().name() + "] " + i.severity() + ": " +
-                     i.commit().hash().abbreviate() + ": ";
+        String prefix = "[" + i.check().name() + "] " + i.severity() + ": ";
+        Hash hash = i.commit().hash();
+        if (hash.hex().equals("staged") || hash.hex().equals("working-tree")) {
+            prefix += hash.hex() + ": ";
+        } else {
+            prefix += i.commit().hash().abbreviate() + ": ";
+        }
         System.out.print(prefix);
         System.out.println(message);
         return prefix;

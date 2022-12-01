@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1507,5 +1507,20 @@ public class HgRepository implements Repository {
     @Override
     public Hash initialHash() {
         return NULL_REVISION;
+    }
+
+    @Override
+    public Optional<List<String>> stagedFileContents(Path p) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Commit staged() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Commit workingTree() {
+        throw new UnsupportedOperationException();
     }
 }

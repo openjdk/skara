@@ -48,6 +48,10 @@ public class JCheck {
     private final Map<URI, Census> censuses = new HashMap<>();
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck");
 
+    public final static String WORKING_TREE_REV = "SKARA_GIT_WORKING_TREE_AS_REV";
+
+    public final static String STAGED_REV = "SKARA_GIT_STAGED_AS_REV";
+
     JCheck(ReadOnlyRepository repository,
            CommitMessageParser parser,
            String revisionRange,
@@ -212,7 +216,14 @@ public class JCheck {
         var commits = repository.commits(revisionRange);
 
         var repositoryIssues = repositoryIssues();
-        var commitIssues = commitIssues(commits);
+        Iterator<Issue> commitIssues;
+        if (revisionRange.equals(STAGED_REV)) {
+            commitIssues = checkCommit(repository.staged());
+        } else if (revisionRange.equals(WORKING_TREE_REV)) {
+            commitIssues = checkCommit(repository.workingTree());
+        } else {
+            commitIssues = commitIssues(commits);
+        }
 
         var errors = new ConcatIterator<>(repositoryIssues, commitIssues);
         return new Issues(errors, commits);
@@ -256,7 +267,8 @@ public class JCheck {
     public static Issues check(ReadOnlyRepository repository,
                                Census census,
                                CommitMessageParser parser,
-                               String revisionRange) throws IOException {
+                               String revisionRange,
+                               JCheckConfiguration overridingConfig) throws IOException {
         if (repository.isEmpty()) {
             return new Issues(new ArrayList<Issue>().iterator(), null);
         }
@@ -270,7 +282,7 @@ public class JCheck {
         var branchRegex = conf.isPresent() ? conf.get().repository().branches() : ".*";
         var tagRegex = conf.isPresent() ? conf.get().repository().tags() : ".*";
 
-        return check(repository, parser, branchRegex, tagRegex, revisionRange, List.of(), null, census);
+        return check(repository, parser, branchRegex, tagRegex, revisionRange, List.of(), overridingConfig, census);
     }
 
     public static Set<Check> checksFor(ReadOnlyRepository repository, Hash hash) throws IOException {

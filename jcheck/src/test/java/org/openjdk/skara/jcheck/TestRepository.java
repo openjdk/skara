@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -345,6 +345,21 @@ class TestRepository implements ReadOnlyRepository {
 
     @Override
     public Hash initialHash() {
+        return null;
+    }
+
+    @Override
+    public Optional<List<String>> stagedFileContents(Path p) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Commit staged() {
+        return null;
+    }
+
+    @Override
+    public Commit workingTree() {
         return null;
     }
 }

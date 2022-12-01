@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -296,7 +296,7 @@ class JCheckTests {
             var census = Census.parse(censusPath);
 
             var visitor = new TestVisitor();
-            try (var issues = JCheck.check(repo, census, CommitMessageParsers.v1, first.hex() + ".." + second.hex())) {
+            try (var issues = JCheck.check(repo, census, CommitMessageParsers.v1, first.hex() + ".." + second.hex(), null)) {
                 for (var issue : issues) {
                     issue.accept(visitor);
                 }
@@ -329,7 +329,7 @@ class JCheckTests {
             // Check the last commit without reviewers, should pass since .jcheck/conf was updated
             var range = initialCommit.hash().hex() + ".." + secondCommit.hex();
             var visitor = new TestVisitor();
-            try (var issues = JCheck.check(repo, census, CommitMessageParsers.v1, range)) {
+            try (var issues = JCheck.check(repo, census, CommitMessageParsers.v1, range, null)) {
                 for (var issue : issues) {
                     issue.accept(visitor);
                 }
