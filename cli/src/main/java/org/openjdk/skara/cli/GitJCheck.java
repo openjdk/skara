@@ -238,11 +238,22 @@ public class GitJCheck {
             }
         }
 
+        var revFlag = arguments.contains("rev");
         var staged = arguments.contains("staged");
         var workingTree = arguments.contains("working-tree");
-        // These two flags are mutually exclusive
-        if (staged && workingTree) {
-            System.err.println(String.format("error: can only use one of --staged or --working-tree"));
+        int flagCount = 0;
+        if (revFlag) {
+            flagCount++;
+        }
+        if (staged) {
+            flagCount++;
+        }
+        if (workingTree) {
+            flagCount++;
+        }
+        // These three flags are mutually exclusive
+        if (flagCount > 1) {
+            System.err.println(String.format("error: can only use one of --staged, --working-tree or --rev"));
             return 1;
         }
 
@@ -264,7 +275,7 @@ public class GitJCheck {
         if (confFile) {
             confFlagCount++;
         }
-        // This four flags are mutually exclusive
+        // These four flags are mutually exclusive
         if (confFlagCount > 1) {
             System.err.println(String.format("error: can only use one of --conf-rev, --conf-staged, " +
                     "--conf-working-tree or --conf-file"));
@@ -274,6 +285,10 @@ public class GitJCheck {
         // Using jcheck configuration in a specified rev
         if (confRev) {
             var rev = arguments.get("conf-rev").asString();
+            if (rev == null || rev.startsWith("--")) {
+                System.err.println(String.format("error: must enter rev after --conf-rev"));
+                return 1;
+            }
             var confCommitHash = repo.wholeHash(rev);
             if (confCommitHash.isEmpty()) {
                 System.err.println(String.format("error: rev %s is invalid!", rev));
@@ -333,6 +348,9 @@ public class GitJCheck {
                 for (var error : errors) {
                     error.accept(visitor);
                 }
+            } catch (Exception e) {
+                System.err.println(String.format("error: exception thrown during jcheck: %s", e.getMessage()));
+                return 1;
             }
         }
         return visitor.hasDisplayedErrors() ? 1 : 0;

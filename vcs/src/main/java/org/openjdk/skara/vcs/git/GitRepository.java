@@ -1686,6 +1686,7 @@ public class GitRepository implements Repository {
         }
         return Optional.empty();
     }
+
     /**
      * Creates a fake Commit instance representing the currently staged diff.
      */
@@ -1696,6 +1697,7 @@ public class GitRepository implements Repository {
                 author, ZonedDateTime.now(), List.of(""));
         return new Commit(commitMetaData, List.of(diffStaged()));
     }
+
     /**
      * Creates a fake Commit instance representing the current working tree.
      */
