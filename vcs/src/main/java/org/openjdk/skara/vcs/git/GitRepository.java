@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1663,17 +1663,6 @@ public class GitRepository implements Repository {
     @Override
     public Hash initialHash() {
         return EMPTY_TREE;
-    }
-
-    @Override
-    public Optional<Hash> wholeHash(String rev) {
-        try (var p = capture("git", "rev-parse", rev)) {
-            var res = p.await();
-            if (res.status() == 0 && res.stdout().size() == 1) {
-                return Optional.of(new Hash(res.stdout().get(0)));
-            }
-            return Optional.empty();
-        }
     }
 
     @Override

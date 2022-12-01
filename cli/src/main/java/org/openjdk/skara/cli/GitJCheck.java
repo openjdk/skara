@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -277,8 +277,7 @@ public class GitJCheck {
         }
         // These four flags are mutually exclusive
         if (confFlagCount > 1) {
-            System.err.println(String.format("error: can only use one of --conf-rev, --conf-staged, " +
-                    "--conf-working-tree or --conf-file"));
+            System.err.println(String.format("error: can only use one source for jcheck configuration"));
             return 1;
         }
         JCheckConfiguration overridingConfig = null;
@@ -289,7 +288,7 @@ public class GitJCheck {
                 System.err.println(String.format("error: must enter rev after --conf-rev"));
                 return 1;
             }
-            var confCommitHash = repo.wholeHash(rev);
+            var confCommitHash = repo.resolve(rev);
             if (confCommitHash.isEmpty()) {
                 System.err.println(String.format("error: rev %s is invalid!", rev));
                 return 1;
