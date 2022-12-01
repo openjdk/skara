@@ -1515,7 +1515,7 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public Optional<List<String>> stagedFile(Path p) {
+    public Optional<List<String>> stagedFileContents(Path p) {
         throw new UnsupportedOperationException();
     }
 

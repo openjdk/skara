@@ -239,9 +239,9 @@ public class GitJCheck {
         }
 
         var staged = arguments.contains("staged");
-        var working_tree = arguments.contains("working-tree");
+        var workingTree = arguments.contains("working-tree");
         // These two flags are mutually exclusive
-        if (staged && working_tree) {
+        if (staged && workingTree) {
             System.err.println(String.format("error: can only use one of --staged or --working-tree"));
             return 1;
         }
@@ -266,8 +266,8 @@ public class GitJCheck {
         }
         // This four flags are mutually exclusive
         if (confFlagCount > 1) {
-            System.err.println(String.format("error: you can only choose one from using jcheck " +
-                    "configuration in work space or in a specified commit"));
+            System.err.println(String.format("error: can only use one of --conf-rev, --conf-staged, " +
+                    "--conf-working-tree or --conf-file"));
             return 1;
         }
         JCheckConfiguration overridingConfig = null;
@@ -288,7 +288,7 @@ public class GitJCheck {
         }
         // Using staged jcheck configuration
         else if (confStaged || (staged && !confFile && !confWorkingTree)) {
-            var content = repo.stagedFile(Path.of(".jcheck/conf"));
+            var content = repo.stagedFileContents(Path.of(".jcheck/conf"));
             if (content.isEmpty()) {
                 System.err.println(String.format("error: .jcheck/conf doesn't exist!"));
                 return 1;
@@ -301,7 +301,7 @@ public class GitJCheck {
             }
         }
         // Using pointed file as jcheck configuration or jcheck configuration in current working tree
-        else if (confFile || confWorkingTree || working_tree) {
+        else if (confFile || confWorkingTree || workingTree) {
             var fileName = confFile ? arguments.get("conf-file").asString() : ".jcheck/conf";
             try {
                 var content = Files.readAllBytes(Path.of(fileName));
@@ -320,7 +320,7 @@ public class GitJCheck {
             ranges.clear();
             ranges.add(STAGED_REV);
         }
-        if (working_tree) {
+        if (workingTree) {
             ranges.clear();
             ranges.add(WORKING_TREE_REV);
         }

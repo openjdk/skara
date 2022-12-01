@@ -1015,6 +1015,11 @@ public class GitRepository implements Repository {
         return lines.size() == 1 ? Optional.of(lines.get(0)) : Optional.empty();
     }
 
+    private Optional<String> email() throws IOException {
+        var lines = config("user.email");
+        return lines.size() == 1 ? Optional.of(lines.get(0)) : Optional.empty();
+    }
+
     private String treeEntry(Path path, Hash hash) throws IOException {
         try (var p = Process.capture("git", "-c", "core.quotePath=false", "ls-tree", hash.hex(), path.toString())
                             .workdir(root())
@@ -1686,7 +1691,7 @@ public class GitRepository implements Repository {
      */
     @Override
     public Commit staged() throws IOException {
-        var author = new Author("jcheck", "jcheck@none.none");
+        var author = new Author(username().orElse("jcheck"), email().orElse("jcheck@none.none"));
         var commitMetaData = new CommitMetadata(new Hash("staged"), List.of(head()), author, ZonedDateTime.now(),
                 author, ZonedDateTime.now(), List.of(""));
         return new Commit(commitMetaData, List.of(diffStaged()));
@@ -1696,7 +1701,7 @@ public class GitRepository implements Repository {
      */
     @Override
     public Commit workingTree() throws IOException {
-        var author = new Author("jcheck", "jcheck@none.none");
+        var author = new Author(username().orElse("jcheck"), email().orElse("jcheck@none.none"));
         var commitMetaData = new CommitMetadata(new Hash("working-tree"), List.of(head()), author, ZonedDateTime.now(),
                 author, ZonedDateTime.now(), List.of(""));
         return new Commit(commitMetaData, List.of(diff(head())));

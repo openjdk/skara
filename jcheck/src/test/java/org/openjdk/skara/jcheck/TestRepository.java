@@ -354,7 +354,7 @@ class TestRepository implements ReadOnlyRepository {
     }
 
     @Override
-    public Optional<List<String>> stagedFile(Path p) {
+    public Optional<List<String>> stagedFileContents(Path p) {
         return Optional.empty();
     }
 
