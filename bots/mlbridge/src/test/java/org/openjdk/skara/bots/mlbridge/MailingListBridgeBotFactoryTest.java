@@ -46,7 +46,8 @@ class MailingListBridgeBotFactoryTest {
                       "server": {
                         "archive": "https://mail.test.org/test/",
                         "smtp": "0.0.0.0",
-                        "interval": "PT5S"
+                        "interval": "PT5S",
+                        "etag": true,
                       },
                       "webrevs": {
                         "repository": {
