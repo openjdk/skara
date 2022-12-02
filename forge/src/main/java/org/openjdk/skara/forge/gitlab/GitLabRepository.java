@@ -291,6 +291,8 @@ public class GitLabRepository implements HostedRepository {
         var conf = request.get("repository/files/" + confName)
                           .param("ref", ref)
                           .onError(response -> {
+                              log.warning("First time request returned bad status: " + response.statusCode());
+                              log.info("First time response body: " + response.body());
                               // Retry once with additional escaping of the path fragment
                               var escapedConfName = URLEncoder.encode(confName, StandardCharsets.UTF_8);
                               return Optional.of(request.get("repository/files/" + escapedConfName)
