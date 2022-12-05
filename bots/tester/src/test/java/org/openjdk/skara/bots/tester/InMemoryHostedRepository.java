@@ -28,7 +28,6 @@ import org.openjdk.skara.issuetracker.Label;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
-import javax.swing.text.html.Option;
 import java.net.URI;
 import java.time.ZonedDateTime;
 import java.util.*;

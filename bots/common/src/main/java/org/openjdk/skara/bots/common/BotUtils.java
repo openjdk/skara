@@ -27,7 +27,6 @@ import java.util.Optional;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.jbs.JdkVersion;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
-import org.openjdk.skara.network.UncheckedRestException;
 
 /**
  * This class contains utility methods used by more than one bot. These methods
