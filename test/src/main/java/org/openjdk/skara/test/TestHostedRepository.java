@@ -205,7 +205,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
             throw new UncheckedIOException(e);
         } catch (NoSuchElementException e) {
             // Make this method behave more like other remote repo implementations
-            throw new UncheckedRestException("Can't find file " + filename, 404);
+            throw new UncheckedRestException("Can't find file " + filename, 404, "Not Found");
         }
     }
 

@@ -8,12 +8,19 @@ package org.openjdk.skara.network;
 public class UncheckedRestException extends RuntimeException {
     int statusCode;
 
-    public UncheckedRestException(String message, int statusCode) {
+    String body;
+
+    public UncheckedRestException(String message, int statusCode, String body) {
         super(message);
         this.statusCode = statusCode;
+        this.body = body;
     }
 
     public int getStatusCode() {
         return statusCode;
+    }
+
+    public String getBody() {
+        return body;
     }
 }

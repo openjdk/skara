@@ -73,7 +73,8 @@ class LimitedCensusInstance {
         try {
             conf = Optional.of(Arrays.stream(remoteRepo.fileContents(name, ref).split("\n")).toList());
         } catch (UncheckedRestException e) {
-            if (e.getStatusCode() != 404) {
+            // Throw the exception if the error is not exactly "File not found"
+            if (e.getStatusCode() != 404 || e.getBody().contains("Commit Not Found") || e.getBody().contains("No commit found")) {
                 throw e;
             }
         }
