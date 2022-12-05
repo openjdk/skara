@@ -108,7 +108,8 @@ public class GitPrCreate {
         var skaraRemoteRepo = forge.repository(group + "/skara").orElseThrow(() ->
             new IOException("error: could not resolve Skara repository")
         );
-        var rules = skaraRemoteRepo.fileContents("config/mailinglist/rules/jdk.json", Branch.defaultFor(VCS.GIT).name());
+        var rules = skaraRemoteRepo
+                .fileContents("config/mailinglist/rules/jdk.json", Branch.defaultFor(VCS.GIT).name()).orElseThrow();
         var json = JSON.parse(rules);
         return LabelConfigurationJson.from(json);
     }

@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.common;
 
 import java.util.Optional;
+
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.jbs.JdkVersion;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
@@ -42,15 +43,8 @@ public class BotUtils {
      */
     public static Optional<JdkVersion> getVersion(PullRequest pr) {
         String confFile;
-        try {
-            confFile = pr.repository().fileContents(".jcheck/conf", pr.headHash().hex());
-        } catch (UncheckedRestException e) {
-            if (e.getStatusCode() == 404) {
-                confFile = pr.repository().fileContents(".jcheck/conf", pr.targetRef());
-            } else {
-                throw e;
-            }
-        }
+        confFile = pr.repository().fileContents(".jcheck/conf", pr.headHash().hex())
+                .orElse(pr.repository().fileContents(".jcheck/conf", pr.targetRef()).orElseThrow());
         var configuration = JCheckConfiguration.parse(confFile.lines().toList());
         var version = configuration.general().version().orElse(null);
         if (version == null || "".equals(version)) {

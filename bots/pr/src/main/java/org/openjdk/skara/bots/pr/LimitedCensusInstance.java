@@ -70,13 +70,9 @@ class LimitedCensusInstance {
 
     private static Optional<JCheckConfiguration> configuration(HostedRepository remoteRepo, String name, String ref) {
         Optional<List<String>> conf = Optional.empty();
-        try {
-            conf = Optional.of(Arrays.stream(remoteRepo.fileContents(name, ref).split("\n")).toList());
-        } catch (UncheckedRestException e) {
-            // Throw the exception if the error is not exactly "File not found"
-            if (e.getStatusCode() != 404 || (!e.getBody().equals("File Not Found") && !e.getBody().equals("Not found"))) {
-                throw e;
-            }
+        var contents = remoteRepo.fileContents(name, ref);
+        if (contents.isPresent()) {
+            conf = Optional.of(Arrays.stream(contents.get().split("\n")).toList());
         }
         return conf.map(JCheckConfiguration::parse);
     }

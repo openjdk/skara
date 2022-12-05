@@ -286,25 +286,34 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public String fileContents(String filename, String ref) {
+    public Optional<String> fileContents(String filename, String ref) {
         var confName = URLEncoder.encode(filename, StandardCharsets.UTF_8);
-        var conf = request.get("repository/files/" + confName)
-                          .param("ref", ref)
-                          .onError(response -> {
-                              // Retry once with additional escaping of the path fragment
-                              // Only retry when the error is exactly "File Not Found"
-                              if (response.statusCode() == 404 && response.body().contains("File Not Found")) {
-                                  log.warning("First time request returned bad status: " + response.statusCode());
-                                  log.info("First time response body: " + response.body());
-                                  var escapedConfName = URLEncoder.encode(confName, StandardCharsets.UTF_8);
-                                  return Optional.of(request.get("repository/files/" + escapedConfName)
-                                          .param("ref", ref).execute());
-                              }
-                              return Optional.empty();
-                          })
-                          .execute();
+        JSONValue conf = null;
+        try {
+            conf = request.get("repository/files/" + confName)
+                    .param("ref", ref)
+                    .onError(response -> {
+                        // Retry once with additional escaping of the path fragment
+                        // Only retry when the error is exactly "File Not Found"
+                        if (response.statusCode() == 404 && response.body().contains("File Not Found")) {
+                            log.warning("First time request returned bad status: " + response.statusCode());
+                            log.info("First time response body: " + response.body());
+                            var escapedConfName = URLEncoder.encode(confName, StandardCharsets.UTF_8);
+                            return Optional.of(request.get("repository/files/" + escapedConfName)
+                                    .param("ref", ref).execute());
+                        }
+                        return Optional.empty();
+                    })
+                    .execute();
+        } catch (UncheckedRestException e) {
+            // After retry, if the error is still 404 File Not Found, return Optional.empty().
+            if (e.getStatusCode() == 404 && e.getBody().contains("File Not Found")) {
+                return Optional.empty();
+            }
+            throw e;
+        }
         var content = Base64.getDecoder().decode(conf.get("content").asString());
-        return new String(content, StandardCharsets.UTF_8);
+        return Optional.of(new String(content, StandardCharsets.UTF_8));
     }
 
     @Override

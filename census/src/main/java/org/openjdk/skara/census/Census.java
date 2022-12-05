@@ -227,9 +227,9 @@ public class Census {
      */
     public static Namespace parseNamespace(HostedRepository repository, String ref, String name) throws IOException {
         log.finer("Parsing namespace from repository " + repository.name());
-        var contributorsData = repository.fileContents("contributors.xml", ref);
+        var contributorsData = repository.fileContents("contributors.xml", ref).orElseThrow();
         var contributors = Contributors.parse(contributorsData);
-        var namespaceData = repository.fileContents("namespaces/" + name + ".xml", ref);
+        var namespaceData = repository.fileContents("namespaces/" + name + ".xml", ref).orElseThrow();
         return Namespace.parse(namespaceData, contributors);
     }
 }

@@ -46,7 +46,7 @@ public class LabelConfigurationHostedRepository implements LabelConfiguration {
     }
 
     private LabelConfiguration labelConfiguration() {
-        var contents = repository.fileContents(filename, ref);
+        var contents = repository.fileContents(filename, ref).orElseThrow();
         if (!contents.equals(latestFileContents)) {
             latestFileContents = contents;
             var json = JSON.parse(contents);

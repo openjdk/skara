@@ -52,7 +52,7 @@ public class CheckablePullRequest {
         this.ignoreStaleReviews = ignoreStaleReviews;
 
         if (jcheckRepo != null) {
-            confOverride = jcheckRepo.fileContents(jcheckName, jcheckRef).lines().collect(Collectors.toList());
+            confOverride = jcheckRepo.fileContents(jcheckName, jcheckRef).orElseThrow().lines().collect(Collectors.toList());
         } else {
             confOverride = null;
         }

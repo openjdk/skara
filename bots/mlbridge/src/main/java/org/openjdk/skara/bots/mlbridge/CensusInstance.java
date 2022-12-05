@@ -76,7 +76,7 @@ class CensusInstance {
     }
 
     private static JCheckConfiguration configuration(HostedRepository remoteRepo, String ref) {
-        var confFile = remoteRepo.fileContents(".jcheck/conf", ref);
+        var confFile = remoteRepo.fileContents(".jcheck/conf", ref).orElseThrow();
         return JCheckConfiguration.parse(confFile.lines().collect(Collectors.toList()));
     }
 

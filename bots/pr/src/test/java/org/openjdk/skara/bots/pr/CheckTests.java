@@ -2380,7 +2380,6 @@ class CheckTests {
 
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
-            // Check the status (should become ready immediately as reviewercount is overridden to 0)
             TestBotRunner.runPeriodicItems(checkBot);
             var comments = pr.store().comments();
             assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository could not be found. "

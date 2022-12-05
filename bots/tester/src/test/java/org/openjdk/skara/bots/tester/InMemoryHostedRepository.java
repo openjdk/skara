@@ -28,6 +28,7 @@ import org.openjdk.skara.issuetracker.Label;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
+import javax.swing.text.html.Option;
 import java.net.URI;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -129,8 +130,8 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public String fileContents(String filename, String ref) {
-        return null;
+    public Optional<String> fileContents(String filename, String ref) {
+        return Optional.empty();
     }
 
     @Override

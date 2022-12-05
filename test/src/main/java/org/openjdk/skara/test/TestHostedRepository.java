@@ -197,15 +197,14 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public String fileContents(String filename, String ref) {
+    public Optional<String> fileContents(String filename, String ref) {
         try {
             var lines = localRepository.lines(Path.of(filename), localRepository.resolve(ref).orElseThrow());
-            return String.join("\n", lines.orElseThrow());
+            return Optional.of(String.join("\n", lines.orElseThrow()));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } catch (NoSuchElementException e) {
-            // Make this method behave more like other remote repo implementations
-            throw new UncheckedRestException("Can't find file " + filename, 404, "Not Found");
+            return Optional.empty();
         }
     }
 
