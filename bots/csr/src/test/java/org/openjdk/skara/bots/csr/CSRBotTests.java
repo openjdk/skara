@@ -315,31 +315,26 @@ class CSRBotTests {
             // be able to trigger on CSR issue updates
             PullRequestUtils.postPullRequestLinkComment(issue, pr);
 
-            // Remove `version=0.1` from `.jcheck/conf`, set the version as null
-            localRepo.checkout(localRepo.defaultBranch());
+            // Remove `version=0.1` from `.jcheck/conf`, set the version as null in the edit branch
             var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
             var newConf = defaultConf.replace("version=0.1", "");
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             var confHash = localRepo.commit("Set version as null", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.url(), "master", true);
+            localRepo.push(confHash, repo.url(), "edit", true);
             assertFalse(pr.store().labelNames().contains("csr"));
             // Run bot. The bot won't get a CSR.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the `csr` label.
             assertFalse(pr.store().labelNames().contains("csr"));
 
-            // Test the method `TestPullRequest#diff`.
-            assertEquals(1, pr.diff().patches().size());
-
             // Add `version=bla` to `.jcheck/conf`, set the version as a wrong value
-            localRepo.checkout(localRepo.defaultBranch());
             defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
             newConf = defaultConf.replace("project=test", "project=test\nversion=bla");
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as a wrong value", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.url(), "master", true);
+            localRepo.push(confHash, repo.url(), "edit", true);
             // Run bot. The bot won't get a CSR.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the `csr` label.
@@ -349,13 +344,12 @@ class CSRBotTests {
             assertEquals(1, pr.diff().patches().size());
 
             // Set the `version` in `.jcheck/conf` as 17 which is an available version.
-            localRepo.checkout(localRepo.defaultBranch());
             defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
             newConf = defaultConf.replace("version=bla", "version=17");
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 17", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.url(), "master", true);
+            localRepo.push(confHash, repo.url(), "edit", true);
             // Run bot. The primary CSR doesn't have the fix version `17`, so the bot won't get a CSR.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the `csr` label.
@@ -399,13 +393,12 @@ class CSRBotTests {
             // Set the backport CSR to have multiple fix versions, included 11.
             backportCsr.setProperty("fixVersions", JSON.array().add("17").add("11").add("8"));
             // Set the `version` in `.jcheck/conf` as 11.
-            localRepo.checkout(localRepo.defaultBranch());
             defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
             newConf = defaultConf.replace("version=17", "version=11");
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 11", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.url(), "master", true);
+            localRepo.push(confHash, repo.url(), "edit", true);
             pr.removeLabel("csr");
             // Run bot.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);

@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.bots.common.BotUtils;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jbs.Backports;
@@ -106,7 +107,7 @@ public class CSRCommand implements CommandHandler {
                 return;
             }
 
-            var versionOpt = CheckRun.getVersion(pr);
+            var versionOpt = BotUtils.getVersion(pr);
             if (versionOpt.isEmpty()) {
                 csrUnneededReply(pr, reply);
                 return;
@@ -162,7 +163,7 @@ public class CSRCommand implements CommandHandler {
         }
 
         var jbsIssue = jbsIssueOpt.get();
-        var versionOpt = CheckRun.getVersion(pr);
+        var versionOpt = BotUtils.getVersion(pr);
         if (versionOpt.isEmpty()) {
             csrReply(reply);
             linkReply(pr, jbsIssue, reply);
