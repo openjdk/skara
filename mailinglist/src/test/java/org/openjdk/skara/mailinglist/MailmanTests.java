@@ -109,7 +109,7 @@ class MailmanTests {
         try (var testServer = new TestMailmanServer()) {
             var listAddress = testServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
-                                                                             Duration.ZERO);
+                                                                             Duration.ZERO, true);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var mail = Email.create(sender, "Subject", "Body")
