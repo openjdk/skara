@@ -130,8 +130,8 @@ task test {
 }
 
 task testReport(type: TestReport) {
-    destinationDir = file("$buildDir/reports/allTests")
-    reportOn subprojects.findAll()*.getTasksByName('test', false)
+    destinationDirectory = file("$buildDir/reports/allTests")
+    getTestResults().from(subprojects.findAll()*.getTasksByName('test', false))
 }
 
 task clean {
