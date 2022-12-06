@@ -227,9 +227,11 @@ public class Census {
      */
     public static Namespace parseNamespace(HostedRepository repository, String ref, String name) throws IOException {
         log.finer("Parsing namespace from repository " + repository.name());
-        var contributorsData = repository.fileContents("contributors.xml", ref);
+        var contributorsData = repository.fileContents("contributors.xml", ref)
+                .orElseThrow(() -> new RuntimeException("Could not find contributors.xml on ref " + ref + " in repo " + repository.name()));
         var contributors = Contributors.parse(contributorsData);
-        var namespaceData = repository.fileContents("namespaces/" + name + ".xml", ref);
+        var namespaceData = repository.fileContents("namespaces/" + name + ".xml", ref)
+                .orElseThrow(() -> new RuntimeException("Could not find namespaces/" + name + ".xml on ref " + ref + " in repo " + repository.name()));
         return Namespace.parse(namespaceData, contributors);
     }
 }

@@ -286,21 +286,31 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public String fileContents(String filename, String ref) {
-        var confName = URLEncoder.encode(filename, StandardCharsets.UTF_8);
-        var conf = request.get("repository/files/" + confName)
-                          .param("ref", ref)
-                          .onError(response -> {
-                              log.warning("First time request returned bad status: " + response.statusCode());
-                              log.info("First time response body: " + response.body());
-                              // Retry once with additional escaping of the path fragment
-                              var escapedConfName = URLEncoder.encode(confName, StandardCharsets.UTF_8);
-                              return Optional.of(request.get("repository/files/" + escapedConfName)
-                                            .param("ref", ref).execute());
-                          })
-                          .execute();
-        var content = Base64.getDecoder().decode(conf.get("content").asString());
-        return new String(content, StandardCharsets.UTF_8);
+    public Optional<String> fileContents(String filename, String ref) {
+        var encodedFileName = URLEncoder.encode(filename, StandardCharsets.UTF_8);
+        var content = request.get("repository/files/" + encodedFileName)
+                .param("ref", ref)
+                .onError(response -> {
+                    // Retry once with additional escaping of the path fragment
+                    // Only retry when the error is exactly "File Not Found"
+                    if (response.statusCode() == 404 && JSON.parse(response.body()).get("message").asString().endsWith("File Not Found")) {
+                        log.warning("First time request returned bad status: " + response.statusCode());
+                        log.info("First time response body: " + response.body());
+                        var doubleEncodedFileName = URLEncoder.encode(encodedFileName, StandardCharsets.UTF_8);
+                        return Optional.of(request.get("repository/files/" + doubleEncodedFileName)
+                                .param("ref", ref)
+                                .onError(r -> r.statusCode() == 404 && JSON.parse(r.body()).get("message").asString().endsWith("File Not Found") ?
+                                        Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
+                                .execute());
+                    }
+                    return Optional.empty();
+                })
+                .execute();
+        if (content.contains("NOT_FOUND")) {
+            return Optional.empty();
+        }
+        var decodedContent = Base64.getDecoder().decode(content.get("content").asString());
+        return Optional.of(new String(decodedContent, StandardCharsets.UTF_8));
     }
 
     @Override

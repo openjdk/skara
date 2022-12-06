@@ -261,14 +261,19 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public String fileContents(String filename, String ref) {
-        var conf = request.get("contents/" + filename)
-                          .param("ref", ref)
-                          .execute().asObject();
+    public Optional<String> fileContents(String filename, String ref) {
+        var content = request.get("contents/" + filename)
+                .param("ref", ref)
+                .onError(r -> r.statusCode() == 404 && JSON.parse(r.body()).get("message").asString().equals("Not Found")
+                        ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
+                .execute();
+        if (content.contains("NOT_FOUND")) {
+            return Optional.empty();
+        }
         // Content may contain newline characters
-        return conf.get("content").asString().lines()
-                   .map(line -> new String(Base64.getDecoder().decode(line), StandardCharsets.UTF_8))
-                   .collect(Collectors.joining());
+        return Optional.of(content.asObject().get("content").asString().lines()
+                .map(line -> new String(Base64.getDecoder().decode(line), StandardCharsets.UTF_8))
+                .collect(Collectors.joining()));
     }
 
     @Override

@@ -129,8 +129,8 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public String fileContents(String filename, String ref) {
-        return null;
+    public Optional<String> fileContents(String filename, String ref) {
+        return Optional.empty();
     }
 
     @Override

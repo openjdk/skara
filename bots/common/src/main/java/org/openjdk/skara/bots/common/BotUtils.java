@@ -23,10 +23,10 @@
 package org.openjdk.skara.bots.common;
 
 import java.util.Optional;
+
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.jbs.JdkVersion;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
-import org.openjdk.skara.network.UncheckedRestException;
 
 /**
  * This class contains utility methods used by more than one bot. These methods
@@ -41,16 +41,9 @@ public class BotUtils {
      * repositories where the fix version is configured in .jcheck/conf.
      */
     public static Optional<JdkVersion> getVersion(PullRequest pr) {
-        String confFile;
-        try {
-            confFile = pr.repository().fileContents(".jcheck/conf", pr.headHash().hex());
-        } catch (UncheckedRestException e) {
-            if (e.getStatusCode() == 404) {
-                confFile = pr.repository().fileContents(".jcheck/conf", pr.targetRef());
-            } else {
-                throw e;
-            }
-        }
+        var confFile = pr.repository().fileContents(".jcheck/conf", pr.headHash().hex())
+                .orElse(pr.repository().fileContents(".jcheck/conf", pr.targetRef())
+                        .orElseThrow(() -> new RuntimeException("Could not find .jcheck/conf in neither src or target of PR " + pr)));
         var configuration = JCheckConfiguration.parse(confFile.lines().toList());
         var version = configuration.general().version().orElse(null);
         if (version == null || "".equals(version)) {
