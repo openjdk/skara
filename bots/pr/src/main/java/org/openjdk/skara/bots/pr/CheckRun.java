@@ -29,9 +29,6 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jbs.Backports;
-import org.openjdk.skara.jbs.JdkVersion;
-import org.openjdk.skara.jcheck.JCheckConfiguration;
-import org.openjdk.skara.network.UncheckedRestException;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 

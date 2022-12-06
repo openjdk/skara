@@ -126,7 +126,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             return List.of();
         }
 
-        var comments = pr.comments();
+        var comments = prComments();
         var manuallyAdded = LabelTracker.currentAdded(pr.repository().forge().currentUser(), comments);
         var manuallyRemoved = LabelTracker.currentRemoved(pr.repository().forge().currentUser(), comments);
 
