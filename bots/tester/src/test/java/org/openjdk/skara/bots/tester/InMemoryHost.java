@@ -68,7 +68,7 @@ class InMemoryHost implements Forge {
     }
 
     @Override
-    public Optional<HostedCommit> search(Hash hash) {
+    public Optional<HostedCommit> search(Hash hash, boolean includeDiffs) {
         return Optional.empty();
     }
 }

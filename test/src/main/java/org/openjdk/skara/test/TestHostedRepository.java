@@ -298,14 +298,15 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public Optional<HostedCommit> commit(Hash hash) {
+    public Optional<HostedCommit> commit(Hash hash, boolean includeDiffs) {
         try {
             var commit = localRepository.lookup(hash);
             if (!commit.isPresent()) {
                 return Optional.empty();
             }
             var url = URI.create("file://" + localRepository.root() + "/commits/" + hash.hex());
-            return Optional.of(new HostedCommit(commit.get().metadata(), commit.get().parentDiffs(), url));
+            List<Diff> parentDiffs = includeDiffs ? commit.get().parentDiffs() : List.of();
+            return Optional.of(new HostedCommit(commit.get().metadata(), parentDiffs, url));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

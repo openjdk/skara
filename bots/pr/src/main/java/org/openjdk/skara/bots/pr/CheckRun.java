@@ -391,7 +391,7 @@ class CheckRun {
         if (hash == null) {
             return Optional.empty();
         }
-        var commit = pr.repository().forge().search(hash);
+        var commit = pr.repository().forge().search(hash, true);
         if (commit.isEmpty()) {
             throw new IllegalStateException("Backport comment for PR " + pr.id() + " contains bad hash: " + hash.hex());
         }
