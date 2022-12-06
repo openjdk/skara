@@ -287,10 +287,10 @@ public class GitLabRepository implements HostedRepository {
 
     @Override
     public Optional<String> fileContents(String filename, String ref) {
-        var confName = URLEncoder.encode(filename, StandardCharsets.UTF_8);
-        JSONValue conf = null;
+        var encodedFileName = URLEncoder.encode(filename, StandardCharsets.UTF_8);
+        JSONValue content;
         try {
-            conf = request.get("repository/files/" + confName)
+            content = request.get("repository/files/" + encodedFileName)
                     .param("ref", ref)
                     .onError(response -> {
                         // Retry once with additional escaping of the path fragment
@@ -298,8 +298,8 @@ public class GitLabRepository implements HostedRepository {
                         if (response.statusCode() == 404 && response.body().contains("File Not Found")) {
                             log.warning("First time request returned bad status: " + response.statusCode());
                             log.info("First time response body: " + response.body());
-                            var escapedConfName = URLEncoder.encode(confName, StandardCharsets.UTF_8);
-                            return Optional.of(request.get("repository/files/" + escapedConfName)
+                            var doubleEncodedFileName = URLEncoder.encode(encodedFileName, StandardCharsets.UTF_8);
+                            return Optional.of(request.get("repository/files/" + doubleEncodedFileName)
                                     .param("ref", ref).execute());
                         }
                         return Optional.empty();
@@ -312,8 +312,8 @@ public class GitLabRepository implements HostedRepository {
             }
             throw e;
         }
-        var content = Base64.getDecoder().decode(conf.get("content").asString());
-        return Optional.of(new String(content, StandardCharsets.UTF_8));
+        var decodedContent = Base64.getDecoder().decode(content.get("content").asString());
+        return Optional.of(new String(decodedContent, StandardCharsets.UTF_8));
     }
 
     @Override

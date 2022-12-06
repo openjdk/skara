@@ -262,9 +262,9 @@ public class GitHubRepository implements HostedRepository {
 
     @Override
     public Optional<String> fileContents(String filename, String ref) {
-        JSONValue conf;
+        JSONValue content;
         try {
-            conf = request.get("contents/" + filename)
+            content = request.get("contents/" + filename)
                     .param("ref", ref)
                     .execute();
         } catch (UncheckedRestException e) {
@@ -275,7 +275,7 @@ public class GitHubRepository implements HostedRepository {
             throw e;
         }
         // Content may contain newline characters
-        return Optional.of(conf.asObject().get("content").asString().lines()
+        return Optional.of(content.asObject().get("content").asString().lines()
                 .map(line -> new String(Base64.getDecoder().decode(line), StandardCharsets.UTF_8))
                 .collect(Collectors.joining()));
     }
