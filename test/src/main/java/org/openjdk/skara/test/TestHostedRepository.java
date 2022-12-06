@@ -200,7 +200,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     public Optional<String> fileContents(String filename, String ref) {
         try {
             var lines = localRepository.lines(Path.of(filename), localRepository.resolve(ref).orElseThrow());
-            return Optional.of(String.join("\n", lines.orElseThrow()));
+            return lines.map(content -> String.join("\n", content));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } catch (NoSuchElementException e) {

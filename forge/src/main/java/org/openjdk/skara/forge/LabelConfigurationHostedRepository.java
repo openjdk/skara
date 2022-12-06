@@ -46,7 +46,8 @@ public class LabelConfigurationHostedRepository implements LabelConfiguration {
     }
 
     private LabelConfiguration labelConfiguration() {
-        var contents = repository.fileContents(filename, ref).orElseThrow();
+        var contents = repository.fileContents(filename, ref)
+                .orElseThrow(() -> new RuntimeException("Could not find " + filename + " on ref " + ref + " in repo " + repository.name()));
         if (!contents.equals(latestFileContents)) {
             latestFileContents = contents;
             var json = JSON.parse(contents);

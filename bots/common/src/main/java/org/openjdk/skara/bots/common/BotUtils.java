@@ -41,9 +41,9 @@ public class BotUtils {
      * repositories where the fix version is configured in .jcheck/conf.
      */
     public static Optional<JdkVersion> getVersion(PullRequest pr) {
-        String confFile;
-        confFile = pr.repository().fileContents(".jcheck/conf", pr.headHash().hex())
-                .orElse(pr.repository().fileContents(".jcheck/conf", pr.targetRef()).orElseThrow());
+        var confFile = pr.repository().fileContents(".jcheck/conf", pr.headHash().hex())
+                .orElse(pr.repository().fileContents(".jcheck/conf", pr.targetRef())
+                        .orElseThrow(() -> new RuntimeException("Could not find .jcheck/conf in neither src or target of PR " + pr)));
         var configuration = JCheckConfiguration.parse(confFile.lines().toList());
         var version = configuration.general().version().orElse(null);
         if (version == null || "".equals(version)) {
