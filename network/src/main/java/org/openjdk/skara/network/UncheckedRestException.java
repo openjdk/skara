@@ -16,5 +16,4 @@ public class UncheckedRestException extends RuntimeException {
     public int getStatusCode() {
         return statusCode;
     }
-
 }

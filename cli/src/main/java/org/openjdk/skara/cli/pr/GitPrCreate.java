@@ -109,7 +109,9 @@ public class GitPrCreate {
             new IOException("error: could not resolve Skara repository")
         );
         var rules = skaraRemoteRepo
-                .fileContents("config/mailinglist/rules/jdk.json", Branch.defaultFor(VCS.GIT).name()).orElseThrow();
+                .fileContents("config/mailinglist/rules/jdk.json", Branch.defaultFor(VCS.GIT).name())
+                .orElseThrow(() -> new RuntimeException("Could not find config/mailinglist/rules/jdk.json on ref "
+                        + Branch.defaultFor(VCS.GIT).name() + " in repo " + skaraRemoteRepo.name()));
         var json = JSON.parse(rules);
         return LabelConfigurationJson.from(json);
     }
