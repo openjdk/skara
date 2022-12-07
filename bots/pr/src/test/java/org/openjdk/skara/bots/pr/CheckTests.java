@@ -2015,13 +2015,12 @@ class CheckTests {
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + commitHash);
 
             // Remove `version=0.1` from `.jcheck/conf`, set the version as null
-            localRepo.checkout(localRepo.defaultBranch());
             var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
             var newConf = defaultConf.replace("version=0.1", "");
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             var confHash = localRepo.commit("Set version as null", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, author.url(), "master", true);
+            localRepo.push(confHash, author.url(), "edit", true);
             // Simulate the CSRBot.
             pr.setBody(pr.store().body() + csrUpdateMarker);
             // Run bot. The bot won't get a CSR.
@@ -2035,13 +2034,12 @@ class CheckTests {
             assertFalse(pr.store().body().contains(csr.title()));
 
             // Add `version=bla` to `.jcheck/conf`, set the version as a wrong value
-            localRepo.checkout(localRepo.defaultBranch());
             defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
             newConf = defaultConf.replace("project=test", "project=test\nversion=bla");
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as a wrong value", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, author.url(), "master", true);
+            localRepo.push(confHash, author.url(), "edit", true);
             // Simulate the CSRBot.
             pr.setBody(pr.store().body() + csrUpdateMarker);
             // Run bot. The bot won't get a CSR.
@@ -2055,13 +2053,12 @@ class CheckTests {
             assertFalse(pr.store().body().contains(csr.title()));
 
             // Set the `version` in `.jcheck/conf` as 17 which is an available version.
-            localRepo.checkout(localRepo.defaultBranch());
             defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
             newConf = defaultConf.replace("version=bla", "version=17");
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 17", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, author.url(), "master", true);
+            localRepo.push(confHash, author.url(), "edit", true);
             // Simulate the CSRBot.
             pr.setBody(pr.store().body() + csrUpdateMarker);
             // Run bot. The primary CSR doesn't have the fix version `17`, so the bot won't get a CSR.
@@ -2134,13 +2131,12 @@ class CheckTests {
             // Set the backport CSR to have multiple fix versions, included 11.
             backportCsr.setProperty("fixVersions", JSON.array().add("17").add("11").add("8"));
             // Set the `version` in `.jcheck/conf` as 11.
-            localRepo.checkout(localRepo.defaultBranch());
             defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
             newConf = defaultConf.replace("version=17", "version=11");
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 11", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, author.url(), "master", true);
+            localRepo.push(confHash, author.url(), "edit", true);
             // Simulate the CSRBot.
             pr.setBody(pr.store().body() + csrUpdateMarker);
             // Run bot.
@@ -2384,7 +2380,6 @@ class CheckTests {
 
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
-            // Check the status (should become ready immediately as reviewercount is overridden to 0)
             TestBotRunner.runPeriodicItems(checkBot);
             var comments = pr.store().comments();
             assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository could not be found. "
@@ -2497,124 +2492,6 @@ class CheckTests {
             output.append("\n");
             output.append("[checks \"reviewers\"]\n");
             output.append("reviewers=1\n");
-        }
-    }
-
-    @Test
-    void testJCheckConfCheck(TestInfo testInfo) throws IOException {
-        try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory()) {
-            var author = credentials.getHostedRepository();
-            var reviewer = credentials.getHostedRepository();
-
-            var censusBuilder = credentials.getCensusBuilder()
-                    .addAuthor(author.forge().currentUser().id())
-                    .addReviewer(reviewer.forge().currentUser().id());
-            var seedFolder = tempFolder.path().resolve("seed");
-            var checkBot = PullRequestBot.newBuilder()
-                    .repo(author)
-                    .censusRepo(censusBuilder.build())
-                    .censusLink("https://census.com/{{contributor}}-profile")
-                    .seedStorage(seedFolder)
-                    .build();
-
-            // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
-
-            // Remove .jcheck/conf
-            localRepo.remove(localRepo.root().resolve(".jcheck/conf"));
-            localRepo.commit("no conf", "testauthor", "ta@none.none");
-            var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-
-            // write new conf
-            Files.createDirectories(tempFolder.path().resolve(".jcheck"));
-            var checkConf = tempFolder.path().resolve(".jcheck/conf");
-            try (var output = Files.newBufferedWriter(checkConf)) {
-                output.append("[general]\n");
-                output.append("project=test\n");
-                output.append("jbs=tstprj\n");
-                output.append("\n");
-                output.append("[checks]\n");
-                output.append("error=");
-                output.append(String.join(",", Set.of("author", "reviewers", "whitespace", "jcheckconf")));
-                output.append("\n\n");
-                output.append("[census]\n");
-                output.append("version=0\n");
-                output.append("domain=openjdk.org\n");
-                output.append("\n");
-                output.append("[checks \"whitespace\"]\n");
-                output.append("files=.*\\.txt\n");
-                output.append("\n");
-                output.append("[checks \"reviewers\"]\n");
-                output.append("reviewers=1\n");
-            }
-            localRepo.add(checkConf);
-            masterHash = localRepo.commit("add conf to master", "testauthor", "ta@none.none");
-            localRepo.push(masterHash, author.url(), "master", true);
-
-            // Create a new branch
-            var editBranch = localRepo.branch(masterHash, "edit");
-            localRepo.checkout(editBranch);
-            var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
-
-            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
-
-            // Check the status
-            TestBotRunner.runPeriodicItems(checkBot);
-            var checks = pr.checks(editHash);
-            assertEquals(1, checks.size());
-            var check = checks.get("jcheck");
-            assertEquals(CheckStatus.SUCCESS, check.status());
-            assertTrue(pr.store().labelNames().contains("rfr"));
-
-            // Make .jcheck/conf invalid
-            try (var output = new FileWriter(checkConf.toFile(), true)) {
-                output.append("\nRandomCharacters");
-            }
-            localRepo.add(checkConf);
-            var invalidHash = localRepo.commit("add conf to master", "testauthor", "ta@none.none");
-            localRepo.push(invalidHash, author.url(), "edit", true);
-
-            TestBotRunner.runPeriodicItems(checkBot);
-            checks = pr.checks(invalidHash);
-            assertEquals(1, checks.size());
-            check = checks.get("jcheck");
-            assertEquals(CheckStatus.FAILURE, check.status());
-            assertTrue(pr.store().body().contains(".jcheck/conf is invalid: line 17: entry must be of form 'key = value'"));
-            assertFalse(pr.store().labelNames().contains("rfr"));
-
-            // Restore .jcheck/conf
-            try (var output = Files.newBufferedWriter(checkConf)) {
-                output.append("[general]\n");
-                output.append("project=test\n");
-                output.append("jbs=tstprj\n");
-                output.append("\n");
-                output.append("[checks]\n");
-                output.append("error=");
-                output.append(String.join(",", Set.of("author", "reviewers", "whitespace", "jcheckconf")));
-                output.append("\n\n");
-                output.append("[census]\n");
-                output.append("version=0\n");
-                output.append("domain=openjdk.org\n");
-                output.append("\n");
-                output.append("[checks \"whitespace\"]\n");
-                output.append("files=.*\\.txt\n");
-                output.append("\n");
-                output.append("[checks \"reviewers\"]\n");
-                output.append("reviewers=1\n");
-            }
-            localRepo.add(checkConf);
-            var restoreHash = localRepo.commit("restore .jcheck/conf", "testauthor", "ta@none.none");
-            localRepo.push(restoreHash, author.url(), "edit", true);
-
-            TestBotRunner.runPeriodicItems(checkBot);
-            checks = pr.checks(restoreHash);
-            assertEquals(1, checks.size());
-            check = checks.get("jcheck");
-            assertEquals(CheckStatus.SUCCESS, check.status());
-            assertTrue(pr.store().labelNames().contains("rfr"));
         }
     }
 
@@ -2745,6 +2622,57 @@ class CheckTests {
             assertFalse(lastComment.body().contains("Force-push"));
             assertTrue(lastComment.body().contains(FORCE_PUSH_MARKER));
             assertTrue(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
+        }
+    }
+
+    @Test
+    void testLatestBody(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            CheckWorkItem checkWorkItem = (CheckWorkItem) checkBot.getPeriodicItems().get(1);
+            checkWorkItem.pr = author.pullRequest(pr.id());
+            // Update PR body right now
+            pr.store().setBody("It's a new Body");
+            try (var scratchFolder = new TemporaryDirectory()) {
+                checkWorkItem.prRun(scratchFolder.path());
+            }
+            // PR body should not be updated by Bot
+            assertEquals("It's a new Body", pr.store().body());
+
+            checkWorkItem = (CheckWorkItem) checkBot.getPeriodicItems().get(1);
+            checkWorkItem.pr = author.pullRequest(pr.id());
+            try (var scratchFolder = new TemporaryDirectory()) {
+                checkWorkItem.prRun(scratchFolder.path());
+            }
+            // PR body should be updated by Bot
+            assertTrue(pr.store().body().contains("It's a new Body"));
+            assertTrue(pr.store().body().contains("Progress"));
+            assertTrue(pr.store().body().contains("<!-- Anything below this marker will be automatically updated"));
+            assertTrue(pr.store().body().contains("Reviewing"));
         }
     }
 

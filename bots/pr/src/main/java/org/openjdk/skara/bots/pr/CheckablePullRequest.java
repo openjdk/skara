@@ -52,7 +52,9 @@ public class CheckablePullRequest {
         this.ignoreStaleReviews = ignoreStaleReviews;
 
         if (jcheckRepo != null) {
-            confOverride = jcheckRepo.fileContents(jcheckName, jcheckRef).lines().collect(Collectors.toList());
+            confOverride = jcheckRepo.fileContents(jcheckName, jcheckRef).orElseThrow(
+                    () -> new RuntimeException("Could not find " + jcheckName + " on ref " + jcheckRef + " in repo " + jcheckRepo.name())
+            ).lines().collect(Collectors.toList());
         } else {
             confOverride = null;
         }

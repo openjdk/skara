@@ -392,7 +392,10 @@ class ArchiveMessages {
             body.append(":\n\n");
             if (reviewComment.hash().isPresent() && reviewComment.line() > 0) {
                 try {
-                    var contents = pr.repository().fileContents(reviewComment.path(), reviewComment.hash().get().hex()).lines().collect(Collectors.toList());
+                    var contents = pr.repository().fileContents(reviewComment.path(), reviewComment.hash().get().hex())
+                            .orElseThrow(() -> new RuntimeException("Could not find " + reviewComment.path() + " on ref "
+                                    + reviewComment.hash().get().hex() + " in repo " + pr.repository().name()))
+                            .lines().collect(Collectors.toList());
                     for (int i = Math.max(0, reviewComment.line() - 3); i < Math.min(contents.size(), reviewComment.line()); ++i) {
                         body.append("> ").append(i + 1).append(": ").append(contents.get(i)).append("\n");
                     }

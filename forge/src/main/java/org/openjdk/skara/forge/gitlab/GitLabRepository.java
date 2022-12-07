@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge.gitlab;
 
+import java.util.logging.Logger;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Label;
@@ -40,6 +41,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class GitLabRepository implements HostedRepository {
+    private static final Logger log = Logger.getLogger(GitLabRepository.class.getName());
     private final GitLabHost gitLabHost;
     private final String projectName;
     private final RestRequest request;
@@ -137,6 +139,7 @@ public class GitLabRepository implements HostedRepository {
                       .maxPages(1)
                       .execute().stream()
                       .filter(this::hasHeadHash)
+                      .map(this::refetchMergeRequest)
                       .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
                       .collect(Collectors.toList());
     }
@@ -147,6 +150,7 @@ public class GitLabRepository implements HostedRepository {
                       .param("state", "opened")
                       .execute().stream()
                       .filter(this::hasHeadHash)
+                      .map(this::refetchMergeRequest)
                       .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
                       .collect(Collectors.toList());
     }
@@ -159,6 +163,7 @@ public class GitLabRepository implements HostedRepository {
                       .maxPages(1)
                       .execute().stream()
                       .filter(this::hasHeadHash)
+                      .map(this::refetchMergeRequest)
                       .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
                       .collect(Collectors.toList());
     }
@@ -170,8 +175,41 @@ public class GitLabRepository implements HostedRepository {
                 .param("updated_after", updatedAfter.format(DateTimeFormatter.ISO_DATE_TIME))
                 .execute().stream()
                 .filter(this::hasHeadHash)
+                .map(this::refetchMergeRequest)
                 .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * This method is used to work around a bug in GitLab where list query
+     * results for merge requests sometimes return stale data. Fetching them
+     * directly using the ID will always return up-to-date data. The method
+     * logs when stale data is actually detected to give us a way to
+     * empirically verify when the bug is no longer present.
+     */
+    private JSONValue refetchMergeRequest(JSONValue origData) {
+        var updatedAt = ZonedDateTime.parse(origData.get("updated_at").asString());
+        // Only do the refetch on merge requests that have been updated recently.
+        // The 3 hours cut off is rather arbitrarily chosen. We will have to see
+        // if it is enough. Having some kind of cut off is reasonable as we would
+        // otherwise risk running a lot of queries on the first run after a
+        // restart.
+        if (updatedAt.isAfter(ZonedDateTime.now().minus(Duration.ofHours(3)))) {
+            var id = origData.get("iid");
+            var newData = request.get("merge_requests/" + id).execute();
+            // We can't compare the full json object returned from a list query
+            // and get query call as they will always be different. The part we
+            // worry about is the labels, so compare just that.
+            JSONValue origLabels = origData.get("labels");
+            JSONValue newLabels = newData.get("labels");
+            if (!origLabels.equals(newLabels)) {
+                log.warning("Possibly stale merge request data received for " + name() + "#" + id
+                        + " orig: " + origLabels + " new: " + newLabels);
+            }
+            return newData;
+        } else {
+            return origData;
+        }
     }
 
     @Override
@@ -248,19 +286,31 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public String fileContents(String filename, String ref) {
-        var confName = URLEncoder.encode(filename, StandardCharsets.UTF_8);
-        var conf = request.get("repository/files/" + confName)
-                          .param("ref", ref)
-                          .onError(response -> {
-                              // Retry once with additional escaping of the path fragment
-                              var escapedConfName = URLEncoder.encode(confName, StandardCharsets.UTF_8);
-                              return Optional.of(request.get("repository/files/" + escapedConfName)
-                                            .param("ref", ref).execute());
-                          })
-                          .execute();
-        var content = Base64.getDecoder().decode(conf.get("content").asString());
-        return new String(content, StandardCharsets.UTF_8);
+    public Optional<String> fileContents(String filename, String ref) {
+        var encodedFileName = URLEncoder.encode(filename, StandardCharsets.UTF_8);
+        var content = request.get("repository/files/" + encodedFileName)
+                .param("ref", ref)
+                .onError(response -> {
+                    // Retry once with additional escaping of the path fragment
+                    // Only retry when the error is exactly "File Not Found"
+                    if (response.statusCode() == 404 && JSON.parse(response.body()).get("message").asString().endsWith("File Not Found")) {
+                        log.warning("First time request returned bad status: " + response.statusCode());
+                        log.info("First time response body: " + response.body());
+                        var doubleEncodedFileName = URLEncoder.encode(encodedFileName, StandardCharsets.UTF_8);
+                        return Optional.of(request.get("repository/files/" + doubleEncodedFileName)
+                                .param("ref", ref)
+                                .onError(r -> r.statusCode() == 404 && JSON.parse(r.body()).get("message").asString().endsWith("File Not Found") ?
+                                        Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
+                                .execute());
+                    }
+                    return Optional.empty();
+                })
+                .execute();
+        if (content.contains("NOT_FOUND")) {
+            return Optional.empty();
+        }
+        var decodedContent = Base64.getDecoder().decode(content.get("content").asString());
+        return Optional.of(new String(decodedContent, StandardCharsets.UTF_8));
     }
 
     @Override

@@ -20,22 +20,20 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.jcheck;
 
-public class JCheckConfIssue extends CommitIssue {
-    String errorMessage;
+/**
+ * The bots.common module is meant for application level logic that needs to be
+ * shared between multiple bots. This is needed for functionality that ties
+ * together multiple different libraries that we don't want to create
+ * dependencies between.
+ */
+module org.openjdk.skara.bots.common {
+    requires org.openjdk.skara.vcs;
+    requires transitive org.openjdk.skara.forge;
+    requires org.openjdk.skara.network;
+    requires transitive org.openjdk.skara.jbs;
+    requires transitive org.openjdk.skara.jcheck;
+    requires java.logging;
 
-    public JCheckConfIssue(Metadata metadata, String errorMessage) {
-        super(metadata);
-        this.errorMessage = errorMessage;
-    }
-
-    @Override
-    public void accept(IssueVisitor v) {
-        v.visit(this);
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
+    exports org.openjdk.skara.bots.common;
 }

@@ -27,18 +27,16 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openjdk.skara.bot.WorkItem;
+import org.openjdk.skara.bots.common.BotUtils;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.jbs.Backports;
-import org.openjdk.skara.jbs.JdkVersion;
-import org.openjdk.skara.jcheck.JCheckConfiguration;
 
 /**
  * The PullRequestWorkItem is the work horse of the CSRBot. It gets triggered when
@@ -87,19 +85,6 @@ class PullRequestWorkItem implements WorkItem {
 
     private String describe(PullRequest pr) {
         return pr.repository().name() + "#" + pr.id();
-    }
-
-    /**
-     * Get the fix version from the provided PR.
-     */
-    private static Optional<JdkVersion> getVersion(PullRequest pullRequest) {
-        var confFile = pullRequest.repository().fileContents(".jcheck/conf", pullRequest.targetRef());
-        var configuration = JCheckConfiguration.parse(confFile.lines().toList());
-        var version = configuration.general().version().orElse(null);
-        if (version == null || "".equals(version)) {
-            return Optional.empty();
-        }
-        return JdkVersion.parse(version);
     }
 
     private boolean hasCsrIssueAndProgress(PullRequest pr, Issue csr) {
@@ -153,7 +138,7 @@ class PullRequestWorkItem implements WorkItem {
             return List.of();
         }
 
-        var versionOpt = getVersion(pr);
+        var versionOpt = BotUtils.getVersion(pr);
         if (versionOpt.isEmpty()) {
             log.info("No fix version found in `.jcheck/conf` for " + describe(pr));
             return List.of();

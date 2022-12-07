@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1015,6 +1015,11 @@ public class GitRepository implements Repository {
         return lines.size() == 1 ? Optional.of(lines.get(0)) : Optional.empty();
     }
 
+    private Optional<String> email() throws IOException {
+        var lines = config("user.email");
+        return lines.size() == 1 ? Optional.of(lines.get(0)) : Optional.empty();
+    }
+
     private String treeEntry(Path path, Hash hash) throws IOException {
         try (var p = Process.capture("git", "-c", "core.quotePath=false", "ls-tree", hash.hex(), path.toString())
                             .workdir(root())
@@ -1658,6 +1663,62 @@ public class GitRepository implements Repository {
     @Override
     public Hash initialHash() {
         return EMPTY_TREE;
+    }
+
+    @Override
+    public Optional<List<String>> stagedFileContents(Path path) {
+        try (var p = capture("git", "cat-file", "-p", ":" + path.toString())) {
+            var res = p.await();
+            if (res.status() == 0) {
+                return Optional.of(res.stdout());
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Creates a fake Commit instance representing the currently staged diff.
+     */
+    @Override
+    public Commit staged() throws IOException {
+        var author = new Author(username().orElse("jcheck"), email().orElse("jcheck@none.none"));
+        var commitMetaData = new CommitMetadata(new Hash("staged"), List.of(head()), author, ZonedDateTime.now(),
+                author, ZonedDateTime.now(), List.of(""));
+        return new Commit(commitMetaData, List.of(diffStaged()));
+    }
+
+    /**
+     * Creates a fake Commit instance representing the current working tree.
+     */
+    @Override
+    public Commit workingTree() throws IOException {
+        var author = new Author(username().orElse("jcheck"), email().orElse("jcheck@none.none"));
+        var commitMetaData = new CommitMetadata(new Hash("working-tree"), List.of(head()), author, ZonedDateTime.now(),
+                author, ZonedDateTime.now(), List.of(""));
+        return new Commit(commitMetaData, List.of(diff(head())));
+    }
+
+    private Diff diffStaged() throws IOException {
+        var cmd = new ArrayList<>(List.of("git", "-c", "core.quotePath=false", "diff", "--patch", "--cached",
+                "--find-renames=" + "90" + "%",
+                "--find-copies=" + "90" + "%",
+                "--find-copies-harder",
+                "--binary",
+                "--raw",
+                "--no-abbrev",
+                "--unified=0",
+                "--no-color"));
+        cmd.add(head().hex());
+
+        var p = start(cmd);
+        try {
+            var patches = GitRawDiffParser.parse(p.getInputStream());
+            await(p);
+            return new Diff(head(), null, patches);
+        } catch (Throwable t) {
+            stop(p);
+            throw t;
+        }
     }
 
     @Override

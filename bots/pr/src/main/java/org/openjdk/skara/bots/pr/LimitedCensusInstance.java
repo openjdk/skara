@@ -69,15 +69,7 @@ class LimitedCensusInstance {
     }
 
     private static Optional<JCheckConfiguration> configuration(HostedRepository remoteRepo, String name, String ref) {
-        Optional<List<String>> conf = Optional.empty();
-        try {
-            conf = Optional.of(Arrays.stream(remoteRepo.fileContents(name, ref).split("\n")).toList());
-        } catch (UncheckedRestException e) {
-            if (e.getStatusCode() != 404) {
-                throw e;
-            }
-        }
-        return conf.map(JCheckConfiguration::parse);
+        return remoteRepo.fileContents(name, ref).map(contents -> JCheckConfiguration.parse(Arrays.stream(contents.split("\n")).toList()));
     }
 
     private static Optional<JCheckConfiguration> jCheckConfiguration(

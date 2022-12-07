@@ -82,7 +82,11 @@ public interface HostedRepository {
     URI webUrl(String baseRef, String headRef);
     URI diffUrl(String prId);
     VCS repositoryType();
-    String fileContents(String filename, String ref);
+
+    /**
+     * Returns contents of the file, if the file does not exist, returns Optional.empty().
+     */
+    Optional<String> fileContents(String filename, String ref);
     String namespace();
     Optional<WebHook> parseWebHook(JSONValue body);
     HostedRepository fork();
