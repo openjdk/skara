@@ -2747,4 +2747,85 @@ class CheckTests {
             assertTrue(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
         }
     }
+
+    @Test
+    void testRunJcheckTwice(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .build();
+
+            // Populate the projects repository
+            // set the .jcheck/conf without whitespace check
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"), Set.of("author", "reviewers"), "0.1");
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR, add a line with whitespace issue
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "An additional line\r\n");
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check succeeded
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.SUCCESS, check.status());
+            // pr body should not have the process for whitespace
+            assertFalse(pr.store().body().contains("whitespace"));
+
+            // Add whitespace check to .jcheck/conf
+            var checkConf = tempFolder.path().resolve(".jcheck/conf");
+            try (var output = Files.newBufferedWriter(checkConf)) {
+                output.append("[general]\n");
+                output.append("project=test\n");
+                output.append("jbs=tstprj\n");
+                output.append("\n");
+                output.append("[checks]\n");
+                output.append("error=");
+                output.append(String.join(",", Set.of("author", "reviewers", "whitespace", "jcheckconf")));
+                output.append("\n\n");
+                output.append("[census]\n");
+                output.append("version=0\n");
+                output.append("domain=openjdk.org\n");
+                output.append("\n");
+                output.append("[checks \"whitespace\"]\n");
+                output.append("files=.*\\.txt\n");
+                output.append("\n");
+                output.append("[checks \"reviewers\"]\n");
+                output.append("reviewers=1\n");
+            }
+            localRepo.add(checkConf);
+            var updateHash = localRepo.commit("restore .jcheck/conf", "testauthor", "ta@none.none");
+            localRepo.push(updateHash, author.url(), "edit", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // pr body should have the integrationBlocker for whitespace and reviewer check
+            assertTrue(pr.store().body().contains("Whitespace errors(failed with the updated jcheck configuration)"));
+            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1)(failed with the updated jcheck configuration)"));
+
+            var approvalPr = reviewer.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // // pr body should only have the integrationBlocker for whitespace check
+            assertTrue(pr.store().body().contains("Whitespace errors(failed with the updated jcheck configuration)"));
+            assertFalse(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1)(failed with the updated jcheck configuration)"));
+        }
+    }
 }

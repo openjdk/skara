@@ -174,4 +174,9 @@ public interface ReadOnlyRepository {
      * Returns the special hash that references the virtual commit before the first real commit in a repository.
      */
     Hash initialHash();
+
+    /**
+     * Returns whether the file has been updated in the last commit.
+     */
+    boolean isFileUpdated(String filename) throws IOException;
 }

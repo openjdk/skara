@@ -1659,4 +1659,17 @@ public class GitRepository implements Repository {
     public Hash initialHash() {
         return EMPTY_TREE;
     }
+
+    @Override
+    public boolean isFileUpdated(String filename) throws IOException {
+        try (var p = capture("git", "log", "--raw", "-1")) {
+            var lines = await(p).stdout();
+            for (var line : lines) {
+                if (line.contains(filename)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }

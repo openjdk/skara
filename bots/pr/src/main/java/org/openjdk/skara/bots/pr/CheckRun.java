@@ -1062,6 +1062,7 @@ class CheckRun {
 
             List<String> additionalErrors = List.of();
             Map<String, Boolean> additionalProgresses = Map.of();
+            List<String> secondJCheckMessage = new ArrayList<>();
             Hash localHash;
             try {
                 // Do not pass eventual original commit even for backports since it will cause
@@ -1081,7 +1082,17 @@ class CheckRun {
             } else {
                 // Determine current status
                 var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), comments);
-                checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration);
+                checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration, true);
+                if (localRepo.isFileUpdated(".jcheck/conf")) {
+                    PullRequestCheckIssueVisitor visitor2 = checkablePullRequest.createVisitorUsingHeadHash();
+                    log.info("Run jcheck again with the updated configuration");
+                    checkablePullRequest.executeChecks(localHash, censusInstance, visitor2, additionalConfiguration, false);
+                    secondJCheckMessage.addAll(visitor2.messages().stream()
+                            .map(StringBuilder::new)
+                            .map(e -> e.append("(failed with the updated jcheck configuration)"))
+                            .map(StringBuilder::toString)
+                            .toList());
+                }
                 additionalErrors = botSpecificChecks(isCleanBackport);
                 additionalProgresses = botSpecificProgresses();
             }
@@ -1089,6 +1100,7 @@ class CheckRun {
             updateReadyForReview(visitor, additionalErrors);
 
             var integrationBlockers = botSpecificIntegrationBlockers();
+            integrationBlockers.addAll(secondJCheckMessage);
 
             // Calculate and update the status message if needed
             var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, isCleanBackport);

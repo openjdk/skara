@@ -165,6 +165,7 @@ public class PullRequestUtils {
     public static Repository materialize(HostedRepositoryPool hostedRepositoryPool, PullRequest pr, Path path) throws IOException {
         var localRepo = hostedRepositoryPool.checkout(pr.repository(), pr.headHash().hex(), path);
         localRepo.fetch(pr.repository().url(), "+" + pr.targetRef() + ":prutils_targetref", false);
+        localRepo.fetch(pr.repository().url(), "+" + pr.sourceRef() + ":prutils_sourceref", false);
         return localRepo;
     }
 

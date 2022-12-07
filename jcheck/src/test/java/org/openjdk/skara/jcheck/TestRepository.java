@@ -347,4 +347,9 @@ class TestRepository implements ReadOnlyRepository {
     public Hash initialHash() {
         return null;
     }
+
+    @Override
+    public boolean isFileUpdated(String filename) throws IOException {
+        return false;
+    }
 }
