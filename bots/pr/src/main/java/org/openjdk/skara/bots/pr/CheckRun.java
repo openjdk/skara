@@ -1081,14 +1081,18 @@ class CheckRun {
                 var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), comments);
                 checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration, true);
                 if (localRepo.isFileUpdated(".jcheck/conf")) {
-                    PullRequestCheckIssueVisitor visitor2 = checkablePullRequest.createVisitorUsingHeadHash();
-                    log.info("Run jcheck again with the updated configuration");
-                    checkablePullRequest.executeChecks(localHash, censusInstance, visitor2, additionalConfiguration, false);
-                    secondJCheckMessage.addAll(visitor2.messages().stream()
-                            .map(StringBuilder::new)
-                            .map(e -> e.append("(failed with the updated jcheck configuration)"))
-                            .map(StringBuilder::toString)
-                            .toList());
+                    try {
+                        PullRequestCheckIssueVisitor visitor2 = checkablePullRequest.createVisitorUsingHeadHash();
+                        log.info("Run jcheck again with the updated configuration");
+                        checkablePullRequest.executeChecks(localHash, censusInstance, visitor2, additionalConfiguration, false);
+                        secondJCheckMessage.addAll(visitor2.messages().stream()
+                                .map(StringBuilder::new)
+                                .map(e -> e.append("(failed with the updated jcheck configuration)"))
+                                .map(StringBuilder::toString)
+                                .toList());
+                    } catch (Exception e) {
+                        secondJCheckMessage.add(e.getMessage() + "(exception thrown when running jcheck with updated jcheck configuration)");
+                    }
                 }
                 additionalErrors = botSpecificChecks(isCleanBackport);
                 additionalProgresses = botSpecificProgresses();
