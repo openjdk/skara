@@ -313,12 +313,4 @@ class JCheckCLIVisitor implements IssueVisitor {
     public boolean hasDisplayedErrors() {
         return hasDisplayedErrors;
     }
-
-    @Override
-    public void visit(JCheckConfIssue i) {
-        if (!ignore.contains(i.check().name())) {
-            println(i, ".jcheck/conf is invalid: " + i.getErrorMessage());
-            hasDisplayedErrors = true;
-        }
-    }
 }
