@@ -364,7 +364,7 @@ class TestRepository implements ReadOnlyRepository {
     }
 
     @Override
-    public boolean isFileUpdated(String filename) throws IOException {
+    public boolean isFileUpdated(String filename, Hash h) throws IOException {
         return false;
     }
 }

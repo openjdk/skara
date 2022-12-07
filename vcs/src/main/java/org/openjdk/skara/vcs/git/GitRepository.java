@@ -1722,15 +1722,11 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public boolean isFileUpdated(String filename) throws IOException {
-        try (var p = capture("git", "log", "--raw", "-1")) {
-            var lines = await(p).stdout();
-            for (var line : lines) {
-                if (line.contains(filename)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+    public boolean isFileUpdated(String filename, Hash h) throws IOException {
+        return commits().asList().stream()
+                .filter(commit -> commit.hash().equals(h))
+                .anyMatch(commit -> commit.parentDiffs().stream()
+                        .anyMatch(diff -> diff.patches().stream()
+                                .anyMatch(patch -> patch.toString().contains(filename))));
     }
 }

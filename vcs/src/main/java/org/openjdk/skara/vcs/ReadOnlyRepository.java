@@ -184,5 +184,5 @@ public interface ReadOnlyRepository {
     /**
      * Returns whether the file has been updated in the last commit.
      */
-    boolean isFileUpdated(String filename) throws IOException;
+    boolean isFileUpdated(String filename, Hash h) throws IOException;
 }

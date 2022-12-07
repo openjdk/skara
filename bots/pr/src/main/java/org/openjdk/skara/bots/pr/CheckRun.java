@@ -1080,18 +1080,21 @@ class CheckRun {
                 // Determine current status
                 var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), comments);
                 checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration, true);
-                if (localRepo.isFileUpdated(".jcheck/conf")) {
+                // Don't need to run the second round if confOverride is set.
+                if (workItem.bot.confOverrideRepository().isEmpty() && localRepo.isFileUpdated(".jcheck/conf", localHash)) {
                     try {
                         PullRequestCheckIssueVisitor visitor2 = checkablePullRequest.createVisitorUsingHeadHash();
                         log.info("Run jcheck again with the updated configuration");
                         checkablePullRequest.executeChecks(localHash, censusInstance, visitor2, additionalConfiguration, false);
                         secondJCheckMessage.addAll(visitor2.messages().stream()
                                 .map(StringBuilder::new)
-                                .map(e -> e.append("(failed with the updated jcheck configuration)"))
+                                .map(e -> e.append(" (failed with the updated jcheck configuration)"))
                                 .map(StringBuilder::toString)
                                 .toList());
                     } catch (Exception e) {
-                        secondJCheckMessage.add(e.getMessage() + "(exception thrown when running jcheck with updated jcheck configuration)");
+                        var message = e.getMessage() + " (exception thrown when running jcheck with updated jcheck configuration)";
+                        log.warning(message);
+                        secondJCheckMessage.add(message);
                     }
                 }
                 additionalErrors = botSpecificChecks(isCleanBackport);
