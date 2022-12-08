@@ -362,9 +362,4 @@ class TestRepository implements ReadOnlyRepository {
     public Commit workingTree() {
         return null;
     }
-
-    @Override
-    public boolean isFileUpdated(String filename, Hash h) throws IOException {
-        return false;
-    }
 }

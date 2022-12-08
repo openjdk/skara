@@ -1079,13 +1079,13 @@ class CheckRun {
             } else {
                 // Determine current status
                 var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), comments);
-                checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration, true);
+                checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration, checkablePullRequest.targetHash());
                 // Don't need to run the second round if confOverride is set.
-                if (workItem.bot.confOverrideRepository().isEmpty() && localRepo.isFileUpdated(".jcheck/conf", localHash)) {
+                if (workItem.bot.confOverrideRepository().isEmpty() && isFileUpdated(".jcheck/conf", localHash)) {
                     try {
                         PullRequestCheckIssueVisitor visitor2 = checkablePullRequest.createVisitorUsingHeadHash();
                         log.info("Run jcheck again with the updated configuration");
-                        checkablePullRequest.executeChecks(localHash, censusInstance, visitor2, additionalConfiguration, false);
+                        checkablePullRequest.executeChecks(localHash, censusInstance, visitor2, additionalConfiguration, pr.headHash());
                         secondJCheckMessage.addAll(visitor2.messages().stream()
                                 .map(StringBuilder::new)
                                 .map(e -> e.append(" (failed with the updated jcheck configuration)"))
@@ -1196,5 +1196,12 @@ class CheckRun {
         if (checkException != null) {
             throw new RuntimeException("Exception during jcheck", checkException);
         }
+    }
+
+    private boolean isFileUpdated(String filename, Hash hash) throws IOException {
+        return localRepo.commits(hash.hex()).asList().stream()
+                .anyMatch(commit -> commit.parentDiffs().stream()
+                        .anyMatch(diff -> diff.patches().stream()
+                                .anyMatch(patch -> patch.toString().contains(filename))));
     }
 }

@@ -1523,9 +1523,4 @@ public class HgRepository implements Repository {
     public Commit workingTree() {
         throw new UnsupportedOperationException();
     }
-
-    @Override
-    public boolean isFileUpdated(String filename, Hash h) throws IOException {
-        return false;
-    }
 }

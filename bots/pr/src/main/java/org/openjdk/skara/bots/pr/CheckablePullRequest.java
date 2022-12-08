@@ -206,12 +206,12 @@ public class CheckablePullRequest {
     }
 
     void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor,
-                       List<String> additionalConfiguration, boolean useTargetConf) throws IOException {
+                       List<String> additionalConfiguration, Hash hash) throws IOException {
         Optional<JCheckConfiguration> conf;
         if (confOverride != null) {
             conf = JCheck.parseConfiguration(confOverride, additionalConfiguration);
         } else {
-            conf = JCheck.parseConfiguration(localRepo, useTargetConf ? targetHash() : pr.headHash(), additionalConfiguration);
+            conf = JCheck.parseConfiguration(localRepo, hash, additionalConfiguration);
         }
         if (conf.isEmpty()) {
             throw new RuntimeException("Failed to parse jcheck configuration at: " + targetHash() + " with extra: " + additionalConfiguration);
