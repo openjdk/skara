@@ -1199,9 +1199,10 @@ class CheckRun {
     }
 
     private boolean isFileUpdated(String filename, Hash hash) throws IOException {
-        return localRepo.commits(hash.hex(), 1).asList().stream()
+        return localRepo.commits(hash.hex(), 1).stream()
                 .anyMatch(commit -> commit.parentDiffs().stream()
                         .anyMatch(diff -> diff.patches().stream()
-                                .anyMatch(patch -> patch.toString().contains(filename))));
+                                .anyMatch(patch -> (patch.source().path().isPresent() && patch.source().path().get().toString().equals(filename))
+                                        || ((patch.target().path().isPresent() && patch.target().path().get().toString().equals(filename))))));
     }
 }
