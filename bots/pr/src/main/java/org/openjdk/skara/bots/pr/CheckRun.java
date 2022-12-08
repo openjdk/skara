@@ -1199,7 +1199,7 @@ class CheckRun {
     }
 
     private boolean isFileUpdated(String filename, Hash hash) throws IOException {
-        return localRepo.commits(hash.hex()).asList().stream()
+        return localRepo.commits(hash.hex(), 1).asList().stream()
                 .anyMatch(commit -> commit.parentDiffs().stream()
                         .anyMatch(diff -> diff.patches().stream()
                                 .anyMatch(patch -> patch.toString().contains(filename))));
