@@ -261,7 +261,7 @@ public class IntegrateCommand implements CommandHandler {
                       Repository localRepo, CheckablePullRequest checkablePr, Hash localHash) throws IOException {
         var issues = checkablePr.createVisitor();
         var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments);
-        checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration);
+        checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration, checkablePr.targetHash());
         if (!issues.messages().isEmpty()) {
             reply.print("Your integration request cannot be fulfilled at this time, as ");
             reply.println("your changes failed the final jcheck:");

@@ -200,12 +200,18 @@ public class CheckablePullRequest {
         return new PullRequestCheckIssueVisitor(checks);
     }
 
-    void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor, List<String> additionalConfiguration) throws IOException {
+    PullRequestCheckIssueVisitor createVisitorUsingHeadHash() throws IOException {
+        var checks = JCheck.checksFor(localRepo, pr.headHash());
+        return new PullRequestCheckIssueVisitor(checks);
+    }
+
+    void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor,
+                       List<String> additionalConfiguration, Hash hash) throws IOException {
         Optional<JCheckConfiguration> conf;
         if (confOverride != null) {
             conf = JCheck.parseConfiguration(confOverride, additionalConfiguration);
         } else {
-            conf = JCheck.parseConfiguration(localRepo, targetHash(), additionalConfiguration);
+            conf = JCheck.parseConfiguration(localRepo, hash, additionalConfiguration);
         }
         if (conf.isEmpty()) {
             throw new RuntimeException("Failed to parse jcheck configuration at: " + targetHash() + " with extra: " + additionalConfiguration);

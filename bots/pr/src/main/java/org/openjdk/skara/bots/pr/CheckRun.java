@@ -1059,6 +1059,7 @@ class CheckRun {
 
             List<String> additionalErrors = List.of();
             Map<String, Boolean> additionalProgresses = Map.of();
+            List<String> secondJCheckMessage = new ArrayList<>();
             Hash localHash;
             try {
                 // Do not pass eventual original commit even for backports since it will cause
@@ -1078,7 +1079,24 @@ class CheckRun {
             } else {
                 // Determine current status
                 var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), comments);
-                checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration);
+                checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration, checkablePullRequest.targetHash());
+                // Don't need to run the second round if confOverride is set.
+                if (workItem.bot.confOverrideRepository().isEmpty() && isFileUpdated(".jcheck/conf", localHash)) {
+                    try {
+                        PullRequestCheckIssueVisitor visitor2 = checkablePullRequest.createVisitorUsingHeadHash();
+                        log.info("Run jcheck again with the updated configuration");
+                        checkablePullRequest.executeChecks(localHash, censusInstance, visitor2, additionalConfiguration, pr.headHash());
+                        secondJCheckMessage.addAll(visitor2.messages().stream()
+                                .map(StringBuilder::new)
+                                .map(e -> e.append(" (failed with the updated jcheck configuration)"))
+                                .map(StringBuilder::toString)
+                                .toList());
+                    } catch (Exception e) {
+                        var message = e.getMessage() + " (exception thrown when running jcheck with updated jcheck configuration)";
+                        log.warning(message);
+                        secondJCheckMessage.add(message);
+                    }
+                }
                 additionalErrors = botSpecificChecks(isCleanBackport);
                 additionalProgresses = botSpecificProgresses();
             }
@@ -1086,6 +1104,7 @@ class CheckRun {
             updateReadyForReview(visitor, additionalErrors);
 
             var integrationBlockers = botSpecificIntegrationBlockers();
+            integrationBlockers.addAll(secondJCheckMessage);
 
             // Calculate and update the status message if needed
             var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, isCleanBackport);
@@ -1177,5 +1196,13 @@ class CheckRun {
         if (checkException != null) {
             throw new RuntimeException("Exception during jcheck", checkException);
         }
+    }
+
+    private boolean isFileUpdated(String filename, Hash hash) throws IOException {
+        return localRepo.commits(hash.hex(), 1).stream()
+                .anyMatch(commit -> commit.parentDiffs().stream()
+                        .anyMatch(diff -> diff.patches().stream()
+                                .anyMatch(patch -> (patch.source().path().isPresent() && patch.source().path().get().toString().equals(filename))
+                                        || ((patch.target().path().isPresent() && patch.target().path().get().toString().equals(filename))))));
     }
 }

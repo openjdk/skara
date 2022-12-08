@@ -2190,17 +2190,13 @@ class CheckTests {
                     Path.of("appendable.txt"), Set.of("author", "reviewers", "whitespace", "problemlists"), "0.1");
 
             // Add problemlists configuration to conf
-            try (var output = new FileWriter(tempFolder.path().resolve(".jcheck/conf").toFile(), true)) {
-                output.append("\n[checks \"problemlists\"]\n");
-                output.append("dirs=test/jdk\n");
-            }
-
+            var checkConf = tempFolder.path().resolve(".jcheck/conf");
+            Files.writeString(checkConf, "\n[checks \"problemlists\"]\n", StandardOpenOption.APPEND);
+            Files.writeString(checkConf, "dirs=test/jdk\n", StandardOpenOption.APPEND);
             // Create ProblemList.txt
             Files.createDirectories(tempFolder.path().resolve("test/jdk"));
             var problemList = tempFolder.path().resolve("test/jdk/ProblemList.txt");
-            try (var output = Files.newBufferedWriter(problemList)) {
-                output.append("test 1 windows-all");
-            }
+            Files.writeString(problemList, "test 1 windows-all", StandardOpenOption.CREATE);
             localRepo.add(tempFolder.path().resolve(".jcheck/conf"));
             localRepo.add(problemList);
             localRepo.commit("add problemList.txt", "testauthor", "ta@none.none");
@@ -2305,10 +2301,9 @@ class CheckTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
 
             // Make .jcheck/conf invalid
-            try (var output = new FileWriter(tempFolder.path().resolve(".jcheck/conf").toFile(), true)) {
-                output.append("\nRandomCharacters");
-            }
-            localRepo.add(tempFolder.path().resolve(".jcheck/conf"));
+            var checkConf = tempFolder.path().resolve(".jcheck/conf");
+            Files.writeString(checkConf, "\nRandomCharacters", StandardOpenOption.APPEND);
+            localRepo.add(checkConf);
             var masterHash = localRepo.commit("make .jcheck/conf invalid", "testauthor", "ta@none.none");
             localRepo.push(masterHash, author.url(), "master", true);
 
@@ -2333,7 +2328,6 @@ class CheckTests {
             // Restore .jcheck/conf
             localRepo.checkout(masterHash);
             Files.createDirectories(tempFolder.path().resolve(".jcheck"));
-            var checkConf = tempFolder.path().resolve(".jcheck/conf");
             writeToCheckConf(checkConf);
             localRepo.add(checkConf);
             var restoreHash = localRepo.commit("restore conf", "testauthor", "ta@none.none");
@@ -2435,9 +2429,7 @@ class CheckTests {
             var jCheckBranch = localRepo.branch(masterHash, "jcheck-branch");
             localRepo.checkout(jCheckBranch);
             var checkConf = tempFolder.path().resolve("jcheck.conf");
-            try (var output = new FileWriter(checkConf.toFile(), true)) {
-                output.append("\nRandomCharacters");
-            }
+            Files.writeString(checkConf, "\nRandomCharacters", StandardOpenOption.CREATE);
             localRepo.add(checkConf);
             var confHash = localRepo.commit("restore conf", "testauthor", "ta@none.none");
             localRepo.push(confHash, conf.url(), "jcheck-branch", true);
@@ -2673,6 +2665,134 @@ class CheckTests {
             assertTrue(pr.store().body().contains("Progress"));
             assertTrue(pr.store().body().contains("<!-- Anything below this marker will be automatically updated"));
             assertTrue(pr.store().body().contains("Reviewing"));
+        }
+    }
+
+    @Test
+    void testRunJcheckTwice(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .build();
+
+            // Populate the projects repository
+            // set the .jcheck/conf without whitespace check
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"), Set.of("author", "reviewers"), "0.1");
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR, add a line with whitespace issue
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "An additional line\r\n");
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check succeeded
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.SUCCESS, check.status());
+            // pr body should not have the process for whitespace
+            assertFalse(pr.store().body().contains("whitespace"));
+
+            // Add whitespace check to .jcheck/conf
+            var checkConf = tempFolder.path().resolve(".jcheck/conf");
+            writeToCheckConf(checkConf);
+            localRepo.add(checkConf);
+            var updateHash = localRepo.commit("enable whitespace issue check", "testauthor", "ta@none.none");
+            localRepo.push(updateHash, author.url(), "edit", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // pr body should have the integrationBlocker for whitespace and reviewer check
+            assertTrue(pr.store().body().contains("Whitespace errors (failed with the updated jcheck configuration)"));
+            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with the updated jcheck configuration)"));
+
+            var approvalPr = reviewer.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // // pr body should only have the integrationBlocker for whitespace check
+            assertTrue(pr.store().body().contains("Whitespace errors (failed with the updated jcheck configuration)"));
+            assertFalse(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with the updated jcheck configuration)"));
+        }
+    }
+
+    @Test
+    void testRunJcheckTwiceWithBadConfiguration(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .build();
+
+            // Populate the projects repository
+            // set the .jcheck/conf without whitespace check
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"), Set.of("author", "reviewers"), "0.1");
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR, add a line with whitespace issue
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "An additional line\r\n");
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check succeeded
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.SUCCESS, check.status());
+            // pr body should not have the process for whitespace
+            assertFalse(pr.store().body().contains("whitespace"));
+
+            // Make .jcheck/conf invalid
+            var checkConf = tempFolder.path().resolve(".jcheck/conf");
+            Files.writeString(checkConf, "\nRandomCharacters", StandardOpenOption.APPEND);
+            localRepo.add(checkConf);
+            var updateHash = localRepo.commit("make .jcheck/conf invalid", "testauthor", "ta@none.none");
+            localRepo.push(updateHash, author.url(), "edit", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // pr body should have the integrationBlocker for exception
+            assertTrue(pr.store().body().contains("(exception thrown when running jcheck with updated jcheck configuration)"));
+
+            // Restore .jcheck/conf and add whitespace issue check
+            writeToCheckConf(checkConf);
+            localRepo.add(checkConf);
+            updateHash = localRepo.commit("enable whitespace issue check", "testauthor", "ta@none.none");
+            localRepo.push(updateHash, author.url(), "edit", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+            // pr body should have the integrationBlocker for whitespace and reviewer check
+            assertTrue(pr.store().body().contains("Whitespace errors (failed with the updated jcheck configuration)"));
+            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with the updated jcheck configuration)"));
         }
     }
 }
