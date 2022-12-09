@@ -67,7 +67,8 @@ public class GitHubRepository implements HostedRepository {
                 "Accept", "application/vnd.github.antiope-preview+json",
                 "Accept", "application/vnd.github.shadow-cat-preview+json",
                 "Accept", "application/vnd.github.comfort-fade-preview+json",
-                "Accept", "application/vnd.github.mockingbird-preview+json"));
+                "Accept", "application/vnd.github.mockingbird-preview+json",
+                "X-GitHub-Api-Version", "2022-11-28"));
             var token = gitHubHost.getInstallationToken();
             if (token.isPresent()) {
                 headers.add("Authorization");
