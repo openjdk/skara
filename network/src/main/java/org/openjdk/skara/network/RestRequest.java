@@ -517,7 +517,7 @@ public class RestRequest {
         var response = sendRequest(request);
         responseCounter.labels(Integer.toString(response.statusCode()), Boolean.toString(false)).inc();
         if (response.statusCode() >= 400) {
-            throw new IOException("Bad response: " + response.statusCode());
+            throw new UncheckedRestException("Bad response: " + response.statusCode(), response.statusCode());
         }
         return response.body();
     }

@@ -28,6 +28,7 @@ import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.test.ManualTestSettings;
+import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.IOException;
@@ -128,5 +129,62 @@ public class GitLabRestApiTest {
         Comment updateComment = gitLabMergeRequest.updateComment(comment.id(), "2".repeat(2_000_000));
         assertTrue(updateComment.body().contains("..."));
         assertTrue(updateComment.body().contains("2"));
+    }
+
+    @Test
+    void fileContentsNonExisting() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var username = settings.getProperty("gitlab.user");
+        var token = settings.getProperty("gitlab.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
+        var branch = new Branch(settings.getProperty("gitlab.repository.branch"));
+
+        var fileName = "testfile-that-does-not-exist.txt";
+        var returnedContents = gitLabRepo.fileContents(fileName, branch.name());
+        assertTrue(returnedContents.isEmpty());
+    }
+
+    @Test
+    void writeFileContents() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var username = settings.getProperty("gitlab.user");
+        var token = settings.getProperty("gitlab.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
+        var branch = new Branch(settings.getProperty("gitlab.repository.branch"));
+
+        var fileName = "testfile.txt";
+
+        // Create new file
+        {
+            var fileContent = "File content";
+            gitLabRepo.writeFileContents(fileContent, fileName, branch,
+                    "First commit message", "Duke", "duke@openjdk.org");
+            var returnedContents = gitLabRepo.fileContents(fileName, branch.name());
+            assertEquals(fileContent, returnedContents.orElseThrow());
+        }
+
+        // Update file
+        {
+            var fileContent = "New file content";
+            gitLabRepo.writeFileContents(fileContent, fileName, branch,
+                    "Second commit message", "Duke", "duke@openjdk.org");
+            var returnedContents = gitLabRepo.fileContents(fileName, branch.name());
+            assertEquals(fileContent, returnedContents.orElseThrow());
+        }
+
+        // Make the file huge
+        {
+            var fileContent = "a".repeat(1024 * 1024 * 10);
+            gitLabRepo.writeFileContents(fileContent, fileName, branch,
+                    "Third commit message", "Duke", "duke@openjdk.org");
+            var returnedContents = gitLabRepo.fileContents(fileName, branch.name());
+            assertEquals(fileContent, returnedContents.orElseThrow());
+        }
     }
 }

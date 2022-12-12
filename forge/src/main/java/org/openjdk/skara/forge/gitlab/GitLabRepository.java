@@ -314,6 +314,31 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
+    public void writeFileContents(String content, String filename, Branch branch, String message, String authorName, String authorEmail) {
+        var encodedFileName = URLEncoder.encode(filename, StandardCharsets.UTF_8);
+        var body = JSON.object()
+                .put("commit_message", message)
+                .put("branch", branch.name())
+                .put("author_name", authorName)
+                .put("author_email", authorEmail)
+                .put("encoding", "base64")
+                .put("content", new String(Base64.getEncoder().encode(content.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
+        request.put("repository/files/" + encodedFileName)
+                .body(body)
+                .onError(response -> {
+                    // Gitlab requires POST for creating new files and PUT for updating existing.
+                    // Retry with POST if we get 400 response.
+                    if (response.statusCode() == 400) {
+                        return Optional.of(request.post("repository/files/" + encodedFileName)
+                                .body(body)
+                                .execute());
+                    }
+                    return Optional.empty();
+                })
+                .execute();
+    }
+
+    @Override
     public String namespace() {
         return URIBuilder.base(gitLabHost.getUri()).build().getHost();
     }

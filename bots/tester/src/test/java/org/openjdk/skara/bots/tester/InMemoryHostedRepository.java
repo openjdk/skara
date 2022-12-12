@@ -134,6 +134,10 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public void writeFileContents(String content, String filename, Branch branch, String message, String authorName, String authorEmail) {
+    }
+
+    @Override
     public String namespace() {
         return null;
     }
