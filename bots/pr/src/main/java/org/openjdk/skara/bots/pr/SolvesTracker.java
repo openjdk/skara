@@ -35,7 +35,7 @@ public class SolvesTracker {
     private final static String solvesMarker = "<!-- solves: '%s' '%s' -->";
     private final static Pattern markerPattern = Pattern.compile("<!-- solves: '(.*?)' '(.*?)' -->");
 
-    static String setSolvesMarker(Issue issue) {
+    public static String setSolvesMarker(Issue issue) {
         var encodedDescription = Base64.getEncoder().encodeToString(issue.description().getBytes(StandardCharsets.UTF_8));
         return String.format(solvesMarker, issue.shortId(), encodedDescription);
     }
@@ -44,7 +44,7 @@ public class SolvesTracker {
         return String.format(solvesMarker, issue.shortId(), "");
     }
 
-    static List<Issue> currentSolved(HostUser botUser, List<Comment> comments) {
+    public static List<Issue> currentSolved(HostUser botUser, List<Comment> comments) {
         var solvesActions = comments.stream()
                                     .filter(comment -> comment.author().equals(botUser))
                                     .flatMap(comment -> comment.body().lines())

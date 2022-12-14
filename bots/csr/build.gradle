@@ -43,6 +43,7 @@ dependencies {
     implementation project(':jcheck')
     implementation project(':jbs')
     implementation project(':bots:common')
+    implementation project(":bots:pr")
 
     testImplementation project(':test')
 }

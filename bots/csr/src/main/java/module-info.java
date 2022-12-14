@@ -29,6 +29,7 @@ module org.openjdk.skara.bots.csr {
     requires org.openjdk.skara.jbs;
     requires org.openjdk.skara.bots.common;
     requires java.logging;
+    requires org.openjdk.skara.bots.pr;
 
     provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.csr.CSRBotFactory;
 }

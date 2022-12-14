@@ -123,7 +123,7 @@ class CheckRun {
             issues.add(issue.get());
             issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
             if (withCsr) {
-                getCsrIssue(issue.get()).ifPresent(issues::add);
+                issues.addAll(getCsrIssues(issues));
             }
             if (withJep) {
                 getJepIssue().ifPresent(issues::add);
@@ -134,25 +134,39 @@ class CheckRun {
     }
 
     /**
-     * Get the csr issue. Note: this `Issue` is not the issue in module `issuetracker`.
+     * Get the csr issues. Note: this `Issue` is the issue in module `issuetracker`.
      */
-    private Optional<Issue> getCsrIssue(Issue issue) {
+    private List<org.openjdk.skara.issuetracker.Issue> getCsrIssueTrackerIssues(List<Issue> issues) {
         var issueProject = issueProject();
         if (issueProject == null) {
-            return Optional.empty();
+            return List.of();
         }
-        var jbsIssueOpt = issueProject.issue(issue.shortId());
-        if (jbsIssueOpt.isEmpty()) {
-            return Optional.empty();
-        }
-
         var versionOpt = BotUtils.getVersion(pr);
         if (versionOpt.isEmpty()) {
-            return Optional.empty();
+            return List.of();
         }
+        var csrIssues = new ArrayList<org.openjdk.skara.issuetracker.Issue>();
+        for (var issue : issues) {
+            var jbsIssueOpt = issueProject.issue(issue.shortId());
+            if (jbsIssueOpt.isEmpty()) {
+                continue;
+            }
+            Backports.findCsr(jbsIssueOpt.get(), versionOpt.get())
+                    .ifPresent(csrIssues::add);
+        }
+        return csrIssues;
+    }
 
-        return Backports.findCsr(jbsIssueOpt.get(), versionOpt.get())
-                .flatMap(perIssue -> Issue.fromStringRelaxed(perIssue.id() + ": " + perIssue.title()));
+    /**
+     * Get the csr issue. Note: this `Issue` is not the issue in module `issuetracker`.
+     */
+    private List<Issue> getCsrIssues(List<Issue> issues) {
+
+        return getCsrIssueTrackerIssues(issues).stream()
+                .map(perIssue -> Issue.fromStringRelaxed(perIssue.id() + ": " + perIssue.title()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .toList();
     }
 
     private Optional<Issue> getJepIssue() {
@@ -229,27 +243,53 @@ class CheckRun {
         return ret;
     }
 
+    private boolean isWithdrawnCSR(org.openjdk.skara.issuetracker.Issue csr) {
+        if (csr.isClosed()) {
+            var resolution = csr.properties().get("resolution");
+            if (resolution != null && !resolution.isNull()) {
+                var name = resolution.get("name");
+                if (name != null && !name.isNull() && name.asString().equals("Withdrawn")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
     // Additional bot-specific progresses that are not handled by JCheck
     private Map<String, Boolean> botSpecificProgresses() {
         var ret = new HashMap<String, Boolean>();
-        if (pr.labelNames().contains("csr")) {
-            // If the PR have csr label, the CSR request need to be approved.
-            ret.put("Change requires a CSR request to be approved", false);
-        } else {
-            var csrIssue = Issue.fromStringRelaxed(pr.title()).flatMap(this::getCsrIssue)
-                    .flatMap(value -> issueProject() != null ? issueProject().issue(value.shortId()) : Optional.empty());
-            if (csrIssue.isPresent()) {
-                var resolution = csrIssue.get().properties().get("resolution");
-                if (resolution != null && !resolution.isNull()
-                        && resolution.get("name") != null && !resolution.get("name").isNull()
-                        && csrIssue.get().state() == org.openjdk.skara.issuetracker.Issue.State.CLOSED
-                        && "Approved".equals(resolution.get("name").asString())) {
-                    // The PR doesn't have csr label and the csr request has been Approved.
-                    ret.put("Change requires a CSR request to be approved", true);
-                }
-            }
-            // At other states, no need to add the csr progress.
+
+        var csrIssues = getCsrIssueTrackerIssues(issues(false, false)).stream()
+                .filter(issue -> issue.properties().containsKey("issuetype"))
+                .filter(issue -> issue.properties().get("issuetype").asString().equals("CSR"))
+                .filter(issue -> !isWithdrawnCSR(issue))
+                .toList();
+        if (csrIssues.isEmpty() && pr.labelNames().contains("csr")) {
+            ret.put("Change requires a CSR request (need to be created) to be approved", false);
         }
+        for (var csrIssue : csrIssues) {
+            if (!csrIssue.isClosed()) {
+                ret.put("Change requires a CSR request (" + csrIssue.id() + ") to be approved", false);
+                continue;
+            }
+            var resolution = csrIssue.properties().get("resolution");
+            if (resolution == null || resolution.isNull()) {
+                ret.put("Change requires a CSR request (" + csrIssue.id() + ") to be approved", false);
+                continue;
+            }
+            var name = resolution.get("name");
+            if (name == null || name.isNull()) {
+                ret.put("Change requires a CSR request (" + csrIssue.id() + ") to be approved", false);
+                continue;
+            }
+            if (!name.asString().equals("Approved")) {
+                ret.put("Change requires a CSR request (" + csrIssue.id() + ") to be approved", false);
+                continue;
+            }
+            ret.put("Change requires a CSR request (" + csrIssue.id() + ") to be approved", true);
+        }
+
+
         if (pr.labelNames().contains("jep")) {
             ret.put("Change requires a JEP request to be targeted", false);
         } else {
@@ -618,6 +658,9 @@ class CheckRun {
                             var issueType = iss.get().properties().get("issuetype");
                             if (issueType != null && "CSR".equals(issueType.asString())) {
                                 progressBody.append(" (**CSR**)");
+                                if(isWithdrawnCSR(iss.get())){
+                                    progressBody.append(" (Withdrawn)");
+                                }
                             }
                             if (issueType != null && "JEP".equals(issueType.asString())) {
                                 progressBody.append(" (**JEP**)");
