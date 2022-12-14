@@ -600,7 +600,7 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public Optional<HostedCommit> commit(Hash hash) {
+    public Optional<HostedCommit> commit(Hash hash, boolean includeDiffs) {
         var c = request.get("repository/commits/" + hash.hex())
                        .onError(r -> Optional.of(JSON.of()))
                        .execute();
@@ -609,14 +609,17 @@ public class GitLabRepository implements HostedRepository {
         }
         var url = URI.create(c.get("web_url").asString());
         var metadata = toCommitMetadata(c);
-        var diff = request.get("repository/commits/" + hash.hex() + "/diff")
-                          .onError(r -> Optional.of(JSON.of()))
-                          .execute();
-        var parentDiffs = new ArrayList<Diff>();
-        if (!diff.isNull()) {
-            parentDiffs.add(toDiff(metadata.parents().get(0), hash, diff));
+
+        List<Diff> diffs = List.of();
+        if (includeDiffs) {
+            var diff = request.get("repository/commits/" + hash.hex() + "/diff")
+                    .onError(r -> Optional.of(JSON.of()))
+                    .execute();
+            if (!diff.isNull()) {
+                diffs = List.of(toDiff(metadata.parents().get(0), hash, diff));
+            }
         }
-        return Optional.of(new HostedCommit(metadata, parentDiffs, url));
+        return Optional.of(new HostedCommit(metadata, diffs, url));
     }
 
     @Override

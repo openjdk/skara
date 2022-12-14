@@ -492,19 +492,33 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public Optional<HostedCommit> commit(Hash hash) {
-        // Need to specify an explicit per_page < 70 to guarantee that we get patch information in the result set.
-        var o = request.get("commits/" + hash.hex())
-                       .param("per_page", "50")
-                       .onError(r -> Optional.of(JSON.of()))
-                       .execute();
+    public Optional<HostedCommit> commit(Hash hash, boolean includeDiffs) {
+        var queryBuilder = request.get("commits/" + hash.hex())
+                .onError(r -> Optional.of(JSON.of()));
+        if (includeDiffs) {
+            // Need to specify an explicit per_page < 70 to guarantee that we get patch information in the result set.
+            queryBuilder.param("per_page", "50");
+        } else {
+            // Minimize size of response when diffs aren't needed.
+            queryBuilder
+                    .param("per_page", "1")
+                    .maxPages(1);
+        }
+
+        var o = queryBuilder.execute();
+
         if (o.isNull()) {
             return Optional.empty();
         }
 
         var metadata = toCommitMetadata(o);
-        var diffs = toDiff(metadata.parents().get(0), hash, o.get("files"));
-        return Optional.of(new HostedCommit(metadata, List.of(diffs), URI.create(o.get("html_url").asString())));
+        List<Diff> diffs;
+        if (includeDiffs) {
+            diffs = List.of(toDiff(metadata.parents().get(0), hash, o.get("files")));
+        } else {
+            diffs = List.of();
+        }
+        return Optional.of(new HostedCommit(metadata, diffs, URI.create(o.get("html_url").asString())));
     }
 
     @Override

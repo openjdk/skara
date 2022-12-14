@@ -101,7 +101,18 @@ public interface HostedRepository {
     List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits, Set<Integer> excludeAuthors);
     CommitComment addCommitComment(Hash hash, String body);
     void updateCommitComment(String id, String body);
-    Optional<HostedCommit> commit(Hash hash);
+
+    /**
+     * Gets a Commit instance for a given hash, if present.
+     * @param hash Hash to get Commit for
+     * @param includeDiffs Set to true to include parent diffs in Commit, default false
+     * @return Commit instance for the hash in this repository, empty if not
+     * found.
+     */
+    Optional<HostedCommit> commit(Hash hash, boolean includeDiffs);
+    default Optional<HostedCommit> commit(Hash hash) {
+        return commit(hash, false);
+    }
     List<Check> allChecks(Hash hash);
     WorkflowStatus workflowStatus();
     URI createPullRequestUrl(HostedRepository target,

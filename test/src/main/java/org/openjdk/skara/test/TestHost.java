@@ -174,10 +174,10 @@ public class TestHost implements Forge, IssueTracker {
     }
 
     @Override
-    public Optional<HostedCommit> search(Hash hash) {
+    public Optional<HostedCommit> search(Hash hash, boolean includeDiffs) {
         for (var key : data.repositories.keySet()) {
             var repo = repository(key).orElseThrow();
-            var commit = repo.commit(hash);
+            var commit = repo.commit(hash, includeDiffs);
             if (commit.isPresent()) {
                 return commit;
             }

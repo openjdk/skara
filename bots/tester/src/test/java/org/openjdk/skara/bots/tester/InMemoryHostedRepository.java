@@ -187,7 +187,7 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public Optional<HostedCommit> commit(Hash commit) {
+    public Optional<HostedCommit> commit(Hash commit, boolean includeDiffs) {
         return Optional.empty();
     }
 

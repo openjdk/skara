@@ -42,7 +42,17 @@ public interface Forge extends Host {
      *         does not exist on the Forge.
      */
     Optional<HostedRepository> repository(String name);
-    Optional<HostedCommit> search(Hash hash);
+
+    /**
+     * Search the whole host for a commit by hash.
+     * @param hash Hash to search for
+     * @param includeDiffs Set to true to include parent diffs in Commit, default false
+     * @return Commit instance if found, otherwise empty
+     */
+    Optional<HostedCommit> search(Hash hash, boolean includeDiffs);
+    default Optional<HostedCommit> search(Hash hash) {
+        return search(hash, false);
+    }
 
     /**
      * Some forges do not always update the "updated_at" fields of various objects
