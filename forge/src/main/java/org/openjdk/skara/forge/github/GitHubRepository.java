@@ -269,7 +269,7 @@ public class GitHubRepository implements HostedRepository {
                     .executeUnparsed();
             return Optional.of(content);
         } catch (UncheckedRestException e) {
-            // The onError handler is not used with executeParsed, so have to
+            // The onError handler is not used with executeUnparsed, so have to
             // resort to catching exception for 404 handling.
             if (e.getStatusCode() == 404) {
                 return Optional.empty();
