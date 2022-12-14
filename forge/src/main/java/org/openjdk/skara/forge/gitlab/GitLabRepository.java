@@ -314,7 +314,7 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public void writeFileContents(String content, String filename, Branch branch, String message, String authorName, String authorEmail) {
+    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail) {
         var encodedFileName = URLEncoder.encode(filename, StandardCharsets.UTF_8);
         var body = JSON.object()
                 .put("commit_message", message)

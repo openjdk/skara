@@ -163,7 +163,7 @@ public class GitLabRestApiTest {
         // Create new file
         {
             var fileContent = "File content";
-            gitLabRepo.writeFileContents(fileContent, fileName, branch,
+            gitLabRepo.writeFileContents(fileName, fileContent, branch,
                     "First commit message", "Duke", "duke@openjdk.org");
             var returnedContents = gitLabRepo.fileContents(fileName, branch.name());
             assertEquals(fileContent, returnedContents.orElseThrow());
@@ -172,7 +172,7 @@ public class GitLabRestApiTest {
         // Update file
         {
             var fileContent = "New file content";
-            gitLabRepo.writeFileContents(fileContent, fileName, branch,
+            gitLabRepo.writeFileContents(fileName, fileContent, branch,
                     "Second commit message", "Duke", "duke@openjdk.org");
             var returnedContents = gitLabRepo.fileContents(fileName, branch.name());
             assertEquals(fileContent, returnedContents.orElseThrow());
@@ -181,7 +181,7 @@ public class GitLabRestApiTest {
         // Make the file huge
         {
             var fileContent = "a".repeat(1024 * 1024 * 10);
-            gitLabRepo.writeFileContents(fileContent, fileName, branch,
+            gitLabRepo.writeFileContents(fileName, fileContent, branch,
                     "Third commit message", "Duke", "duke@openjdk.org");
             var returnedContents = gitLabRepo.fileContents(fileName, branch.name());
             assertEquals(fileContent, returnedContents.orElseThrow());

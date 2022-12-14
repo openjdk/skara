@@ -261,7 +261,7 @@ public class GitHubRepository implements HostedRepository {
     @Override
     public Optional<String> fileContents(String filename, String ref) {
         // Get file contents using raw format. This allows us to get files of
-        // size up to 10MB (up from 1MB if getting in object from).
+        // size up to 100MB (up from 1MB if getting in object from).
         try {
             var content = request.get("contents/" + filename)
                     .param("ref", ref)
@@ -282,7 +282,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public void writeFileContents(String content, String filename, Branch branch, String message, String authorName, String authorEmail) {
+    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail) {
         var body = JSON.object()
                 .put("message", message)
                 .put("branch", branch.name())

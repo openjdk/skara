@@ -32,7 +32,6 @@ import org.openjdk.skara.mailinglist.*;
 import org.openjdk.skara.vcs.*;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.*;
 import java.util.*;
@@ -248,6 +247,7 @@ class ArchiveWorkItem implements WorkItem {
         var path = scratchPath.resolve("mlbridge");
 
         var sentMails = new ArrayList<Email>();
+        // Load in already sent emails from the archive, if there are any.
         var archiveContents = bot.archiveRepo().fileContents(mboxFile(), bot.archiveRef());
         archiveContents.ifPresent(s -> sentMails.addAll(Mbox.splitMbox(s, bot.emailAddress())));
 
@@ -389,7 +389,7 @@ class ArchiveWorkItem implements WorkItem {
                                         .build();
                 newArchivedContents.append(Mbox.fromMail(forArchiving));
             }
-            bot.archiveRepo().writeFileContents(newArchivedContents.toString(), mboxFile(), new Branch(bot.archiveRef()),
+            bot.archiveRepo().writeFileContents(mboxFile(), newArchivedContents.toString(), new Branch(bot.archiveRef()),
                     "Adding comments for PR " + bot.codeRepo().name() + "/" + pr.id(),
                     bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
 

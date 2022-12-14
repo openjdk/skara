@@ -90,14 +90,15 @@ public interface HostedRepository {
 
     /**
      * Writes new contents to a file in the repo by creating a new commit.
-     * @param content New file content to write, always replacing existing content
-     * @param filename Name of file inside repository to write to
-     * @param branch Branch to add commit on top of
-     * @param message Commit message
-     * @param authorName Name of author and committer for commit
+     *
+     * @param filename    Name of file inside repository to write to
+     * @param content     New file content to write, always replacing existing content
+     * @param branch      Branch to add commit on top of
+     * @param message     Commit message
+     * @param authorName  Name of author and committer for commit
      * @param authorEmail Email of author and committer for commit
      */
-    void writeFileContents(String content, String filename, Branch branch, String message, String authorName, String authorEmail);
+    void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail);
     String namespace();
     Optional<WebHook> parseWebHook(JSONValue body);
     HostedRepository fork();

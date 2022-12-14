@@ -183,7 +183,7 @@ public class GitHubRestApiTests {
         // Create new file
         {
             var fileContent = "File content";
-            gitHubRepo.writeFileContents(fileContent, fileName, branch,
+            gitHubRepo.writeFileContents(fileName, fileContent, branch,
                     "First commit message", "Duke", "duke@openjdk.org");
             var returnedContents = gitHubRepo.fileContents(fileName, branch.name());
             assertEquals(fileContent, returnedContents.orElseThrow());
@@ -192,7 +192,7 @@ public class GitHubRestApiTests {
         // Update file
         {
             var fileContent = "New file content";
-            gitHubRepo.writeFileContents(fileContent, fileName, branch,
+            gitHubRepo.writeFileContents(fileName, fileContent, branch,
                     "Second commit message", "Duke", "duke@openjdk.org");
             var returnedContents = gitHubRepo.fileContents(fileName, branch.name());
             assertEquals(fileContent, returnedContents.orElseThrow());
@@ -201,7 +201,7 @@ public class GitHubRestApiTests {
         // Make the file huge
         {
             var fileContent = "a".repeat(1024 * 1024 * 10);
-            gitHubRepo.writeFileContents(fileContent, fileName, branch,
+            gitHubRepo.writeFileContents(fileName, fileContent, branch,
                     "Third commit message", "Duke", "duke@openjdk.org");
             var returnedContents = gitHubRepo.fileContents(fileName, branch.name());
             assertTrue(returnedContents.isPresent());
