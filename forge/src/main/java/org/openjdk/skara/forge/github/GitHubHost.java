@@ -273,7 +273,7 @@ public class GitHubHost implements Forge {
                 log.fine("Error during GitHub host validation: unexpected endpoint list: " + endpoints);
                 return false;
             }
-        } catch (IOException e) {
+        } catch (IOException | UncheckedRestException e) {
             log.fine("Error during GitHub host validation: " + e);
             return false;
         }

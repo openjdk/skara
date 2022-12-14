@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.forge.github;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.regex.Matcher;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
@@ -63,11 +65,6 @@ public class GitHubRepository implements HostedRepository {
                 .build();
         request = new RestRequest(apiBase, gitHubHost.authId().orElse(null), (r) -> {
             var headers = new ArrayList<>(List.of(
-                "Accept", "application/vnd.github.machine-man-preview+json",
-                "Accept", "application/vnd.github.antiope-preview+json",
-                "Accept", "application/vnd.github.shadow-cat-preview+json",
-                "Accept", "application/vnd.github.comfort-fade-preview+json",
-                "Accept", "application/vnd.github.mockingbird-preview+json",
                 "X-GitHub-Api-Version", "2022-11-28"));
             var token = gitHubHost.getInstallationToken();
             if (token.isPresent()) {
@@ -263,18 +260,49 @@ public class GitHubRepository implements HostedRepository {
 
     @Override
     public Optional<String> fileContents(String filename, String ref) {
-        var content = request.get("contents/" + filename)
-                .param("ref", ref)
-                .onError(r -> r.statusCode() == 404 && JSON.parse(r.body()).get("message").asString().equals("Not Found")
-                        ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
-                .execute();
-        if (content.contains("NOT_FOUND")) {
-            return Optional.empty();
+        // Get file contents using raw format. This allows us to get files of
+        // size up to 100MB (up from 1MB if getting in object from).
+        try {
+            var content = request.get("contents/" + filename)
+                    .param("ref", ref)
+                    .header("Accept", "application/vnd.github.raw+json")
+                    .executeUnparsed();
+            return Optional.of(content);
+        } catch (UncheckedRestException e) {
+            // The onError handler is not used with executeUnparsed, so have to
+            // resort to catching exception for 404 handling.
+            if (e.getStatusCode() == 404) {
+                return Optional.empty();
+            } else {
+                throw e;
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
-        // Content may contain newline characters
-        return Optional.of(content.asObject().get("content").asString().lines()
-                .map(line -> new String(Base64.getDecoder().decode(line), StandardCharsets.UTF_8))
-                .collect(Collectors.joining()));
+    }
+
+    @Override
+    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail) {
+        var body = JSON.object()
+                .put("message", message)
+                .put("branch", branch.name())
+                .put("committer", JSON.object()
+                        .put("name", authorName)
+                        .put("email", authorEmail))
+                .put("content", new String(Base64.getEncoder().encode(content.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
+
+        // If the file exists, we have to supply the current sha with the update request.
+        var curentFileData = request.get("contents/" + filename)
+                .param("ref", branch.name())
+                .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
+                .execute();
+        if (curentFileData.contains("sha")) {
+            body.put("sha", curentFileData.get("sha").asString());
+        }
+
+        request.put("contents/" + filename)
+                .body(body)
+                .execute();
     }
 
     @Override

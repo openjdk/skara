@@ -32,7 +32,6 @@ import org.openjdk.skara.mailinglist.*;
 import org.openjdk.skara.vcs.*;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.*;
 import java.util.*;
@@ -239,18 +238,18 @@ class ArchiveWorkItem implements WorkItem {
         return ret.toString();
     }
 
+    private String mboxFile() {
+        return bot.codeRepo().name() + "/" + pr.id() + ".mbox";
+    }
+
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         var path = scratchPath.resolve("mlbridge");
-        var archiveRepo = materializeArchive(path);
-        var mboxBasePath = path.resolve(bot.codeRepo().name());
 
         var sentMails = new ArrayList<Email>();
-        try {
-            var archiveContents = Files.readString(mboxBasePath.resolve(pr.id() + ".mbox"), StandardCharsets.UTF_8);
-            sentMails.addAll(Mbox.splitMbox(archiveContents, bot.emailAddress()));
-        } catch (IOException ignored) {
-        }
+        // Load in already sent emails from the archive, if there are any.
+        var archiveContents = bot.archiveRepo().fileContents(mboxFile(), bot.archiveRef());
+        archiveContents.ifPresent(s -> sentMails.addAll(Mbox.splitMbox(s, bot.emailAddress())));
 
         var labels = new HashSet<>(pr.labelNames());
 
@@ -382,14 +381,17 @@ class ArchiveWorkItem implements WorkItem {
             }
 
             // Push all new mails to the archive repository
-            var mbox = MailingListServerFactory.createMboxFileServer(mboxBasePath);
+            var newArchivedContents = new StringBuilder();
+            archiveContents.ifPresent(newArchivedContents::append);
             for (var newMail : newMails) {
                 var forArchiving = Email.from(newMail)
                                         .recipient(EmailAddress.from(pr.id() + "@mbox"))
                                         .build();
-                mbox.post(forArchiving);
+                newArchivedContents.append(Mbox.fromMail(forArchiving));
             }
-            pushMbox(archiveRepo, "Adding comments for PR " + bot.codeRepo().name() + "/" + pr.id());
+            bot.archiveRepo().writeFileContents(mboxFile(), newArchivedContents.toString(), new Branch(bot.archiveRef()),
+                    "Adding comments for PR " + bot.codeRepo().name() + "/" + pr.id(),
+                    bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
 
             // Finally post all new mails to the actual list
             for (var newMail : newMails) {

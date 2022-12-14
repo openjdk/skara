@@ -87,6 +87,18 @@ public interface HostedRepository {
      * Returns contents of the file, if the file does not exist, returns Optional.empty().
      */
     Optional<String> fileContents(String filename, String ref);
+
+    /**
+     * Writes new contents to a file in the repo by creating a new commit.
+     *
+     * @param filename    Name of file inside repository to write to
+     * @param content     New file content to write, always replacing existing content
+     * @param branch      Branch to add commit on top of
+     * @param message     Commit message
+     * @param authorName  Name of author and committer for commit
+     * @param authorEmail Email of author and committer for commit
+     */
+    void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail);
     String namespace();
     Optional<WebHook> parseWebHook(JSONValue body);
     HostedRepository fork();
