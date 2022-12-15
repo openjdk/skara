@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bots.common.BotUtils;
+import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.census.Contributor;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
@@ -265,28 +266,28 @@ class CheckRun {
                 .filter(issue -> !isWithdrawnCSR(issue))
                 .toList();
         if (csrIssues.isEmpty() && pr.labelNames().contains("csr")) {
-            ret.put("Change requires a CSR request (need to be created) to be approved", false);
+            ret.put("Change requires a CSR request (needs to be created) to be approved", false);
         }
         for (var csrIssue : csrIssues) {
             if (!csrIssue.isClosed()) {
-                ret.put("Change requires a CSR request (" + csrIssue.id() + ") to be approved", false);
+                ret.put("Change requires CSR request " + csrIssue.id() + " to be approved", false);
                 continue;
             }
             var resolution = csrIssue.properties().get("resolution");
             if (resolution == null || resolution.isNull()) {
-                ret.put("Change requires a CSR request (" + csrIssue.id() + ") to be approved", false);
+                ret.put("Change requires CSR request " + csrIssue.id() + " to be approved", false);
                 continue;
             }
             var name = resolution.get("name");
             if (name == null || name.isNull()) {
-                ret.put("Change requires a CSR request (" + csrIssue.id() + ") to be approved", false);
+                ret.put("Change requires CSR request " + csrIssue.id() + " to be approved", false);
                 continue;
             }
             if (!name.asString().equals("Approved")) {
-                ret.put("Change requires a CSR request (" + csrIssue.id() + ") to be approved", false);
+                ret.put("Change requires CSR request " + csrIssue.id() + " to be approved", false);
                 continue;
             }
-            ret.put("Change requires a CSR request (" + csrIssue.id() + ") to be approved", true);
+            ret.put("Change requires CSR request " + csrIssue.id() + " to be approved", true);
         }
 
 
@@ -658,7 +659,7 @@ class CheckRun {
                             var issueType = iss.get().properties().get("issuetype");
                             if (issueType != null && "CSR".equals(issueType.asString())) {
                                 progressBody.append(" (**CSR**)");
-                                if(isWithdrawnCSR(iss.get())){
+                                if (isWithdrawnCSR(iss.get())) {
                                     progressBody.append(" (Withdrawn)");
                                 }
                             }

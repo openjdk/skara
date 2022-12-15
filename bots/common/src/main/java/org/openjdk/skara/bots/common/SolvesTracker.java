@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.pr;
+package org.openjdk.skara.bots.common;
 
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
@@ -40,17 +40,17 @@ public class SolvesTracker {
         return String.format(solvesMarker, issue.shortId(), encodedDescription);
     }
 
-    static String removeSolvesMarker(Issue issue) {
+    public static String removeSolvesMarker(Issue issue) {
         return String.format(solvesMarker, issue.shortId(), "");
     }
 
     public static List<Issue> currentSolved(HostUser botUser, List<Comment> comments) {
         var solvesActions = comments.stream()
-                                    .filter(comment -> comment.author().equals(botUser))
-                                    .flatMap(comment -> comment.body().lines())
-                                    .map(markerPattern::matcher)
-                                    .filter(Matcher::find)
-                                    .collect(Collectors.toList());
+                .filter(comment -> comment.author().equals(botUser))
+                .flatMap(comment -> comment.body().lines())
+                .map(markerPattern::matcher)
+                .filter(Matcher::find)
+                .collect(Collectors.toList());
         var current = new LinkedHashMap<String, Issue>();
         for (var action : solvesActions) {
             var key = action.group(1);

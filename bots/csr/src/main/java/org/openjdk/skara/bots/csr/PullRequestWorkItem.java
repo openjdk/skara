@@ -34,7 +34,7 @@ import java.util.logging.Logger;
 
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.bots.common.BotUtils;
-import org.openjdk.skara.bots.pr.SolvesTracker;
+import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Issue;
@@ -93,13 +93,13 @@ class PullRequestWorkItem implements WorkItem {
     private boolean hasCsrIssueAndProgress(PullRequest pr, Issue csr) {
         var statusMessage = getStatusMessage(pr);
         return hasCsrIssue(statusMessage, csr) &&
-                (statusMessage.contains("- [ ] Change requires a CSR request (" + csr.id() + ") to be approved") ||
-                        statusMessage.contains("- [x] Change requires a CSR request (" + csr.id() + ") to be approved"));
+                (statusMessage.contains("- [ ] Change requires CSR request " + csr.id() + " to be approved") ||
+                        statusMessage.contains("- [x] Change requires CSR request " + csr.id() + " to be approved"));
     }
 
     private boolean hasCsrIssueAndProgressChecked(PullRequest pr, Issue csr) {
         var statusMessage = getStatusMessage(pr);
-        return hasCsrIssue(statusMessage, csr) && statusMessage.contains("- [x] Change requires a CSR request (" + csr.id() + ") to be approved");
+        return hasCsrIssue(statusMessage, csr) && statusMessage.contains("- [x] Change requires CSR request " + csr.id() + " to be approved");
     }
 
     private boolean hasCsrIssue(String statusMessage, Issue csr) {
@@ -147,15 +147,17 @@ class PullRequestWorkItem implements WorkItem {
         }
 
         boolean allCSRApproved = true;
+        boolean needToAddUpdateMarker = false;
+        boolean existingCSR = false;
 
         for (var issue : issues) {
             var jbsIssueOpt = project.issue(issue.shortId());
             if (jbsIssueOpt.isEmpty()) {
-                // One issue could not be found in JBS, so the csr label cannot be removed until the problem is solved
+                // An issue could not be found, so the csr label cannot be removed
                 allCSRApproved = false;
                 var issueId = issue.project().isEmpty() ? (project.name() + "-" + issue.id()) : issue.id();
-                log.info("No issue found in JBS related with this issue " + issueId + "for " + describe(pr));
-                // allCSRApproved is false now, so we could break now
+                log.info(issueId + " for " + describe(pr) + " not found");
+                // allCSRApproved is now false, so there is no point in continuing
                 break;
             }
 
@@ -165,6 +167,7 @@ class PullRequestWorkItem implements WorkItem {
                 continue;
             }
             var csr = csrOptional.get();
+            existingCSR = true;
 
             log.info("Found CSR " + csr.id() + " for issue " + jbsIssueOpt.get().id() + " for " + describe(pr));
             if (!hasCsrIssueAndProgress(pr, csr) && !isWithdrawnCSR(csr)) {
@@ -172,7 +175,7 @@ class PullRequestWorkItem implements WorkItem {
                 // this bot need to add the csr update marker so that the PR bot can update the message of the PR body.
                 log.info("The PR body doesn't have the CSR issue or progress, adding the csr update marker for this csr issue"
                         + csr.id() + " for " + describe(pr));
-                addUpdateMarker(pr);
+                needToAddUpdateMarker = true;
             }
 
             var resolution = csr.properties().get("resolution");
@@ -184,7 +187,7 @@ class PullRequestWorkItem implements WorkItem {
                 } else {
                     log.info("CSR issue resolution is null for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
                 }
-                // allCSRApproved is false now, so we could break now
+                // allCSRApproved is now false, so there is no point in continuing
                 break;
             }
 
@@ -197,7 +200,7 @@ class PullRequestWorkItem implements WorkItem {
                 } else {
                     log.info("CSR issue resolution name is null for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
                 }
-                // allCSRApproved is false now, so we could break now
+                // allCSRApproved is now false, so there is no point in continuing
                 break;
             }
 
@@ -209,7 +212,7 @@ class PullRequestWorkItem implements WorkItem {
                 } else {
                     log.info("CSR issue state is not closed for csr issue" + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
                 }
-                // allCSRApproved is false now, so we could break now
+                // allCSRApproved is now false, so there is no point in continuing
                 break;
             }
 
@@ -237,10 +240,13 @@ class PullRequestWorkItem implements WorkItem {
                 // If the PR body doesn't have the CSR issue or doesn't have the CSR progress or the CSR progress checkbox is not selected,
                 // this bot need to add the csr update marker so that the PR bot can update the message of the PR body.
                 log.info("CSR closed and approved for " + describe(pr) + ", adding the csr update marker");
-                addUpdateMarker(pr);
+                needToAddUpdateMarker = true;
             }
         }
-        if (allCSRApproved && pr.labelNames().contains(CSR_LABEL)) {
+        if (needToAddUpdateMarker) {
+            addUpdateMarker(pr);
+        }
+        if (allCSRApproved && existingCSR && pr.labelNames().contains(CSR_LABEL)) {
             log.info("All CSR issues closed and approved for " + describe(pr) + ", removing CSR label");
             pr.removeLabel(CSR_LABEL);
         }
