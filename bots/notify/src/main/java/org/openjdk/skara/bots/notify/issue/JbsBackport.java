@@ -49,9 +49,13 @@ public class JbsBackport {
         }
     }
 
-    private Issue createBackportIssue(Issue primary) {
+    private Issue createBackportIssue(Issue primary, String fixVersion, String defaultSecurity) {
         var finalProperties = new HashMap<>(primary.properties());
         finalProperties.put("issuetype", JSON.of("Backport"));
+        finalProperties.put("fixVersion", JSON.of(fixVersion));
+        if (!primary.properties().containsKey("security") && defaultSecurity != null) {
+            finalProperties.put("security", JSON.of(defaultSecurity));
+        }
         finalProperties.remove(RESOLVED_IN_BUILD);
 
         var backport = primary.project().createIssue(primary.title(), primary.body().lines().collect(Collectors.toList()), finalProperties);
@@ -61,12 +65,12 @@ public class JbsBackport {
         return backport;
     }
 
-    public Issue createBackport(Issue primary, String fixVersion, String assignee) {
+    public Issue createBackport(Issue primary, String fixVersion, String assignee, String defaultSecurity) {
         if (backportRequest == null) {
             if (primary.project().webUrl().toString().contains("openjdk.org")) {
                 throw new RuntimeException("Backports on JBS require vault authentication");
             } else {
-                return createBackportIssue(primary);
+                return createBackportIssue(primary, fixVersion, defaultSecurity);
             }
         }
 
@@ -78,6 +82,8 @@ public class JbsBackport {
         }
         if (primary.properties().containsKey("security")) {
             request.body("level", primary.properties().get("security").asString());
+        } else if (defaultSecurity != null) {
+            request.body("level", defaultSecurity);
         }
         var response = request.execute();
         var issue = primary.project().issue(response.get("key").asString()).orElseThrow();

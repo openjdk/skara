@@ -280,7 +280,8 @@ public class JiraProject implements IssueProject {
                                                       .collect(Collectors.toList())));
             case "issuetype":
                 return Optional.of(JSON.object().put("id", issueTypeId(value.asString())));
-            case "priority":
+            case "priority": // fall-through
+            case "security":
                 return Optional.of(JSON.object().put("id", value.asString()));
             default:
                 return Optional.of(value);
