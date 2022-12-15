@@ -416,6 +416,10 @@ class CSRBotTests {
         }
     }
 
+    private String generateCSRProgressMessage(org.openjdk.skara.issuetracker.Issue issue) {
+        return "Change requires CSR request [" + issue.id() + "](" + issue.webUrl() + ") to be approved";
+    }
+
     @Test
     void testCsrUpdateMarker(TestInfo testInfo) throws IOException {
         String csrUpdateMarker = "<!-- csr: 'update' -->";
@@ -467,7 +471,7 @@ class CSRBotTests {
 
             // Add csr issue and progress to the PR body
             pr.setBody("PR body\n" + progressMarker + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
-                    + "- [ ] Change requires CSR request " + csr.id() + " to be approved");
+                    + "- [ ] " + generateCSRProgressMessage(csr));
             // Run bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the csr update marker
@@ -483,7 +487,7 @@ class CSRBotTests {
 
             // Add csr issue and selected progress to the PR body
             pr.setBody("PR body\n" + progressMarker + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
-                    + "- [x] Change requires CSR request " + csr.id() + " to be approved");
+                    + "- [x] " + generateCSRProgressMessage(csr));
             // Run bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the csr update marker
@@ -491,7 +495,7 @@ class CSRBotTests {
 
             // Add csr update marker to the pull request body manually.
             pr.setBody("PR body\n" + progressMarker + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
-                    + "- [ ] Change requires CSR request " +  csr.id() + " to be approved" + csrUpdateMarker);
+                    + "- [ ] " + generateCSRProgressMessage(csr));
             // Run bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the csr update marker again. The PR should have only one csr update marker.

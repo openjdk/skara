@@ -256,6 +256,11 @@ class CheckRun {
         }
         return false;
     }
+
+    private String generateCSRProgressMessage(org.openjdk.skara.issuetracker.Issue issue) {
+        return "Change requires CSR request [" + issue.id() + "](" + issue.webUrl() + ") to be approved";
+    }
+
     // Additional bot-specific progresses that are not handled by JCheck
     private Map<String, Boolean> botSpecificProgresses() {
         var ret = new HashMap<String, Boolean>();
@@ -270,24 +275,24 @@ class CheckRun {
         }
         for (var csrIssue : csrIssues) {
             if (!csrIssue.isClosed()) {
-                ret.put("Change requires CSR request " + csrIssue.id() + " to be approved", false);
+                ret.put(generateCSRProgressMessage(csrIssue), false);
                 continue;
             }
             var resolution = csrIssue.properties().get("resolution");
             if (resolution == null || resolution.isNull()) {
-                ret.put("Change requires CSR request " + csrIssue.id() + " to be approved", false);
+                ret.put(generateCSRProgressMessage(csrIssue), false);
                 continue;
             }
             var name = resolution.get("name");
             if (name == null || name.isNull()) {
-                ret.put("Change requires CSR request " + csrIssue.id() + " to be approved", false);
+                ret.put(generateCSRProgressMessage(csrIssue), false);
                 continue;
             }
             if (!name.asString().equals("Approved")) {
-                ret.put("Change requires CSR request " + csrIssue.id() + " to be approved", false);
+                ret.put(generateCSRProgressMessage(csrIssue), false);
                 continue;
             }
-            ret.put("Change requires CSR request " + csrIssue.id() + " to be approved", true);
+            ret.put(generateCSRProgressMessage(csrIssue), true);
         }
 
 

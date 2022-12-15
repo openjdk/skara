@@ -90,16 +90,20 @@ class PullRequestWorkItem implements WorkItem {
         return pr.repository().name() + "#" + pr.id();
     }
 
+    private String generateCSRProgressMessage(org.openjdk.skara.issuetracker.Issue issue) {
+        return "Change requires CSR request [" + issue.id() + "](" + issue.webUrl() + ") to be approved";
+    }
+
     private boolean hasCsrIssueAndProgress(PullRequest pr, Issue csr) {
         var statusMessage = getStatusMessage(pr);
         return hasCsrIssue(statusMessage, csr) &&
-                (statusMessage.contains("- [ ] Change requires CSR request " + csr.id() + " to be approved") ||
-                        statusMessage.contains("- [x] Change requires CSR request " + csr.id() + " to be approved"));
+                (statusMessage.contains("- [ ] " + generateCSRProgressMessage(csr)) ||
+                        statusMessage.contains("- [x] " + generateCSRProgressMessage(csr)));
     }
 
     private boolean hasCsrIssueAndProgressChecked(PullRequest pr, Issue csr) {
         var statusMessage = getStatusMessage(pr);
-        return hasCsrIssue(statusMessage, csr) && statusMessage.contains("- [x] Change requires CSR request " + csr.id() + " to be approved");
+        return hasCsrIssue(statusMessage, csr) && statusMessage.contains("- [x] " + generateCSRProgressMessage(csr));
     }
 
     private boolean hasCsrIssue(String statusMessage, Issue csr) {
