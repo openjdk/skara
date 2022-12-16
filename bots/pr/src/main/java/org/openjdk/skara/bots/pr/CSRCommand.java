@@ -109,6 +109,7 @@ public class CSRCommand implements CommandHandler {
             issues.add(mainIssue.get());
             issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), pr.comments()));
 
+            var containsOpenCsrIssue = false;
             for (var issue : issues) {
                 var jbsIssueOpt = issueProject.issue(issue.shortId());
                 if (jbsIssueOpt.isEmpty()) {
@@ -136,13 +137,16 @@ public class CSRCommand implements CommandHandler {
                     reply.println("The CSR requirement cannot be removed as there is already a CSR associated with the issue [" +
                             jbsIssue.id() + "](" + jbsIssue.webUrl() + "). Please withdraw the CSR [" + csrIssue.id() +
                             "](" + csrIssue.webUrl() + ") and then use the command `/csr unneeded` again.");
-                    reply.println(CSR_NEEDED_MARKER);
-                    return;
+                    containsOpenCsrIssue = true;
                 }
             }
-            // All the issues associated with this pr either don't have csr issue or the csr issue has already been withdrawn,
-            // the bot should just remove the csr label and reply the message.
-            csrUnneededReply(pr, reply);
+            if (containsOpenCsrIssue) {
+                reply.println(CSR_NEEDED_MARKER);
+            } else {
+                // All the issues associated with this pr either don't have csr issue or the csr issue has already been withdrawn,
+                // the bot should just remove the csr label and reply the message.
+                csrUnneededReply(pr, reply);
+            }
             return;
         }
 
@@ -176,6 +180,11 @@ public class CSRCommand implements CommandHandler {
         issues.add(mainIssue.get());
         issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), pr.comments()));
 
+        var approvedCsrIssues = 0;
+        var openCsrIssues = 0;
+        var withdrawnCsrIssues = 0;
+        var csrIssues = 0;
+
         for (var issue : issues) {
             var jbsIssueOpt = issueProject.issue(issue.shortId());
             if (jbsIssueOpt.isEmpty()) {
@@ -193,6 +202,7 @@ public class CSRCommand implements CommandHandler {
             }
             // Found a csr issue for one of the issues associated with this pr
             var csr = csrOptional.get();
+            csrIssues++;
 
             var resolutionName = "Unresolved";
             var resolution = csr.properties().getOrDefault("resolution", JSON.of());
@@ -205,24 +215,31 @@ public class CSRCommand implements CommandHandler {
             if (csr.state() == Issue.State.CLOSED && resolutionName.equals("Approved")) {
                 reply.println("the issue for this pull request, [" + jbsIssue.id() + "](" + jbsIssue.webUrl() + "), already has " +
                         "an approved CSR request: [" + csr.id() + "](" + csr.webUrl() + ")");
-                reply.println(CSR_NEEDED_MARKER);
+                approvedCsrIssues++;
             } else if (csr.state() == Issue.State.CLOSED && resolutionName.equals("Withdrawn")) {
-                continue;
+                withdrawnCsrIssues++;
             } else {
                 reply.println("this pull request will not be integrated until the [CSR](https://wiki.openjdk.org/display/csr/Main) " +
                         "request " + "[" + csr.id() + "](" + csr.webUrl() + ")" + " for issue " +
                         "[" + jbsIssue.id() + "](" + jbsIssue.webUrl() + ") has been approved.");
-                reply.println(CSR_NEEDED_MARKER);
-                pr.addLabel(CSR_LABEL);
+                openCsrIssues++;
             }
-            return;
         }
         // All the issues associated with pr either don't have csr issue or the csr issue has already been withdrawn
-        csrReply(reply);
-        if (issues.size() == 1) {
-            linkReply(pr, jbsMainIssueOpt.get(), reply);
+        if (csrIssues == withdrawnCsrIssues) {
+            csrReply(reply);
+            if (issues.size() == 1) {
+                linkReply(pr, jbsMainIssueOpt.get(), reply);
+            }
+            pr.addLabel(CSR_LABEL);
+        } else if (csrIssues == approvedCsrIssues) {
+            // All the csr issues are approved
+            reply.println(CSR_NEEDED_MARKER);
+        } else if (openCsrIssues > 0) {
+            // At least one csr issue open
+            reply.println(CSR_NEEDED_MARKER);
+            pr.addLabel(CSR_LABEL);
         }
-        pr.addLabel(CSR_LABEL);
     }
 
     @Override

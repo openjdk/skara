@@ -1047,4 +1047,113 @@ class CSRTests {
             assertTrue(pr.store().labelNames().contains("csr"));
         }
     }
+
+
+    @Test
+    void prSolvesMultipleIssuesWithApprovedCSRIssues(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var issue = issues.createIssue("This is an issue", List.of(), Map.of());
+            var csr = issues.createIssue("This is a CSR", List.of(), Map.of());
+            csr.setProperty("issuetype", JSON.of("CSR"));
+            csr.setState(Issue.State.CLOSED);
+            csr.setProperty("resolution", JSON.object().put("name", "Approved"));
+            issue.addLink(Link.create(csr, "csr for").build());
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
+
+            var issue2 = issues.createIssue("This is an issue2", List.of(), Map.of());
+            // create a csr for issue2
+            var csr2 = issues.createIssue("This is a CSR2", List.of(), Map.of());
+            csr2.setState(Issue.State.CLOSED);
+            csr2.setProperty("resolution", JSON.object().put("name", "Approved"));
+            csr2.setProperty("issuetype", JSON.of("CSR"));
+            issue2.addLink(Link.create(csr2, "csr for").build());
+
+            pr.addComment("/issue TEST-3");
+            TestBotRunner.runPeriodicItems(prBot);
+            // Require CSR
+            var prAsReviewer = reviewer.pullRequest(pr.id());
+            prAsReviewer.addComment("/csr");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertFalse(pr.store().labelNames().contains("csr"));
+            assertTrue(pr.store().body().contains("- [x] " + generateCSRProgressMessage(csr)));
+            assertTrue(pr.store().body().contains("- [x] " + generateCSRProgressMessage(csr2)));
+        }
+    }
+
+    @Test
+    void prSolvesMultipleIssuesWithWithdrawnCSRIssues(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var issue = issues.createIssue("This is an issue", List.of(), Map.of());
+            var csr = issues.createIssue("This is a CSR", List.of(), Map.of());
+            csr.setProperty("issuetype", JSON.of("CSR"));
+            csr.setState(Issue.State.CLOSED);
+            csr.setProperty("resolution", JSON.object().put("name", "Withdrawn"));
+            issue.addLink(Link.create(csr, "csr for").build());
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
+
+            var issue2 = issues.createIssue("This is an issue2", List.of(), Map.of());
+            // create a csr for issue2
+            var csr2 = issues.createIssue("This is a CSR2", List.of(), Map.of());
+            csr2.setState(Issue.State.CLOSED);
+            csr2.setProperty("resolution", JSON.object().put("name", "Withdrawn"));
+            csr2.setProperty("issuetype", JSON.of("CSR"));
+            issue2.addLink(Link.create(csr2, "csr for").build());
+
+            pr.addComment("/issue TEST-3");
+            TestBotRunner.runPeriodicItems(prBot);
+            // Require CSR
+            var prAsReviewer = reviewer.pullRequest(pr.id());
+            prAsReviewer.addComment("/csr");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().labelNames().contains("csr"));
+            assertLastCommentContains(pr, "has indicated that a " +
+                    "[compatibility and specification](https://wiki.openjdk.org/display/csr/Main) (CSR) request " +
+                    "is needed for this pull request.");
+            assertTrue(pr.store().body().contains("- [ ] Change requires a CSR request (needs to be created) to be approved"));
+            assertFalse(pr.store().body().contains(generateCSRProgressMessage(csr)));
+            assertFalse(pr.store().body().contains(generateCSRProgressMessage(csr2)));
+        }
+    }
 }
