@@ -1,5 +1,5 @@
 @echo off
-rem Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+rem Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
 rem DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 rem
 rem This code is free software; you can redistribute it and/or modify it

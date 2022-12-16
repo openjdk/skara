@@ -30,9 +30,6 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jbs.Backports;
-import org.openjdk.skara.jbs.JdkVersion;
-import org.openjdk.skara.jcheck.JCheckConfiguration;
-import org.openjdk.skara.network.UncheckedRestException;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
@@ -437,7 +434,7 @@ class CheckRun {
         if (hash == null) {
             return Optional.empty();
         }
-        var commit = pr.repository().forge().search(hash);
+        var commit = pr.repository().forge().search(hash, true);
         if (commit.isEmpty()) {
             throw new IllegalStateException("Backport comment for PR " + pr.id() + " contains bad hash: " + hash.hex());
         }

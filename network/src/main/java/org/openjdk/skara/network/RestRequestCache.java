@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -201,12 +201,15 @@ enum RestRequestCache {
             }
             var finalRequest = requestBuilder.build();
             HttpResponse<String> response;
+            var beforeLock = Instant.now();
             try (var ignored = new LockWithTimeout(authLock)) {
                 // Perform requests using a certain account serially
-                var before = Instant.now();
+                var beforeCall = Instant.now();
+                var lockDelay = Duration.between(beforeLock, beforeCall);
+                log.log(Level.FINE, "Taking lock for GET " + finalRequest.uri() + " took " + lockDelay, lockDelay);
                 response = client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
-                var duration = Duration.between(before, Instant.now());
-                log.log(Level.FINE, "Calling GET " + finalRequest.uri().toString() + " took " + duration, duration);
+                var callDuration = Duration.between(beforeCall, Instant.now());
+                log.log(Level.FINE, "Calling GET " + finalRequest.uri().toString() + " took " + callDuration, callDuration);
             }
             if (cached != null && response.statusCode() == 304) {
                 cacheHitsCounter.inc();
@@ -222,6 +225,7 @@ enum RestRequestCache {
             var finalRequest = requestBuilder.build();
             log.finer("Not using response cache for " + finalRequest + " (" + authId + ")");
             Instant lastUpdate;
+            var beforeLock = Instant.now();
             try (var ignored = new LockWithTimeout(authLock)) {
                 lastUpdate = lastUpdates.getOrDefault(authId, Instant.now().minus(Duration.ofDays(1)));
                 lastUpdates.put(authId, Instant.now());
@@ -235,10 +239,12 @@ enum RestRequestCache {
                 }
             }
             try (var ignored = new LockWithTimeout(authLock)) {
-                var before = Instant.now();
+                var beforeCall = Instant.now();
+                var lockDelay = Duration.between(beforeLock, beforeCall);
+                log.log(Level.FINE, "Taking lock and adding required delay for " + finalRequest.method() + " " + finalRequest.uri() + " took " + lockDelay, lockDelay);
                 var response = client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
-                var duration = Duration.between(before, Instant.now());
-                log.log(Level.FINE, "Calling " + finalRequest.method() + " " + finalRequest.uri().toString() + " took " + duration, duration);
+                var callDuration = Duration.between(beforeCall, Instant.now());
+                log.log(Level.FINE, "Calling " + finalRequest.method() + " " + finalRequest.uri().toString() + " took " + callDuration, callDuration);
                 return response;
             } finally {
                 // Invalidate any related GET caches

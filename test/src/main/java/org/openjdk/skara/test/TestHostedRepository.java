@@ -22,12 +22,14 @@
  */
 package org.openjdk.skara.test;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Label;
 import org.openjdk.skara.json.JSONValue;
-import org.openjdk.skara.network.UncheckedRestException;
 import org.openjdk.skara.vcs.*;
 
 import java.io.*;
@@ -199,12 +201,29 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     @Override
     public Optional<String> fileContents(String filename, String ref) {
         try {
-            var lines = localRepository.lines(Path.of(filename), localRepository.resolve(ref).orElseThrow());
-            return lines.map(content -> String.join("\n", content));
+            var bytes = localRepository.show(Path.of(filename), localRepository.resolve(ref).orElseThrow());
+            return bytes.map(b -> new String(b, StandardCharsets.UTF_8));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } catch (NoSuchElementException e) {
             return Optional.empty();
+        }
+    }
+
+    @Override
+    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail) {
+        try {
+            localRepository.checkout(branch);
+            Path absPath = localRepository.root().resolve(filename);
+            Files.createDirectories(absPath.getParent());
+            Files.writeString(absPath, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            localRepository.add(absPath);
+            var hash = localRepository.commit(message, authorName, authorEmail);
+            // Don't leave the repository having a branch checked out as that would
+            // prevent pushing to that branch.
+            localRepository.checkout(hash);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -297,14 +316,15 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public Optional<HostedCommit> commit(Hash hash) {
+    public Optional<HostedCommit> commit(Hash hash, boolean includeDiffs) {
         try {
             var commit = localRepository.lookup(hash);
             if (!commit.isPresent()) {
                 return Optional.empty();
             }
             var url = URI.create("file://" + localRepository.root() + "/commits/" + hash.hex());
-            return Optional.of(new HostedCommit(commit.get().metadata(), commit.get().parentDiffs(), url));
+            List<Diff> parentDiffs = includeDiffs ? commit.get().parentDiffs() : List.of();
+            return Optional.of(new HostedCommit(commit.get().metadata(), parentDiffs, url));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

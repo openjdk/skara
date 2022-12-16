@@ -122,11 +122,10 @@ public class CommitCommandWorkItem implements WorkItem {
     public Collection<WorkItem> run(Path scratchPath) {
         log.info("Looking for commit comment commands");
 
-        var commit = bot.repo().commit(commitComment.commit()).orElseThrow(() ->
-            new IllegalStateException("Commit with hash " + commitComment.commit() + " missing"));
+        var hash = commitComment.commit();
         var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-        var allComments = bot.repo().commitComments(commit.hash());
+        var allComments = bot.repo().commitComments(hash);
         var nextCommand = nextCommand(allComments);
         if (nextCommand.isEmpty()) {
             log.info("No new commit comments found, stopping further processing");
@@ -135,7 +134,7 @@ public class CommitCommandWorkItem implements WorkItem {
             var command = nextCommand.get();
             try {
                 census = LimitedCensusInstance.createLimitedCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(),
-                        scratchPath.resolve("census"), bot.repo(), commit.hash().hex(),
+                        scratchPath.resolve("census"), bot.repo(), hash.hex(),
                         bot.confOverrideRepository().orElse(null),
                         bot.confOverrideName(),
                         bot.confOverrideRef());
@@ -145,8 +144,8 @@ public class CommitCommandWorkItem implements WorkItem {
                     var comment = String.format(commandReplyMarker, command.id()) + "\n" +
                             "@" + command.user().username() +
                             " There is no `.jcheck/conf` present at revision " +
-                            commit.hash().abbreviate() + " - cannot process command.";
-                    bot.repo().addCommitComment(commit.hash(), comment);
+                            hash.abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(hash, comment);
                 } else {
                     log.log(Level.SEVERE, "Jcheck configuration file " + bot.confOverrideName()
                             + " not found in external repo " + bot.confOverrideRepository().get().name(), e);
@@ -154,8 +153,8 @@ public class CommitCommandWorkItem implements WorkItem {
                             "@" + command.user().username() +
                             " There is no Jcheck configuration file " + bot.confOverrideName()
                             + " present in external repo " + bot.confOverrideRepository().get().name() + " at revision "
-                            + commit.hash().abbreviate() + " - cannot process command.";
-                    bot.repo().addCommitComment(commit.hash(), comment);
+                            + hash.abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(hash, comment);
                 }
                 return List.of();
             } catch (InvalidJCheckConfException e) {
@@ -164,8 +163,8 @@ public class CommitCommandWorkItem implements WorkItem {
                     var comment = String.format(commandReplyMarker, command.id()) + "\n" +
                             "@" + command.user().username() +
                             " Invalid `.jcheck/conf` present at revision " +
-                            commit.hash().abbreviate() + " - cannot process command.";
-                    bot.repo().addCommitComment(commit.hash(), comment);
+                            hash.abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(hash, comment);
                 } else {
                     log.log(Level.SEVERE, "Invalid Jcheck configuration file " + bot.confOverrideName()
                             + " in external repo " + bot.confOverrideRepository().get().name(), e);
@@ -173,11 +172,13 @@ public class CommitCommandWorkItem implements WorkItem {
                             "@" + command.user().username() +
                             " Invalid Jcheck configuration file " + bot.confOverrideName() + " present in external repo "
                             + bot.confOverrideRepository().get().name() + " at revision " +
-                            commit.hash().abbreviate() + " - cannot process command.";
-                    bot.repo().addCommitComment(commit.hash(), comment);
+                            hash.abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(hash, comment);
                 }
                 return List.of();
             }
+            var commit = bot.repo().commit(hash).orElseThrow(() ->
+                    new IllegalStateException("Commit with hash " + hash + " missing"));
             processCommand(scratchPath, commit, census, command, allComments);
         }
         return List.of();

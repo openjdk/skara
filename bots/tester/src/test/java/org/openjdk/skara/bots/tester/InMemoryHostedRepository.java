@@ -134,6 +134,10 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail) {
+    }
+
+    @Override
     public String namespace() {
         return null;
     }
@@ -187,7 +191,7 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public Optional<HostedCommit> commit(Hash commit) {
+    public Optional<HostedCommit> commit(Hash commit, boolean includeDiffs) {
         return Optional.empty();
     }
 

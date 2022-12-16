@@ -54,7 +54,7 @@ class CheckWorkItem extends PullRequestWorkItem {
     protected static final String FORCE_PUSH_MARKER = "<!-- force-push suggestion -->";
     protected static final String FORCE_PUSH_SUGGESTION= """
             Please do not rebase or force-push to an active PR as it invalidates existing review comments. \
-            All changes will be squashed into a single commit automatically when integrating. \
+            Note for future reference, the bots always squash all changes into a single commit automatically as part of the integration. \
             See [OpenJDK Developers’ Guide](https://openjdk.org/guide/#working-with-pull-requests) for more information.
             """;
 
@@ -229,13 +229,10 @@ class CheckWorkItem extends PullRequestWorkItem {
 
     @Override
     public Collection<WorkItem> prRun(Path scratchPath) {
-        // First determine if the current state of the PR has already been checked
         var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
         CensusInstance census;
-        var comments = pr.comments();
-        var allReviews = pr.reviews();
-        var labels = new HashSet<>(pr.labelNames());
+        var comments = prComments();
         try {
             census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
                     bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
@@ -269,8 +266,11 @@ class CheckWorkItem extends PullRequestWorkItem {
             return List.of();
         }
 
+        var allReviews = pr.reviews();
+        var labels = new HashSet<>(pr.labelNames());
         // Filter out the active reviews
         var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews, pr.targetRef());
+        // Determine if the current state of the PR has already been checked
         if (!currentCheckValid(census, comments, activeReviews, labels)) {
             if (labels.contains("integrated")) {
                 log.info("Skipping check of integrated PR");

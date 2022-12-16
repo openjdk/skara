@@ -179,7 +179,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     public Collection<WorkItem> prRun(Path scratchPath) {
         log.info("Looking for PR commands");
 
-        var comments = pr.comments();
+        var comments = prComments();
         var nextCommand = nextCommand(pr, comments);
 
         if (nextCommand.isEmpty()) {

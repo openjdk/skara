@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -273,7 +273,7 @@ public class GitHubHost implements Forge {
                 log.fine("Error during GitHub host validation: unexpected endpoint list: " + endpoints);
                 return false;
             }
-        } catch (IOException e) {
+        } catch (IOException | UncheckedRestException e) {
             log.fine("Error during GitHub host validation: " + e);
             return false;
         }
@@ -390,7 +390,7 @@ public class GitHubHost implements Forge {
     }
 
     @Override
-    public Optional<HostedCommit> search(Hash hash) {
+    public Optional<HostedCommit> search(Hash hash, boolean includeDiffs) {
         var orgsToSearch = orgs.stream().map(o -> "org:" + o).collect(Collectors.joining(" "));
         if (!orgsToSearch.isEmpty()) {
             orgsToSearch = " " + orgsToSearch;
@@ -407,6 +407,6 @@ public class GitHubHost implements Forge {
         var shortestName = items.stream()
                 .map(o -> o.get("repository").get("full_name").asString())
                 .min(Comparator.comparing(String::length));
-        return shortestName.flatMap(this::repository).flatMap(r -> r.commit(hash));
+        return shortestName.flatMap(this::repository).flatMap(r -> r.commit(hash, includeDiffs));
     }
 }
