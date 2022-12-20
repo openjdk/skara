@@ -116,6 +116,7 @@ public class PullRequestBotFactory implements BotFactory {
                                            .externalPullRequestCommands(externalPullRequestCommands)
                                            .externalCommitCommands(externalCommitCommands)
                                            .seedStorage(configuration.storageFolder().resolve("seeds"))
+                                           .excludeCommitCommentsFrom(excludeCommitCommentsFrom)
                                            .forks(forks);
 
             if (repo.value().contains("labels")) {

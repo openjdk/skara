@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.forge.gitlab;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.logging.Logger;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
@@ -501,11 +503,24 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits, Set<Integer> excludeAuthors) {
-        var fourDaysAgo = ZonedDateTime.now().minusDays(4);
+    public List<CommitComment> recentCommitComments(ReadOnlyRepository localRepo, Set<Integer> excludeAuthors,
+            List<Branch> branches, ZonedDateTime updatedAfter) {
+        if (localRepo == null) {
+            throw new NullPointerException("localRepo cannot be null in GitLabMergeRequest");
+        }
+        var commitTitleToCommits = new HashMap<String, Set<Hash>>();
+        try {
+            for (var commit : localRepo.commitMetadataFor(branches)) {
+                var title = commit.message().stream().findFirst().orElse("");
+                commitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>()).add(commit.hash());
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+
         var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         var notes = request.get("events")
-                      .param("after", fourDaysAgo.format(formatter))
+                      .param("after", updatedAfter.format(formatter))
                       .execute()
                       .stream()
                       .filter(o -> o.contains("note") &&
@@ -517,7 +532,7 @@ public class GitLabRepository implements HostedRepository {
                       .filter(o -> o.contains("author") &&
                                    o.get("author").contains("id") &&
                                    !excludeAuthors.contains(o.get("author").get("id").asInt()))
-                      .collect(Collectors.toList());
+                      .toList();
 
         // Fetch eventual new commits
         var commits = request.get("repository/commits")
@@ -527,11 +542,7 @@ public class GitLabRepository implements HostedRepository {
         for (var commit : commits) {
             var hash = new Hash(commit.get("id").asString());
             var title = commit.get("title").asString();
-            if (commitTitleToCommits.containsKey(title)) {
-                commitTitleToCommits.get(title).add(hash);
-            } else {
-                commitTitleToCommits.put(title, Set.of(hash));
-            }
+            commitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>()).add(hash);
         }
 
         return notes.stream()

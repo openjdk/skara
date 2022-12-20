@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import java.time.Duration;
+import java.time.ZonedDateTime;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.vcs.*;
@@ -73,30 +75,20 @@ class CommitCommentsWorkItem implements WorkItem {
         try {
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-            var localRepoPath = scratchPath.resolve("pr").resolve("commit-comments").resolve(bot.repo().name());
-            var localRepo = hostedRepositoryPool.materializeBare(bot.repo(), localRepoPath);
-            localRepo.fetchAll(bot.repo().url());
+            // We are only reading data from this local repo, so no need to make a clone,
+            // just use the seed repo directly.
+            var seedRepo = hostedRepositoryPool.seedRepository(bot.repo(), false);
             var remoteBranches = bot.repo().branches()
                                            .stream()
                                            .filter(b -> !b.name().startsWith("pr/"))
-                                           .collect(Collectors.toList());
+                                           .toList();
             var localBranches = remoteBranches.stream().map(b -> new Branch(b.name())).collect(Collectors.toList());
-            var commitTitleToCommits = new HashMap<String, Set<Hash>>();
-            for (var commit : localRepo.commitMetadataFor(localBranches)) {
-                var title = commit.message().stream().findFirst().orElse("");
-                if (commitTitleToCommits.containsKey(title)) {
-                    commitTitleToCommits.get(title).add(commit.hash());
-                } else {
-                    var set = new LinkedHashSet<Hash>();
-                    set.add(commit.hash());
-                    commitTitleToCommits.put(title, set);
-                }
-            }
-            var commitComments = repo.recentCommitComments(commitTitleToCommits, excludeCommitCommentsFrom);
+            var commitComments = repo.recentCommitComments(seedRepo, excludeCommitCommentsFrom,
+                    localBranches, ZonedDateTime.now().minus(Duration.ofDays(4)));
             return commitComments.stream()
                                  .filter(cc -> !processed.containsKey(cc.id()))
                                  .filter(cc -> remoteBranches.stream()
-                                                             .anyMatch(b -> isAncestor(localRepo, cc.commit(), b.hash())))
+                                                             .anyMatch(b -> isAncestor(seedRepo, cc.commit(), b.hash())))
                                  .map(cc -> {
                                      processed.put(cc.id(), true);
                                      return new CommitCommandWorkItem(bot, cc, e -> processed.remove(cc.id()));
