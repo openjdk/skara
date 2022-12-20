@@ -502,20 +502,16 @@ public class GitLabRepository implements HostedRepository {
         throw new RuntimeException("Did not find commit with title " + commitTitle + " for repository " + projectName);
     }
 
+    /**
+     * The localRepo is needed to build a map of commit title to commit hash mappings,
+     * which in turn is needed to identify commits form the GitLab notes objects. The
+     * notes only has the commit titles, not the hashes.
+     */
     @Override
     public List<CommitComment> recentCommitComments(ReadOnlyRepository localRepo, Set<Integer> excludeAuthors,
             List<Branch> branches, ZonedDateTime updatedAfter) {
         if (localRepo == null) {
             throw new NullPointerException("localRepo cannot be null in GitLabMergeRequest");
-        }
-        var commitTitleToCommits = new HashMap<String, Set<Hash>>();
-        try {
-            for (var commit : localRepo.commitMetadataFor(branches)) {
-                var title = commit.message().stream().findFirst().orElse("");
-                commitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>()).add(commit.hash());
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
         }
 
         var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -534,16 +530,11 @@ public class GitLabRepository implements HostedRepository {
                                    !excludeAuthors.contains(o.get("author").get("id").asInt()))
                       .toList();
 
-        // Fetch eventual new commits
-        var commits = request.get("repository/commits")
-                             .param("since", ZonedDateTime.now().minusHours(1).format(DateTimeFormatter.ISO_DATE_TIME))
-                             .execute()
-                             .asArray();
-        for (var commit : commits) {
-            var hash = new Hash(commit.get("id").asString());
-            var title = commit.get("title").asString();
-            commitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>()).add(hash);
+        if (notes.isEmpty()) {
+            return List.of();
         }
+
+        var commitTitleToCommits = getCommitTitleToCommitsMap(localRepo, branches);
 
         return notes.stream()
                     .map(o -> {
@@ -557,7 +548,47 @@ public class GitLabRepository implements HostedRepository {
                                                      commitTitleToCommits);
                         return new CommitComment(hash, null, -1, String.valueOf(id), body, user, createdAt, createdAt);
                     })
-                    .collect(Collectors.toList());
+                    .toList();
+    }
+
+    /**
+     * Lazy fetching and caching of the commitTitleToCommits map. The first time
+     * this is called, the full map is built from the local repository. After that
+     * it's just refreshed from the server.
+     */
+    private final Map<String, Set<Hash>> commitTitleToCommits = new HashMap<>();
+    private boolean commitTitleToCommitsInitialized = false;
+    private ZonedDateTime lastCommitTime = ZonedDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
+    private Map<String, Set<Hash>> getCommitTitleToCommitsMap(ReadOnlyRepository localRepo, List<Branch> branches) {
+        if (!commitTitleToCommitsInitialized) {
+            try {
+                for (var commit : localRepo.commitMetadataFor(branches)) {
+                    var title = commit.message().stream().findFirst().orElse("");
+                    commitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>()).add(commit.hash());
+                    if (lastCommitTime.isBefore(commit.authored())) {
+                        lastCommitTime = commit.authored();
+                    }
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            commitTitleToCommitsInitialized = true;
+        }
+        // Fetch eventual new commits
+        var commits = request.get("repository/commits")
+                .param("since", lastCommitTime.format(DateTimeFormatter.ISO_DATE_TIME))
+                .execute()
+                .asArray();
+        for (var commit : commits) {
+            var hash = new Hash(commit.get("id").asString());
+            var title = commit.get("title").asString();
+            commitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>()).add(hash);
+            var authored = ZonedDateTime.parse(commit.get("authored_date").asString());
+            if (lastCommitTime.isBefore(authored)) {
+                lastCommitTime = authored;
+            }
+        }
+        return commitTitleToCommits;
     }
 
     @Override
