@@ -123,7 +123,9 @@ class PullRequestWorkItem implements WorkItem {
 
     private void addUpdateMarker(PullRequest pr) {
         var statusMessage = getStatusMessage(pr);
-        if (!statusMessage.contains(CSR_UPDATE_MARKER)) {
+        if (statusMessage.isEmpty()) {
+            log.info("No PROGRESS_MARKER found in PR body, wait for first CheckRun before adding csr update marker.");
+        } else if (!statusMessage.contains(CSR_UPDATE_MARKER)) {
             pr.setBody(pr.body() + "\n" + CSR_UPDATE_MARKER + "\n");
         } else {
             log.info("The pull request " + describe(pr) + " has already had a csr update marker. Do not need to add it again.");
