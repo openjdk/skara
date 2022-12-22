@@ -49,8 +49,8 @@ import org.openjdk.skara.jbs.Backports;
  */
 class PullRequestWorkItem implements WorkItem {
     private final static String CSR_LABEL = "csr";
-    private final static String CSR_UPDATE_MARKER = "<!-- csr: 'update' -->";
-    private static final String PROGRESS_MARKER = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
+    final static String CSR_UPDATE_MARKER = "<!-- csr: 'update' -->";
+    static final String PROGRESS_MARKER = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.csr");
     private final HostedRepository repository;
     private final String prId;
@@ -163,8 +163,7 @@ class PullRequestWorkItem implements WorkItem {
                 allCSRApproved = false;
                 var issueId = issue.project().isEmpty() ? (project.name() + "-" + issue.id()) : issue.id();
                 log.info(issueId + " for " + describe(pr) + " not found");
-                // allCSRApproved is now false, so there is no point in continuing
-                break;
+                continue;
             }
 
             var csrOptional = Backports.findCsr(jbsIssueOpt.get(), versionOpt.get());
@@ -193,8 +192,7 @@ class PullRequestWorkItem implements WorkItem {
                 } else {
                     log.info("CSR issue resolution is null for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
                 }
-                // allCSRApproved is now false, so there is no point in continuing
-                break;
+                continue;
             }
 
             var name = resolution.get("name");
@@ -206,8 +204,7 @@ class PullRequestWorkItem implements WorkItem {
                 } else {
                     log.info("CSR issue resolution name is null for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
                 }
-                // allCSRApproved is now false, so there is no point in continuing
-                break;
+                continue;
             }
 
             if (csr.state() != Issue.State.CLOSED) {
@@ -218,8 +215,7 @@ class PullRequestWorkItem implements WorkItem {
                 } else {
                     log.info("CSR issue state is not closed for csr issue" + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
                 }
-                // allCSRApproved is now false, so there is no point in continuing
-                break;
+                continue;
             }
 
             if (!name.asString().equals("Approved")) {
@@ -228,8 +224,8 @@ class PullRequestWorkItem implements WorkItem {
                     // And the bot can't remove the CSR label automatically here.
                     // Because the PR author with the role of Committer may withdraw a CSR that
                     // a Reviewer had requested and integrate it without satisfying that requirement.
+                    needToAddUpdateMarker = true;
                     log.info("CSR closed and withdrawn for csr issue " + csr.id() + " for " + describe(pr));
-                    continue;
                 } else if (!pr.labelNames().contains(CSR_LABEL)) {
                     allCSRApproved = false;
                     log.info("CSR issue resolution is not 'Approved' for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
@@ -238,7 +234,7 @@ class PullRequestWorkItem implements WorkItem {
                     allCSRApproved = false;
                     log.info("CSR issue resolution is not 'Approved' for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
                 }
-                break;
+                continue;
             }
 
             // The CSR issue has been closed and approved
