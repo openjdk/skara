@@ -49,8 +49,8 @@ import org.openjdk.skara.jbs.Backports;
  */
 class PullRequestWorkItem implements WorkItem {
     private final static String CSR_LABEL = "csr";
-    protected final static String CSR_UPDATE_MARKER = "<!-- csr: 'update' -->";
-    protected static final String PROGRESS_MARKER = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
+    final static String CSR_UPDATE_MARKER = "<!-- csr: 'update' -->";
+    static final String PROGRESS_MARKER = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.csr");
     private final HostedRepository repository;
     private final String prId;
