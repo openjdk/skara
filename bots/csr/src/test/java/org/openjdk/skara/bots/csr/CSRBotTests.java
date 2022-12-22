@@ -37,11 +37,10 @@ import java.nio.file.Files;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.openjdk.skara.bots.csr.PullRequestWorkItem.CSR_UPDATE_MARKER;
+import static org.openjdk.skara.bots.csr.PullRequestWorkItem.PROGRESS_MARKER;
 
 class CSRBotTests {
-    private final static String CSR_UPDATE_MARKER = "<!-- csr: 'update' -->";
-    private static final String PROGRESS_MARKER = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
-
     @Test
     void removeLabelForApprovedCSR(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
