@@ -466,8 +466,8 @@ class CSRBotTests {
             assertFalse(pr.store().body().contains(csrUpdateMarker));
             // Run csr issue bot to trigger updates on the CSR issue
             TestBotRunner.runPeriodicItems(csrIssueBot);
-            // The bot should add the csr update marker
-            assertTrue(pr.store().body().contains(csrUpdateMarker));
+            // The bot should not add the csr update marker
+            assertFalse(pr.store().body().contains(csrUpdateMarker));
 
             // Add csr issue and progress to the PR body
             pr.setBody("PR body\n" + progressMarker + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
