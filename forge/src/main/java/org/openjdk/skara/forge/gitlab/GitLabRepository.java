@@ -426,9 +426,34 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
+    public void protectBranchPattern(String ref) {
+        var body = JSON.object()
+                .put("name", ref)
+                .put("allow_force_push", true);
+        var existing = request.get("protected_branches/" + URLEncoder.encode(ref, StandardCharsets.US_ASCII))
+                .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.of()) : Optional.empty())
+                .execute();
+        // Only add protection if it doesn't already exist.
+        if (existing.isNull()) {
+            request.post("protected_branches")
+                    .body(body)
+                    .execute();
+        }
+    }
+
+    @Override
+    public void unprotectBranchPattern(String ref) {
+        request.delete("protected_branches/" + URLEncoder.encode(ref, StandardCharsets.US_ASCII))
+                .header("Content-Type", "application/json")
+                .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.of()) : Optional.empty())
+                .execute();
+    }
+
+    @Override
     public void deleteBranch(String ref) {
         request.delete("repository/branches/" + URLEncoder.encode(ref, StandardCharsets.US_ASCII))
-               .execute();
+                .header("Content-Type", "application/json")
+                .execute();
     }
 
     private CommitComment toCommitComment(Hash hash, JSONValue o) {

@@ -173,6 +173,14 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public void protectBranchPattern(String ref) {
+    }
+
+    @Override
+    public void unprotectBranchPattern(String ref) {
+    }
+
+    @Override
     public void deleteBranch(String ref) {
     }
 

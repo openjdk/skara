@@ -52,7 +52,7 @@ public class PullRequestBranchNotifierTests {
                                                                    .put("hostedrepo", JSON.object()
                                                                                           .put("basename", "test")
                                                                                           .put("branches", "master")
-                                                                                          .put("prbranch", JSON.object())))
+                                                                                          .put("prbranch", JSON.object().put("protect", true))))
                              .build();
     }
 
