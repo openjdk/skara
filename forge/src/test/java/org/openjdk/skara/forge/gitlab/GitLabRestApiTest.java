@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * To be able to run the tests, you need to remove or comment out the @Disabled annotation first.
  */
-//@Disabled("Manual")
+@Disabled("Manual")
 public class GitLabRestApiTest {
 
     @Test
