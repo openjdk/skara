@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge.gitlab;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.issuetracker.Comment;
