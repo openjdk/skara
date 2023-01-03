@@ -193,9 +193,9 @@ public class IntegrateCommand implements CommandHandler {
             pr = pr.repository().pullRequest(pr.id());
 
             Repository localRepo = new HostedRepositoryPool(bot.seedStorage().orElse(scratchPath.resolve("seeds")))
-                    .materialize(pr.repository(), scratchPath.resolve(pr.headHash().hex()));
-            localRepo.fetch(pr.repository().url(), pr.targetRef(), true);
-            localRepo.checkout(new Branch(pr.targetRef()), false);
+                     .materialize(pr.repository(), scratchPath.resolve(pr.targetRef() + "/" + pr.headHash().hex()));
+            localRepo.fetch(pr.repository().url(), "+" + pr.targetRef() + ":" + pr.targetRef() + pr.headHash().hex(), true);
+            localRepo.checkout(new Branch(pr.targetRef() + pr.headHash().hex()), false);
 
             // See markIntegratedAndMerged for the logic for rogue mark as merged handling
             final List<Commit> commits = localRepo.commits(2).asList();
@@ -358,9 +358,10 @@ public class IntegrateCommand implements CommandHandler {
 
         try {
             repository = new HostedRepositoryPool(bot.seedStorage().orElse(scratchPath.resolve("seeds")))
-                      .materialize(pr.repository(), scratchPath.resolve(pr.headHash().hex()));
-            repository.fetch(pr.repository().url(), pr.targetRef(), true);
-            repository.checkout(new Branch(pr.targetRef()), false);
+                      .materialize(pr.repository(), scratchPath.resolve(pr.targetRef() + "/" + pr.headHash().hex()));
+            repository.reinitialize();
+            repository.fetch(pr.repository().url(), "+" + pr.targetRef() + ":" + pr.targetRef() + pr.headHash().hex(), true);
+            repository.checkout(new Branch(pr.targetRef() + pr.headHash().hex()), false);
             List<Commit> commits = repository.commits(2).asList();
             commits.forEach(commit -> log.fine(commit.toString()));
             currentMarkAsMergedCommit = isMarkAsMergeCommit(commits.get(0)) ? commits.get(0) : null;
@@ -436,8 +437,8 @@ public class IntegrateCommand implements CommandHandler {
     }
 
     static boolean isMarkAsMergeCommit(Commit commit) {
-        return commit.committer().name().equals("duke")
-                && commit.committer().email().equals("duke@openjdk.org")
+        return commit.author().name().equals("duke")
+                && commit.author().email().equals("duke@openjdk.org")
                 && (commit.message().size() == 1 ?
                     commit.message().get(0).startsWith("Mark Integration as Merged for ") : false);
     }

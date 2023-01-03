@@ -98,9 +98,9 @@ public class SponsorCommand implements CommandHandler {
             pr = pr.repository().pullRequest(pr.id());
 
             Repository localRepo = new HostedRepositoryPool(bot.seedStorage().orElse(scratchPath.resolve("seeds")))
-                    .materialize(pr.repository(), scratchPath.resolve(pr.headHash().hex()));
-            localRepo.fetch(pr.repository().url(), pr.targetRef(), true);
-            localRepo.checkout(new Branch(pr.targetRef()), false);
+                    .materialize(pr.repository(), scratchPath.resolve(pr.targetRef() + "/" + pr.headHash().hex()));
+            localRepo.fetch(pr.repository().url(), "+" + pr.targetRef() + ":" + pr.targetRef() + pr.headHash().hex(), true);
+            localRepo.checkout(new Branch(pr.targetRef() + pr.headHash().hex()), false);
 
             // See markIntegratedAndMerged for the logic for rogue mark as merged handling
             final List<Commit> commits = localRepo.commits(2).asList();
