@@ -84,7 +84,7 @@ public class GitHubPullRequest implements PullRequest {
     @Override
     public List<Review> reviews() {
         var currentTargetRef = targetRef();
-        var reviews = request.get("pulls/" + json.get("number").toString() + "/reviews").execute().stream()
+        var reviews = request.get("pulls/" + this.id() + "/reviews").execute().stream()
                              .map(JSONValue::asObject)
                              .filter(obj -> !(obj.get("state").asString().equals("COMMENTED") && obj.get("body").asString().isEmpty()))
                              .map(obj -> {
@@ -172,14 +172,14 @@ public class GitHubPullRequest implements PullRequest {
         }
         query.put("commit_id", headHash().hex());
         query.put("comments", JSON.array());
-        request.post("pulls/" + json.get("number").toString() + "/reviews")
+        request.post("pulls/" + this.id() + "/reviews")
                .body(query)
                .execute();
     }
 
     @Override
     public void updateReview(int id, String body) {
-        request.put("pulls/" + json.get("number").toString() + "/reviews/" + id)
+        request.put("pulls/" + this.id() + "/reviews/" + id)
                .body("body", body)
                .execute();
     }
@@ -240,7 +240,7 @@ public class GitHubPullRequest implements PullRequest {
                         .put("path", path)
                         .put("side", "RIGHT")
                         .put("line", line);
-        var response = request.post("pulls/" + json.get("number").toString() + "/comments")
+        var response = request.post("pulls/" + this.id() + "/comments")
                               .body(query)
                               .execute();
         return parseReviewComment(null, response.asObject());
@@ -251,7 +251,7 @@ public class GitHubPullRequest implements PullRequest {
         var query = JSON.object()
                         .put("body", body)
                         .put("in_reply_to", Integer.parseInt(parent.threadId()));
-        var response = request.post("pulls/" + json.get("number").toString() + "/comments")
+        var response = request.post("pulls/" + this.id() + "/comments")
                               .body(query)
                               .execute();
         return parseReviewComment(parent, response.asObject());
@@ -260,7 +260,7 @@ public class GitHubPullRequest implements PullRequest {
     @Override
     public List<ReviewComment> reviewComments() {
         var ret = new ArrayList<ReviewComment>();
-        var reviewComments = request.get("pulls/" + json.get("number").toString() + "/comments").execute().stream()
+        var reviewComments = request.get("pulls/" + this.id() + "/comments").execute().stream()
                                     .map(JSONValue::asObject)
                                     .collect(Collectors.toList());
         var idToComment = new HashMap<String, ReviewComment>();
@@ -314,7 +314,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public void setTitle(String title) {
-        request.patch("pulls/" + json.get("number").toString())
+        request.patch("pulls/" + this.id())
                .body("title", title)
                .execute();
     }
@@ -330,7 +330,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public void setBody(String body) {
-        request.patch("pulls/" + json.get("number").toString())
+        request.patch("pulls/" + this.id())
                .body("body", body)
                .execute();
     }
@@ -346,7 +346,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public List<Comment> comments() {
-        return request.get("issues/" + json.get("number").toString() + "/comments").execute().stream()
+        return request.get("issues/" + this.id() + "/comments").execute().stream()
                 .map(this::parseComment)
                 .collect(Collectors.toList());
     }
@@ -354,7 +354,7 @@ public class GitHubPullRequest implements PullRequest {
     @Override
     public Comment addComment(String body) {
         body = limitBodySize(body);
-        var comment = request.post("issues/" + json.get("number").toString() + "/comments")
+        var comment = request.post("issues/" + this.id() + "/comments")
                 .body("body", body)
                 .execute();
         return parseComment(comment);
@@ -398,10 +398,37 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public State state() {
-        if (json.get("state").asString().equals("open")) {
-            return State.OPEN;
+        return json.get("state").asString().equals("open") ? State.OPEN :
+              (json.get("merged_at").isNull() ? State.CLOSED : State.RESOLVED);
+    }
+
+    @Override
+    public void setState(State state) {
+        if (state == State.RESOLVED) {
+
+           /*
+            *
+            * SKARA-1663: Implement State.RESOLVED as a squash merge, until GitHub
+            * allows for marking a Pull Request as merged in the future.
+            *
+            * If a method for actual merging is required, the following implementation
+            * will suffice for the different types of merges GitHub allows for:
+            *
+            * request.put("pulls/" + this.id() + "/merge").body("merge_method", "merge")
+            *        .execute();
+            *
+            * Where "merge_method" can be set to one of: "rebase", "squash", or "merge"
+            *
+            */
+
+            request.put("pulls/" + this.id() + "/merge")
+                   .body("merge_method", "squash")
+                   .execute();
+        } else {
+            request.patch("pulls/" + this.id())
+                   .body("state", state == State.OPEN ? "open" : "closed")
+                   .execute();
         }
-        return State.CLOSED;
     }
 
     @Override
@@ -528,17 +555,10 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public void setState(State state) {
-        request.patch("pulls/" + json.get("number").toString())
-               .body("state", state != State.OPEN ? "closed" : "open")
-               .execute();
-    }
-
-    @Override
     public void addLabel(String label) {
         labels = null;
         var query = JSON.object().put("labels", JSON.array().add(label));
-        request.post("issues/" + json.get("number").toString() + "/labels")
+        request.post("issues/" + this.id() + "/labels")
                .body(query)
                .execute();
     }
@@ -546,7 +566,7 @@ public class GitHubPullRequest implements PullRequest {
     @Override
     public void removeLabel(String label) {
         labels = null;
-        request.delete("issues/" + json.get("number").toString() + "/labels/" + label)
+        request.delete("issues/" + this.id() + "/labels/" + label)
                .onError(r -> {
                    // The GitHub API explicitly states that 404 is the response for deleting labels currently not set
                    if (r.statusCode() == 404) {
@@ -564,7 +584,7 @@ public class GitHubPullRequest implements PullRequest {
             labelArray.add(label);
         }
         var query = JSON.object().put("labels", labelArray);
-        var newLabels = request.put("issues/" + json.get("number").toString() + "/labels")
+        var newLabels = request.put("issues/" + this.id() + "/labels")
                                .body(query)
                                .execute()
                                .stream()
@@ -576,7 +596,7 @@ public class GitHubPullRequest implements PullRequest {
     @Override
     public List<Label> labels() {
         if (labels == null) {
-            labels = request.get("issues/" + json.get("number").toString() + "/labels").execute().stream()
+            labels = request.get("issues/" + this.id() + "/labels").execute().stream()
                             .map(JSONValue::asObject)
                             .map(obj -> new Label(obj.get("name").asString(), obj.get("description").asString()))
                             .sorted()
@@ -621,7 +641,7 @@ public class GitHubPullRequest implements PullRequest {
             assignee_ids.add(assignee.username());
         }
         var param = JSON.object().put("assignees", assignee_ids);
-        request.patch("issues/" + json.get("number").toString()).body(param).execute();
+        request.patch("issues/" + this.id()).body(param).execute();
     }
 
     @Override
@@ -708,7 +728,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public Optional<ZonedDateTime> labelAddedAt(String label) {
-        return request.get("issues/" + json.get("number").toString() + "/timeline")
+        return request.get("issues/" + this.id() + "/timeline")
                       .execute()
                       .stream()
                       .map(JSONValue::asObject)
@@ -721,7 +741,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public void setTargetRef(String targetRef) {
-        request.patch("pulls/" + json.get("number").toString())
+        request.patch("pulls/" + this.id())
                .body("base", targetRef)
                .execute();
     }
@@ -734,7 +754,7 @@ public class GitHubPullRequest implements PullRequest {
     @Override
     public Diff diff() {
         // Need to specify an explicit per_page < 70 to guarantee that we get patch information in the result set.
-        var files = request.get("pulls/" + json.get("number").toString() + "/files")
+        var files = request.get("pulls/" + this.id() + "/files")
                            .param("per_page", "50")
                            .execute();
         var targetHash = repository.branchHash(targetRef()).orElseThrow();
@@ -747,7 +767,7 @@ public class GitHubPullRequest implements PullRequest {
             return Optional.empty();
         }
 
-        return request.get("issues/" + json.get("number").toString() + "/timeline")
+        return request.get("issues/" + this.id() + "/timeline")
                       .execute()
                       .stream()
                       .map(JSONValue::asObject)
@@ -765,7 +785,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public Optional<ZonedDateTime> lastForcePushTime() {
-        var timelineJSON = request.get("issues/" + json.get("number").toString() + "/timeline")
+        var timelineJSON = request.get("issues/" + this.id() + "/timeline")
                 .execute();
         return timelineJSON
                 .stream()

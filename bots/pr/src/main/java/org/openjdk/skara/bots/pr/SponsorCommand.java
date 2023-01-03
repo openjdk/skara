@@ -24,7 +24,10 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.vcs.Branch;
+import org.openjdk.skara.vcs.Commit;
 import org.openjdk.skara.vcs.Hash;
+import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -49,7 +52,7 @@ public class SponsorCommand implements CommandHandler {
 
         Optional<Hash> prePushHash = IntegrateCommand.checkForPrePushHash(bot, pr, scratchPath, allComments, "sponsor");
         if (prePushHash.isPresent()) {
-            markIntegratedAndClosed(pr, prePushHash.get(), reply);
+            IntegrateCommand.markIntegratedAndMerged(bot, scratchPath, pr, prePushHash.get(), reply);
             return;
         }
 
@@ -94,7 +97,28 @@ public class SponsorCommand implements CommandHandler {
             // Now that we have the integration lock, refresh the PR metadata
             pr = pr.repository().pullRequest(pr.id());
 
-            var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchPath, "sponsor");
+            Repository localRepo = new HostedRepositoryPool(bot.seedStorage().orElse(scratchPath.resolve("seeds")))
+                    .materialize(pr.repository(), scratchPath.resolve(pr.headHash().hex()));
+            localRepo.fetch(pr.repository().url(), pr.targetRef(), true);
+            localRepo.checkout(new Branch(pr.targetRef()), false);
+
+            // See markIntegratedAndMerged for the logic for rogue mark as merged handling
+            final List<Commit> commits = localRepo.commits(2).asList();
+            commits.forEach(commit -> log.fine(commit.toString()));
+            final Commit currentMarkAsMergedCommit =
+                    IntegrateCommand.isMarkAsMergeCommit(commits.get(0)) ? commits.get(0) : null;
+            final Commit lastMarkAsMergedCommit =
+                    (commits.size() == 2 ? (IntegrateCommand.isMarkAsMergeCommit(commits.get(1)) ? commits.get(1) : null) : null);
+
+            if (lastMarkAsMergedCommit != null) {
+                localRepo.reset(lastMarkAsMergedCommit.parents().get(0), true);
+                localRepo.push(lastMarkAsMergedCommit.parents().get(0), pr.repository().url(), pr.targetRef(), true);
+            } else if (currentMarkAsMergedCommit != null) {
+                localRepo.reset(currentMarkAsMergedCommit.parents().get(0), true);
+                localRepo.push(currentMarkAsMergedCommit.parents().get(0), pr.repository().url(), pr.targetRef(), true);
+            }
+
+            localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchPath, "sponsor");
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
                                                        bot.confOverrideRepository().orElse(null),
                                                        bot.confOverrideName(),
@@ -131,7 +155,7 @@ public class SponsorCommand implements CommandHandler {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 IntegrateCommand.addPrePushComment(pr, amendedHash, rebaseMessage.toString());
                 localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
-                markIntegratedAndClosed(pr, amendedHash, reply);
+                IntegrateCommand.markIntegratedAndMerged(bot, scratchPath, pr, amendedHash, reply);
             } else {
                 reply.print("Warning! This commit did not result in any changes! ");
                 reply.println("No push attempt will be made.");
@@ -142,10 +166,6 @@ public class SponsorCommand implements CommandHandler {
                                   "The error has been logged and will be investigated. It is possible that this error " +
                                   "is caused by a transient issue; feel free to retry the operation.");
         }
-    }
-
-    private void markIntegratedAndClosed(PullRequest pr, Hash amendedHash, PrintWriter reply) {
-        IntegrateCommand.markIntegratedAndClosed(pr, amendedHash, reply);
     }
 
     @Override

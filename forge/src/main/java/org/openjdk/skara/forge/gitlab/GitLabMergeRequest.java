@@ -343,8 +343,7 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public String targetRef() {
-        var targetRef = json.get("target_branch").asString();
-        return targetRef;
+        return json.get("target_branch").asString();
     }
 
     @Override
@@ -436,10 +435,39 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public State state() {
-        if (json.get("state").asString().equals("opened")) {
-            return State.OPEN;
+        final String state = json.get("state").asString();
+        return state.equals("opened") ? State.OPEN :
+              (state.equals("merged") ? State.RESOLVED : State.CLOSED);
+    }
+
+    @Override
+    public void setState(State state) {
+        if (state == State.RESOLVED) {
+
+            /*
+             *
+             * SKARA-1663: Implement State.RESOLVED as a squash merge, until GitLab
+             * allows for marking a Pull Request as merged in the future.
+             *
+             * If a method for actual merging is required, the following implementations
+             * will suffice for the different types of merges GitLab allows for:
+             *
+             * (In order of merge methods: Rebase, Merge, and Squash)
+             *
+             * request.put("rebase").execute();
+             * request.put("merge").body(JSON.object().put("squash", false)).execute();
+             * request.put("merge").body(JSON.object().put("squash", true)).execute();
+             *
+             */
+
+            request.put("merge")
+                   .body(JSON.object().put("squash", true))
+                   .execute();
+        } else {
+            request.put("")
+                   .body("state_event", state == State.OPEN ? "reopen" : "close")
+                   .execute();
         }
-        return State.CLOSED;
     }
 
     private final String checkMarker = "<!-- Merge request status check message (%s) -->";
@@ -637,13 +665,6 @@ public class GitLabMergeRequest implements PullRequest {
         return json.get("work_in_progress").asBoolean();
     }
 
-
-    @Override
-    public void setState(State state) {
-        request.put("")
-               .body("state_event", state != State.OPEN ? "close" : "reopen")
-               .execute();
-    }
 
     private Map<String, Label> labelNameToLabel;
 

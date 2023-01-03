@@ -24,6 +24,8 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.vcs.Branch;
+import org.openjdk.skara.vcs.Commit;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 
@@ -162,7 +164,7 @@ public class IntegrateCommand implements CommandHandler {
 
         Optional<Hash> prepushHash = checkForPrePushHash(bot, pr, scratchPath, allComments, "integrate");
         if (prepushHash.isPresent()) {
-            markIntegratedAndClosed(pr, prepushHash.get(), reply);
+            markIntegratedAndMerged(bot, scratchPath, pr, prepushHash.get(), reply);
             return;
         }
 
@@ -190,7 +192,28 @@ public class IntegrateCommand implements CommandHandler {
             // Now that we have the integration lock, refresh the PR metadata
             pr = pr.repository().pullRequest(pr.id());
 
-            Repository localRepo = materializeLocalRepo(bot, pr, scratchPath, "integrate");
+            Repository localRepo = new HostedRepositoryPool(bot.seedStorage().orElse(scratchPath.resolve("seeds")))
+                    .materialize(pr.repository(), scratchPath.resolve(pr.headHash().hex()));
+            localRepo.fetch(pr.repository().url(), pr.targetRef(), true);
+            localRepo.checkout(new Branch(pr.targetRef()), false);
+
+            // See markIntegratedAndMerged for the logic for rogue mark as merged handling
+            final List<Commit> commits = localRepo.commits(2).asList();
+            commits.forEach(commit -> log.fine(commit.toString()));
+            final Commit currentMarkAsMergedCommit =
+                    isMarkAsMergeCommit(commits.get(0)) ? commits.get(0) : null;
+            final Commit lastMarkAsMergedCommit =
+                    (commits.size() == 2 ? (isMarkAsMergeCommit(commits.get(1)) ? commits.get(1) : null) : null);
+
+            if (lastMarkAsMergedCommit != null) {
+                localRepo.reset(lastMarkAsMergedCommit.parents().get(0), true);
+                localRepo.push(lastMarkAsMergedCommit.parents().get(0), pr.repository().url(), pr.targetRef(), true);
+            } else if (currentMarkAsMergedCommit != null) {
+                localRepo.reset(currentMarkAsMergedCommit.parents().get(0), true);
+                localRepo.push(currentMarkAsMergedCommit.parents().get(0), pr.repository().url(), pr.targetRef(), true);
+            }
+
+            localRepo = materializeLocalRepo(bot, pr, scratchPath, "integrate");
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
                                                        bot.confOverrideRepository().orElse(null),
                                                        bot.confOverrideName(),
@@ -241,7 +264,7 @@ public class IntegrateCommand implements CommandHandler {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 addPrePushComment(pr, amendedHash, rebaseMessage.toString());
                 localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
-                markIntegratedAndClosed(pr, amendedHash, reply);
+                markIntegratedAndMerged(bot, scratchPath, pr, amendedHash, reply);
             } else {
                 reply.print("Warning! Your commit did not result in any changes! ");
                 reply.println("No push attempt will be made.");
@@ -325,11 +348,71 @@ public class IntegrateCommand implements CommandHandler {
         pr.addComment(commentBody.toString());
     }
 
-    static void markIntegratedAndClosed(PullRequest pr, Hash hash, PrintWriter reply) {
+    static void markIntegratedAndMerged(PullRequestBot bot, Path scratchPath, PullRequest pr, Hash hash, PrintWriter reply) {
         // Note that the order of operations here is tested in IntegrateTests::retryAfterInterrupt
         // so any change here requires careful update of that test
+        Repository repository;
+        Hash markMergedHash;
+        Commit currentMarkAsMergedCommit;
+        Commit lastMarkAsMergedCommit;
+
+        try {
+            repository = new HostedRepositoryPool(bot.seedStorage().orElse(scratchPath.resolve("seeds")))
+                      .materialize(pr.repository(), scratchPath.resolve(pr.headHash().hex()));
+            repository.fetch(pr.repository().url(), pr.targetRef(), true);
+            repository.checkout(new Branch(pr.targetRef()), false);
+            List<Commit> commits = repository.commits(2).asList();
+            commits.forEach(commit -> log.fine(commit.toString()));
+            currentMarkAsMergedCommit = isMarkAsMergeCommit(commits.get(0)) ? commits.get(0) : null;
+            // Work with the possibility that only a single commit exists on the repository
+            lastMarkAsMergedCommit =
+                    (commits.size() == 2 ? (isMarkAsMergeCommit(commits.get(1)) ? commits.get(1) : null) : null);
+
+            /*
+             * Not good, have to handle this now, since commits after a mark as merged one are
+             * treated as broken)
+             */
+            if (lastMarkAsMergedCommit != null) {
+                // Mark as Merged commits always have a preceding commit, same applies below
+                repository.reset(lastMarkAsMergedCommit.parents().get(0), true);
+                repository.push(lastMarkAsMergedCommit.parents().get(0), pr.repository().url(), pr.targetRef(), true);
+                lastMarkAsMergedCommit = null;
+
+                /*
+                 * In the unlikely and very erroneous case that 2 mark as merged commits are back
+                 * to back getting rid of the first one would remove the one that comes after
+                 */
+                currentMarkAsMergedCommit = null;
+            } else if (currentMarkAsMergedCommit != null) {
+                if (pr.state() == PullRequest.State.RESOLVED ||
+                        !currentMarkAsMergedCommit.message().get(0).substring(31).equals(hash.hex())) {
+                    repository.reset(currentMarkAsMergedCommit.parents().get(0), true);
+                    repository.push(currentMarkAsMergedCommit.parents().get(0), pr.repository().url(), pr.targetRef(), true);
+                    currentMarkAsMergedCommit = null;
+                }
+            }
+
+            /*
+             * Not needed if Pull Request is already marked as merged, or we are on our
+             * own mark as merged commit
+             */
+            if (pr.state() != PullRequest.State.RESOLVED && currentMarkAsMergedCommit == null) {
+                commits = repository.commits(hash.hex(), 2).asList();
+                commits.forEach(commit -> log.fine(commit.toString()));
+                // There is always at least one prior commit before the integrated one
+                repository.revert(commits.get(1).hash());
+                repository.addremove();
+                markMergedHash = repository.commit("Mark Integration as Merged for " + hash.hex(), "duke", "duke@openjdk.org");
+                repository.push(markMergedHash, pr.repository().url(), pr.targetRef(), false);
+            } else {
+                markMergedHash = (pr.state() == PullRequest.State.RESOLVED ? null : currentMarkAsMergedCommit.hash());
+            }
+        } catch (IOException exception) {
+            throw new UncheckedIOException(exception);
+        }
+
         pr.addLabel("integrated");
-        pr.setState(PullRequest.State.CLOSED);
+        if (pr.state() != PullRequest.State.RESOLVED) pr.setState(PullRequest.State.RESOLVED);
         pr.removeLabel("ready");
         pr.removeLabel("rfr");
         if (pr.labelNames().contains("delegated")) {
@@ -341,6 +424,22 @@ public class IntegrateCommand implements CommandHandler {
         reply.println(PullRequest.commitHashMessage(hash));
         reply.println();
         reply.println(":bulb: You may see a message that your pull request was closed with unmerged commits. This can be safely ignored.");
+
+        try {
+            if (markMergedHash != null) {
+                repository.reset(hash, true);
+                repository.push(hash, pr.repository().url(), pr.targetRef(), true);
+            }
+        } catch (IOException exception) {
+            throw new UncheckedIOException(exception);
+        }
+    }
+
+    static boolean isMarkAsMergeCommit(Commit commit) {
+        return commit.committer().name().equals("duke")
+                && commit.committer().email().equals("duke@openjdk.org")
+                && (commit.message().size() == 1 ?
+                    commit.message().get(0).startsWith("Mark Integration as Merged for ") : false);
     }
 
     @Override
