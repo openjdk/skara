@@ -407,7 +407,7 @@ public class GitLabRepository implements HostedRepository {
 
     @Override
     public Optional<Hash> branchHash(String ref) {
-        var branch = request.get("repository/branches/" + ref)
+        var branch = request.get("repository/branches/" + URLEncoder.encode(ref, StandardCharsets.US_ASCII))
                 .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
                 .execute();
         if (branch.contains("NOT_FOUND")) {
