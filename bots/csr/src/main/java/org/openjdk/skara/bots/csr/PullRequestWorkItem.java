@@ -155,6 +155,7 @@ class PullRequestWorkItem implements WorkItem {
         boolean allCSRApproved = true;
         boolean needToAddUpdateMarker = false;
         boolean existingCSR = false;
+        boolean existingWithdrawnCSR = false;
 
         for (var issue : issues) {
             var jbsIssueOpt = project.issue(issue.shortId());
@@ -225,6 +226,7 @@ class PullRequestWorkItem implements WorkItem {
                     // Because the PR author with the role of Committer may withdraw a CSR that
                     // a Reviewer had requested and integrate it without satisfying that requirement.
                     needToAddUpdateMarker = true;
+                    existingWithdrawnCSR = true;
                     log.info("CSR closed and withdrawn for csr issue " + csr.id() + " for " + describe(pr));
                 } else if (!pr.labelNames().contains(CSR_LABEL)) {
                     allCSRApproved = false;
@@ -248,7 +250,7 @@ class PullRequestWorkItem implements WorkItem {
         if (needToAddUpdateMarker) {
             addUpdateMarker(pr);
         }
-        if (allCSRApproved && existingCSR && pr.labelNames().contains(CSR_LABEL)) {
+        if (allCSRApproved && existingCSR && !existingWithdrawnCSR && pr.labelNames().contains(CSR_LABEL)) {
             log.info("All CSR issues closed and approved for " + describe(pr) + ", removing CSR label");
             pr.removeLabel(CSR_LABEL);
         }

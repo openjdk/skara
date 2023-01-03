@@ -555,7 +555,7 @@ class CSRBotTests {
     }
 
     @Test
-    void testPRWithMultipleIssues(TestInfo testInfo) throws IOException{
+    void testPRWithMultipleIssues(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -613,8 +613,8 @@ class CSRBotTests {
             csr2.setProperty("resolution", JSON.object().put("name", "Withdrawn"));
             TestBotRunner.runPeriodicItems(csrIssueBot);
             assertTrue(pr.store().body().contains(CSR_UPDATE_MARKER));
-            // PR should not contain csr label
-            assertFalse(pr.store().labelNames().contains("csr"));
+            // PR should still contain csr label
+            assertTrue(pr.store().labelNames().contains("csr"));
 
             // Add a csr to issue3
             var csr3 = issueProject.createIssue("This is an CSR for issue3", List.of(), Map.of());
@@ -629,6 +629,12 @@ class CSRBotTests {
             // Approve CSR3
             csr3.setState(Issue.State.CLOSED);
             csr3.setProperty("resolution", JSON.object().put("name", "Approved"));
+            TestBotRunner.runPeriodicItems(csrIssueBot);
+            // PR should still contain csr label
+            assertTrue(pr.store().labelNames().contains("csr"));
+
+            // Approve CSR2
+            csr2.setProperty("resolution", JSON.object().put("name", "Approved"));
             TestBotRunner.runPeriodicItems(csrIssueBot);
             // PR should not contain csr label
             assertFalse(pr.store().labelNames().contains("csr"));
