@@ -408,7 +408,7 @@ public class GitHubPullRequest implements PullRequest {
 
            /*
             *
-            * SKARA-1663: Implement State.RESOLVED as a squash merge, until GitHub
+            * SKARA-1663: Implement State.RESOLVED as a rebase for GitHub, until GitHub
             * allows for marking a Pull Request as merged in the future.
             *
             * If a method for actual merging is required, the following implementation
@@ -422,7 +422,7 @@ public class GitHubPullRequest implements PullRequest {
             */
 
             request.put("pulls/" + this.id() + "/merge")
-                   .body("merge_method", "squash")
+                   .body("merge_method", "rebase")
                    .execute();
         } else {
             request.patch("pulls/" + this.id())
@@ -799,7 +799,12 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public Optional<Hash> findIntegratedCommitHash() {
-        return findIntegratedCommitHash(List.of(repository.forge().currentUser().id()));
+        if (this.state() == State.RESOLVED) {
+            return Optional.of(new Hash(json.get("merge_commit_sha").asString()));
+        } else {
+            // Backwards Compatibility for older Pull Requests
+            return findIntegratedCommitHash(List.of(repository.forge().currentUser().id()));
+        }
     }
 
     /**

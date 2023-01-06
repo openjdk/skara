@@ -445,24 +445,24 @@ public class GitLabMergeRequest implements PullRequest {
         if (state == State.RESOLVED) {
 
             /*
-             *
-             * SKARA-1663: Implement State.RESOLVED as a squash merge, until GitLab
+             * SKARA-1663: Implement State.RESOLVED as a fast forward merge, until GitLab
              * allows for marking a Pull Request as merged in the future.
              *
              * If a method for actual merging is required, the following implementations
              * will suffice for the different types of merges GitLab allows for:
              *
-             * (In order of merge methods: Rebase, Merge, and Squash)
+             * (In order of merge methods: Merge, and Squash)
              *
-             * request.put("rebase").execute();
              * request.put("merge").body(JSON.object().put("squash", false)).execute();
-             * request.put("merge").body(JSON.object().put("squash", true)).execute();
+             * request.put("merge").body(JSON.object().put("squash", true)).execute();\
              *
+             * Merge Requests can be rebased in GitLab via:
+             * request.put("rebase").execute();
              */
 
-            request.put("merge")
-                   .body(JSON.object().put("squash", true))
-                   .execute();
+            // TODO Set repository merge setting to fast forward
+            request.put("merge").body(JSON.object().put("squash", false)).execute();
+            // TODO Maybe reset repository merge setting to original
         } else {
             request.put("")
                    .body("state_event", state == State.OPEN ? "reopen" : "close")
@@ -879,7 +879,13 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public Optional<Hash> findIntegratedCommitHash() {
-        return findIntegratedCommitHash(List.of(repository.forge().currentUser().id()));
+        final JSONValue result = json.get("merge_commit_sha");
+        if (result.isNull()) {
+            // Backwards Compatibility for older Pull Requests
+            return findIntegratedCommitHash(List.of(repository.forge().currentUser().id()));
+        } else {
+            return Optional.of(new Hash(result.asString()));
+        }
     }
 
     /**
