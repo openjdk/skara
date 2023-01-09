@@ -407,9 +407,7 @@ public class GitHubPullRequest implements PullRequest {
         if (state == State.RESOLVED) {
 
            /*
-            *
-            * SKARA-1663: Implement State.RESOLVED as a squash merge, until GitHub
-            * allows for marking a Pull Request as merged in the future.
+            * SKARA-1663: State.RESOLVED cannot be set directly.
             *
             * If a method for actual merging is required, the following implementation
             * will suffice for the different types of merges GitHub allows for:
@@ -418,12 +416,9 @@ public class GitHubPullRequest implements PullRequest {
             *        .execute();
             *
             * Where "merge_method" can be set to one of: "rebase", "squash", or "merge"
-            *
             */
 
-            request.put("pulls/" + this.id() + "/merge")
-                   .body("merge_method", "squash")
-                   .execute();
+            throw new UnsupportedOperationException();
         } else {
             request.patch("pulls/" + this.id())
                    .body("state", state == State.OPEN ? "open" : "closed")

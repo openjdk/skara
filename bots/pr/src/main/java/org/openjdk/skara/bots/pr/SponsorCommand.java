@@ -25,7 +25,6 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.Branch;
-import org.openjdk.skara.vcs.Commit;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 
@@ -52,7 +51,18 @@ public class SponsorCommand implements CommandHandler {
 
         Optional<Hash> prePushHash = IntegrateCommand.checkForPrePushHash(bot, pr, scratchPath, allComments, "sponsor");
         if (prePushHash.isPresent()) {
-            IntegrateCommand.markIntegratedAndMerged(bot, scratchPath, pr, prePushHash.get(), reply);
+            if (pr.state() == PullRequest.State.OPEN) {
+                try {
+                    final Repository repository = IntegrateCommand.materializeLocalRepo(bot, pr, scratchPath, "sponsor");
+                    repository.fetch(pr.repository().url(), "+" + pr.targetRef() + ":" + pr.sourceRef());
+                    repository.checkout(new Branch(pr.sourceRef()));
+                    repository.reset(prePushHash.get(), true);
+                    repository.push(prePushHash.get(), pr.sourceRepository().orElseThrow().url(), pr.sourceRef(), true);
+                } catch (IOException exception) {
+                    throw new UncheckedIOException(exception);
+                }
+            }
+            IntegrateCommand.markIntegrated(pr, prePushHash.get(), reply);
             return;
         }
 
@@ -97,28 +107,7 @@ public class SponsorCommand implements CommandHandler {
             // Now that we have the integration lock, refresh the PR metadata
             pr = pr.repository().pullRequest(pr.id());
 
-            Repository localRepo = new HostedRepositoryPool(bot.seedStorage().orElse(scratchPath.resolve("seeds")))
-                    .materialize(pr.repository(), scratchPath.resolve(pr.targetRef() + "/" + pr.headHash().hex()));
-            localRepo.fetch(pr.repository().url(), "+" + pr.targetRef() + ":" + pr.targetRef() + pr.headHash().hex(), true);
-            localRepo.checkout(new Branch(pr.targetRef() + pr.headHash().hex()), false);
-
-            // See markIntegratedAndMerged for the logic for rogue mark as merged handling
-            final List<Commit> commits = localRepo.commits(2).asList();
-            commits.forEach(commit -> log.fine(commit.toString()));
-            final Commit currentMarkAsMergedCommit =
-                    IntegrateCommand.isMarkAsMergeCommit(commits.get(0)) ? commits.get(0) : null;
-            final Commit lastMarkAsMergedCommit =
-                    (commits.size() == 2 ? (IntegrateCommand.isMarkAsMergeCommit(commits.get(1)) ? commits.get(1) : null) : null);
-
-            if (lastMarkAsMergedCommit != null) {
-                localRepo.reset(lastMarkAsMergedCommit.parents().get(0), true);
-                localRepo.push(lastMarkAsMergedCommit.parents().get(0), pr.repository().url(), pr.targetRef(), true);
-            } else if (currentMarkAsMergedCommit != null) {
-                localRepo.reset(currentMarkAsMergedCommit.parents().get(0), true);
-                localRepo.push(currentMarkAsMergedCommit.parents().get(0), pr.repository().url(), pr.targetRef(), true);
-            }
-
-            localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchPath, "sponsor");
+            Repository localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchPath, "sponsor");
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
                                                        bot.confOverrideRepository().orElse(null),
                                                        bot.confOverrideName(),
@@ -155,7 +144,8 @@ public class SponsorCommand implements CommandHandler {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 IntegrateCommand.addPrePushComment(pr, amendedHash, rebaseMessage.toString());
                 localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
-                IntegrateCommand.markIntegratedAndMerged(bot, scratchPath, pr, amendedHash, reply);
+                localRepo.push(amendedHash, pr.sourceRepository().orElseThrow().url(), pr.sourceRef(), true);
+                IntegrateCommand.markIntegrated(pr, amendedHash, reply);
             } else {
                 reply.print("Warning! This commit did not result in any changes! ");
                 reply.println("No push attempt will be made.");

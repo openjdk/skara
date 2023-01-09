@@ -445,24 +445,21 @@ public class GitLabMergeRequest implements PullRequest {
         if (state == State.RESOLVED) {
 
             /*
-             *
-             * SKARA-1663: Implement State.RESOLVED as a squash merge, until GitLab
-             * allows for marking a Pull Request as merged in the future.
+             * SKARA-1663: State.RESOLVED cannot be set directly.
              *
              * If a method for actual merging is required, the following implementations
              * will suffice for the different types of merges GitLab allows for:
              *
              * (In order of merge methods: Rebase, Merge, and Squash)
              *
-             * request.put("rebase").execute();
              * request.put("merge").body(JSON.object().put("squash", false)).execute();
              * request.put("merge").body(JSON.object().put("squash", true)).execute();
              *
+             * Merge Request branches can be rebased via:
+             * request.put("rebase").execute();
              */
 
-            request.put("merge")
-                   .body(JSON.object().put("squash", true))
-                   .execute();
+            throw new UnsupportedOperationException();
         } else {
             request.put("")
                    .body("state_event", state == State.OPEN ? "reopen" : "close")
