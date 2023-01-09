@@ -227,7 +227,7 @@ class PullRequestWorkItem implements WorkItem {
                     // Because the PR author with the role of Committer may withdraw a CSR that
                     // a Reviewer had requested and integrate it without satisfying that requirement.
                     needToAddUpdateMarker = true;
-                    if (CSRNeeded(pr.comments())) {
+                    if (isCSRNeeded(pr.comments())) {
                         withdrawnCSRWhenCSRNeeded = true;
                     }
                     log.info("CSR closed and withdrawn for csr issue " + csr.id() + " for " + describe(pr));
@@ -264,17 +264,17 @@ class PullRequestWorkItem implements WorkItem {
     /**
      * Determine whether the CSR label is added via '/csr needed' command
      */
-    private boolean CSRNeeded(List<Comment> comments) {
-        var CSRNeededCommentCount = 0;
-        for (var comment : comments) {
+    private boolean isCSRNeeded(List<Comment> comments) {
+        for (int i = comments.size() - 1; i >= 0; i--) {
+            var comment = comments.get(i);
             if (comment.body().contains("<!-- csr: 'needed' -->")) {
-                CSRNeededCommentCount++;
+                return true;
             }
-            if (comment.body().contains("<!-- csr: 'unneeded' -->") && CSRNeededCommentCount > 0) {
-                CSRNeededCommentCount--;
+            if (comment.body().contains("<!-- csr: 'unneeded' -->")) {
+                return false;
             }
         }
-        return CSRNeededCommentCount > 0;
+        return false;
     }
 
     private void logLatency() {
