@@ -372,7 +372,7 @@ class SponsorTests {
 
             // The bot should reply with an ok message
             var prePush = pr.comments().stream()
-                    .filter(comment -> comment.body().contains("Going to push as commit"))
+                    .filter(comment -> comment.body().contains("Recording snapshot of final changes as commit"))
                     .filter(comment -> comment.body().contains("commit was automatically rebased without conflicts"))
                     .count();
             assertEquals(1, prePush);

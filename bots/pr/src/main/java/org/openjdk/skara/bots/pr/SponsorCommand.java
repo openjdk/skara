@@ -24,7 +24,6 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 
@@ -49,21 +48,10 @@ public class SponsorCommand implements CommandHandler {
             return;
         }
 
-        Optional<Hash> prePushHash = IntegrateCommand.checkForPrePushHash(bot, pr, scratchPath, allComments, "sponsor");
-        if (prePushHash.isPresent()) {
-            if (pr.state() == PullRequest.State.OPEN) {
-                try {
-                    final Repository repository = IntegrateCommand.materializeLocalRepo(bot, pr, scratchPath, "sponsor");
-                    repository.fetch(pr.repository().url(), "+" + pr.targetRef() + ":" + pr.sourceRef());
-                    repository.checkout(new Branch(pr.sourceRef()));
-                    repository.reset(prePushHash.get(), true);
-                    repository.push(prePushHash.get(), pr.sourceRepository().orElseThrow().url(), pr.sourceRef(), true);
-                } catch (IOException exception) {
-                    throw new UncheckedIOException(exception);
-                }
-            }
-            IntegrateCommand.markIntegrated(pr, prePushHash.get(), reply);
-            return;
+        // final Optional<Hash> prePushHash = IntegrateCommand.checkForPrePushHash(bot, pr, scratchPath, allComments, "sponsor");
+
+        if (pr.state() == PullRequest.State.RESOLVED) {
+            IntegrateCommand.markIntegratedAndMerge(pr, reply);
         }
 
         var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().forge().currentUser(), allComments);
@@ -104,10 +92,19 @@ public class SponsorCommand implements CommandHandler {
                 return;
             }
 
+            final boolean integrationBranchExists = pr.repository().branchHash("integration/" + pr.id()).isPresent();
+
             // Now that we have the integration lock, refresh the PR metadata
             pr = pr.repository().pullRequest(pr.id());
 
             Repository localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchPath, "sponsor");
+
+            if (integrationBranchExists) {
+                final Hash last = localRepo.fetch(pr.repository().url(), "+integration/" + pr.id() + ":integration/" + pr.id(), true);
+                localRepo.push(last, pr.sourceRepository().orElseThrow().url(), pr.sourceRef(), true);
+                pr = pr.repository().pullRequest(pr.id());
+            }
+
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
                                                        bot.confOverrideRepository().orElse(null),
                                                        bot.confOverrideName(),
@@ -128,6 +125,9 @@ public class SponsorCommand implements CommandHandler {
             var rebaseWriter = new PrintWriter(rebaseMessage);
             var rebasedHash = checkablePr.mergeTarget(rebaseWriter);
             if (rebasedHash.isEmpty()) {
+                if (integrationBranchExists) {
+                    pr.repository().deleteBranch("integration/" + pr.id());
+                }
                 reply.println(rebaseMessage);
                 return;
             }
@@ -142,10 +142,10 @@ public class SponsorCommand implements CommandHandler {
 
             if (!localHash.equals(checkablePr.targetHash())) {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
+                localRepo.push(amendedHash, pr.repository().url(), "integration/" + pr.id(), true);
                 IntegrateCommand.addPrePushComment(pr, amendedHash, rebaseMessage.toString());
-                localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
                 localRepo.push(amendedHash, pr.sourceRepository().orElseThrow().url(), pr.sourceRef(), true);
-                IntegrateCommand.markIntegrated(pr, amendedHash, reply);
+                IntegrateCommand.markIntegratedAndMerge(pr, reply);
             } else {
                 reply.print("Warning! This commit did not result in any changes! ");
                 reply.println("No push attempt will be made.");

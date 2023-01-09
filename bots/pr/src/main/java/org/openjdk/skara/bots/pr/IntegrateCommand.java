@@ -26,6 +26,11 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
+
+import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.vcs.Hash;
+import org.openjdk.skara.vcs.Repository;
+
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.HashSet;
@@ -44,10 +49,6 @@ import org.openjdk.skara.forge.CommitFailure;
 import org.openjdk.skara.forge.HostedRepositoryPool;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.forge.PullRequestUtils;
-import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.vcs.Branch;
-import org.openjdk.skara.vcs.Hash;
-import org.openjdk.skara.vcs.Repository;
 
 public class IntegrateCommand implements CommandHandler {
     private final static Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
@@ -172,21 +173,10 @@ public class IntegrateCommand implements CommandHandler {
             return;
         }
 
-        Optional<Hash> prepushHash = checkForPrePushHash(bot, pr, scratchPath, allComments, "integrate");
-        if (prepushHash.isPresent()) {
-            if (pr.state() == PullRequest.State.OPEN) {
-                try {
-                    final Repository repository = materializeLocalRepo(bot, pr, scratchPath, "integrate");
-                    repository.fetch(pr.repository().url(), "+" + pr.targetRef() + ":" + pr.sourceRef());
-                    repository.checkout(new Branch(pr.sourceRef()));
-                    repository.reset(prepushHash.get(), true);
-                    repository.push(prepushHash.get(), pr.sourceRepository().orElseThrow().url(), pr.sourceRef(), true);
-                } catch (IOException exception) {
-                    throw new UncheckedIOException(exception);
-                }
-            }
-            markIntegrated(pr, prepushHash.get(), reply);
-            return;
+        // final Optional<Hash> prepushHash = checkForPrePushHash(bot, pr, scratchPath, allComments, "integrate");
+
+        if (pr.state() == PullRequest.State.RESOLVED) {
+            markIntegratedAndMerge(pr, reply);
         }
 
         var problem = checkProblem(pr.checks(pr.headHash()), "jcheck", pr);
@@ -210,10 +200,19 @@ public class IntegrateCommand implements CommandHandler {
                 return;
             }
 
+            final boolean integrationBranchExists = pr.repository().branchHash("integration/" + pr.id()).isPresent();
+
             // Now that we have the integration lock, refresh the PR metadata
             pr = pr.repository().pullRequest(pr.id());
 
             Repository localRepo = materializeLocalRepo(bot, pr, scratchPath, "integrate");
+
+            if (integrationBranchExists) {
+                final Hash last = localRepo.fetch(pr.repository().url(), "+integration/" + pr.id() + ":integration/" + pr.id(), true);
+                localRepo.push(last, pr.sourceRepository().orElseThrow().url(), pr.sourceRef(), true);
+                pr = pr.repository().pullRequest(pr.id());
+            }
+
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
                                                        bot.confOverrideRepository().orElse(null),
                                                        bot.confOverrideName(),
@@ -230,6 +229,9 @@ public class IntegrateCommand implements CommandHandler {
             var rebaseWriter = new PrintWriter(rebaseMessage);
             var rebasedHash = checkablePr.mergeTarget(rebaseWriter);
             if (rebasedHash.isEmpty()) {
+                if (integrationBranchExists) {
+                    pr.repository().deleteBranch("integration/" + pr.id());
+                }
                 reply.println(rebaseMessage);
                 return;
             }
@@ -262,10 +264,11 @@ public class IntegrateCommand implements CommandHandler {
             // Rebase and push it!
             if (!localHash.equals(checkablePr.targetHash())) {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
+                localRepo.push(amendedHash, pr.repository().url(), "integration/" + pr.id(), true);
                 addPrePushComment(pr, amendedHash, rebaseMessage.toString());
-                localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
+                // Force the Pull Request branch to accept edits from maintainers somehow?
                 localRepo.push(amendedHash, pr.sourceRepository().orElseThrow().url(), pr.sourceRef(), true);
-                markIntegrated(pr, amendedHash, reply);
+                markIntegratedAndMerge(pr, reply);
             } else {
                 reply.print("Warning! Your commit did not result in any changes! ");
                 reply.println("No push attempt will be made.");
@@ -342,17 +345,21 @@ public class IntegrateCommand implements CommandHandler {
         var commentBody = new StringWriter();
         var writer = new PrintWriter(commentBody);
         writer.println(PRE_PUSH_MARKER.formatted(hash.hex()));
-        writer.println("Going to push as commit " + hash.hex() + ".");
+        writer.println("Recording snapshot of final changes as commit " + hash.hex() + ".");
+        writer.println("New changes can no longer be made past this point, except for if an automatic rebase fails.");
         if (!extraMessage.isBlank()) {
             writer.println(extraMessage);
         }
         pr.addComment(commentBody.toString());
     }
 
-    static void markIntegrated(PullRequest pr, Hash hash, PrintWriter reply) {
+    static void markIntegratedAndMerge(PullRequest pr,PrintWriter reply) {
         // Note that the order of operations here is tested in IntegrateTests::retryAfterInterrupt
         // so any change here requires careful update of that test
         pr.addLabel("integrated");
+        if (pr.state() != PullRequest.State.RESOLVED) {
+            pr.setState(PullRequest.State.RESOLVED);
+        }
         pr.removeLabel("ready");
         pr.removeLabel("rfr");
         if (pr.labelNames().contains("delegated")) {
@@ -361,9 +368,10 @@ public class IntegrateCommand implements CommandHandler {
         if (pr.labelNames().contains("sponsor")) {
             pr.removeLabel("sponsor");
         }
-        reply.println(PullRequest.commitHashMessage(hash));
+        reply.println(PullRequest.commitHashMessage(pr.findIntegratedCommitHash().get()));
         reply.println();
-        reply.println(":bulb: You may see changes to your pull request during integration. This can be safely ignored.");
+        reply.println(":bulb: You may see a message that branches were created around your pull request. This can be safely ignored.");
+        pr.repository().deleteBranch("integration/" + pr.id());
     }
 
     @Override
