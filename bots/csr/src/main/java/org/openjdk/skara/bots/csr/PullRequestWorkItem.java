@@ -37,6 +37,7 @@ import org.openjdk.skara.bots.common.BotUtils;
 import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.jbs.Backports;
@@ -155,7 +156,7 @@ class PullRequestWorkItem implements WorkItem {
         boolean allCSRApproved = true;
         boolean needToAddUpdateMarker = false;
         boolean existingCSR = false;
-        boolean existingWithdrawnCSR = false;
+        boolean withdrawnCSRWhenCSRNeeded = false;
 
         for (var issue : issues) {
             var jbsIssueOpt = project.issue(issue.shortId());
@@ -226,7 +227,9 @@ class PullRequestWorkItem implements WorkItem {
                     // Because the PR author with the role of Committer may withdraw a CSR that
                     // a Reviewer had requested and integrate it without satisfying that requirement.
                     needToAddUpdateMarker = true;
-                    existingWithdrawnCSR = true;
+                    if (CSRNeeded(pr.comments())) {
+                        withdrawnCSRWhenCSRNeeded = true;
+                    }
                     log.info("CSR closed and withdrawn for csr issue " + csr.id() + " for " + describe(pr));
                 } else if (!pr.labelNames().contains(CSR_LABEL)) {
                     allCSRApproved = false;
@@ -250,12 +253,28 @@ class PullRequestWorkItem implements WorkItem {
         if (needToAddUpdateMarker) {
             addUpdateMarker(pr);
         }
-        if (allCSRApproved && existingCSR && !existingWithdrawnCSR && pr.labelNames().contains(CSR_LABEL)) {
+        if (allCSRApproved && existingCSR && !withdrawnCSRWhenCSRNeeded && pr.labelNames().contains(CSR_LABEL)) {
             log.info("All CSR issues closed and approved for " + describe(pr) + ", removing CSR label");
             pr.removeLabel(CSR_LABEL);
         }
         logLatency();
         return List.of();
+    }
+
+    /**
+     * Determine whether the CSR label is added via '/csr needed' command
+     */
+    private boolean CSRNeeded(List<Comment> comments) {
+        var CSRNeededCommentCount = 0;
+        for (var comment : comments) {
+            if (comment.body().contains("<!-- csr: 'needed' -->")) {
+                CSRNeededCommentCount++;
+            }
+            if (comment.body().contains("<!-- csr: 'unneeded' -->") && CSRNeededCommentCount > 0) {
+                CSRNeededCommentCount--;
+            }
+        }
+        return CSRNeededCommentCount > 0;
     }
 
     private void logLatency() {
