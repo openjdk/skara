@@ -469,7 +469,7 @@ public class GitRepository implements Repository {
 
     @Override
     public void revert(Hash h) throws IOException {
-        try (var p = capture("git", "checkout", "--recurse-submodules", h.hex(), "--", ".")) {
+        try (var p = capture("git", "restore", "--recurse-submodules", "--source", h.hex(), "--", ".")) {
             await(p);
         }
     }
