@@ -226,7 +226,9 @@ class PullRequestWorkItem implements WorkItem {
                     // And the bot can't remove the CSR label automatically here.
                     // Because the PR author with the role of Committer may withdraw a CSR that
                     // a Reviewer had requested and integrate it without satisfying that requirement.
-                    needToAddUpdateMarker = true;
+                    if (!hasCsrIssue(getStatusMessage(pr), csr)) {
+                        needToAddUpdateMarker = true;
+                    }
                     log.info("CSR closed and withdrawn for csr issue " + csr.id() + " for " + describe(pr));
                 } else if (!pr.labelNames().contains(CSR_LABEL)) {
                     notExistingUnresolvedCSR = false;
