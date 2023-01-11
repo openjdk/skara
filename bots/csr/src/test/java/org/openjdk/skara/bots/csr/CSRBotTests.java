@@ -613,7 +613,7 @@ class CSRBotTests {
             csr2.setProperty("resolution", JSON.object().put("name", "Withdrawn"));
             TestBotRunner.runPeriodicItems(csrIssueBot);
             assertTrue(pr.store().body().contains(CSR_UPDATE_MARKER));
-            // PR should not contain csr label because CSR label is not added via '/csr needed'
+            // PR should not contain csr label
             assertFalse(pr.store().labelNames().contains("csr"));
 
             // Add a csr to issue3

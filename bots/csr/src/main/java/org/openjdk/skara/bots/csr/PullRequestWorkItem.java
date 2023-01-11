@@ -153,16 +153,16 @@ class PullRequestWorkItem implements WorkItem {
             return List.of();
         }
 
-        boolean allCSRApproved = true;
+        boolean notExistingUnresolvedCSR = true;
         boolean needToAddUpdateMarker = false;
         boolean existingCSR = false;
-        boolean withdrawnCSRWhenCSRNeeded = false;
+        boolean existingApprovedCSR = false;
 
         for (var issue : issues) {
             var jbsIssueOpt = project.issue(issue.shortId());
             if (jbsIssueOpt.isEmpty()) {
                 // An issue could not be found, so the csr label cannot be removed
-                allCSRApproved = false;
+                notExistingUnresolvedCSR = false;
                 var issueId = issue.project().isEmpty() ? (project.name() + "-" + issue.id()) : issue.id();
                 log.info(issueId + " for " + describe(pr) + " not found");
                 continue;
@@ -187,7 +187,7 @@ class PullRequestWorkItem implements WorkItem {
 
             var resolution = csr.properties().get("resolution");
             if (resolution == null || resolution.isNull()) {
-                allCSRApproved = false;
+                notExistingUnresolvedCSR = false;
                 if (!pr.labelNames().contains(CSR_LABEL)) {
                     log.info("CSR issue resolution is null for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
                     pr.addLabel(CSR_LABEL);
@@ -199,7 +199,7 @@ class PullRequestWorkItem implements WorkItem {
 
             var name = resolution.get("name");
             if (name == null || name.isNull()) {
-                allCSRApproved = false;
+                notExistingUnresolvedCSR = false;
                 if (!pr.labelNames().contains(CSR_LABEL)) {
                     log.info("CSR issue resolution name is null for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
                     pr.addLabel(CSR_LABEL);
@@ -210,7 +210,7 @@ class PullRequestWorkItem implements WorkItem {
             }
 
             if (csr.state() != Issue.State.CLOSED) {
-                allCSRApproved = false;
+                notExistingUnresolvedCSR = false;
                 if (!pr.labelNames().contains(CSR_LABEL)) {
                     log.info("CSR issue state is not closed for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
                     pr.addLabel(CSR_LABEL);
@@ -227,19 +227,18 @@ class PullRequestWorkItem implements WorkItem {
                     // Because the PR author with the role of Committer may withdraw a CSR that
                     // a Reviewer had requested and integrate it without satisfying that requirement.
                     needToAddUpdateMarker = true;
-                    if (isCSRNeeded(pr.comments())) {
-                        withdrawnCSRWhenCSRNeeded = true;
-                    }
                     log.info("CSR closed and withdrawn for csr issue " + csr.id() + " for " + describe(pr));
                 } else if (!pr.labelNames().contains(CSR_LABEL)) {
-                    allCSRApproved = false;
+                    notExistingUnresolvedCSR = false;
                     log.info("CSR issue resolution is not 'Approved' for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
                     pr.addLabel(CSR_LABEL);
                 } else {
-                    allCSRApproved = false;
+                    notExistingUnresolvedCSR = false;
                     log.info("CSR issue resolution is not 'Approved' for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
                 }
                 continue;
+            } else {
+                existingApprovedCSR = true;
             }
 
             // The CSR issue has been closed and approved
@@ -253,7 +252,7 @@ class PullRequestWorkItem implements WorkItem {
         if (needToAddUpdateMarker) {
             addUpdateMarker(pr);
         }
-        if (allCSRApproved && existingCSR && !withdrawnCSRWhenCSRNeeded && pr.labelNames().contains(CSR_LABEL)) {
+        if (notExistingUnresolvedCSR && existingCSR && (!isCSRNeeded(pr.comments()) || existingApprovedCSR) && pr.labelNames().contains(CSR_LABEL)) {
             log.info("All CSR issues closed and approved for " + describe(pr) + ", removing CSR label");
             pr.removeLabel(CSR_LABEL);
         }
