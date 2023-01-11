@@ -113,6 +113,12 @@ class PullRequestWorkItem implements WorkItem {
                 statusMessage.contains(csr.title() + " (**CSR**)");
     }
 
+    private boolean hasWithdrawnCsrIssue(String statusMessage, Issue csr) {
+        return statusMessage.contains(csr.id()) &&
+                statusMessage.contains(csr.webUrl().toString()) &&
+                statusMessage.contains(csr.title() + " (**CSR**) (Withdrawn)");
+    }
+
     private String getStatusMessage(PullRequest pr) {
         var lastIndex = pr.body().lastIndexOf(PROGRESS_MARKER);
         if (lastIndex == -1) {
@@ -226,7 +232,7 @@ class PullRequestWorkItem implements WorkItem {
                     // And the bot can't remove the CSR label automatically here.
                     // Because the PR author with the role of Committer may withdraw a CSR that
                     // a Reviewer had requested and integrate it without satisfying that requirement.
-                    if (!hasCsrIssue(getStatusMessage(pr), csr)) {
+                    if (!hasWithdrawnCsrIssue(getStatusMessage(pr), csr)) {
                         needToAddUpdateMarker = true;
                     }
                     log.info("CSR closed and withdrawn for csr issue " + csr.id() + " for " + describe(pr));
