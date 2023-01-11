@@ -1160,13 +1160,15 @@ class CheckRun {
             var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace(), original.map(Commit::hash).orElse(null));
             var commit = localRepo.lookup(amendedHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
-            var readyForIntegration = visitor.messages().isEmpty() &&
+            var readyForIntegration = newLabels.contains("rfr") &&
+                                      visitor.messages().isEmpty() &&
                                       additionalErrors.isEmpty() &&
                                       !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty();
             if (isCleanBackport) {
                 // Reviews are not needed for clean backports
-                readyForIntegration = visitor.isReadyForReview() &&
+                readyForIntegration = newLabels.contains("rfr") &&
+                                      visitor.isReadyForReview() &&
                                       additionalErrors.isEmpty() &&
                                       !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty();
