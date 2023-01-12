@@ -383,24 +383,26 @@ class CheckRun {
         }
     }
 
-    private void updateReadyForReview(PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
+    private boolean updateReadyForReview(PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
         // Additional errors are not allowed
         if (!additionalErrors.isEmpty()) {
             newLabels.remove("rfr");
-            return;
+            return false;
         }
 
         // Draft requests are not for review
         if (pr.isDraft()) {
             newLabels.remove("rfr");
-            return;
+            return false;
         }
 
         // Check if the visitor found any issues that should be resolved before reviewing
         if (visitor.isReadyForReview()) {
             newLabels.add("rfr");
+            return true;
         } else {
             newLabels.remove("rfr");
+            return false;
         }
     }
 
@@ -1147,7 +1149,7 @@ class CheckRun {
                 additionalProgresses = botSpecificProgresses();
             }
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
-            updateReadyForReview(visitor, additionalErrors);
+            var readyForReview = updateReadyForReview(visitor, additionalErrors);
 
             var integrationBlockers = botSpecificIntegrationBlockers();
             integrationBlockers.addAll(secondJCheckMessage);
@@ -1160,14 +1162,13 @@ class CheckRun {
             var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace(), original.map(Commit::hash).orElse(null));
             var commit = localRepo.lookup(amendedHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
-            var readyForIntegration = visitor.messages().isEmpty() &&
-                                      additionalErrors.isEmpty() &&
+            var readyForIntegration = readyForReview &&
+                                      visitor.messages().isEmpty() &&
                                       !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty();
             if (isCleanBackport) {
                 // Reviews are not needed for clean backports
-                readyForIntegration = visitor.isReadyForReview() &&
-                                      additionalErrors.isEmpty() &&
+                readyForIntegration = readyForReview &&
                                       !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty();
             }
