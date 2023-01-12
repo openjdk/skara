@@ -517,8 +517,8 @@ class CheckRun {
         return ret.toString();
     }
 
-    private String getChecksList(PullRequestCheckIssueVisitor visitor, boolean isCleanBackport, Map<String, Boolean> additionalProgresses) {
-        var checks = isCleanBackport ? visitor.getReadyForReviewChecks() : visitor.getChecks();
+    private String getChecksList(PullRequestCheckIssueVisitor visitor, boolean noNeedReview, Map<String, Boolean> additionalProgresses) {
+        var checks = noNeedReview ? visitor.getReadyForReviewChecks() : visitor.getChecks();
         checks.putAll(additionalProgresses);
         return checks.entrySet().stream()
                 .map(entry -> "- [" + (entry.getValue() ? "x" : " ") + "] " + entry.getKey())
@@ -610,11 +610,11 @@ class CheckRun {
 
     private String getStatusMessage(PullRequestCheckIssueVisitor visitor,
                                     List<String> additionalErrors, Map<String, Boolean> additionalProgresses,
-                                    List<String> integrationBlockers, boolean isCleanBackport) {
+                                    List<String> integrationBlockers, boolean noNeedReview) {
         var progressBody = new StringBuilder();
         progressBody.append("---------\n");
         progressBody.append("### Progress\n");
-        progressBody.append(getChecksList(visitor, isCleanBackport, additionalProgresses));
+        progressBody.append(getChecksList(visitor, noNeedReview, additionalProgresses));
 
         var allAdditionalErrors = Stream.concat(visitor.hiddenMessages().stream(), additionalErrors.stream())
                                         .sorted()
@@ -1157,8 +1157,10 @@ class CheckRun {
             var integrationBlockers = botSpecificIntegrationBlockers();
             integrationBlockers.addAll(secondJCheckMessage);
 
+            var noNeedReview = isCleanBackport && !requiresReviewForBackport;
+
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, isCleanBackport);
+            var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, noNeedReview);
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
 
@@ -1169,7 +1171,7 @@ class CheckRun {
                                       visitor.messages().isEmpty() &&
                                       !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty();
-            if (isCleanBackport && !requiresReviewForBackport) {
+            if (noNeedReview) {
                 // Reviews are not needed for clean backports if this repo is not configured with requiresReviewForBackport enabled
                 readyForIntegration = readyForReview &&
                                       !additionalProgresses.containsValue(false) &&
