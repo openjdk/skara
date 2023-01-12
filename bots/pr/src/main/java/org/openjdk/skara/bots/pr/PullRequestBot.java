@@ -64,6 +64,7 @@ class PullRequestBot implements Bot {
     private final boolean enableJep;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private final PullRequestPoller poller;
+    private final boolean requiresReviewForBackport;
 
     private Instant lastFullUpdate;
 
@@ -75,7 +76,8 @@ class PullRequestBot implements Bot {
                    boolean ignoreStaleReviews, Pattern allowedTargetBranches,
                    Path seedStorage, HostedRepository confOverrideRepo, String confOverrideName,
                    String confOverrideRef, String censusLink, Map<String, HostedRepository> forks,
-                   Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr, boolean enableJep) {
+                   Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr, boolean enableJep,
+                   boolean requiresReviewForBackport) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -100,7 +102,7 @@ class PullRequestBot implements Bot {
         this.excludeCommitCommentsFrom = excludeCommitCommentsFrom;
         this.enableCsr = enableCsr;
         this.enableJep = enableJep;
-
+        this.requiresReviewForBackport = requiresReviewForBackport;
         autoLabelled = new HashSet<>();
         poller = new PullRequestPoller(repo, true);
 
@@ -260,6 +262,10 @@ class PullRequestBot implements Bot {
         synchronized (autoLabelled) {
             autoLabelled.add(pr.id());
         }
+    }
+
+    public boolean requiresReviewForBackport() {
+        return requiresReviewForBackport;
     }
 
     public Set<String> integrators() {

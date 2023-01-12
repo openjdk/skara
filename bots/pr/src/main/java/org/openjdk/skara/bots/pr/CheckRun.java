@@ -69,12 +69,13 @@ class CheckRun {
     private static final String fullNameWarningMarker = "<!-- PullRequestBot full name warning comment -->";
     private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final Set<String> newLabels;
+    private final boolean requiresReviewForBackport;
 
     private Duration expiresIn;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
-                     CensusInstance censusInstance, boolean ignoreStaleReviews, Set<String> integrators) throws IOException {
+                     CensusInstance censusInstance, boolean ignoreStaleReviews, Set<String> integrators, boolean requiresReviewForBackport) throws IOException {
         this.workItem = workItem;
         this.pr = pr;
         this.localRepo = localRepo;
@@ -86,6 +87,7 @@ class CheckRun {
         this.censusInstance = censusInstance;
         this.ignoreStaleReviews = ignoreStaleReviews;
         this.integrators = integrators;
+        this.requiresReviewForBackport = requiresReviewForBackport;
 
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
         checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews,
@@ -96,8 +98,9 @@ class CheckRun {
 
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                         List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance,
-                        boolean ignoreStaleReviews, Set<String> integrators) throws IOException {
-        var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance, ignoreStaleReviews, integrators);
+                        boolean ignoreStaleReviews, Set<String> integrators, boolean requiresReviewForBackport) throws IOException {
+        var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance,
+                ignoreStaleReviews, integrators, requiresReviewForBackport);
         run.checkStatus();
         if (run.expiresIn != null) {
             return Optional.of(Instant.now().plus(run.expiresIn));
@@ -1166,8 +1169,8 @@ class CheckRun {
                                       visitor.messages().isEmpty() &&
                                       !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty();
-            if (isCleanBackport) {
-                // Reviews are not needed for clean backports
+            if (isCleanBackport && !requiresReviewForBackport) {
+                // Reviews are not needed for clean backports if the repo is not configured with requiresReviewForBackport
                 readyForIntegration = readyForReview &&
                                       !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty();

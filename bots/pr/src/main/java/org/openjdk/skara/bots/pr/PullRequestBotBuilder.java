@@ -55,6 +55,7 @@ public class PullRequestBotBuilder {
     private Map<String, HostedRepository> forks = Map.of();
     private Set<String> integrators = Set.of();
     private Set<Integer> excludeCommitCommentsFrom = Set.of();
+    private boolean requiresReviewForBackport = false;
 
     PullRequestBotBuilder() {
     }
@@ -179,12 +180,18 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder requiresReviewForBackport(boolean requiresReviewForBackport) {
+        this.requiresReviewForBackport = requiresReviewForBackport;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration,
                                   externalPullRequestCommands, externalCommitCommands,
                                   blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
                                   readyComments, issueProject, ignoreStaleReviews,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
-                                  confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom, enableCsr, enableJep);
+                                  confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom,
+                                  enableCsr, enableJep, requiresReviewForBackport);
     }
 }

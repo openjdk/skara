@@ -171,6 +171,9 @@ public class PullRequestBotFactory implements BotFactory {
                         .collect(Collectors.toSet());
                 botBuilder.integrators(integrators);
             }
+            if (repo.value().contains("requiresReviewForBackport")) {
+                botBuilder.requiresReviewForBackport(repo.value().get("requiresReviewForBackport").asBoolean());
+            }
 
             ret.add(botBuilder.build());
         }
