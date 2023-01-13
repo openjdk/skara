@@ -1713,7 +1713,7 @@ class BackportTests {
                     .repo(integrator)
                     .censusRepo(censusBuilder.build())
                     .issueProject(issues)
-                    .requiresReviewForBackport(true)
+                    .reviewCleanBackport(true)
                     .build();
 
             // Populate the projects repository

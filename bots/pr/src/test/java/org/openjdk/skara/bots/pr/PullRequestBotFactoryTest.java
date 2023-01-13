@@ -78,7 +78,7 @@ class PullRequestBotFactoryTest {
                             "integrator1",
                             "integrator2"
                           ],
-                          "requiresReviewForBackport": true
+                          "reviewCleanBackport": true
                         }
                       },
                       "forks": {
@@ -121,7 +121,7 @@ class PullRequestBotFactoryTest {
             assertEquals(2, integrators.size());
             assertTrue(integrators.contains("integrator1"));
             assertTrue(integrators.contains("integrator2"));
-            assertTrue(pullRequestBot1.requiresReviewForBackport());
+            assertTrue(pullRequestBot1.reviewCleanBackport());
         }
     }
 }
