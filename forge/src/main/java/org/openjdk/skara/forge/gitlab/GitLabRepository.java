@@ -426,11 +426,11 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public void protectBranchPattern(String ref) {
+    public void protectBranchPattern(String pattern) {
         var body = JSON.object()
-                .put("name", ref)
+                .put("name", pattern)
                 .put("allow_force_push", true);
-        var existing = request.get("protected_branches/" + URLEncoder.encode(ref, StandardCharsets.US_ASCII))
+        var existing = request.get("protected_branches/" + URLEncoder.encode(pattern, StandardCharsets.US_ASCII))
                 .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.of()) : Optional.empty())
                 .execute();
         // Only add protection if it doesn't already exist.
@@ -442,8 +442,8 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public void unprotectBranchPattern(String ref) {
-        request.delete("protected_branches/" + URLEncoder.encode(ref, StandardCharsets.US_ASCII))
+    public void unprotectBranchPattern(String pattern) {
+        request.delete("protected_branches/" + URLEncoder.encode(pattern, StandardCharsets.US_ASCII))
                 .header("Content-Type", "application/json")
                 .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.of()) : Optional.empty())
                 .execute();
