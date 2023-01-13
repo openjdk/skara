@@ -1172,7 +1172,7 @@ class CheckRun {
                                       !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty();
             if (!reviewNeeded) {
-                // Reviews are not needed for clean backports if this repo is not configured with reviewCleanBackport enabled
+                // Reviews are not needed for clean backports unless this repo is configured with reviewCleanBackport enabled
                 readyForIntegration = readyForReview &&
                                       !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty();
