@@ -69,12 +69,13 @@ class CheckRun {
     private static final String fullNameWarningMarker = "<!-- PullRequestBot full name warning comment -->";
     private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final Set<String> newLabels;
+    private final boolean reviewCleanBackport;
 
     private Duration expiresIn;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
-                     CensusInstance censusInstance, boolean ignoreStaleReviews, Set<String> integrators) throws IOException {
+                     CensusInstance censusInstance, boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport) throws IOException {
         this.workItem = workItem;
         this.pr = pr;
         this.localRepo = localRepo;
@@ -86,6 +87,7 @@ class CheckRun {
         this.censusInstance = censusInstance;
         this.ignoreStaleReviews = ignoreStaleReviews;
         this.integrators = integrators;
+        this.reviewCleanBackport = reviewCleanBackport;
 
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
         checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews,
@@ -96,8 +98,9 @@ class CheckRun {
 
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                         List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance,
-                        boolean ignoreStaleReviews, Set<String> integrators) throws IOException {
-        var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance, ignoreStaleReviews, integrators);
+                        boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport) throws IOException {
+        var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance,
+                ignoreStaleReviews, integrators, reviewCleanBackport);
         run.checkStatus();
         if (run.expiresIn != null) {
             return Optional.of(Instant.now().plus(run.expiresIn));
@@ -514,8 +517,8 @@ class CheckRun {
         return ret.toString();
     }
 
-    private String getChecksList(PullRequestCheckIssueVisitor visitor, boolean isCleanBackport, Map<String, Boolean> additionalProgresses) {
-        var checks = isCleanBackport ? visitor.getReadyForReviewChecks() : visitor.getChecks();
+    private String getChecksList(PullRequestCheckIssueVisitor visitor, boolean reviewNeeded, Map<String, Boolean> additionalProgresses) {
+        var checks = reviewNeeded ? visitor.getChecks() : visitor.getReadyForReviewChecks();
         checks.putAll(additionalProgresses);
         return checks.entrySet().stream()
                 .map(entry -> "- [" + (entry.getValue() ? "x" : " ") + "] " + entry.getKey())
@@ -607,11 +610,11 @@ class CheckRun {
 
     private String getStatusMessage(PullRequestCheckIssueVisitor visitor,
                                     List<String> additionalErrors, Map<String, Boolean> additionalProgresses,
-                                    List<String> integrationBlockers, boolean isCleanBackport) {
+                                    List<String> integrationBlockers, boolean reviewNeeded) {
         var progressBody = new StringBuilder();
         progressBody.append("---------\n");
         progressBody.append("### Progress\n");
-        progressBody.append(getChecksList(visitor, isCleanBackport, additionalProgresses));
+        progressBody.append(getChecksList(visitor, reviewNeeded, additionalProgresses));
 
         var allAdditionalErrors = Stream.concat(visitor.hiddenMessages().stream(), additionalErrors.stream())
                                         .sorted()
@@ -1154,8 +1157,10 @@ class CheckRun {
             var integrationBlockers = botSpecificIntegrationBlockers();
             integrationBlockers.addAll(secondJCheckMessage);
 
+            var reviewNeeded = !isCleanBackport || reviewCleanBackport;
+
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, isCleanBackport);
+            var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, reviewNeeded);
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
 
@@ -1166,8 +1171,8 @@ class CheckRun {
                                       visitor.messages().isEmpty() &&
                                       !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty();
-            if (isCleanBackport) {
-                // Reviews are not needed for clean backports
+            if (!reviewNeeded) {
+                // Reviews are not needed for clean backports unless this repo is configured with reviewCleanBackport enabled
                 readyForIntegration = readyForReview &&
                                       !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty();

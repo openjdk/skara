@@ -1695,4 +1695,106 @@ class BackportTests {
             assertEquals(List.of(), message.additional());
         }
     }
+
+    @Test
+    void cleanBackportRequiresReview(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(integrator.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .reviewCleanBackport(true)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            var releaseBranch = localRepo.branch(masterHash, "release");
+            localRepo.checkout(releaseBranch);
+            var newFile = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile, "hello");
+            localRepo.add(newFile);
+            var issue1 = credentials.createIssue(issues, "An issue");
+            var issue1Number = issue1.id().split("-")[1];
+            var originalMessage = issue1Number + ": An issue\n" +
+                    "\n" +
+                    "Reviewed-by: integrationreviewer2";
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
+            localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
+
+            // "backport" the new file to the master branch
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var newFile2 = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile2, "hello");
+            localRepo.add(newFile2);
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex());
+
+            // The bot should reply with a backport message and that the PR is not ready
+            TestBotRunner.runPeriodicItems(bot);
+            var backportComment = pr.comments().get(0).body();
+            assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
+            assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
+            assertEquals(issue1Number + ": An issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("rfr"));
+            assertTrue(pr.store().labelNames().contains("clean"));
+            assertTrue(pr.store().labelNames().contains("backport"));
+            assertTrue(pr.store().body().contains("Change must be properly reviewed"));
+
+            // Approve this pr as a reviewer
+            var approvalPr = reviewer.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+            TestBotRunner.runPeriodicItems(bot);
+            assertTrue(pr.store().labelNames().contains("ready"));
+
+            // Integrate
+            author.pullRequest(pr.id());
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(bot);
+
+            // Find the commit
+            assertLastCommentContains(pr, "Pushed as commit");
+
+            String hex = null;
+            var comment = pr.comments().get(pr.comments().size() - 1);
+            var lines = comment.body().split("\n");
+            var pattern = Pattern.compile(".* Pushed as commit ([0-9a-z]{40}).*");
+            for (var line : lines) {
+                var m = pattern.matcher(line);
+                if (m.matches()) {
+                    hex = m.group(1);
+                    break;
+                }
+            }
+            assertNotNull(hex);
+            assertEquals(40, hex.length());
+            localRepo.checkout(localRepo.defaultBranch());
+            localRepo.pull(author.url().toString(), "master", false);
+            var commit = localRepo.lookup(new Hash(hex)).orElseThrow();
+
+            var message = CommitMessageParsers.v1.parse(commit);
+            assertEquals(1, message.issues().size());
+            assertEquals("An issue", message.issues().get(0).description());
+            assertEquals(List.of("integrationreviewer3"), message.reviewers());
+            assertEquals(Optional.of(releaseHash), message.original());
+            assertEquals(List.of(), message.contributors());
+            assertEquals(List.of(), message.summaries());
+            assertEquals(List.of(), message.additional());
+        }
+    }
 }
