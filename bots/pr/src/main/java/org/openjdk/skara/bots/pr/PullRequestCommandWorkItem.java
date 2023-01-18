@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -179,7 +179,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     public Collection<WorkItem> prRun(Path scratchPath) {
         log.info("Looking for PR commands");
 
-        var comments = prComments();
+        var comments = getAllComments();
         var nextCommand = nextCommand(pr, comments);
 
         if (nextCommand.isEmpty()) {
@@ -227,5 +227,22 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     @Override
     public String workItemName() {
         return "pr-command";
+    }
+
+    /**
+     * This method returns all the comments in the pr including comments in reviews(review body) and file specific comments
+     */
+    private List<Comment> getAllComments() {
+        // Regular comments
+        List<Comment> comments = new ArrayList<>(prComments());
+        // Comments in reviews
+        comments.addAll(pr.reviews().stream()
+                .map(review -> new Comment("Review" + review.id(), review.body().orElse(""), review.reviewer(), review.createdAt(), null))
+                .toList());
+        // File specific comments
+        comments.addAll(pr.reviewComments().stream()
+                .map(reviewComment -> new Comment("ReviewComment" + reviewComment.id(), reviewComment.body(), reviewComment.author(), reviewComment.createdAt(), reviewComment.updatedAt()))
+                .toList());
+        return comments;
     }
 }
