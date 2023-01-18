@@ -240,9 +240,10 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
                 .map(review -> new Comment("Review" + review.id(), review.body().orElse(""), review.reviewer(), review.createdAt(), null))
                 .toList());
         // File specific comments
-        comments.addAll(pr.reviewComments().stream()
-                .map(reviewComment -> new Comment("ReviewComment" + reviewComment.id(), reviewComment.body(), reviewComment.author(), reviewComment.createdAt(), reviewComment.updatedAt()))
-                .toList());
+//        comments.addAll(pr.reviewComments().stream()
+//                .map(reviewComment -> new Comment("ReviewComment" + reviewComment.id(), reviewComment.body(), reviewComment.author(), reviewComment.createdAt(), reviewComment.updatedAt()))
+//                .toList());
+        comments = comments.stream().sorted(Comparator.comparing(Comment::createdAt)).toList();
         return comments;
     }
 }

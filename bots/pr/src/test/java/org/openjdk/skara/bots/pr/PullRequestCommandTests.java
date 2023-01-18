@@ -389,10 +389,10 @@ class PullRequestCommandTests {
             assertLastCommentContains(pr, "The total number of required reviews for this PR (including the jcheck configuration and the last /reviewers command) is now set to 3");
 
             //Test command in reviewComment
-            pr.addReviewComment(masterHash, editHash, Path.of("appendable.txt").toString(), 2, "/reviewers 4");
-            // Run the bot
-            TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "The total number of required reviews for this PR (including the jcheck configuration and the last /reviewers command) is now set to 4");
+//            pr.addReviewComment(masterHash, editHash, Path.of("appendable.txt").toString(), 2, "/reviewers 4");
+//            // Run the bot
+//            TestBotRunner.runPeriodicItems(prBot);
+//            assertLastCommentContains(pr, "The total number of required reviews for this PR (including the jcheck configuration and the last /reviewers command) is now set to 4");
         }
     }
 }
