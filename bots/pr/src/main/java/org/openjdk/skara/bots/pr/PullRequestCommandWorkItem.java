@@ -230,7 +230,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     }
 
     /**
-     * This method returns all the comments in the pr including comments in reviews(review body) and file specific comments
+     * This method returns all the comments in the pr including comments in reviews(review body)
      */
     private List<Comment> getAllComments() {
         // Regular comments
@@ -239,10 +239,6 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         comments.addAll(pr.reviews().stream()
                 .map(review -> new Comment("Review" + review.id(), review.body().orElse(""), review.reviewer(), review.createdAt(), null))
                 .toList());
-        // File specific comments
-//        comments.addAll(pr.reviewComments().stream()
-//                .map(reviewComment -> new Comment("ReviewComment" + reviewComment.id(), reviewComment.body(), reviewComment.author(), reviewComment.createdAt(), reviewComment.updatedAt()))
-//                .toList());
         comments = comments.stream().sorted(Comparator.comparing(Comment::createdAt)).toList();
         return comments;
     }
