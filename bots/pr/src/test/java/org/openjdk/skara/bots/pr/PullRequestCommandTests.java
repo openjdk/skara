@@ -360,7 +360,7 @@ class PullRequestCommandTests {
     }
 
     @Test
-    void interpretCommandFromReviewsAndReviewComments(TestInfo testInfo) throws IOException {
+    void interpretCommandFromReviews(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
