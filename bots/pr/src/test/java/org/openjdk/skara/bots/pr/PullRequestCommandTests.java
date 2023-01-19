@@ -27,7 +27,6 @@ import org.openjdk.skara.forge.Review;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.List;
 
