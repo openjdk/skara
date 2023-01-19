@@ -376,7 +376,8 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits, Set<Integer> excludeAuthors) {
+    public List<CommitComment> recentCommitComments(ReadOnlyRepository unused, Set<Integer> excludeAuthors,
+            List<Branch> branches, ZonedDateTime updatedAfter) {
         var parts = name().split("/");
         var owner = parts[0];
         var name = parts[1];
@@ -439,6 +440,10 @@ public class GitHubRepository implements HostedRepository {
                                                         createdAt,
                                                         updatedAt);
                            })
+                           // It's not possible to filter on timestamp in the GraphQL API, but we
+                           // can at least filter here to limit the amount of data returned to the
+                           // caller.
+                           .filter(c -> c.updatedAt().isAfter(updatedAfter))
                            .collect(Collectors.toList());
         Collections.reverse(comments);
         return comments;
