@@ -347,6 +347,18 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
+    public void protectBranchPattern(String pattern) {
+        // This could be implemented using GraphQL, but we currently don't need it for GitHub
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void unprotectBranchPattern(String pattern) {
+        // This could be implemented using GraphQL, but we currently don't need it for GitHub
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void deleteBranch(String ref) {
         request.delete("git/refs/heads/" + ref)
                .execute();

@@ -106,6 +106,20 @@ public interface HostedRepository {
     long id();
     Optional<Hash> branchHash(String ref);
     List<HostedBranch> branches();
+
+    /**
+     * Adds a branch protection rule based on a branch pattern. The rule prevents
+     * normal users from pushing to the branch, but still allows admins to force
+     * push.
+     * @param pattern Pattern for branches
+     */
+    void protectBranchPattern(String pattern);
+
+    /**
+     * Removes a branch protection rule based on the branch pattern.
+     * @param pattern Pattern for branches
+     */
+    void unprotectBranchPattern(String pattern);
     void deleteBranch(String ref);
     List<CommitComment> commitComments(Hash hash);
     default List<CommitComment> recentCommitComments() {

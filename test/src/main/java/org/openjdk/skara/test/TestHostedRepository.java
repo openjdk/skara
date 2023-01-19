@@ -49,6 +49,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     private Map<String, Boolean> collaborators = new HashMap<>();
     private List<Label> labels = new ArrayList<>();
     private final Set<Check> checks = new HashSet<>();
+    private final Set<String> protectedBranchPatterns = new HashSet<>();
 
     public TestHostedRepository(TestHost host, String projectName, Repository localRepository) {
         super(host, projectName);
@@ -270,8 +271,25 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
+    public void protectBranchPattern(String pattern) {
+        protectedBranchPatterns.add(pattern);
+    }
+
+    @Override
+    public void unprotectBranchPattern(String pattern) {
+        protectedBranchPatterns.remove(pattern);
+    }
+
+    @Override
     public void deleteBranch(String ref) {
         try {
+            for (String protectedBranchPattern : protectedBranchPatterns) {
+                var pattern = Pattern.compile(protectedBranchPattern.replace("*", ".*"));
+                if (pattern.matcher(ref).matches()) {
+                    throw new RuntimeException("Branch " + ref + " is protected with pattern '"
+                            + protectedBranchPattern + "' and cannot be removed");
+                }
+            }
             localRepository.delete(new Branch(ref));
         } catch (IOException e) {
             throw new RuntimeException(e);

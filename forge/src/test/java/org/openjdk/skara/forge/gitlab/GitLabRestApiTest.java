@@ -28,11 +28,13 @@ import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.test.ManualTestSettings;
+import org.openjdk.skara.test.TemporaryDirectory;
 import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.IOException;
 import java.util.Set;
+import org.openjdk.skara.vcs.git.GitRepository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -185,6 +187,35 @@ public class GitLabRestApiTest {
                     "Third commit message", "Duke", "duke@openjdk.org");
             var returnedContents = gitLabRepo.fileContents(fileName, branch.name());
             assertEquals(fileContent, returnedContents.orElseThrow());
+        }
+    }
+
+    @Test
+    void branchProtection() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var username = settings.getProperty("gitlab.user");
+        var token = settings.getProperty("gitlab.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
+        var branchName = "pr/4711";
+
+        gitLabRepo.protectBranchPattern(branchName);
+        // Don't fail on repeated invocations
+        gitLabRepo.protectBranchPattern(branchName);
+
+        try (var tempDir = new TemporaryDirectory()) {
+            var localRepoDir = tempDir.path().resolve("local");
+            var localRepo = GitRepository.clone(gitLabRepo.url(), localRepoDir, false, null);
+            var head = localRepo.head();
+            localRepo.push(head, gitLabRepo.url(), branchName, true);
+
+            gitLabRepo.unprotectBranchPattern(branchName);
+            // Don't fail on repeated invocations
+            gitLabRepo.unprotectBranchPattern(branchName);
+
+            gitLabRepo.deleteBranch(branchName);
         }
     }
 }
