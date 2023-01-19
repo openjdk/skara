@@ -141,6 +141,13 @@ public class IssueNotifierFactory implements NotifierFactory {
             }
         }
 
+        if (notifierConfiguration.contains("defaultsecurity")) {
+            var defaultSecurity = notifierConfiguration.get("defaultsecurity").fields().stream()
+                    .map(e -> new IssueNotifier.BranchSecurity(Pattern.compile(e.name()), e.value().asString()))
+                    .toList();
+            builder.defaultSecurity(defaultSecurity);
+        }
+
         return builder.build();
     }
 }

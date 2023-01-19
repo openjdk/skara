@@ -50,6 +50,7 @@ class IssueNotifierBuilder {
     private boolean resolve = true;
     private Set<String> tagIgnoreOpt = Set.of();
     private boolean tagMatchPrefix = false;
+    private List<IssueNotifier.BranchSecurity> defaultSecurity = List.of();
 
     IssueNotifierBuilder issueProject(IssueProject issueProject) {
         this.issueProject = issueProject;
@@ -152,6 +153,11 @@ class IssueNotifierBuilder {
         return this;
     }
 
+    public IssueNotifierBuilder defaultSecurity(List<IssueNotifier.BranchSecurity> defaultSecurity) {
+        this.defaultSecurity = defaultSecurity;
+        return this;
+    }
+
     public boolean prOnly() {
         return prOnly;
     }
@@ -165,6 +171,6 @@ class IssueNotifierBuilder {
         return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
                 setFixVersion, fixVersions, altFixVersions, jbsBackport, prOnly,
                 repoOnly, buildName, censusRepository, censusRef, namespace, useHeadVersion, originalRepository,
-                resolve, tagIgnoreOpt, tagMatchPrefix);
+                resolve, tagIgnoreOpt, tagMatchPrefix, defaultSecurity);
     }
 }
