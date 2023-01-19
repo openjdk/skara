@@ -233,13 +233,8 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
      * This method returns all the comments in the pr including comments in reviews(review body)
      */
     private List<Comment> getAllComments() {
-        // Regular comments
-        List<Comment> comments = new ArrayList<>(prComments());
-        // Comments in reviews
-        comments.addAll(pr.reviews().stream()
-                .map(review -> new Comment("Review" + review.id(), review.body().orElse(""), review.reviewer(), review.createdAt(), null))
-                .toList());
-        comments = comments.stream().sorted(Comparator.comparing(Comment::createdAt)).toList();
-        return comments;
+        return Stream.concat(prComments().stream(),
+                        pr.reviews().stream().map(review -> new Comment("Review" + review.id(), review.body().orElse(""), review.reviewer(), review.createdAt(), null)))
+                .sorted(Comparator.comparing(Comment::createdAt)).toList();
     }
 }
