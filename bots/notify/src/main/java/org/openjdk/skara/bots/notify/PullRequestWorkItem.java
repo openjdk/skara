@@ -149,7 +149,7 @@ public class PullRequestWorkItem implements WorkItem {
         }
         var issueMatcher = issuePattern.matcher(issuesBlockMatcher.group(1));
         return issueMatcher.results()
-                           .filter(mr -> !mr.group(2).endsWith(" (**CSR**)") && !mr.group(2).endsWith(" (**JEP**)"))
+                           .filter(mr -> !mr.group(2).endsWith(" (**CSR**)") && !mr.group(2).endsWith(" (**CSR**) (Withdrawn)") && !mr.group(2).endsWith(" (**JEP**)"))
                            .map(mo -> mo.group(1))
                            .collect(Collectors.toSet());
     }

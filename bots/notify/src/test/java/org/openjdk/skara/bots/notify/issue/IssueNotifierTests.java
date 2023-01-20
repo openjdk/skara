@@ -407,6 +407,8 @@ public class IssueNotifierTests {
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var csrIssue = issueProject.createIssue("This is a csr issue", List.of("Indeed"), Map.of("issuetype", JSON.of("CSR")));
             issue.addLink(Link.create(csrIssue, "csr for").build());
+            var withdrawnCsrIssue = issueProject.createIssue("This is a withdrawn csr issue", List.of("Indeed"), Map.of("issuetype", JSON.of("CSR")));
+            issue.addLink(Link.create(withdrawnCsrIssue, "csr for").build());
 
             // Push a commit and create a pull request
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line",
@@ -415,7 +417,9 @@ public class IssueNotifierTests {
             var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": This is an issue");
             pr.setBody("\n\n### Issues\n" +
                     " * [" + issue.id() + "](http://www.test.test/): This is an issue\n" +
-                    " * [" + csrIssue.id() + "](http://www.test2.test/): This is a csr issue (**CSR**)");
+                    " * [" + csrIssue.id() + "](http://www.test2.test/): This is a csr issue (**CSR**)\n" +
+                    " * [" + withdrawnCsrIssue.id() + "](http://www.test3.test/): This is a withdrawn csr issue (**CSR**) (Withdrawn)\n"
+            );
             pr.addLabel("rfr");
             pr.addComment("This is now ready");
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -423,12 +427,14 @@ public class IssueNotifierTests {
             // Get the issues.
             var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             var updatedCsrIssue = issueProject.issue(csrIssue.id()).orElseThrow();
+            var updatedWithdrawnCsrIssue = issueProject.issue(withdrawnCsrIssue.id()).orElseThrow();
 
             // Non-csr issue should have the PR link and PR comment.
             var issueLinks = updatedIssue.links();
-            assertEquals(2, issueLinks.size());
+            assertEquals(3, issueLinks.size());
             assertEquals("csr for", issueLinks.get(0).relationship().orElseThrow());
-            assertEquals(pr.webUrl(), issueLinks.get(1).uri().orElseThrow());
+            assertEquals("csr for", issueLinks.get(1).relationship().orElseThrow());
+            assertEquals(pr.webUrl(), issueLinks.get(2).uri().orElseThrow());
 
             var issueComments = updatedIssue.comments();
             assertEquals(1, issueComments.size());
@@ -438,10 +444,18 @@ public class IssueNotifierTests {
             // csr issue shouldn't have the PR link or PR comment.
             var csrIssueLinks = updatedCsrIssue.links();
             assertEquals(1, csrIssueLinks.size());
-            assertEquals("csr for", issueLinks.get(0).relationship().orElseThrow());
+            assertEquals("csr of", csrIssueLinks.get(0).relationship().orElseThrow());
 
             var csrIssueComments = updatedCsrIssue.comments();
             assertEquals(0, csrIssueComments.size());
+
+            // Withdrawn csr issue shouldn't have the PR link or PR comment.
+            var withdrawnCsrIssueLinks = updatedWithdrawnCsrIssue.links();
+            assertEquals(1, withdrawnCsrIssueLinks.size());
+            assertEquals("csr of", withdrawnCsrIssueLinks.get(0).relationship().orElseThrow());
+
+            var withdrawnCsrIssueComments = updatedWithdrawnCsrIssue.comments();
+            assertEquals(0, withdrawnCsrIssueComments.size());
         }
     }
 
