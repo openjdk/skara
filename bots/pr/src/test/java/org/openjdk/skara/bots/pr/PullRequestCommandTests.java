@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.junit.jupiter.api.*;
+import org.openjdk.skara.forge.Review;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
@@ -355,6 +356,49 @@ class PullRequestCommandTests {
                                           "\n" +
                                           "Even a final one at the end\n" +
                                           "```\n");
+        }
+    }
+
+    @Test
+    void interpretCommandFromReviews(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Test command in review
+            pr.addReview(Review.Verdict.APPROVED, "/reviewers 3");
+            // Run the bot
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "The total number of required reviews for this PR (including the jcheck configuration and the last /reviewers command) is now set to 3");
+
+            // This should work
+            pr.addReview(Review.Verdict.APPROVED, "first line \n  /reviewers 4");
+            // Run the bot
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "The total number of required reviews for this PR (including the jcheck configuration and the last /reviewers command) is now set to 4");
+
+            // This should not work
+            pr.addReview(Review.Verdict.APPROVED, "first line \n  second line /reviewers 5");
+            // Run the bot
+            TestBotRunner.runPeriodicItems(prBot);
+            // Reviewer number is still 4
+            assertLastCommentContains(pr, "The total number of required reviews for this PR (including the jcheck configuration and the last /reviewers command) is now set to 4");
         }
     }
 }
