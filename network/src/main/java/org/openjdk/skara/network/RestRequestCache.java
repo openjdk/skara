@@ -182,14 +182,14 @@ enum RestRequestCache {
         }
     }
 
-    HttpResponse<String> send(String authId, HttpRequest.Builder requestBuilder) throws IOException, InterruptedException {
+    HttpResponse<String> send(String authId, HttpRequest.Builder requestBuilder, boolean skipLimiter) throws IOException, InterruptedException {
         if (authId == null) {
             authId = "anonymous";
         }
         var unauthenticatedRequest = requestBuilder.build();
         var requestContext = new RequestContext(authId, unauthenticatedRequest);
         var authLock = authLocks.computeIfAbsent(authId, id -> new ReentrantLock());
-        if (unauthenticatedRequest.method().equals("GET")) {
+        if (unauthenticatedRequest.method().equals("GET") || skipLimiter) {
             var cached = cachedResponses.get(requestContext);
             if (cached != null) {
                 if (Instant.now().minus(maxAllowedAge(requestContext)).isBefore(cached.callTime)) {
@@ -206,10 +206,10 @@ enum RestRequestCache {
                 // Perform requests using a certain account serially
                 var beforeCall = Instant.now();
                 var lockDelay = Duration.between(beforeLock, beforeCall);
-                log.log(Level.FINE, "Taking lock for GET " + finalRequest.uri() + " took " + lockDelay, lockDelay);
+                log.log(Level.FINE, "Taking lock for " + finalRequest.method() + " " + finalRequest.uri() + " took " + lockDelay, lockDelay);
                 response = client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
                 var callDuration = Duration.between(beforeCall, Instant.now());
-                log.log(Level.FINE, "Calling GET " + finalRequest.uri().toString() + " took " + callDuration, callDuration);
+                log.log(Level.FINE, "Calling " + finalRequest.method() + " " + finalRequest.uri().toString() + " took " + callDuration, callDuration);
             }
             if (cached != null && response.statusCode() == 304) {
                 cacheHitsCounter.inc();

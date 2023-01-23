@@ -144,6 +144,8 @@ public class GitHubPullRequest implements PullRequest {
         var data = host.graphQL()
                 .post()
                 .body(JSON.object().put("query", query))
+                // This is a single point graphql query so shouldn't need to be limited to once a second
+                .skipLimiter(true)
                 .execute()
                 .get("data");
         return data.get("repository").get("pullRequest").get("timelineItems").get("nodes").stream()
