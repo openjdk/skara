@@ -491,9 +491,9 @@ class CheckRun {
             ret.append("@");
             ret.append(user.username());
             ret.append(" (no known ");
-            var censusRepoName = workItem.bot.censusRepo().name();
-            var index = censusRepoName.lastIndexOf("-");
-            ret.append(censusRepoName.substring(index + 1));
+            var censusDomain = censusInstance.configuration().census().domain();
+            var index = censusDomain.lastIndexOf('.');
+            ret.append(censusDomain, 0, index);
             ret.append(" user name / role)");
         } else {
             // The HostUser is null and the Contributor is not null
