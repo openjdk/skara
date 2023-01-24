@@ -423,6 +423,8 @@ public class GitHubRepository implements HostedRepository {
         var data = gitHubHost.graphQL()
                              .post()
                              .body(JSON.object().put("query", query))
+                             // This is a single point graphql query so shouldn't need to be limited to once a second
+                             .skipLimiter(true)
                              .execute()
                              .get("data");
         var comments = data.get("repository")

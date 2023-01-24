@@ -88,6 +88,7 @@ public class RestRequest {
         private int maxPages;
         private ErrorTransform onError;
         private String sha256Header;
+        private boolean skipLimiter = false;
 
         private QueryBuilder(RequestType queryType, String endpoint) {
             this.queryType = queryType;
@@ -202,6 +203,11 @@ public class RestRequest {
             return this;
         }
 
+        public QueryBuilder skipLimiter(boolean skipLimiter) {
+            this.skipLimiter = skipLimiter;
+            return this;
+        }
+
         public JSONValue execute() {
             try {
                 return RestRequest.this.execute(this);
@@ -299,7 +305,7 @@ public class RestRequest {
         retryBackoffStep = duration;
     }
 
-    private HttpResponse<String> sendRequest(HttpRequest.Builder request) throws IOException {
+    private HttpResponse<String> sendRequest(HttpRequest.Builder request, boolean skipLimiter) throws IOException {
         HttpResponse<String> response;
 
         var authHeaders = addAuthHeaders(request);
@@ -307,7 +313,7 @@ public class RestRequest {
         var retryCount = 0;
         while (true) {
             try {
-                response = cache.send(authId, request);
+                response = cache.send(authId, request, skipLimiter);
                 // If we are using authorization and get a 401, we need to retry to give
                 // the authorization mechanism a chance to refresh stale tokens. Retry if
                 // we get a new set of authorization headers.
@@ -474,7 +480,7 @@ public class RestRequest {
         var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
                 queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON(), queryBuilder.sha256Header);
         requestCounter.labels(queryBuilder.queryType.toString()).inc();
-        var response = sendRequest(request);
+        var response = sendRequest(request, queryBuilder.skipLimiter);
         var errorTransform = transformBadResponse(response, queryBuilder);
         responseCounter.labels(Integer.toString(response.statusCode()), Boolean.toString(errorTransform.isPresent())).inc();
         if (errorTransform.isPresent()) {
@@ -493,7 +499,7 @@ public class RestRequest {
 
         while (nextRequest.isPresent() && ret.size() < queryBuilder.maxPages) {
             requestCounter.labels(queryBuilder.queryType.toString()).inc();
-            response = sendRequest(nextRequest.get());
+            response = sendRequest(nextRequest.get(), queryBuilder.skipLimiter);
 
             // If an error occurs during paginated parsing, we have to discard all previous data
             errorTransform = transformBadResponse(response, queryBuilder);
@@ -514,7 +520,7 @@ public class RestRequest {
         var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
                 queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON(), queryBuilder.sha256Header);
         requestCounter.labels(queryBuilder.queryType.toString()).inc();
-        var response = sendRequest(request);
+        var response = sendRequest(request, queryBuilder.skipLimiter);
         responseCounter.labels(Integer.toString(response.statusCode()), Boolean.toString(false)).inc();
         if (response.statusCode() >= 400) {
             throw new UncheckedRestException("Bad response: " + response.statusCode(), response.statusCode());
