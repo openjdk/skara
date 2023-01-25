@@ -763,7 +763,7 @@ public class GitLabRepository implements HostedRepository {
 
     @Override
     public boolean canPush(HostUser user) {
-        var accessLevel = request.get("members/" + user.id())
+        var accessLevel = request.get("members/all/" + user.id())
                                  .onError(r -> r.statusCode() == 404 ?
                                                    Optional.of(JSON.object().put("access_level", 0)) :
                                                    Optional.empty())
