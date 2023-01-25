@@ -30,6 +30,7 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jbs.Backports;
+import org.openjdk.skara.jbs.JdkVersion;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
@@ -72,6 +73,8 @@ class CheckRun {
     private final boolean reviewCleanBackport;
 
     private Duration expiresIn;
+
+    private Optional<JdkVersion> versionOpt;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
@@ -142,7 +145,7 @@ class CheckRun {
         if (issueProject == null) {
             return List.of();
         }
-        var versionOpt = BotUtils.getVersion(pr);
+        versionOpt = BotUtils.getVersion(pr);
         if (versionOpt.isEmpty()) {
             return List.of();
         }
@@ -271,7 +274,8 @@ class CheckRun {
                 .filter(issue -> !isWithdrawnCSR(issue))
                 .toList();
         if (csrIssues.isEmpty() && pr.labelNames().contains("csr")) {
-            ret.put("Change requires a CSR request (needs to be created) to be approved", false);
+            ret.put("Change requires a CSR request matching fixVersion " + (versionOpt.isPresent() ? versionOpt.get().raw() : "(No fixVersion in .jcheck/conf)")
+                    + " to be approved (needs to be created)", false);
         }
         for (var csrIssue : csrIssues) {
             if (!csrIssue.isClosed()) {

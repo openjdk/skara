@@ -176,7 +176,7 @@ class PullRequestWorkItem implements WorkItem {
 
             var csrOptional = Backports.findCsr(jbsIssueOpt.get(), versionOpt.get());
             if (csrOptional.isEmpty()) {
-                log.info("No CSR found for issue " + jbsIssueOpt.get().id() + " for " + describe(pr));
+                log.info("No CSR found for issue " + jbsIssueOpt.get().id() + " for " + describe(pr) + " with fixVersion " + versionOpt.get().raw());
                 continue;
             }
             var csr = csrOptional.get();
