@@ -74,8 +74,6 @@ class CheckRun {
 
     private Duration expiresIn;
 
-    private Optional<JdkVersion> versionOpt;
-
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
                      CensusInstance censusInstance, boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport) throws IOException {
@@ -120,18 +118,21 @@ class CheckRun {
         return matcher.matches();
     }
 
-    private List<Issue> issues(boolean withCsr, boolean withJep) {
+    private List<Issue> issues() {
         var issue = Issue.fromStringRelaxed(pr.title());
         if (issue.isPresent()) {
             var issues = new ArrayList<Issue>();
             issues.add(issue.get());
             issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
-            if (withCsr) {
-                issues.addAll(getCsrIssues(issues));
-            }
-            if (withJep) {
-                getJepIssue().ifPresent(issues::add);
-            }
+            return issues;
+        }
+        return List.of();
+    }
+
+    private List<Issue> issuesWithCSRAndJEP(List<Issue> issues, List<org.openjdk.skara.issuetracker.Issue> csrIssueTrackerIssues) {
+        if (!issues.isEmpty()) {
+            issues.addAll(getCsrIssues(csrIssueTrackerIssues));
+            getJepIssue().ifPresent(issues::add);
             return issues;
         }
         return List.of();
@@ -140,13 +141,12 @@ class CheckRun {
     /**
      * Get the csr issues. Note: this `Issue` is the issue in module `issuetracker`.
      */
-    private List<org.openjdk.skara.issuetracker.Issue> getCsrIssueTrackerIssues(List<Issue> issues) {
+    private List<org.openjdk.skara.issuetracker.Issue> getCsrIssueTrackerIssues(List<Issue> issues, JdkVersion version) {
         var issueProject = issueProject();
         if (issueProject == null) {
             return List.of();
         }
-        versionOpt = BotUtils.getVersion(pr);
-        if (versionOpt.isEmpty()) {
+        if (version == null) {
             return List.of();
         }
         var csrIssues = new ArrayList<org.openjdk.skara.issuetracker.Issue>();
@@ -155,7 +155,7 @@ class CheckRun {
             if (jbsIssueOpt.isEmpty()) {
                 continue;
             }
-            Backports.findCsr(jbsIssueOpt.get(), versionOpt.get())
+            Backports.findCsr(jbsIssueOpt.get(), version)
                     .ifPresent(csrIssues::add);
         }
         return csrIssues;
@@ -164,9 +164,9 @@ class CheckRun {
     /**
      * Get the csr issue. Note: this `Issue` is not the issue in module `issuetracker`.
      */
-    private List<Issue> getCsrIssues(List<Issue> issues) {
+    private List<Issue> getCsrIssues(List<org.openjdk.skara.issuetracker.Issue> CsrIssueTrackerIssues) {
 
-        return getCsrIssueTrackerIssues(issues).stream()
+        return CsrIssueTrackerIssues.stream()
                 .map(perIssue -> Issue.fromStringRelaxed(perIssue.id() + ": " + perIssue.title()))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
@@ -265,16 +265,16 @@ class CheckRun {
     }
 
     // Additional bot-specific progresses that are not handled by JCheck
-    private Map<String, Boolean> botSpecificProgresses() {
+    private Map<String, Boolean> botSpecificProgresses(List<org.openjdk.skara.issuetracker.Issue> csrIssueTrackerIssues, JdkVersion version) {
         var ret = new HashMap<String, Boolean>();
 
-        var csrIssues = getCsrIssueTrackerIssues(issues(false, false)).stream()
+        var csrIssues = csrIssueTrackerIssues.stream()
                 .filter(issue -> issue.properties().containsKey("issuetype"))
                 .filter(issue -> issue.properties().get("issuetype").asString().equals("CSR"))
                 .filter(issue -> !isWithdrawnCSR(issue))
                 .toList();
         if (csrIssues.isEmpty() && pr.labelNames().contains("csr")) {
-            ret.put("Change requires a CSR request matching fixVersion " + (versionOpt.isPresent() ? versionOpt.get().raw() : "(No fixVersion in .jcheck/conf)")
+            ret.put("Change requires a CSR request matching fixVersion " + (version != null ? version.raw() : "(No fixVersion in .jcheck/conf)")
                     + " to be approved (needs to be created)", false);
         }
         for (var csrIssue : csrIssues) {
@@ -322,10 +322,9 @@ class CheckRun {
         return Map.of("rejected", "The change is currently blocked from integration by a rejection.");
     }
 
-    private List<String> botSpecificIntegrationBlockers() {
+    private List<String> botSpecificIntegrationBlockers(List<Issue> issues) {
         var ret = new ArrayList<String>();
 
-        var issues = issues(false, false);
         var issueProject = issueProject();
         if (issueProject != null) {
             for (var currentIssue : issues) {
@@ -614,7 +613,7 @@ class CheckRun {
 
     private String getStatusMessage(PullRequestCheckIssueVisitor visitor,
                                     List<String> additionalErrors, Map<String, Boolean> additionalProgresses,
-                                    List<String> integrationBlockers, boolean reviewNeeded) {
+                                    List<String> integrationBlockers, boolean reviewNeeded, List<Issue> allIssues) {
         var progressBody = new StringBuilder();
         progressBody.append("---------\n");
         progressBody.append("### Progress\n");
@@ -641,15 +640,14 @@ class CheckRun {
             progressBody.append(warningListToText(integrationBlockers));
         }
 
-        var issues = issues(true, true);
         var issueProject = issueProject();
-        if (issueProject != null && !issues.isEmpty()) {
+        if (issueProject != null && !allIssues.isEmpty()) {
             progressBody.append("\n\n### Issue");
-            if (issues.size() > 1) {
+            if (allIssues.size() > 1) {
                 progressBody.append("s");
             }
             progressBody.append("\n");
-            for (var currentIssue : issues) {
+            for (var currentIssue : allIssues) {
                 progressBody.append(" * ");
                 if (currentIssue.project().isPresent() && !currentIssue.project().get().equals(issueProject.name())) {
                     progressBody.append("⚠️ Issue `");
@@ -1125,6 +1123,12 @@ class CheckRun {
                 localHash = baseHash;
             }
             PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor();
+
+            var version = BotUtils.getVersion(pr).orElse(null);
+            // issues without CSR issues and JEP issues
+            var issues = issues();
+            var csrIssueTrackerIssues = getCsrIssueTrackerIssues(issues, version);
+
             if (localHash.equals(baseHash)) {
                 if (additionalErrors.isEmpty()) {
                     additionalErrors = List.of("This PR contains no changes");
@@ -1153,18 +1157,18 @@ class CheckRun {
                     }
                 }
                 additionalErrors = botSpecificChecks(isCleanBackport);
-                additionalProgresses = botSpecificProgresses();
+                additionalProgresses = botSpecificProgresses(csrIssueTrackerIssues, version);
             }
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             var readyForReview = updateReadyForReview(visitor, additionalErrors);
 
-            var integrationBlockers = botSpecificIntegrationBlockers();
+            var integrationBlockers = botSpecificIntegrationBlockers(issues);
             integrationBlockers.addAll(secondJCheckMessage);
 
             var reviewNeeded = !isCleanBackport || reviewCleanBackport;
 
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, reviewNeeded);
+            var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, reviewNeeded, issuesWithCSRAndJEP(issues, csrIssueTrackerIssues));
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
 
