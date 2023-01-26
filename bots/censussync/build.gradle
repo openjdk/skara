@@ -44,6 +44,9 @@ dependencies {
     implementation project(':storage')
     implementation project(':xml')
     implementation project(':metrics')
+    implementation project(':bots:common')
+    implementation project(':jbs')
+    implementation project(':jcheck')
 
     testImplementation project(':test')
 }
