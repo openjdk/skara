@@ -1124,7 +1124,11 @@ class CheckRun {
             }
             PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor();
 
-            var version = BotUtils.getVersion(pr).orElse(null);
+            JdkVersion version = null;
+            try {
+                version = BotUtils.getVersion(pr).orElse(null);
+            } catch (Exception e) {
+            }
             // issues without CSR issues and JEP issues
             var issues = issues();
             var csrIssueTrackerIssues = getCsrIssueTrackerIssues(issues, version);
