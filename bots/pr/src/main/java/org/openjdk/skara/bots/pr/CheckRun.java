@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -41,6 +41,8 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.stream.*;
 
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
+
 class CheckRun {
     public static final String MSG_EMPTY_BODY = "The pull request body must not be empty.";
 
@@ -59,15 +61,14 @@ class CheckRun {
     private final CheckablePullRequest checkablePullRequest;
 
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
-    private static final String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
-    private static final String mergeReadyMarker = "<!-- PullRequestBot merge is ready comment -->";
-    private static final String outdatedHelpMarker = "<!-- PullRequestBot outdated help comment -->";
-    private static final String sourceBranchWarningMarker = "<!-- PullRequestBot source branch warning comment -->";
-    private static final String mergeCommitWarningMarker = "<!-- PullRequestBot merge commit warning comment -->";
-    private static final String emptyPrBodyMarker = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
+    private static final String MERGE_READY_MARKER = "<!-- PullRequestBot merge is ready comment -->";
+    private static final String OUTDATED_HELP_MARKER = "<!-- PullRequestBot outdated help comment -->";
+    private static final String SOURCE_BRANCH_WARNING_MARKER = "<!-- PullRequestBot source branch warning comment -->";
+    private static final String MERGE_COMMIT_WARNING_MARKER = "<!-- PullRequestBot merge commit warning comment -->";
+    private static final String EMPTY_PR_BODY_MARKER = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
-    private static final String fullNameWarningMarker = "<!-- PullRequestBot full name warning comment -->";
-    private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
+    private static final String FULL_NAME_WARNING_MARKER = "<!-- PullRequestBot full name warning comment -->";
+    private static final Set<String> PRIMARY_TYPES = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final Set<String> newLabels;
     private final boolean reviewCleanBackport;
 
@@ -182,7 +183,7 @@ class CheckRun {
         var jepComment = pr.comments().stream()
                 .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))
                 .flatMap(comment -> comment.body().lines())
-                .map(JEPCommand.jepMarkerPattern::matcher)
+                .map(JEP_MARKER_PATTERN::matcher)
                 .filter(Matcher::find)
                 .reduce((first, second) -> second)
                 .orElse(null);
@@ -341,7 +342,7 @@ class CheckRun {
                             setExpiration(Duration.ofMinutes(10));
                         } else {
                             var issueType = properties.get("issuetype").asString();
-                            if (!primaryTypes.contains(issueType)) {
+                            if (!PRIMARY_TYPES.contains(issueType)) {
                                 ret.add("Issue of type `" + issueType + "` is not allowed for integrations");
                                 setExpiration(Duration.ofMinutes(10));
                             }
@@ -765,7 +766,7 @@ class CheckRun {
 
     private String bodyWithoutStatus() {
         var description = pr.body();
-        var markerIndex = description.lastIndexOf(progressMarker);
+        var markerIndex = description.lastIndexOf(PROGRESS_MARKER);
         return (markerIndex < 0 ?
                 description :
                 description.substring(0, markerIndex)).trim();
@@ -773,7 +774,7 @@ class CheckRun {
 
     private String updateStatusMessage(String message) {
         var description = pr.body();
-        var markerIndex = description.lastIndexOf(progressMarker);
+        var markerIndex = description.lastIndexOf(PROGRESS_MARKER);
 
         if (markerIndex >= 0 && description.substring(markerIndex).equals(message)) {
             log.info("Progress already up to date");
@@ -781,9 +782,9 @@ class CheckRun {
         }
         var originalBody = bodyWithoutStatus();
         if (originalBody.isBlank()) {
-            originalBody = emptyPrBodyMarker;
+            originalBody = EMPTY_PR_BODY_MARKER;
         }
-        var newBody = originalBody + "\n\n" + progressMarker + "\n" + message;
+        var newBody = originalBody + "\n\n" + PROGRESS_MARKER + "\n" + message;
 
         // Retrieve the body again here to lower the chance of concurrent updates
         var latestPR = pr.repository().pullRequest(pr.id());
@@ -935,7 +936,7 @@ class CheckRun {
             message.append("[/integrate](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) ");
             message.append("in a new comment.\n");
         }
-        message.append(mergeReadyMarker);
+        message.append(MERGE_READY_MARKER);
         return message.toString();
     }
 
@@ -944,12 +945,12 @@ class CheckRun {
         message.append("@");
         message.append(pr.author().username());
         message.append(" This change is no longer ready for integration - check the PR body for details.\n");
-        message.append(mergeReadyMarker);
+        message.append(MERGE_READY_MARKER);
         return message.toString();
     }
 
     private void addFullNameWarningComment() {
-        var existing = findComment(fullNameWarningMarker);
+        var existing = findComment(FULL_NAME_WARNING_MARKER);
         if (existing.isPresent()) {
             // Only warn once
             return;
@@ -978,12 +979,12 @@ class CheckRun {
                           "$ git commit --author='Preferred Full Name <you@example.com>' --allow-empty -m 'Update full name'\n" +
                           "$ git push\n" +
                           "```\n";
-            pr.addComment(fullNameWarningMarker + "\n" + message);
+            pr.addComment(FULL_NAME_WARNING_MARKER + "\n" + message);
         }
     }
 
     private void updateMergeReadyComment(boolean isReady, String commitMessage, boolean rebasePossible) {
-        var existing = findComment(mergeReadyMarker);
+        var existing = findComment(MERGE_READY_MARKER);
         if (isReady && rebasePossible) {
             addFullNameWarningComment();
             var message = getMergeReadyComment(commitMessage);
@@ -1010,7 +1011,7 @@ class CheckRun {
     }
 
     private void addSourceBranchWarningComment() {
-        var existing = findComment(sourceBranchWarningMarker);
+        var existing = findComment(SOURCE_BRANCH_WARNING_MARKER);
         if (existing.isPresent()) {
             // Only add the comment once per PR
             return;
@@ -1036,13 +1037,13 @@ class CheckRun {
             "\n" +
             "Then proceed to create a new pull request with `NEW-BRANCH-NAME` as the source branch and " +
             "close this one.\n" +
-            sourceBranchWarningMarker;
+            SOURCE_BRANCH_WARNING_MARKER;
         log.info("Adding source branch warning comment");
         pr.addComment(message);
     }
 
     private void addOutdatedComment() {
-        var existing = findComment(outdatedHelpMarker);
+        var existing = findComment(OUTDATED_HELP_MARKER);
         if (existing.isPresent()) {
             // Only add the comment once per PR
             return;
@@ -1058,13 +1059,13 @@ class CheckRun {
                 "git commit -m \"Merge " + pr.targetRef() + "\"\n" +
                 "git push\n" +
                 "```\n" +
-                outdatedHelpMarker;
+                OUTDATED_HELP_MARKER;
         log.info("Adding merge conflict comment");
         pr.addComment(message);
     }
 
     private void addMergeCommitWarningComment() {
-        var existing = findComment(mergeCommitWarningMarker);
+        var existing = findComment(MERGE_COMMIT_WARNING_MARKER);
         if (existing.isPresent()) {
             // Only add the comment once per PR
             return;
@@ -1077,7 +1078,7 @@ class CheckRun {
                       " If this is your intention, then please ignore this message. If you want to preserve the commit structure, you must change" +
                       " the title of this pull request to `Merge <project>:<branch>` where `<project>` is the name of another project in the" +
                       " [OpenJDK organization](https://github.com/openjdk) (for example `Merge jdk:" + defaultBranch + "`).\n" +
-                      mergeCommitWarningMarker;
+                      MERGE_COMMIT_WARNING_MARKER;
         log.info("Adding merge commit warning comment");
         pr.addComment(message);
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,27 +32,27 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 class Reviewers {
-    private final static String addMarker = "<!-- add reviewer: '%s' -->";
-    private final static String removeMarker = "<!-- remove reviewer: '%s' -->";
-    private final static Pattern markerPattern = Pattern.compile("<!-- (add|remove) reviewer: '(.*?)' -->");
+    private static final String ADD_MARKER = "<!-- add reviewer: '%s' -->";
+    private static final String REMOVE_MARKER = "<!-- remove reviewer: '%s' -->";
+    private static final Pattern MARKER_PATTERN = Pattern.compile("<!-- (add|remove) reviewer: '(.*?)' -->");
 
     static String addReviewerMarker(Contributor contributor) {
-        return String.format(addMarker, contributor.username());
+        return String.format(ADD_MARKER, contributor.username());
     }
 
     static String addReviewerMarker(String username) {
-        return String.format(addMarker, username);
+        return String.format(ADD_MARKER, username);
     }
 
     static String removeReviewerMarker(Contributor contributor) {
-        return String.format(removeMarker, contributor.username());
+        return String.format(REMOVE_MARKER, contributor.username());
     }
 
     static List<String> reviewers(HostUser botUser, List<Comment> comments) {
         var reviewerActions = comments.stream()
                                          .filter(comment -> comment.author().equals(botUser))
                                          .flatMap(comment -> Stream.of(comment.body().split("\n")))
-                                         .map(line -> markerPattern.matcher(line))
+                                         .map(line -> MARKER_PATTERN.matcher(line))
                                          .filter(Matcher::find)
                                          .collect(Collectors.toList());
         var contributors = new LinkedHashSet<String>();

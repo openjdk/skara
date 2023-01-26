@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 import static org.openjdk.skara.jcheck.ReviewersConfiguration.BYLAWS_URL;
 
 public class ReviewersCommand implements CommandHandler {
-    private static final Map<String, String> roleMappings = Map.of(
+    private static final Map<String, String> ROLE_MAPPINGS = Map.of(
             "lead", "lead",
             "reviewers", "reviewers",
             "reviewer", "reviewers",
@@ -107,12 +107,12 @@ public class ReviewersCommand implements CommandHandler {
 
         String role = "authors";
         if (splitArgs.length > 1) {
-            if (!roleMappings.containsKey(splitArgs[1].toLowerCase())) {
+            if (!ROLE_MAPPINGS.containsKey(splitArgs[1].toLowerCase())) {
                 showHelp(reply);
                 reply.println("Unknown role `" + splitArgs[1] + "` specified.");
                 return;
             }
-            role = roleMappings.get(splitArgs[1].toLowerCase());
+            role = ROLE_MAPPINGS.get(splitArgs[1].toLowerCase());
         }
 
         if (pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {

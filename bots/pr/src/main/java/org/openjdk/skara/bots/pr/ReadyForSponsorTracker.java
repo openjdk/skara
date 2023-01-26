@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,17 +31,17 @@ import java.util.regex.*;
 import java.util.stream.Collectors;
 
 class ReadyForSponsorTracker {
-    private final static String marker = "<!-- integration requested: '%s' -->";
-    private final static Pattern markerPattern = Pattern.compile("<!-- integration requested: '(.*?)' -->");
+    private static final String MARKER = "<!-- integration requested: '%s' -->";
+    private static final Pattern MARKER_PATTERN = Pattern.compile("<!-- integration requested: '(.*?)' -->");
 
     static String addIntegrationMarker(Hash hash) {
-        return String.format(marker, hash.hex());
+        return String.format(MARKER, hash.hex());
     }
 
     static Optional<Hash> latestReadyForSponsor(HostUser botUser, List<Comment> comments) {
         var ready = comments.stream()
                                          .filter(comment -> comment.author().equals(botUser))
-                                         .map(comment -> markerPattern.matcher(comment.body()))
+                                         .map(comment -> MARKER_PATTERN.matcher(comment.body()))
                                          .filter(Matcher::find)
                             .map(matcher -> matcher.group(1))
                             .map(Hash::new)

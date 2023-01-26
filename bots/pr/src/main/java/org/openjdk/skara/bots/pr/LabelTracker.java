@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,16 +30,16 @@ import java.util.regex.*;
 import java.util.stream.Collectors;
 
 public class LabelTracker {
-    private final static String addMarker = "<!-- added label: '%s' -->";
-    private final static String removeMarker = "<!-- removed label: '%s' -->";
-    private final static Pattern labelMarkerPattern = Pattern.compile("<!-- (added|removed) label: '(.*?)' -->");
+    private static final String ADD_MARKER = "<!-- added label: '%s' -->";
+    private static final String REMOVE_MARKER = "<!-- removed label: '%s' -->";
+    private static final Pattern LABEL_MARKER_PATTERN = Pattern.compile("<!-- (added|removed) label: '(.*?)' -->");
 
     static String addLabelMarker(String label) {
-        return String.format(addMarker, label);
+        return String.format(ADD_MARKER, label);
     }
 
     static String removeLabelMarker(String label) {
-        return String.format(removeMarker, label);
+        return String.format(REMOVE_MARKER, label);
     }
 
     // Return all manually added labels, but filter any explicitly removed ones
@@ -47,7 +47,7 @@ public class LabelTracker {
         var labelActions = comments.stream()
                 .filter(comment -> comment.author().equals(botUser))
                 .flatMap(comment -> comment.body().lines())
-                .map(labelMarkerPattern::matcher)
+                .map(LABEL_MARKER_PATTERN::matcher)
                 .filter(Matcher::find)
                 .collect(Collectors.toList());
 
@@ -69,7 +69,7 @@ public class LabelTracker {
         var labelActions = comments.stream()
                                    .filter(comment -> comment.author().equals(botUser))
                                    .flatMap(comment -> comment.body().lines())
-                                   .map(labelMarkerPattern::matcher)
+                                   .map(LABEL_MARKER_PATTERN::matcher)
                                    .filter(Matcher::find)
                                    .collect(Collectors.toList());
 

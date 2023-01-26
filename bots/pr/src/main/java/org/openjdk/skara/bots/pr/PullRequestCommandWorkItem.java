@@ -37,13 +37,12 @@ import java.util.logging.Logger;
 import java.util.regex.*;
 import java.util.stream.*;
 
+import static org.openjdk.skara.bots.pr.CommitCommandWorkItem.COMMAND_REPLY_MARKER;
+import static org.openjdk.skara.bots.pr.CommitCommandWorkItem.COMMAND_REPLY_PATTERN;
+
 public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
-
-    private static final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
-    private static final Pattern commandReplyPattern = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
-
-    public static final String VALID_BOT_COMMAND_MARKER = "<!-- Valid self-command -->";
+    static final String VALID_BOT_COMMAND_MARKER = "<!-- Valid self-command -->";
 
     PullRequestCommandWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler,
             ZonedDateTime prUpdatedAt, boolean needsReadyCheck) {
@@ -85,7 +84,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         var self = pr.repository().forge().currentUser();
         return comments.stream()
                 .filter(comment -> comment.author().equals(self))
-                .map(comment -> commandReplyPattern.matcher(comment.body()))
+                .map(comment -> COMMAND_REPLY_PATTERN.matcher(comment.body()))
                 .filter(Matcher::find)
                 .map(matcher -> matcher.group(1))
                 .collect(Collectors.toSet());
@@ -119,7 +118,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
-        printer.println(String.format(commandReplyMarker, command.id()));
+        printer.println(String.format(COMMAND_REPLY_MARKER, command.id()));
         printer.print("@");
         printer.print(command.user().username());
         printer.print(" ");

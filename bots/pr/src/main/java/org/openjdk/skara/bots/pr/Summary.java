@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,18 +31,18 @@ import java.util.regex.*;
 import java.util.stream.Collectors;
 
 public class Summary {
-    private final static String summaryMarker = "<!-- summary: '%s' -->";
-    private final static Pattern markerPattern = Pattern.compile("<!-- summary: '(.*?)' -->");
+    private static final String SUMMARY_MARKER = "<!-- summary: '%s' -->";
+    private static final Pattern MARKER_PATTERN = Pattern.compile("<!-- summary: '(.*?)' -->");
 
     static String setSummaryMarker(String summary) {
         var encodedSummary = Base64.getEncoder().encodeToString(summary.getBytes(StandardCharsets.UTF_8));
-        return String.format(summaryMarker, encodedSummary);
+        return String.format(SUMMARY_MARKER, encodedSummary);
     }
 
     static Optional<String> summary(HostUser botUser, List<Comment> comments) {
         var summaryActions = comments.stream()
                                          .filter(comment -> comment.author().equals(botUser))
-                                         .map(comment -> markerPattern.matcher(comment.body()))
+                                         .map(comment -> MARKER_PATTERN.matcher(comment.body()))
                                          .filter(Matcher::find)
                                          .collect(Collectors.toList());
         String summary = null;

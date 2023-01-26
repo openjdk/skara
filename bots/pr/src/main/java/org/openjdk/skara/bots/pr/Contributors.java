@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,22 +31,22 @@ import java.util.regex.*;
 import java.util.stream.Collectors;
 
 class Contributors {
-    private final static String addMarker = "<!-- add contributor: '%s' -->";
-    private final static String removeMarker = "<!-- remove contributor: '%s' -->";
-    private final static Pattern markerPattern = Pattern.compile("<!-- (add|remove) contributor: '(.*?)' -->");
+    private static final String ADD_MARKER = "<!-- add contributor: '%s' -->";
+    private static final String REMOVE_MARKER = "<!-- remove contributor: '%s' -->";
+    private static final Pattern MARKER_PATTERN = Pattern.compile("<!-- (add|remove) contributor: '(.*?)' -->");
 
     static String addContributorMarker(EmailAddress contributor) {
-        return String.format(addMarker, contributor.toString());
+        return String.format(ADD_MARKER, contributor.toString());
     }
 
     static String removeContributorMarker(EmailAddress contributor) {
-        return String.format(removeMarker, contributor.toString());
+        return String.format(REMOVE_MARKER, contributor.toString());
     }
 
     static List<EmailAddress> contributors(HostUser botUser, List<Comment> comments) {
         var contributorActions = comments.stream()
                                          .filter(comment -> comment.author().equals(botUser))
-                                         .map(comment -> markerPattern.matcher(comment.body()))
+                                         .map(comment -> MARKER_PATTERN.matcher(comment.body()))
                                          .filter(Matcher::find)
                                          .collect(Collectors.toList());
         var contributors = new LinkedHashSet<EmailAddress>();

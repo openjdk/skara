@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,8 +37,7 @@ import java.nio.file.Files;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.openjdk.skara.bots.csr.PullRequestWorkItem.CSR_UPDATE_MARKER;
-import static org.openjdk.skara.bots.csr.PullRequestWorkItem.PROGRESS_MARKER;
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
 class CSRBotTests {
     @Test

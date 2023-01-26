@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,6 +39,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
 public class JEPCommandTests {
     @Test
@@ -75,14 +76,14 @@ public class JEPCommandTests {
 
             // PR should not have the `jep` label
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
 
             // Require jep by using `JEP-<id>`
             pr.addComment("/jep JEP-123");
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "This pull request will not be integrated until the [JEP-");
             assertLastCommentContains(pr, "has been targeted.");
             assertTrue(pr.store().body().contains("- [ ] Change requires a JEP request to be targeted"));
@@ -92,7 +93,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "determined that the JEP request is not needed for this pull request.");
             assertFalse(pr.store().body().contains("Change requires a JEP request to be targeted"));
 
@@ -101,7 +102,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "This pull request will not be integrated until the [JEP-");
             assertLastCommentContains(pr, "has been targeted.");
             assertTrue(pr.store().body().contains("- [ ] Change requires a JEP request to be targeted"));
@@ -111,7 +112,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "determined that the JEP request is not needed for this pull request.");
             assertFalse(pr.store().body().contains("Change requires a JEP request to be targeted"));
 
@@ -120,7 +121,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "This pull request will not be integrated until the [JEP-");
             assertLastCommentContains(pr, "has been targeted.");
             assertTrue(pr.store().body().contains("- [ ] Change requires a JEP request to be targeted"));
@@ -130,7 +131,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "determined that the JEP request is not needed for this pull request.");
             assertFalse(pr.store().body().contains("Change requires a JEP request to be targeted"));
 
@@ -139,7 +140,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "This pull request will not be integrated until the [JEP-");
             assertLastCommentContains(pr, "has been targeted.");
             assertTrue(pr.store().body().contains("- [ ] Change requires a JEP request to be targeted"));
@@ -149,7 +150,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "determined that the JEP request is not needed for this pull request.");
             assertFalse(pr.store().body().contains("Change requires a JEP request to be targeted"));
 
@@ -158,7 +159,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "The JEP for this pull request, [JEP-");
             assertLastCommentContains(pr, "has already been targeted.");
             assertTrue(pr.store().body().contains("- [x] Change requires a JEP request to be targeted"));
@@ -168,7 +169,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "determined that the JEP request is not needed for this pull request.");
             assertFalse(pr.store().body().contains("Change requires a JEP request to be targeted"));
 
@@ -177,7 +178,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "The JEP for this pull request, [JEP-");
             assertLastCommentContains(pr, "has already been targeted.");
             assertTrue(pr.store().body().contains("- [x] Change requires a JEP request to be targeted"));
@@ -187,7 +188,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "determined that the JEP request is not needed for this pull request.");
             assertFalse(pr.store().body().contains("Change requires a JEP request to be targeted"));
 
@@ -196,7 +197,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "This pull request will not be integrated until the [JEP-");
             assertLastCommentContains(pr, "has been targeted.");
             assertTrue(pr.store().body().contains("- [ ] Change requires a JEP request to be targeted"));
@@ -238,14 +239,14 @@ public class JEPCommandTests {
 
             // PR should not have the `jep` label
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
 
             // Require jep by a committer who is not the PR author
             prAsCommitter.addComment("/jep JEP-123");
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "Only the pull request author and [Reviewers]" +
                     "(https://openjdk.org/bylaws#reviewer) are allowed to use the `jep` command.");
 
@@ -254,7 +255,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "This pull request will not be integrated until the [JEP-");
             assertLastCommentContains(pr, "has been targeted.");
             assertTrue(pr.store().body().contains("- [ ] Change requires a JEP request to be targeted"));
@@ -264,7 +265,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "This pull request will not be integrated until the [JEP-");
             assertLastCommentContains(pr, "has been targeted.");
             assertTrue(pr.store().body().contains("- [ ] Change requires a JEP request to be targeted"));
@@ -274,7 +275,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "Only the pull request author and [Reviewers]" +
                     "(https://openjdk.org/bylaws#reviewer) are allowed to use the `jep` command.");
             assertTrue(pr.store().body().contains("- [ ] Change requires a JEP request to be targeted"));
@@ -284,7 +285,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertLastCommentContains(pr, "determined that the JEP request is not needed for this pull request.");
             assertFalse(pr.store().body().contains("Change requires a JEP request to be targeted"));
         }
@@ -319,14 +320,14 @@ public class JEPCommandTests {
 
             // PR should not have the `jep` label
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
 
             // Require jep with blank value
             pr.addComment("/jep");
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertEquals(3, pr.comments().size());
             assertLastCommentContains(pr, "Command syntax:");
             assertLastCommentContains(pr, "Some examples:");
@@ -340,7 +341,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertEquals(5, pr.comments().size());
             assertLastCommentContains(pr, "Command syntax:");
             assertLastCommentContains(pr, "Some examples:");
@@ -354,7 +355,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertEquals(7, pr.comments().size());
             assertLastCommentContains(pr, "The JEP issue was not found. Please make sure you have entered it correctly.");
             assertFalse(pr.store().body().contains("Change requires a JEP request to be targeted"));
@@ -364,7 +365,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertEquals(9, pr.comments().size());
             assertLastCommentContains(pr, "The issue `TEST-1` is not a JEP. Please make sure you have entered it correctly.");
             assertFalse(pr.store().body().contains("Change requires a JEP request to be targeted"));
@@ -374,7 +375,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertEquals(11, pr.comments().size());
             assertLastCommentContains(pr, "The JEP issue was not found. Please make sure you have entered it correctly.");
             assertFalse(pr.store().body().contains("Change requires a JEP request to be targeted"));
@@ -384,7 +385,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertEquals(13, pr.comments().size());
             assertLastCommentContains(pr, "The JEP issue was not found. Please make sure you have entered it correctly.");
             assertFalse(pr.store().body().contains("Change requires a JEP request to be targeted"));
@@ -394,7 +395,7 @@ public class JEPCommandTests {
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertEquals(15, pr.comments().size());
             assertLastCommentContains(pr, "The issue `TEST-1` is not a JEP. Please make sure you have entered it correctly.");
             assertFalse(pr.store().body().contains("Change requires a JEP request to be targeted"));
@@ -437,13 +438,13 @@ public class JEPCommandTests {
 
             // PR should not have the `jep` label
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
 
             // Test draft/submitted/candidate/proposedToTarget/proposedToDrop/closedWithoutDelivered JEPs
             for (int i = 1; i <= 6; i++) {
                 pr.addComment("/jep jep-" + i);
                 TestBotRunner.runPeriodicItems(prBot);
-                assertTrue(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+                assertTrue(pr.store().labelNames().contains(JEP_LABEL));
                 assertEquals(i * 2 + 1, pr.comments().size());
                 assertLastCommentContains(pr, "This pull request will not be integrated until the [JEP-");
                 assertLastCommentContains(pr, "has been targeted.");
@@ -454,7 +455,7 @@ public class JEPCommandTests {
             for (int i = 7; i <= 10; i++) {
                 pr.addComment("/jep jep-" + i);
                 TestBotRunner.runPeriodicItems(prBot);
-                assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+                assertFalse(pr.store().labelNames().contains(JEP_LABEL));
                 assertEquals(i * 2 + 1, pr.comments().size());
                 assertLastCommentContains(pr, "The JEP for this pull request, [JEP-");
                 assertLastCommentContains(pr, "has already been targeted.");
@@ -494,7 +495,7 @@ public class JEPCommandTests {
             pr.addComment("/jep TEST-2");
             TestBotRunner.runPeriodicItems(disableJepBot);
             assertLastCommentContains(pr, "This repository has not been configured to use the `jep` command.");
-            assertFalse(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             assertFalse(pr.store().body().contains("- [ ] Change requires a JEP request to be targeted"));
 
             // Test the PR bot with jep enable
@@ -503,7 +504,7 @@ public class JEPCommandTests {
             pr.addComment("/jep TEST-2");
             TestBotRunner.runPeriodicItems(enableJepBot);
             assertLastCommentContains(pr, "pull request will not be integrated until the");
-            assertTrue(pr.store().labelNames().contains(JEPCommand.JEP_LABEL));
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
             assertTrue(pr.store().body().contains("- [ ] Change requires a JEP request to be targeted"));
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,8 +37,9 @@ import java.time.*;
 import java.util.*;
 import java.util.function.*;
 import java.util.logging.Logger;
-import java.util.regex.*;
 import java.util.stream.Collectors;
+
+import static org.openjdk.skara.bots.mlbridge.ArchiveMessages.COMMAND_PATTERN;
 
 class ArchiveWorkItem implements WorkItem {
     private final PullRequest pr;
@@ -116,8 +117,6 @@ class ArchiveWorkItem implements WorkItem {
         }
     }
 
-    private static final Pattern commandPattern = Pattern.compile("^\\s*/([A-Za-z]+).*$", Pattern.MULTILINE | Pattern.DOTALL);
-
     private boolean ignoreComment(HostUser author, String body) {
         if (pr.repository().forge().currentUser().equals(author)) {
             return true;
@@ -126,7 +125,7 @@ class ArchiveWorkItem implements WorkItem {
             return true;
         }
         // Check if this comment only contains command lines
-        var commandLineMatcher = commandPattern.matcher(body);
+        var commandLineMatcher = COMMAND_PATTERN.matcher(body);
         if (commandLineMatcher.find()) {
             var filteredBody = commandLineMatcher.replaceAll("");
             if (filteredBody.strip().isEmpty()) {

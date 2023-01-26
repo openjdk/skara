@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,6 +42,8 @@ import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.jbs.Backports;
 
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
+
 /**
  * The PullRequestWorkItem is the work horse of the CSRBot. It gets triggered when
  * either the pull request itself, or any CSR issue associated with it have been
@@ -49,9 +51,6 @@ import org.openjdk.skara.jbs.Backports;
  * for it.
  */
 class PullRequestWorkItem implements WorkItem {
-    private final static String CSR_LABEL = "csr";
-    final static String CSR_UPDATE_MARKER = "<!-- csr: 'update' -->";
-    static final String PROGRESS_MARKER = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.csr");
     private final HostedRepository repository;
     private final String prId;
@@ -274,10 +273,10 @@ class PullRequestWorkItem implements WorkItem {
     private boolean isCSRNeeded(List<Comment> comments) {
         for (int i = comments.size() - 1; i >= 0; i--) {
             var comment = comments.get(i);
-            if (comment.body().contains("<!-- csr: 'needed' -->")) {
+            if (comment.body().contains(CSR_NEEDED_MARKER)) {
                 return true;
             }
-            if (comment.body().contains("<!-- csr: 'unneeded' -->")) {
+            if (comment.body().contains(CSR_UNNEEDED_MARKER)) {
                 return false;
             }
         }

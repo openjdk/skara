@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,23 +32,23 @@ import java.util.regex.*;
 import java.util.stream.Collectors;
 
 public class SolvesTracker {
-    private final static String solvesMarker = "<!-- solves: '%s' '%s' -->";
-    private final static Pattern markerPattern = Pattern.compile("<!-- solves: '(.*?)' '(.*?)' -->");
+    private static final String SOLVES_MARKER = "<!-- solves: '%s' '%s' -->";
+    private static final Pattern MARKER_PATTERN = Pattern.compile("<!-- solves: '(.*?)' '(.*?)' -->");
 
     public static String setSolvesMarker(Issue issue) {
         var encodedDescription = Base64.getEncoder().encodeToString(issue.description().getBytes(StandardCharsets.UTF_8));
-        return String.format(solvesMarker, issue.shortId(), encodedDescription);
+        return String.format(SOLVES_MARKER, issue.shortId(), encodedDescription);
     }
 
     public static String removeSolvesMarker(Issue issue) {
-        return String.format(solvesMarker, issue.shortId(), "");
+        return String.format(SOLVES_MARKER, issue.shortId(), "");
     }
 
     public static List<Issue> currentSolved(HostUser botUser, List<Comment> comments) {
         var solvesActions = comments.stream()
                 .filter(comment -> comment.author().equals(botUser))
                 .flatMap(comment -> comment.body().lines())
-                .map(markerPattern::matcher)
+                .map(MARKER_PATTERN::matcher)
                 .filter(Matcher::find)
                 .collect(Collectors.toList());
         var current = new LinkedHashMap<String, Issue>();

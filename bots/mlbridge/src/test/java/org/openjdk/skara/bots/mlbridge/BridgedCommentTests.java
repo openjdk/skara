@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,13 +30,13 @@ public class BridgedCommentTests {
 
     @Test
     public void bridgeMailPattern() {
-        assertFalse(BridgedComment.bridgedMailId.matcher("foo").find());
-        assertFalse(BridgedComment.bridgedMailId.matcher("<-- foo -->").find());
-        assertTrue(BridgedComment.bridgedMailId.matcher("<!-- Bridged id (foo=) -->").find());
-        assertTrue(BridgedComment.bridgedMailId.matcher("<!-- Bridged id (PEEzNDJBNUQwLTM" +
+        assertFalse(BridgedComment.BRIDGED_MAIL_ID.matcher("foo").find());
+        assertFalse(BridgedComment.BRIDGED_MAIL_ID.matcher("<-- foo -->").find());
+        assertTrue(BridgedComment.BRIDGED_MAIL_ID.matcher("<!-- Bridged id (foo=) -->").find());
+        assertTrue(BridgedComment.BRIDGED_MAIL_ID.matcher("<!-- Bridged id (PEEzNDJBNUQwLTM" +
                 "4MjItNEM2Ni05MDc4LUY5QThDOTA2NTRBNkBjYmZpZGRsZS5jb20+RnJvbSB0aGUgQ1NSIHJldmlldzo=) -->").find());
 
-        var matcher = BridgedComment.bridgedMailId.matcher("<!-- Bridged id (fo+/o=) -->");
+        var matcher = BridgedComment.BRIDGED_MAIL_ID.matcher("<!-- Bridged id (fo+/o=) -->");
         assertTrue(matcher.find());
         assertEquals("fo+/o=", matcher.group(1));
     }
