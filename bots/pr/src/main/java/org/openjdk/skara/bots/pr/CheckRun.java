@@ -166,7 +166,7 @@ class CheckRun {
      */
     private List<Issue> getCsrIssues(List<org.openjdk.skara.issuetracker.Issue> csrIssueTrackerIssues) {
 
-        return CsrIssueTrackerIssues.stream()
+        return csrIssueTrackerIssues.stream()
                 .map(perIssue -> Issue.fromStringRelaxed(perIssue.id() + ": " + perIssue.title()))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
