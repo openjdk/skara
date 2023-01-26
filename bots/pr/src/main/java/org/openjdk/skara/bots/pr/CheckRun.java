@@ -164,7 +164,7 @@ class CheckRun {
     /**
      * Get the csr issue. Note: this `Issue` is not the issue in module `issuetracker`.
      */
-    private List<Issue> getCsrIssues(List<org.openjdk.skara.issuetracker.Issue> CsrIssueTrackerIssues) {
+    private List<Issue> getCsrIssues(List<org.openjdk.skara.issuetracker.Issue> csrIssueTrackerIssues) {
 
         return CsrIssueTrackerIssues.stream()
                 .map(perIssue -> Issue.fromStringRelaxed(perIssue.id() + ": " + perIssue.title()))
