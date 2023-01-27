@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,7 +32,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 public class ReviewerCommand implements CommandHandler {
-    private static final Pattern commandPattern = Pattern.compile("^(credit|remove)\\s+(.+)$");
+    private static final Pattern COMMAND_PATTERN = Pattern.compile("^(credit|remove)\\s+(.+)$");
 
     private void showHelp(PullRequest pr, PrintWriter reply) {
         reply.println("Syntax: `/reviewer (credit|remove) [@user | openjdk-user]+`. For example:");
@@ -73,7 +73,7 @@ public class ReviewerCommand implements CommandHandler {
             return;
         }
 
-        var matcher = commandPattern.matcher(command.args());
+        var matcher = COMMAND_PATTERN.matcher(command.args());
         if (!matcher.matches()) {
             showHelp(pr, reply);
             return;

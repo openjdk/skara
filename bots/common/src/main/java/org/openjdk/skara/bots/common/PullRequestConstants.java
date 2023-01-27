@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,28 +21,22 @@
  * questions.
  */
 
-module {
-    name = 'org.openjdk.skara.bots.jep'
-    test {
-        requires 'org.junit.jupiter.api'
-        requires 'org.openjdk.skara.test'
-        opens 'org.openjdk.skara.bots.jep' to 'org.junit.platform.commons'
-    }
-}
+package org.openjdk.skara.bots.common;
 
-dependencies {
-    implementation project(':host')
-    implementation project(':bot')
-    implementation project(':forge')
-    implementation project(':issuetracker')
-    implementation project(':census')
-    implementation project(':ci')
-    implementation project(':json')
-    implementation project(':vcs')
-    implementation project(':metrics')
-    implementation project(':bots:common')
-    implementation project(':jbs')
-    implementation project(':jcheck')
+import java.util.regex.Pattern;
 
-    testImplementation project(':test')
+public class PullRequestConstants {
+    // MARKERS
+    public static final String PROGRESS_MARKER = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
+    public static final String CSR_UPDATE_MARKER = "<!-- csr: 'update' -->";
+    public static final String CSR_NEEDED_MARKER = "<!-- csr: 'needed' -->";
+    public static final String CSR_UNNEEDED_MARKER = "<!-- csr: 'unneeded' -->";
+    public static final String JEP_MARKER = "<!-- jep: '%s' '%s' '%s' -->"; // <!-- jep: 'JEP-ID' 'ISSUE-ID' 'ISSUE-TITLE' -->
+
+    // LABELS
+    public static final String CSR_LABEL = "csr";
+    public static final String JEP_LABEL = "jep";
+
+    // PATTERNS
+    public static final Pattern JEP_MARKER_PATTERN = Pattern.compile("<!-- jep: '(.*?)' '(.*?)' '(.*?)' -->");
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -41,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.CheckWorkItem.FORCE_PUSH_MARKER;
 import static org.openjdk.skara.bots.pr.CheckWorkItem.FORCE_PUSH_SUGGESTION;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
 class CheckTests {
     @Test
@@ -1973,7 +1974,6 @@ class CheckTests {
                     .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder().repo(botRepo)
                     .censusRepo(censusBuilder.build()).issueProject(issueProject).build();
-            var csrUpdateMarker = "\n<!-- csr: 'update' -->\n";
 
             var issue = issueProject.createIssue("This is the primary issue", List.of(), Map.of());
             issue.setState(Issue.State.CLOSED);
@@ -2022,7 +2022,7 @@ class CheckTests {
             var confHash = localRepo.commit("Set version as null", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.url(), "edit", true);
             // Simulate the CSRBot.
-            pr.setBody(pr.store().body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + CSR_UPDATE_MARKER);
             // Run bot. The bot won't get a CSR.
             TestBotRunner.runPeriodicItems(bot);
             // The PR should have primary issue and shouldn't have primary CSR.
@@ -2041,7 +2041,7 @@ class CheckTests {
             confHash = localRepo.commit("Set the version as a wrong value", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.url(), "edit", true);
             // Simulate the CSRBot.
-            pr.setBody(pr.store().body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + CSR_UPDATE_MARKER);
             // Run bot. The bot won't get a CSR.
             TestBotRunner.runPeriodicItems(bot);
             // The PR should have primary issue and shouldn't have primary CSR.
@@ -2060,7 +2060,7 @@ class CheckTests {
             confHash = localRepo.commit("Set the version as 17", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.url(), "edit", true);
             // Simulate the CSRBot.
-            pr.setBody(pr.store().body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + CSR_UPDATE_MARKER);
             // Run bot. The primary CSR doesn't have the fix version `17`, so the bot won't get a CSR.
             TestBotRunner.runPeriodicItems(bot);
             // The PR should have primary issue and shouldn't have primary CSR.
@@ -2074,7 +2074,7 @@ class CheckTests {
             // Set the fix versions of the primary CSR to 17 and 18.
             csr.setProperty("fixVersions", JSON.array().add("17").add("18"));
             // Simulate the CSRBot.
-            pr.setBody(pr.store().body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + CSR_UPDATE_MARKER);
             // Run bot. The primary CSR has the fix version `17`, so it would be used.
             TestBotRunner.runPeriodicItems(bot);
             // The bot should have primary issue and primary CSR
@@ -2093,7 +2093,7 @@ class CheckTests {
             backportIssue.setState(Issue.State.OPEN);
             issue.addLink(Link.create(backportIssue, "backported by").build());
             // Simulate the CSRBot.
-            pr.setBody(pr.store().body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + CSR_UPDATE_MARKER);
             // Run bot. The bot can find a backport issue but can't find a backport CSR.
             TestBotRunner.runPeriodicItems(bot);
             // The bot should have primary issue and shouldn't have primary CSR.
@@ -2113,7 +2113,7 @@ class CheckTests {
             backportCsr.setState(Issue.State.OPEN);
             backportIssue.addLink(Link.create(backportCsr, "csr for").build());
             // Simulate the CSRBot.
-            pr.setBody(pr.store().body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + CSR_UPDATE_MARKER);
             // Run bot. The bot can find a backport issue and a backport CSR.
             TestBotRunner.runPeriodicItems(bot);
             // The bot should have primary issue and backport CSR.
@@ -2138,7 +2138,7 @@ class CheckTests {
             confHash = localRepo.commit("Set the version as 11", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.url(), "edit", true);
             // Simulate the CSRBot.
-            pr.setBody(pr.store().body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + CSR_UPDATE_MARKER);
             // Run bot.
             TestBotRunner.runPeriodicItems(bot);
             // The PR should have primary issue and backport CSR.
@@ -2155,7 +2155,7 @@ class CheckTests {
             // Set the backport CSR to have multiple fix versions, excluded 11.
             backportCsr.setProperty("fixVersions", JSON.array().add("17").add("8"));
             // Simulate the CSRBot.
-            pr.setBody(pr.store().body() + csrUpdateMarker);
+            pr.setBody(pr.store().body() + CSR_UPDATE_MARKER);
             // Run bot.
             TestBotRunner.runPeriodicItems(bot);
             // The bot should have primary issue and shouldn't have CSR.

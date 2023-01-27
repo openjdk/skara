@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,34 +25,34 @@ package org.openjdk.skara.bots.mlbridge;
 import java.util.regex.*;
 
 public class MarkdownToText {
-    private static final Pattern emojiPattern = Pattern.compile("(:([0-9a-z_+-]+):)");
-    private static final Pattern suggestionPattern = Pattern.compile("^```suggestion$", Pattern.MULTILINE);
-    private static final Pattern codePattern = Pattern.compile("^```+(?:\\w+)?$", Pattern.MULTILINE);
-    private static final Pattern escapesPattern = Pattern.compile("\\\\([!\"#$%&'()*+,\\-./:;<=?@\\[\\]^_`{|}~])", Pattern.MULTILINE);
-    private static final Pattern entitiesPattern = Pattern.compile("&#32;", Pattern.MULTILINE);
+    private static final Pattern EMOJI_PATTERN = Pattern.compile("(:([0-9a-z_+-]+):)");
+    private static final Pattern SUGGESTION_PATTERN = Pattern.compile("^```suggestion$", Pattern.MULTILINE);
+    private static final Pattern CODE_PATTERN = Pattern.compile("^```+(?:\\w+)?$", Pattern.MULTILINE);
+    private static final Pattern ESCAPES_PATTERN = Pattern.compile("\\\\([!\"#$%&'()*+,\\-./:;<=?@\\[\\]^_`{|}~])", Pattern.MULTILINE);
+    private static final Pattern ENTITIES_PATTERN = Pattern.compile("&#32;", Pattern.MULTILINE);
 
     private static String removeEmojis(String markdown) {
-        var emojiMatcher = emojiPattern.matcher(markdown);
+        var emojiMatcher = EMOJI_PATTERN.matcher(markdown);
         return emojiMatcher.replaceAll(mr -> EmojiTable.mapping.getOrDefault(mr.group(2), mr.group(1)));
     }
 
     private static String removeSuggestions(String markdown) {
-        var suggestionMatcher = suggestionPattern.matcher(markdown);
+        var suggestionMatcher = SUGGESTION_PATTERN.matcher(markdown);
         return suggestionMatcher.replaceAll("Suggestion:\n");
     }
 
     private static String removeCode(String markdown) {
-        var codeMatcher = codePattern.matcher(markdown);
+        var codeMatcher = CODE_PATTERN.matcher(markdown);
         return codeMatcher.replaceAll("");
     }
 
     static String removeEscapes(String markdown) {
-        var escapesMatcher = escapesPattern.matcher(markdown);
+        var escapesMatcher = ESCAPES_PATTERN.matcher(markdown);
         return escapesMatcher.replaceAll(mr -> Matcher.quoteReplacement(mr.group(1)));
     }
 
     static String removeEntities(String markdown) {
-        var entitiesMatcher = entitiesPattern.matcher(markdown);
+        var entitiesMatcher = ENTITIES_PATTERN.matcher(markdown);
         return entitiesMatcher.replaceAll(" ");
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,10 +34,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
+
 public class CSRCommand implements CommandHandler {
-    private static final String CSR_LABEL = "csr";
-    private static final String CSR_NEEDED_MARKER = "<!-- csr: 'needed' -->";
-    private static final String CSR_UNNEEDED_MARKER = "<!-- csr: 'unneeded' -->";
 
     private static void showHelp(PrintWriter writer) {
         writer.println("usage: `/csr [needed|unneeded]`, requires that the issue the pull request refers to links to an approved [CSR](https://wiki.openjdk.org/display/csr/Main) request.");

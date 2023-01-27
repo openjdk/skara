@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -80,12 +80,12 @@ class ReviewArchive {
                         .findAny();
     }
 
-    private final static Pattern pushedPattern = Pattern.compile("Pushed as commit ([a-f0-9]{40})\\.");
+    public static final Pattern PUSHED_PATTERN = Pattern.compile("Pushed as commit ([a-f0-9]{40})\\.");
 
     private Optional<Hash> findIntegratedHash() {
         return ignoredComments.stream()
                               .map(Comment::body)
-                              .map(pushedPattern::matcher)
+                              .map(PUSHED_PATTERN::matcher)
                               .filter(Matcher::find)
                               .map(m -> m.group(1))
                               .map(Hash::new)

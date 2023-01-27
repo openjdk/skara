@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -77,8 +77,8 @@ public class IssueCommand implements CommandHandler {
         reply.println("Separate multiple issue IDs using either spaces or commas.");
     }
 
-    private static final Pattern shortIssuePattern = Pattern.compile("((?:[A-Za-z]+-)?[0-9]+)(?:,| |$)");
-    private final static Pattern subCommandPattern = Pattern.compile("^(add|remove|delete|create|(?:[A-Za-z]+-)?[0-9]+:?)[ ,]?.*$");
+    private static final Pattern SHORT_ISSUE_PATTERN = Pattern.compile("((?:[A-Za-z]+-)?[0-9]+)(?:,| |$)");
+    private static final Pattern SUBCOMMAND_PATTERN = Pattern.compile("^(add|remove|delete|create|(?:[A-Za-z]+-)?[0-9]+:?)[ ,]?.*$");
 
     private List<Issue> parseIssueList(String allowedPrefix, String issueList) throws InvalidIssue {
         List<Issue> ret;
@@ -87,7 +87,7 @@ public class IssueCommand implements CommandHandler {
         if (singleIssue.isPresent()) {
             ret = List.of(singleIssue.get());
         } else {
-            var shortIssueMatcher = shortIssuePattern.matcher(issueList);
+            var shortIssueMatcher = SHORT_ISSUE_PATTERN.matcher(issueList);
             ret = shortIssueMatcher.results()
                                    .map(matchResult -> matchResult.group(1))
                                    .map(identifier -> new Issue(identifier, null))
@@ -281,7 +281,7 @@ public class IssueCommand implements CommandHandler {
             showHelp(reply);
             return;
         }
-        var subCommandMatcher = subCommandPattern.matcher(args);
+        var subCommandMatcher = SUBCOMMAND_PATTERN.matcher(args);
         if (!subCommandMatcher.matches()) {
             showHelp(reply);
             return;

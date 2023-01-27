@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,9 +38,9 @@ public class BridgedComment {
     private final HostUser author;
     private final ZonedDateTime created;
 
-    private final static String bridgedMailMarker = "<!-- Bridged id (%s) -->";
-    final static Pattern bridgedMailId = Pattern.compile("^<!-- Bridged id \\(([=+/\\w]+)\\) -->");
-    private final static Pattern bridgedSender = Pattern.compile("Mailing list message from \\[(.*?)]\\(mailto:(\\S+)\\)");
+    private static final String BRIDGED_MAIL_MARKER = "<!-- Bridged id (%s) -->";
+    static final Pattern BRIDGED_MAIL_ID = Pattern.compile("^<!-- Bridged id \\(([=+/\\w]+)\\) -->");
+    private static final Pattern BRIDGED_SENDER = Pattern.compile("Mailing list message from \\[(.*?)]\\(mailto:(\\S+)\\)");
 
     private BridgedComment(String body, EmailAddress messageId, HostUser author, ZonedDateTime created) {
         this.messageId = messageId;
@@ -53,12 +53,12 @@ public class BridgedComment {
         if (!comment.author().equals(botUser)) {
             return Optional.empty();
         }
-        var matcher = bridgedMailId.matcher(comment.body());
+        var matcher = BRIDGED_MAIL_ID.matcher(comment.body());
         if (!matcher.find()) {
             return Optional.empty();
         }
         var id = new String(Base64.getDecoder().decode(matcher.group(1)), StandardCharsets.UTF_8);
-        var senderMatcher = bridgedSender.matcher(comment.body());
+        var senderMatcher = BRIDGED_SENDER.matcher(comment.body());
         if (!senderMatcher.find()) {
             return Optional.empty();
         }
@@ -74,7 +74,7 @@ public class BridgedComment {
     }
 
     static BridgedComment post(PullRequest pr, Email email) {
-        var marker = String.format(bridgedMailMarker,
+        var marker = String.format(BRIDGED_MAIL_MARKER,
                                    Base64.getEncoder().encodeToString(email.id().address().getBytes(StandardCharsets.UTF_8)));
 
         var filteredEmail = QuoteFilter.stripLinkBlock(email.body(), pr.webUrl());
