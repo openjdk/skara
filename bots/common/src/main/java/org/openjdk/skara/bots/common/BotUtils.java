@@ -42,8 +42,10 @@ public class BotUtils {
      */
     public static Optional<JdkVersion> getVersion(PullRequest pr) {
         var confFile = pr.repository().fileContents(".jcheck/conf", pr.headHash().hex())
-                .orElse(pr.repository().fileContents(".jcheck/conf", pr.targetRef())
-                        .orElseThrow(() -> new RuntimeException("Could not find .jcheck/conf in neither src or target of PR " + pr)));
+                .orElse(pr.repository().fileContents(".jcheck/conf", pr.targetRef()).orElse(null));
+        if (confFile == null) {
+            return Optional.empty();
+        }
         var configuration = JCheckConfiguration.parse(confFile.lines().toList());
         var version = configuration.general().version().orElse(null);
         if (version == null || "".equals(version)) {
