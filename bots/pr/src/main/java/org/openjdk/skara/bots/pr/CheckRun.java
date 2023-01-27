@@ -665,7 +665,7 @@ class CheckRun {
                             progressBody.append("](");
                             progressBody.append(iss.get().webUrl());
                             progressBody.append("): ");
-                            progressBody.append(iss.get().title());
+                            progressBody.append(BotUtils.escape(iss.get().title()));
                             var issueType = iss.get().properties().get("issuetype");
                             if (issueType != null && "CSR".equals(issueType.asString())) {
                                 progressBody.append(" (**CSR**)");
