@@ -1123,16 +1123,8 @@ class CheckRun {
                 localHash = baseHash;
             }
             PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor();
-
-            JdkVersion version = null;
-            try {
-                version = BotUtils.getVersion(pr).orElse(null);
-            } catch (Exception e) {
-            }
-            // issues without CSR issues and JEP issues
-            var issues = issues();
-            var csrIssueTrackerIssues = getCsrIssueTrackerIssues(issues, version);
-
+            boolean needUpdateAdditionalProgresses = false;
+            boolean sourceBranchJCheckConfValid = true;
             if (localHash.equals(baseHash)) {
                 if (additionalErrors.isEmpty()) {
                     additionalErrors = List.of("This PR contains no changes");
@@ -1158,11 +1150,24 @@ class CheckRun {
                         var message = e.getMessage() + " (exception thrown when running jcheck with updated jcheck configuration)";
                         log.warning(message);
                         secondJCheckMessage.add(message);
+                        sourceBranchJCheckConfValid = false;
                     }
                 }
                 additionalErrors = botSpecificChecks(isCleanBackport);
+                needUpdateAdditionalProgresses = true;
+            }
+
+            JdkVersion version = null;
+            if (sourceBranchJCheckConfValid) {
+                version = BotUtils.getVersion(pr).orElse(null);
+            }
+            // issues without CSR issues and JEP issues
+            var issues = issues();
+            var csrIssueTrackerIssues = getCsrIssueTrackerIssues(issues, version);
+            if (needUpdateAdditionalProgresses) {
                 additionalProgresses = botSpecificProgresses(csrIssueTrackerIssues, version);
             }
+
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             var readyForReview = updateReadyForReview(visitor, additionalErrors);
 

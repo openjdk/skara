@@ -2333,6 +2333,14 @@ class CheckTests {
             var restoreHash = localRepo.commit("restore conf", "testauthor", "ta@none.none");
             localRepo.push(restoreHash, author.url(), "master", true);
 
+            // Restore .jcheck/conf in source branch
+            localRepo.checkout(editHash);
+            Files.createDirectories(tempFolder.path().resolve(".jcheck"));
+            writeToCheckConf(checkConf);
+            localRepo.add(checkConf);
+            var restoreEditHash = localRepo.commit("restore source branch conf", "testauthor", "ta@none.none");
+            localRepo.push(restoreEditHash, author.url(), "edit", true);
+
             pr.addComment(".jcheck/conf is uploaded");
             TestBotRunner.runPeriodicItems(checkBot);
             assertTrue(pr.store().labelNames().contains("rfr"));
