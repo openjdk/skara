@@ -70,7 +70,7 @@ public class BackportCommand implements CommandHandler {
         }
 
         if (pr.isClosed() && !pr.labelNames().contains("integrated")) {
-            reply.println("`/backport` command can not be used in closed but not integrated PR");
+            reply.println("`/backport` command can not be used in a closed but not integrated pull request");
             return;
         }
 
