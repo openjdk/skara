@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.HostedCommit;
 import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -42,6 +43,10 @@ public class BackportCommand implements CommandHandler {
         reply.println("Usage: `/backport <repository> [<branch>]`");
     }
 
+    private void showHelpInPR(PrintWriter reply) {
+        reply.println("Usage: `/backport <repository> [<branch>]` `/backport disable <repository> [<branch>]`");
+    }
+
     @Override
     public String description() {
         return "create a backport";
@@ -52,20 +57,100 @@ public class BackportCommand implements CommandHandler {
         return true;
     }
 
+    private static final String USER_INVALID_WARNING = "To use the `/backport` command, you need to be in the OpenJDK [census](https://openjdk.org/census)"
+            + " and your GitHub account needs to be linked with your OpenJDK username"
+            + " ([how to associate your GitHub account with your OpenJDK username]"
+            + "(https://wiki.openjdk.org/display/skara#Skara-AssociatingyourGitHubaccountandyourOpenJDKusername)).";
+
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath,
-                CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
-        reply.println("The command `backport` can only be used in a pull request that has been integrated.");
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
+        if (censusInstance.contributor(command.user()).isEmpty()) {
+            reply.println(USER_INVALID_WARNING);
+            return;
+        }
+
+        if (pr.isClosed() && !pr.labelNames().contains("integrated")) {
+            reply.println("`/backport` command can not be used in closed but not integrated PR");
+            return;
+        }
+
+        var args = command.args();
+        if (args.isBlank()) {
+            showHelpInPR(reply);
+            return;
+        }
+
+        var parts = args.split(" ");
+        boolean argIsValid = parts[0].equals("disable") ? parts.length == 2 || parts.length == 3 : parts.length <= 2;
+        if (!argIsValid) {
+            showHelpInPR(reply);
+            return;
+        }
+
+        if (parts[0].equals("disable")) {
+            // Remove label
+            var targetRepoName = parts[1];
+            var targetBranchName = parts.length == 3 ? parts[2] : "master";
+            var backportLabel = generateBackportLabel(targetRepoName, targetBranchName);
+            if (pr.labelNames().contains(backportLabel)) {
+                labelsToRemove.add(backportLabel);
+                reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was successfully disabled.");
+            } else {
+                reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was not enabled, so you can not disable it.");
+            }
+        } else {
+            // Add label
+            var forge = bot.repo().forge();
+            var repoNameArg = parts[0].replace("http://", "")
+                    .replace("https://", "")
+                    .replace(forge.hostname() + "/", "");
+            // If the arg is given with a namespace prefix, look for an exact match,
+            // otherwise cut off the namespace prefix before comparing with the forks
+            // config.
+            var includesNamespace = repoNameArg.contains("/");
+            var repoNameOptional = bot.forks().keySet().stream()
+                    .filter(s -> includesNamespace
+                            ? s.equals(repoNameArg)
+                            : s.substring(s.indexOf("/") + 1).equals(repoNameArg))
+                    .findAny();
+            String targetRepoName = repoNameOptional.orElse("<not found>");
+
+            var potentialTargetRepo = repoNameOptional.flatMap(forge::repository);
+            if (potentialTargetRepo.isEmpty()) {
+                reply.println("The target repository `" + repoNameArg + "` is not a valid target for backports. ");
+                reply.print("List of valid target repositories: ");
+                reply.println(String.join(", ", bot.forks().keySet().stream().sorted().toList()) + ".");
+                reply.println("Supplying the organization/group prefix is optional.");
+                return;
+            }
+            var targetRepo = potentialTargetRepo.get();
+
+            var targetBranchName = parts.length == 2 ? parts[1] : "master";
+            var targetBranches = targetRepo.branches();
+            if (targetBranches.stream().noneMatch(b -> b.name().equals(targetBranchName))) {
+                reply.println("The target branch `" + targetBranchName + "` does not exist");
+                return;
+            }
+            var backportLabel = generateBackportLabel(targetRepoName, targetBranchName);
+            if (pr.labelNames().contains(backportLabel)) {
+                reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` has already been enabled.");
+            } else {
+                labelsToAdd.add(backportLabel);
+                reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was successfully enabled.");
+                reply.println("Please note that instructions for creating backports will be provided once this PR is integrated.");
+            }
+        }
+    }
+
+    private String generateBackportLabel(String targetRepo, String targetBranchName) {
+        return "Backport=" + targetRepo + ":" + targetBranchName;
     }
 
     @Override
     public void handle(PullRequestBot bot, HostedCommit commit, LimitedCensusInstance censusInstance,
             Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (censusInstance.contributor(command.user()).isEmpty()) {
-            reply.println("To use the `/backport` command, you need to be in the OpenJDK [census](https://openjdk.org/census)"
-                    + " and your GitHub account needs to be linked with your OpenJDK username"
-                    + " ([how to associate your GitHub account with your OpenJDK username]"
-                    + "(https://wiki.openjdk.org/display/skara#Skara-AssociatingyourGitHubaccountandyourOpenJDKusername)).");
+            reply.println(USER_INVALID_WARNING);
             return;
         }
 
@@ -115,10 +200,33 @@ public class BackportCommand implements CommandHandler {
         }
         var targetBranch = new Branch(targetBranchName);
 
+        // Find real user when the command user is bot
+        HostUser realUser = command.user();
+        if (realUser.equals(bot.repo().forge().currentUser())) {
+            var botComment = allComments.stream()
+                    .filter(comment -> comment.author().equals(bot.repo().forge().currentUser()))
+                    .filter(comment -> comment.body().contains("Backport for repo `" + repoName + "` on branch `" + targetBranchName + "` was successfully enabled."))
+                    .reduce((first, second) -> second).orElse(null);
+            if (botComment != null) {
+                String[] lines = botComment.body().split("\\n");
+                String userName = lines[1].split(" ")[0].substring(1);
+                var user = bot.repo().forge().user(userName);
+                if (user.isPresent()) {
+                    realUser = user.get();
+                    reply.print("@");
+                    reply.print(realUser.username());
+                    reply.print(" ");
+                } else {
+                    reply.println("Error: can not find the real user of Backport for repo `" + repoName + "` on branch `" + targetBranchName);
+                    return;
+                }
+            }
+        }
+
         try {
             var hash = commit.hash();
             Hash backportHash;
-            var backportBranchName = command.user().username() + "-backport-" + hash.abbreviate();
+            var backportBranchName = realUser.username() + "-backport-" + hash.abbreviate();
             var hostedBackportBranch = fork.branches().stream().filter(b -> b.name().equals(backportBranchName)).findAny();
             if (hostedBackportBranch.isEmpty()) {
                 var localRepoDir = scratchPath.resolve("backport-command")
@@ -190,10 +298,10 @@ public class BackportCommand implements CommandHandler {
                 backportHash = hostedBackportBranch.get().hash();
             }
 
-            if (!fork.canPush(command.user())) {
-                fork.addCollaborator(command.user(), true);
+            if (!fork.canPush(realUser)) {
+                fork.addCollaborator(realUser, true);
             }
-            fork.restrictPushAccess(new Branch(backportBranchName), command.user());
+            fork.restrictPushAccess(new Branch(backportBranchName), realUser);
 
             var message = CommitMessageParsers.v1.parse(commit);
             var formatter = DateTimeFormatter.ofPattern("d MMM uuuu");

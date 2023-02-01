@@ -41,6 +41,7 @@ public class IntegrateCommand implements CommandHandler {
     private final static Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private static final String PRE_PUSH_MARKER = "<!-- prepush %s -->";
     private static final Pattern PRE_PUSH_PATTERN = Pattern.compile("<!-- prepush ([0-9a-z]{40}) -->");
+    private static final Pattern BACKPORT_LABEL_PATTERN = Pattern.compile("Backport=(.+):(.+)");
 
     private enum Command {
         auto,
@@ -162,6 +163,7 @@ public class IntegrateCommand implements CommandHandler {
 
         Optional<Hash> prepushHash = checkForPrePushHash(bot, pr, scratchPath, allComments, "integrate");
         if (prepushHash.isPresent()) {
+            processBackportLabel(pr, allComments);
             markIntegratedAndClosed(pr, prepushHash.get(), reply);
             return;
         }
@@ -241,6 +243,7 @@ public class IntegrateCommand implements CommandHandler {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 addPrePushComment(pr, amendedHash, rebaseMessage.toString());
                 localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
+                processBackportLabel(pr, allComments);
                 markIntegratedAndClosed(pr, amendedHash, reply);
             } else {
                 reply.print("Warning! Your commit did not result in any changes! ");
@@ -323,6 +326,26 @@ public class IntegrateCommand implements CommandHandler {
             writer.println(extraMessage);
         }
         pr.addComment(commentBody.toString());
+    }
+
+    static void processBackportLabel(PullRequest pr, List<Comment> allComments) {
+        var botUser = pr.repository().forge().currentUser();
+        for (String label : pr.labelNames()) {
+            var matcher = BACKPORT_LABEL_PATTERN.matcher(label);
+            if (matcher.matches()) {
+                var repoName = matcher.group(1);
+                var branchName = matcher.group(2);
+                var text = "Creating backport for repo " + repoName + " on branch " + branchName
+                        + "\n<!--\n /backport " + repoName + " " + branchName + "\n-->" + "\n"
+                        + PullRequestCommandWorkItem.VALID_BOT_COMMAND_MARKER;
+                if (allComments.stream()
+                        .filter(c -> c.author().equals(botUser))
+                        .noneMatch(((c -> c.body().equals(text))))) {
+                    pr.addComment(text);
+                }
+                pr.removeLabel(label);
+            }
+        }
     }
 
     static void markIntegratedAndClosed(PullRequest pr, Hash hash, PrintWriter reply) {
