@@ -96,7 +96,7 @@ public class BackportCommand implements CommandHandler {
                 labelsToRemove.add(backportLabel);
                 reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was successfully disabled.");
             } else {
-                reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was not enabled, so you can not disable it.");
+                reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was already disabled.");
             }
         } else {
             // Add label
