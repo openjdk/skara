@@ -44,7 +44,7 @@ public class BackportCommand implements CommandHandler {
     }
 
     private void showHelpInPR(PrintWriter reply) {
-        reply.println("Usage: `/backport <repository> [<branch>]` `/backport disable <repository> [<branch>]`");
+        reply.println("Usage: `/backport [disable] <repository> [<branch>]`");
     }
 
     @Override
