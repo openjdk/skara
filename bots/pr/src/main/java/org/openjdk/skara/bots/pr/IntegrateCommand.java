@@ -163,8 +163,7 @@ public class IntegrateCommand implements CommandHandler {
 
         Optional<Hash> prepushHash = checkForPrePushHash(bot, pr, scratchPath, allComments, "integrate");
         if (prepushHash.isPresent()) {
-            processBackportLabel(pr, allComments);
-            markIntegratedAndClosed(pr, prepushHash.get(), reply);
+            markIntegratedAndClosed(pr, prepushHash.get(), reply, allComments);
             return;
         }
 
@@ -243,8 +242,7 @@ public class IntegrateCommand implements CommandHandler {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 addPrePushComment(pr, amendedHash, rebaseMessage.toString());
                 localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
-                processBackportLabel(pr, allComments);
-                markIntegratedAndClosed(pr, amendedHash, reply);
+                markIntegratedAndClosed(pr, amendedHash, reply, allComments);
             } else {
                 reply.print("Warning! Your commit did not result in any changes! ");
                 reply.println("No push attempt will be made.");
@@ -328,7 +326,7 @@ public class IntegrateCommand implements CommandHandler {
         pr.addComment(commentBody.toString());
     }
 
-    static void processBackportLabel(PullRequest pr, List<Comment> allComments) {
+    private static void processBackportLabel(PullRequest pr, List<Comment> allComments) {
         var botUser = pr.repository().forge().currentUser();
         for (String label : pr.labelNames()) {
             var matcher = BACKPORT_LABEL_PATTERN.matcher(label);
@@ -336,7 +334,7 @@ public class IntegrateCommand implements CommandHandler {
                 var repoName = matcher.group(1);
                 var branchName = matcher.group(2);
                 var text = "Creating backport for repo " + repoName + " on branch " + branchName
-                        + "\n<!--\n /backport " + repoName + " " + branchName + "\n-->" + "\n"
+                        + "\n/backport " + repoName + " " + branchName + "\n"
                         + PullRequestCommandWorkItem.VALID_BOT_COMMAND_MARKER;
                 if (allComments.stream()
                         .filter(c -> c.author().equals(botUser))
@@ -348,7 +346,8 @@ public class IntegrateCommand implements CommandHandler {
         }
     }
 
-    static void markIntegratedAndClosed(PullRequest pr, Hash hash, PrintWriter reply) {
+    static void markIntegratedAndClosed(PullRequest pr, Hash hash, PrintWriter reply, List<Comment> allComments) {
+        processBackportLabel(pr, allComments);
         // Note that the order of operations here is tested in IntegrateTests::retryAfterInterrupt
         // so any change here requires careful update of that test
         pr.addLabel("integrated");

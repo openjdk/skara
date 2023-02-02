@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.HostedCommit;
+import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
@@ -63,7 +64,8 @@ public class BackportCommand implements CommandHandler {
             + "(https://wiki.openjdk.org/display/skara#Skara-AssociatingyourGitHubaccountandyourOpenJDKusername)).";
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
+                       List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
         if (censusInstance.contributor(command.user()).isEmpty()) {
             reply.println(USER_INVALID_WARNING);
             return;
@@ -99,51 +101,71 @@ public class BackportCommand implements CommandHandler {
                 reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was already disabled.");
             }
         } else {
+            // Get target repo
+            var targetRepo = getTargetRepo(bot, parts, reply);
+            if (targetRepo == null) {
+                return;
+            }
+            var targetRepoName = targetRepo.name();
+
+            // Get target branch
+            var targetBranch = getTargetBranch(parts, targetRepo, reply);
+            if (targetBranch == null) {
+                return;
+            }
+            var targetBranchName = targetBranch.name();
+
             // Add label
-            var forge = bot.repo().forge();
-            var repoNameArg = parts[0].replace("http://", "")
-                    .replace("https://", "")
-                    .replace(forge.hostname() + "/", "");
-            // If the arg is given with a namespace prefix, look for an exact match,
-            // otherwise cut off the namespace prefix before comparing with the forks
-            // config.
-            var includesNamespace = repoNameArg.contains("/");
-            var repoNameOptional = bot.forks().keySet().stream()
-                    .filter(s -> includesNamespace
-                            ? s.equals(repoNameArg)
-                            : s.substring(s.indexOf("/") + 1).equals(repoNameArg))
-                    .findAny();
-            String targetRepoName = repoNameOptional.orElse("<not found>");
-
-            var potentialTargetRepo = repoNameOptional.flatMap(forge::repository);
-            if (potentialTargetRepo.isEmpty()) {
-                reply.println("The target repository `" + repoNameArg + "` is not a valid target for backports. ");
-                reply.print("List of valid target repositories: ");
-                reply.println(String.join(", ", bot.forks().keySet().stream().sorted().toList()) + ".");
-                reply.println("Supplying the organization/group prefix is optional.");
-                return;
-            }
-            var targetRepo = potentialTargetRepo.get();
-
-            var targetBranchName = parts.length == 2 ? parts[1] : "master";
-            var targetBranches = targetRepo.branches();
-            if (targetBranches.stream().noneMatch(b -> b.name().equals(targetBranchName))) {
-                reply.println("The target branch `" + targetBranchName + "` does not exist");
-                return;
-            }
             var backportLabel = generateBackportLabel(targetRepoName, targetBranchName);
             if (pr.labelNames().contains(backportLabel)) {
                 reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` has already been enabled.");
             } else {
                 labelsToAdd.add(backportLabel);
                 reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was successfully enabled and will be performed once this pull request has been integrated.");
-                reply.println(" Further instructions will be provided at that time.");
+                reply.println("Further instructions will be provided at that time.");
+                reply.println("<!-- " + command.user().username() + " -->");
             }
         }
     }
 
     private String generateBackportLabel(String targetRepo, String targetBranchName) {
         return "Backport=" + targetRepo + ":" + targetBranchName;
+    }
+
+    private HostedRepository getTargetRepo(PullRequestBot bot, String[] parts, PrintWriter reply) {
+        var forge = bot.repo().forge();
+        var repoNameArg = parts[0].replace("http://", "")
+                .replace("https://", "")
+                .replace(forge.hostname() + "/", "");
+        // If the arg is given with a namespace prefix, look for an exact match,
+        // otherwise cut off the namespace prefix before comparing with the forks
+        // config.
+        var includesNamespace = repoNameArg.contains("/");
+        var repoNameOptional = bot.forks().keySet().stream()
+                .filter(s -> includesNamespace
+                        ? s.equals(repoNameArg)
+                        : s.substring(s.indexOf("/") + 1).equals(repoNameArg))
+                .findAny();
+
+        var potentialTargetRepo = repoNameOptional.flatMap(forge::repository);
+        if (potentialTargetRepo.isEmpty()) {
+            reply.println("The target repository `" + repoNameArg + "` is not a valid target for backports. ");
+            reply.print("List of valid target repositories: ");
+            reply.println(String.join(", ", bot.forks().keySet().stream().sorted().toList()) + ".");
+            reply.println("Supplying the organization/group prefix is optional.");
+            return null;
+        }
+        return potentialTargetRepo.get();
+    }
+
+    private Branch getTargetBranch(String[] parts, HostedRepository targetRepo, PrintWriter reply) {
+        var targetBranchName = parts.length == 2 ? parts[1] : "master";
+        var targetBranches = targetRepo.branches();
+        if (targetBranches.stream().noneMatch(b -> b.name().equals(targetBranchName))) {
+            reply.println("The target branch `" + targetBranchName + "` does not exist");
+            return null;
+        }
+        return new Branch(targetBranchName);
     }
 
     @Override
@@ -166,50 +188,31 @@ public class BackportCommand implements CommandHandler {
             return;
         }
 
-        var forge = bot.repo().forge();
-        var repoNameArg = parts[0].replace("http://", "")
-                               .replace("https://", "")
-                               .replace(forge.hostname() + "/", "");
-        // If the arg is given with a namespace prefix, look for an exact match,
-        // otherwise cut off the namespace prefix before comparing with the forks
-        // config.
-        var includesNamespace = repoNameArg.contains("/");
-        var repoNameOptional = bot.forks().keySet().stream()
-                .filter(s -> includesNamespace
-                        ? s.equals(repoNameArg)
-                        : s.substring(s.indexOf("/") + 1).equals(repoNameArg))
-                .findAny();
-        String repoName = repoNameOptional.orElse("<not found>");
-
-        var potentialTargetRepo = repoNameOptional.flatMap(forge::repository);
-        if (potentialTargetRepo.isEmpty()) {
-            reply.println("The target repository `" + repoNameArg + "` is not a valid target for backports. ");
-            reply.print("List of valid target repositories: ");
-            reply.println(String.join(", ", bot.forks().keySet().stream().sorted().toList()) + ".");
-            reply.println("Supplying the organization/group prefix is optional.");
+        // Get target repo
+        var targetRepo = getTargetRepo(bot, parts, reply);
+        if (targetRepo == null) {
             return;
         }
-        var targetRepo = potentialTargetRepo.get();
+        var targetRepoName = targetRepo.name();
         var fork = bot.forks().get(targetRepo.name());
 
-        var targetBranchName = parts.length == 2 ? parts[1] : "master";
-        var targetBranches = targetRepo.branches();
-        if (targetBranches.stream().noneMatch(b -> b.name().equals(targetBranchName))) {
-            reply.println("The target branch `" + targetBranchName + "` does not exist");
+        // Get target branch
+        var targetBranch = getTargetBranch(parts, targetRepo, reply);
+        if (targetBranch == null) {
             return;
         }
-        var targetBranch = new Branch(targetBranchName);
+        var targetBranchName = targetBranch.name();
 
         // Find real user when the command user is bot
         HostUser realUser = command.user();
         if (realUser.equals(bot.repo().forge().currentUser())) {
             var botComment = allComments.stream()
                     .filter(comment -> comment.author().equals(bot.repo().forge().currentUser()))
-                    .filter(comment -> comment.body().contains("Backport for repo `" + repoName + "` on branch `" + targetBranchName + "` was successfully enabled."))
+                    .filter(comment -> comment.body().contains("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was successfully enabled"))
                     .reduce((first, second) -> second).orElse(null);
             if (botComment != null) {
                 String[] lines = botComment.body().split("\\n");
-                String userName = lines[1].split(" ")[0].substring(1);
+                String userName = lines[lines.length - 1].split(" ")[1];
                 var user = bot.repo().forge().user(userName);
                 if (user.isPresent()) {
                     realUser = user.get();
@@ -217,7 +220,7 @@ public class BackportCommand implements CommandHandler {
                     reply.print(realUser.username());
                     reply.print(" ");
                 } else {
-                    reply.println("Error: can not find the real user of Backport for repo `" + repoName + "` on branch `" + targetBranchName);
+                    reply.println("Error: can not find the real user of Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName);
                     return;
                 }
             }
@@ -243,7 +246,7 @@ public class BackportCommand implements CommandHandler {
                 if (!didApply) {
                     var lines = new ArrayList<String>();
                     lines.add("Could **not** automatically backport `" + hash.abbreviate() + "` to " +
-                              "[" + repoName + "](" + targetRepo.webUrl() + ") due to conflicts in the following files:");
+                              "[" + targetRepoName + "](" + targetRepo.webUrl() + ") due to conflicts in the following files:");
                     lines.add("");
                     var unmerged = localRepo.status()
                                             .stream()
@@ -255,7 +258,7 @@ public class BackportCommand implements CommandHandler {
                     }
                     lines.add("");
                     lines.add("Please fetch the appropriate branch/commit and manually resolve these conflicts "
-                            + "by using the following commands in your personal fork of [" + repoName + "](" + targetRepo.webUrl()
+                            + "by using the following commands in your personal fork of [" + targetRepoName + "](" + targetRepo.webUrl()
                             + "). Note: these commands are just some suggestions and you can use other equivalent commands you know.");
                     lines.add("");
                     lines.add("```");
@@ -278,7 +281,7 @@ public class BackportCommand implements CommandHandler {
                     lines.add("$ git commit -m 'Backport " + hash.hex() + "'");
                     lines.add("```");
                     lines.add("");
-                    lines.add("Once you have resolved the conflicts as explained above continue with creating a pull request towards the [" + repoName + "](" + targetRepo.webUrl() + ") with the title `Backport " + hash.hex() + "`.");
+                    lines.add("Once you have resolved the conflicts as explained above continue with creating a pull request towards the [" + targetRepoName + "](" + targetRepo.webUrl() + ") with the title `Backport " + hash.hex() + "`.");
 
                     reply.println(String.join("\n", lines));
                     localRepo.reset(head, true);
@@ -287,7 +290,7 @@ public class BackportCommand implements CommandHandler {
                 // Check that applying the change actually created a diff
                 if (localRepo.diff(head).patches().isEmpty()) {
                     reply.println("Could **not** apply backport `" + hash.abbreviate() + "` to " +
-                            "[" + repoName + "](" + targetRepo.webUrl() + ") because the change is already present in the target.");
+                            "[" + targetRepoName + "](" + targetRepo.webUrl() + ") because the change is already present in the target.");
                     localRepo.reset(head, true);
                     return;
                 }

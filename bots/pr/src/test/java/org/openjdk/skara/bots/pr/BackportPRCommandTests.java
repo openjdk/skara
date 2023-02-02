@@ -1,3 +1,25 @@
+/*
+ * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
 package org.openjdk.skara.bots.pr;
 
 import org.junit.jupiter.api.Test;
@@ -52,7 +74,7 @@ public class BackportPRCommandTests {
             // Enable backport for targetRepo on master
             pr.addComment("/backport targetRepo");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "Backport for repo `targetRepo` on branch `master` was successfully enabled.");
+            assertLastCommentContains(pr, "Backport for repo `targetRepo` on branch `master` was successfully enabled");
             assertTrue(pr.store().labelNames().contains("Backport=targetRepo:master"));
 
             // Enable backport for targetRepo2 on dev, but dev does not exist
@@ -65,7 +87,7 @@ public class BackportPRCommandTests {
             localRepo.push(masterHash, targetRepo2.url(), "dev", true);
             pr.addComment("/backport targetRepo2 dev");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "Backport for repo `targetRepo2` on branch `dev` was successfully enabled.");
+            assertLastCommentContains(pr, "Backport for repo `targetRepo2` on branch `dev` was successfully enabled");
             assertTrue(pr.store().labelNames().contains("Backport=targetRepo2:dev"));
 
             // disable backport for targetRepo on master
@@ -77,13 +99,13 @@ public class BackportPRCommandTests {
             // disable backport for targetRepo again
             reviewerPr.addComment("/backport disable targetRepo");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "Backport for repo `targetRepo` on branch `master` was not enabled, so you can not disable it.");
+            assertLastCommentContains(pr, "Backport for repo `targetRepo` on branch `master` was already disabled.");
             assertFalse(pr.store().labelNames().contains("Backport=targetRepo:master"));
 
             // Enable backport for targetRepo on master as reviewer
             reviewerPr.addComment("/backport targetRepo");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "Backport for repo `targetRepo` on branch `master` was successfully enabled.");
+            assertLastCommentContains(pr, "Backport for repo `targetRepo` on branch `master` was successfully enabled");
             assertTrue(pr.store().labelNames().contains("Backport=targetRepo:master"));
 
             // Approve this PR
@@ -94,8 +116,10 @@ public class BackportPRCommandTests {
             // Integrate
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "@user1");
             assertLastCommentContains(pr, "was successfully created on the branch");
             TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "@user2");
             assertLastCommentContains(pr, "Could **not** automatically backport");
 
             // Resolve conflict
@@ -143,7 +167,7 @@ public class BackportPRCommandTests {
             pr.store().setState(Issue.State.CLOSED);
             pr.addComment("/backport targetRepo");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "`/backport` command can not be used in closed but not integrated PR");
+            assertLastCommentContains(pr, "`/backport` command can not be used in a closed but not integrated pull request");
         }
     }
 }

@@ -145,8 +145,7 @@ public class SponsorCommand implements CommandHandler {
     }
 
     private void markIntegratedAndClosed(PullRequest pr, Hash amendedHash, PrintWriter reply, List<Comment> allComments) {
-        IntegrateCommand.processBackportLabel(pr, allComments);
-        IntegrateCommand.markIntegratedAndClosed(pr, amendedHash, reply);
+        IntegrateCommand.markIntegratedAndClosed(pr, amendedHash, reply, allComments);
     }
 
     @Override
