@@ -119,7 +119,7 @@ public class CommitCommandTests {
             pr.addComment("/backport jdk17u-dev");
             TestBotRunner.runPeriodicItems(bot);
             // The `backport` command is invalid because the pull request is not integrated.
-            PullRequestAsserts.assertLastCommentContains(pr, "Backport for repo `jdk17u-dev` on branch `master` was successfully enabled.");
+            PullRequestAsserts.assertLastCommentContains(pr, "Backport for repo `jdk17u-dev` on branch `master` was successfully enabled");
 
             // Simulate an integration
             var botPr = botRepo.pullRequest(pr.id());
