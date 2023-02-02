@@ -41,7 +41,7 @@ public class IntegrateCommand implements CommandHandler {
     private final static Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private static final String PRE_PUSH_MARKER = "<!-- prepush %s -->";
     private static final Pattern PRE_PUSH_PATTERN = Pattern.compile("<!-- prepush ([0-9a-z]{40}) -->");
-    private static final Pattern BACKPORT_LABEL_PATTERN = Pattern.compile("Backport=(.+):(.+)");
+    private static final Pattern BACKPORT_LABEL_PATTERN = Pattern.compile("backport=(.+):(.+)");
 
     private enum Command {
         auto,

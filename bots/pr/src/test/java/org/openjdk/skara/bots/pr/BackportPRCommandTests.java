@@ -75,38 +75,38 @@ public class BackportPRCommandTests {
             pr.addComment("/backport targetRepo");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "Backport for repo `targetRepo` on branch `master` was successfully enabled");
-            assertTrue(pr.store().labelNames().contains("Backport=targetRepo:master"));
+            assertTrue(pr.store().labelNames().contains("backport=targetRepo:master"));
 
             // Enable backport for targetRepo2 on dev, but dev does not exist
             pr.addComment("/backport targetRepo2 dev");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "The target branch `dev` does not exist");
-            assertFalse(pr.store().labelNames().contains("Backport=targetRepo2:dev"));
+            assertFalse(pr.store().labelNames().contains("backport=targetRepo2:dev"));
 
             // Enable backport for targetRepo2 on dev
             localRepo.push(masterHash, targetRepo2.url(), "dev", true);
             pr.addComment("/backport targetRepo2 dev");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "Backport for repo `targetRepo2` on branch `dev` was successfully enabled");
-            assertTrue(pr.store().labelNames().contains("Backport=targetRepo2:dev"));
+            assertTrue(pr.store().labelNames().contains("backport=targetRepo2:dev"));
 
             // disable backport for targetRepo on master
             reviewerPr.addComment("/backport disable targetRepo");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "Backport for repo `targetRepo` on branch `master` was successfully disabled.");
-            assertFalse(pr.store().labelNames().contains("Backport=targetRepo:master"));
+            assertFalse(pr.store().labelNames().contains("backport=targetRepo:master"));
 
             // disable backport for targetRepo again
             reviewerPr.addComment("/backport disable targetRepo");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "Backport for repo `targetRepo` on branch `master` was already disabled.");
-            assertFalse(pr.store().labelNames().contains("Backport=targetRepo:master"));
+            assertFalse(pr.store().labelNames().contains("backport=targetRepo:master"));
 
             // Enable backport for targetRepo on master as reviewer
             reviewerPr.addComment("/backport targetRepo");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "Backport for repo `targetRepo` on branch `master` was successfully enabled");
-            assertTrue(pr.store().labelNames().contains("Backport=targetRepo:master"));
+            assertTrue(pr.store().labelNames().contains("backport=targetRepo:master"));
 
             // Approve this PR
             reviewerPr.addReview(Review.Verdict.APPROVED, "");

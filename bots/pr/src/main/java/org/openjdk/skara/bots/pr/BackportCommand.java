@@ -129,7 +129,7 @@ public class BackportCommand implements CommandHandler {
     }
 
     private String generateBackportLabel(String targetRepo, String targetBranchName) {
-        return "Backport=" + targetRepo + ":" + targetBranchName;
+        return "backport=" + targetRepo + ":" + targetBranchName;
     }
 
     private HostedRepository getTargetRepo(PullRequestBot bot, String[] parts, PrintWriter reply) {
