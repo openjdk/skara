@@ -123,6 +123,7 @@ public class BackportCommand implements CommandHandler {
                 labelsToAdd.add(backportLabel);
                 reply.print("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was successfully enabled and will be performed once this pull request has been integrated.");
                 reply.println(" Further instructions will be provided at that time.");
+                reply.println("<!-- add backport " + targetRepoName + ":" + targetBranchName + " -->");
                 reply.println("<!-- " + command.user().username() + " -->");
             }
         }
@@ -208,7 +209,7 @@ public class BackportCommand implements CommandHandler {
         if (realUser.equals(bot.repo().forge().currentUser())) {
             var botComment = allComments.stream()
                     .filter(comment -> comment.author().equals(bot.repo().forge().currentUser()))
-                    .filter(comment -> comment.body().contains("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was successfully enabled"))
+                    .filter(comment -> comment.body().contains("<!-- add backport " + targetRepoName + ":" + targetBranchName + " -->"))
                     .reduce((first, second) -> second).orElse(null);
             if (botComment != null) {
                 String[] lines = botComment.body().split("\\n");
