@@ -121,8 +121,8 @@ public class BackportCommand implements CommandHandler {
                 reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` has already been enabled.");
             } else {
                 labelsToAdd.add(backportLabel);
-                reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was successfully enabled and will be performed once this pull request has been integrated.");
-                reply.println("Further instructions will be provided at that time.");
+                reply.print("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was successfully enabled and will be performed once this pull request has been integrated.");
+                reply.println(" Further instructions will be provided at that time.");
                 reply.println("<!-- " + command.user().username() + " -->");
             }
         }
