@@ -49,7 +49,7 @@ public class SponsorCommand implements CommandHandler {
 
         Optional<Hash> prePushHash = IntegrateCommand.checkForPrePushHash(bot, pr, scratchPath, allComments, "sponsor");
         if (prePushHash.isPresent()) {
-            markIntegratedAndClosed(pr, prePushHash.get(), reply);
+            markIntegratedAndClosed(pr, prePushHash.get(), reply, allComments);
             return;
         }
 
@@ -131,7 +131,7 @@ public class SponsorCommand implements CommandHandler {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 IntegrateCommand.addPrePushComment(pr, amendedHash, rebaseMessage.toString());
                 localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
-                markIntegratedAndClosed(pr, amendedHash, reply);
+                markIntegratedAndClosed(pr, amendedHash, reply, allComments);
             } else {
                 reply.print("Warning! This commit did not result in any changes! ");
                 reply.println("No push attempt will be made.");
@@ -144,8 +144,8 @@ public class SponsorCommand implements CommandHandler {
         }
     }
 
-    private void markIntegratedAndClosed(PullRequest pr, Hash amendedHash, PrintWriter reply) {
-        IntegrateCommand.markIntegratedAndClosed(pr, amendedHash, reply);
+    private void markIntegratedAndClosed(PullRequest pr, Hash amendedHash, PrintWriter reply, List<Comment> allComments) {
+        IntegrateCommand.markIntegratedAndClosed(pr, amendedHash, reply, allComments);
     }
 
     @Override
