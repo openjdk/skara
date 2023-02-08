@@ -64,10 +64,7 @@ public class CheckoutBot implements Bot, WorkItem {
     }
 
     private URI webURI() {
-        var webURI = from.webUrl().toString();
-        if (!webURI.endsWith(".git")) {
-            webURI += ".git";
-        }
+        var webURI = from.remoteUrl().toString();
 
         return URI.create(webURI);
     }

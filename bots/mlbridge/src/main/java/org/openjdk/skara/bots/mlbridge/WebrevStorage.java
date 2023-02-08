@@ -149,7 +149,7 @@ class WebrevStorage {
         return "This file was too large to be included in the published webrev, and has been replaced with " +
                 "this placeholder message. It is possible to generate the original content locally by " +
                 "following these instructions:\n\n" +
-                "  $ git fetch " + pr.repository().webUrl() + " " + pr.fetchRef() + "\n" +
+                "  $ git fetch " + pr.repository().remoteUrl() + " " + pr.fetchRef() + "\n" +
                 "  $ git checkout " + head.hex() + "\n" +
                 "  $ git webrev -r " + base.hex() + "\n";
     }

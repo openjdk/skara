@@ -186,7 +186,7 @@ class ArchiveMessages {
     }
 
     private static String fetchCommand(PullRequest pr) {
-        var repoUrl = pr.repository().webUrl();
+        var repoUrl = pr.repository().remoteUrl();
         return "git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id();
     }
 

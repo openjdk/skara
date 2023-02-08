@@ -264,14 +264,14 @@ public class BackportCommand implements CommandHandler {
                     lines.add("");
                     lines.add("```");
                     lines.add("# Fetch the up-to-date version of the target branch");
-                    lines.add("$ git fetch --no-tags " + targetRepo.webUrl() + " " + targetBranch.name() + ":" + targetBranch.name());
+                    lines.add("$ git fetch --no-tags " + targetRepo.remoteUrl() + " " + targetBranch.name() + ":" + targetBranch.name());
                     lines.add("");
                     lines.add("# Check out the target branch and create your own branch to backport");
                     lines.add("$ git checkout " + targetBranch.name());
                     lines.add("$ git checkout -b " + backportBranchName);
                     lines.add("");
                     lines.add("# Fetch the commit you want to backport");
-                    lines.add("$ git fetch --no-tags " + bot.repo().webUrl() + " " + hash.hex());
+                    lines.add("$ git fetch --no-tags " + bot.repo().remoteUrl() + " " + hash.hex());
                     lines.add("");
                     lines.add("# Backport the commit");
                     lines.add("$ git cherry-pick --no-commit " + hash.hex());
@@ -364,12 +364,12 @@ public class BackportCommand implements CommandHandler {
                           "[" + targetRepo.name() + "](" + targetRepo.webUrl() + "):\n" +
                           "\n" +
                           "```\n" +
-                          "$ git fetch " + fork.webUrl() + " " + backportBranchName + ":" + backportBranchName + "\n" +
+                          "$ git fetch " + fork.remoteUrl() + " " + backportBranchName + ":" + backportBranchName + "\n" +
                           "$ git checkout " + backportBranchName + "\n" +
                           "# make changes\n" +
                           "$ git add paths/to/changed/files\n" +
                           "$ git commit --message 'Describe additional changes made'\n" +
-                          "$ git push " + fork.webUrl() + " " + backportBranchName + "\n" +
+                          "$ git push " + fork.remoteUrl() + " " + backportBranchName + "\n" +
                           "```");
         } catch (IOException e) {
             throw new UncheckedIOException(e);

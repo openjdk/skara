@@ -109,7 +109,7 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
                             git commit -m "Merge %s"
                             git push
                             ```
-                            """.formatted(retargeted.sourceRef(), pr.repository().webUrl(), pr.targetRef(),
+                            """.formatted(retargeted.sourceRef(), pr.repository().remoteUrl(), pr.targetRef(),
                             pr.targetRef()));
                 }
             } else {
