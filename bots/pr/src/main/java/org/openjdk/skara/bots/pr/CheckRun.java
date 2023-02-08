@@ -739,11 +739,11 @@ class CheckRun {
     private String reviewUsingGitHelp() {
         var repoUrl = pr.repository().webUrl();
         var firstTime =
-           "`$ git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id() + "` \\\n" +
+           "`$ git fetch " + repoUrl + ".git " + pr.fetchRef() + ":pull/" + pr.id() + "` \\\n" +
            "`$ git checkout pull/" + pr.id() + "`\n";
         var updating =
            "`$ git checkout pull/" + pr.id() + "` \\\n" +
-           "`$ git pull " + repoUrl + " " + pr.fetchRef() + "`\n";
+           "`$ git pull " + repoUrl + ".git " + pr.fetchRef() + "`\n";
 
         return "Checkout this PR locally: \\\n" +
                 firstTime +
