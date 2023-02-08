@@ -83,6 +83,9 @@ public interface HostedRepository {
     URI webUrl(String baseRef, String headRef);
     URI diffUrl(String prId);
     VCS repositoryType();
+    /**
+     * Returns a URL suitable for CLI interactions with the repository
+     */
     URI remoteUrl();
 
     /**
