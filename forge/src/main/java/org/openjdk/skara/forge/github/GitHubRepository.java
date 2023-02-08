@@ -259,6 +259,12 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
+    public URI remoteUrl() {
+        var endpoint = "/" + repository + ".git";
+        return gitHubHost.getWebURI(endpoint);
+    }
+
+    @Override
     public Optional<String> fileContents(String filename, String ref) {
         // Get file contents using raw format. This allows us to get files of
         // size up to 100MB (up from 1MB if getting in object from).

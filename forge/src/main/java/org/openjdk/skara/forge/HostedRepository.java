@@ -83,6 +83,7 @@ public interface HostedRepository {
     URI webUrl(String baseRef, String headRef);
     URI diffUrl(String prId);
     VCS repositoryType();
+    URI remoteUrl();
 
     /**
      * Returns contents of the file, if the file does not exist, returns Optional.empty().

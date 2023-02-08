@@ -200,6 +200,11 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
+    public URI remoteUrl() {
+        return url();
+    }
+
+    @Override
     public Optional<String> fileContents(String filename, String ref) {
         try {
             var bytes = localRepository.show(Path.of(filename), localRepository.resolve(ref).orElseThrow());

@@ -288,6 +288,13 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
+    public URI remoteUrl() {
+        return URIBuilder.base(gitLabHost.getUri())
+                .setPath("/" + projectName + ".git")
+                .build();
+    }
+
+    @Override
     public Optional<String> fileContents(String filename, String ref) {
         var encodedFileName = URLEncoder.encode(filename, StandardCharsets.UTF_8);
         var content = request.get("repository/files/" + encodedFileName)

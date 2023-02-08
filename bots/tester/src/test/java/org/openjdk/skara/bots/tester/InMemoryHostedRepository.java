@@ -235,6 +235,11 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public URI remoteUrl() {
+        return null;
+    }
+
+    @Override
     public void addCollaborator(HostUser user, boolean canPush) {
     }
 
