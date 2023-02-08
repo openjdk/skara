@@ -64,9 +64,7 @@ public class CheckoutBot implements Bot, WorkItem {
     }
 
     private URI webURI() {
-        var webURI = from.remoteUrl().toString();
-
-        return URI.create(webURI);
+        return from.remoteUrl();
     }
 
     private URI uri() {
