@@ -63,10 +63,6 @@ public class CheckoutBot implements Bot, WorkItem {
         return URLEncoder.encode(uri.toString(), StandardCharsets.UTF_8);
     }
 
-    private URI webURI() {
-        return from.remoteUrl();
-    }
-
     private URI uri() {
         var uri = from.url().toString();
         if (!uri.endsWith(".git")) {
@@ -98,7 +94,7 @@ public class CheckoutBot implements Bot, WorkItem {
     @Override
     public Collection<WorkItem> run(Path scratch) {
         try {
-            var fromDir = storage.resolve(urlEncode(webURI()));
+            var fromDir = storage.resolve(urlEncode(from.remoteUrl()));
             Repository fromRepo = null;
             if (!Files.exists(fromDir)) {
                 Files.createDirectories(fromDir);
