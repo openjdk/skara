@@ -461,7 +461,7 @@ public class GitHubPullRequest implements PullRequest {
     @Override
     public void updateCheck(Check check) {
         var completedQuery = JSON.object();
-        completedQuery.put("name", check.name().equals("jcheck") ? check.name() + repository().name() + id() : check.name());
+        completedQuery.put("name", check.name());
         completedQuery.put("head_branch", json.get("head").get("ref"));
         completedQuery.put("head_sha", check.hash().hex());
 

@@ -120,7 +120,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         var hash = pr.headHash();
         var metadata = getMetadata(censusInstance, pr.title(), pr.body(), comments, reviews, labels, pr.targetRef(), pr.isDraft(), null);
         var currentChecks = pr.checks(hash);
-        var jcheckName = pr.repository().forge().name().equals("GitHub") ? "jcheck" + pr.repository().name() + pr.id() : "jcheck";
+        var jcheckName = CheckRun.getJcheckName(pr);
 
         if (currentChecks.containsKey(jcheckName)) {
             var check = currentChecks.get(jcheckName);

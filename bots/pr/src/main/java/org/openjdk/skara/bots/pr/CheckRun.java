@@ -1085,8 +1085,12 @@ class CheckRun {
         pr.addComment(message);
     }
 
+    static String getJcheckName(PullRequest pr) {
+        return pr.repository().forge().name().equals("GitHub") ? "jcheck-" + pr.repository().name() + "-" + pr.id() : "jcheck";
+    }
+
     private void checkStatus() {
-        var checkBuilder = CheckBuilder.create("jcheck", pr.headHash());
+        var checkBuilder = CheckBuilder.create(getJcheckName(pr), pr.headHash());
         var censusDomain = censusInstance.configuration().census().domain();
         Exception checkException = null;
 

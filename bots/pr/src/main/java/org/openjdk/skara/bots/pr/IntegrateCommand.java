@@ -61,9 +61,6 @@ public class IntegrateCommand implements CommandHandler {
         final var inProgress = "the status check `" + checkName + "` is still in progress";
         final var outdated = "the status check `" + checkName + "` has not been performed on commit %s yet";
 
-        checkName = checkName.equals("jcheck") && pr.repository().forge().name().equals("GitHub") ?
-                "jcheck" + pr.repository().name() + pr.id() : "jcheck";
-
         if (performedChecks.containsKey(checkName)) {
             var check = performedChecks.get(checkName);
             if (check.status() == CheckStatus.SUCCESS) {
@@ -170,7 +167,7 @@ public class IntegrateCommand implements CommandHandler {
             return;
         }
 
-        var problem = checkProblem(pr.checks(pr.headHash()), "jcheck", pr);
+        var problem = checkProblem(pr.checks(pr.headHash()), CheckRun.getJcheckName(pr), pr);
         if (problem.isPresent()) {
             reply.print("Your integration request cannot be fulfilled at this time, as ");
             reply.println(problem.get());
