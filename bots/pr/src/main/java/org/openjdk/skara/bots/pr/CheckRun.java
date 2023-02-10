@@ -495,7 +495,7 @@ class CheckRun {
             ret.append("@");
             ret.append(user.username());
             ret.append(" (no known ");
-            ret.append(censusInstance.namespace().name());
+            ret.append(censusInstance.configuration().census().domain());
             ret.append(" user name / role)");
         } else {
             // The HostUser is null and the Contributor is not null
