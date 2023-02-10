@@ -74,7 +74,7 @@ public interface HostedRepository {
      */
     String name();
     Optional<HostedRepository> parent();
-    URI url();
+    URI authenticatedUrl();
     URI webUrl();
     URI nonTransformedWebUrl();
     URI webUrl(Hash hash);
@@ -86,7 +86,7 @@ public interface HostedRepository {
     /**
      * Returns a URL suitable for CLI interactions with the repository
      */
-    URI remoteUrl();
+    URI url();
 
     /**
      * Returns contents of the file, if the file does not exist, returns Optional.empty().

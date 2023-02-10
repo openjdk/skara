@@ -71,7 +71,7 @@ public class HostedRepositoryPool {
             if (!Files.exists(seed)) {
                 Files.createDirectories(seed.getParent());
                 var tmpSeedFolder = seed.resolveSibling(seed.getFileName().toString() + "-" + UUID.randomUUID());
-                Repository.clone(hostedRepository.url(), tmpSeedFolder, true);
+                Repository.clone(hostedRepository.authenticatedUrl(), tmpSeedFolder, true);
                 try {
                     Files.move(tmpSeedFolder, seed);
                     log.info("Seeded repository " + hostedRepository.name() + " into " + seed);
@@ -99,7 +99,7 @@ public class HostedRepositoryPool {
             } catch (IOException ignored) {
             }
             try {
-                seedRepo.fetchAll(hostedRepository.url(), true);
+                seedRepo.fetchAll(hostedRepository.authenticatedUrl(), true);
             } catch (IOException e) {
                 log.info("Failed to refresh seed - ignoring");
             }
@@ -112,7 +112,7 @@ public class HostedRepositoryPool {
 
         private Repository cloneSeeded(Path path, boolean allowStale, boolean bare) throws IOException {
             refreshSeed(true);
-            var remote = allowStale ? seedUri() : hostedRepository.url();
+            var remote = allowStale ? seedUri() : hostedRepository.authenticatedUrl();
             log.info("Using seed folder " + seed + " when cloning into " + path + " from " + remote + (bare ? " (bare)" : ""));
             var tmpClonePath = path.resolveSibling(path.getFileName() + CLONE_TMP_SUFFIX);
             if (Files.exists(tmpClonePath)) {
@@ -179,7 +179,7 @@ public class HostedRepositoryPool {
     private Repository checkout(HostedRepository hostedRepository, String ref, Path path, boolean allowStale) throws IOException {
         var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
         var localClone = hostedRepositoryInstance.materializeClone(path, true, false);
-        var remote = allowStale ? hostedRepositoryInstance.seedUri() : hostedRepository.url();
+        var remote = allowStale ? hostedRepositoryInstance.seedUri() : hostedRepository.authenticatedUrl();
         log.info("Updating local repository from: " + remote);
         var refHash = localClone.fetch(remote, "+" + ref + ":hostedrepositorypool", true, true);
         try {
@@ -222,7 +222,7 @@ public class HostedRepositoryPool {
         var hash = seedRepo.resolve(ref);
         if (hash.isEmpty()) {
             // It may fail because the seed is stale - need to refresh it now
-            fetchWithRetry(seedRepo, hostedRepository.url());
+            fetchWithRetry(seedRepo, hostedRepository.authenticatedUrl());
             hash = seedRepo.resolve(ref);
         }
         var finalHash = hash.orElseThrow(() -> new IllegalArgumentException("Unknown ref: " + ref));
@@ -233,7 +233,7 @@ public class HostedRepositoryPool {
         var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
         var repo = hostedRepositoryInstance.seedRepository(allowStale);
         if (!allowStale) {
-            fetchWithRetry(repo, hostedRepository.url());
+            fetchWithRetry(repo, hostedRepository.authenticatedUrl());
         }
         return repo;
     }

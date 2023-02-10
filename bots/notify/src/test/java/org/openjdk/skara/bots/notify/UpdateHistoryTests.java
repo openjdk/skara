@@ -45,7 +45,7 @@ class UpdateHistoryTests {
         Files.writeString(firstFile, "First file to commit");
         localRepository.add(firstFile);
         var firstCommit = localRepository.commit("First commit", "Duke", "duke@openjdk.org");
-        localRepository.push(firstCommit, repository.url(), localRepository.defaultBranch().toString(), true);
+        localRepository.push(firstCommit, repository.authenticatedUrl(), localRepository.defaultBranch().toString(), true);
         return localRepository.defaultBranch().toString();
     }
 

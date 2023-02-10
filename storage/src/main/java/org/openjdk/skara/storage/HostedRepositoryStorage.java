@@ -68,7 +68,7 @@ class HostedRepositoryStorage<T> implements Storage<T> {
         while (retryCount < 10) {
             try {
                 try {
-                    return Repository.materialize(localStorage, repository.url(), "+" + ref + ":storage");
+                    return Repository.materialize(localStorage, repository.authenticatedUrl(), "+" + ref + ":storage");
                 } catch (IOException e2) {
                     // The remote ref may not yet exist
                     Repository localRepository = Repository.init(localStorage, repository.repositoryType());
@@ -88,7 +88,7 @@ class HostedRepositoryStorage<T> implements Storage<T> {
                     var firstCommit = localRepository.commit(message, authorName, authorEmail);
 
                     // If the materialization failed for any other reason than the remote ref not existing, this will fail
-                    localRepository.push(firstCommit, repository.url(), ref);
+                    localRepository.push(firstCommit, repository.authenticatedUrl(), ref);
                     return localRepository;
                 }
             } catch (IOException e) {
@@ -121,7 +121,7 @@ class HostedRepositoryStorage<T> implements Storage<T> {
             // The local storage has changed, try to push it to the remote
             try {
                 var updatedHash = localRepository.head();
-                localRepository.push(updatedHash, hostedRepository.url(), ref);
+                localRepository.push(updatedHash, hostedRepository.authenticatedUrl(), ref);
                 current = updated;
                 return;
             } catch (IOException e) {
@@ -129,7 +129,7 @@ class HostedRepositoryStorage<T> implements Storage<T> {
 
                 // Check if the remote has changed
                 try {
-                    var remoteHash = localRepository.fetch(hostedRepository.url(), ref);
+                    var remoteHash = localRepository.fetch(hostedRepository.authenticatedUrl(), ref);
                     if (!remoteHash.equals(lastRemoteHash)) {
                         localRepository.checkout(remoteHash, true);
                         repositoryStorage = new RepositoryStorage<>(localRepository, fileName, authorName, authorEmail, message, serializer, deserializer);

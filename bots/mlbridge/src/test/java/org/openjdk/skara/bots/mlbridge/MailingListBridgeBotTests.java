@@ -145,13 +145,13 @@ class MailingListBridgeBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
             pr.setBody("This should not be ready");
 
@@ -159,7 +159,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // A PR that isn't ready for review should not be archived
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
 
             // Flag it as ready for review
@@ -170,7 +170,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // But it should still not be archived
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
 
             // Now post a general comment - not a ready marker
@@ -181,7 +181,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // It should still not be archived
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
 
             // Now post a ready comment
@@ -191,7 +191,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should now contain an entry
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "This is a pull request"));
             assertTrue(archiveContains(archiveFolder.path(), "This should now be ready"));
             assertTrue(archiveContains(archiveFolder.path(), "Patch:"));
@@ -220,7 +220,7 @@ class MailingListBridgeBotTests {
             assertEquals("val2", mail.headerValue("Extra2"));
 
             // And there should be a webrev
-            Repository.materialize(webrevFolder.path(), archive.url(), "webrev");
+            Repository.materialize(webrevFolder.path(), archive.authenticatedUrl(), "webrev");
             assertTrue(webrevContains(webrevFolder.path(), "1 lines changed"));
             var comments = pr.comments();
             var webrevComments = comments.stream()
@@ -240,7 +240,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should now contain the comment, but not the ignored one
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "This is a comment"));
             assertTrue(archiveContains(archiveFolder.path(), "> This should now be ready"));
             assertFalse(archiveContains(archiveFolder.path(), "Don't mind me"));
@@ -258,7 +258,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should contain the additional comment
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "This is another comment"));
             assertTrue(archiveContains(archiveFolder.path(), ">> This should now be ready"));
 
@@ -308,13 +308,13 @@ class MailingListBridgeBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
             pr.setBody("This is now ready");
             pr.addLabel("rfr");
@@ -324,7 +324,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // There should be an RFR thread
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: RFR: 1234: This is a pull request"));
 
             // Add a comment quickly before integration - it should not be combined with the integration message
@@ -349,7 +349,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should now contain another entry
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: RFR: 1234: This is a pull request"));
             assertTrue(archiveContains(archiveFolder.path(), "Subject: Integrated: 1234: This is a pull request"));
             assertFalse(archiveContains(archiveFolder.path(), "\\[Closed\\]"));
@@ -390,8 +390,8 @@ class MailingListBridgeBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR with a date in the past
             var editFile = tempFolder.path().resolve("change.txt");
@@ -400,7 +400,7 @@ class MailingListBridgeBotTests {
             var commitDate = ZonedDateTime.of(2020, 3, 12, 0, 0, 0, 0, ZoneId.of("UTC"));
             var editHash = localRepo.commit("An old change", "duke", "duke@openjdk.org", commitDate,
                              "duke", "duke@openjdk.org", commitDate);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
             pr.setBody("This is now ready");
             pr.addLabel("rfr");
@@ -410,7 +410,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // There should be an RFR thread
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: RFR: 1234: This is a pull request"));
 
             // Now it has been integrated
@@ -424,7 +424,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should not contain another entry
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertFalse(archiveContains(archiveFolder.path(), "\\[Integrated\\]"));
             assertFalse(archiveContains(archiveFolder.path(), "\\[Closed\\]"));
         }
@@ -464,13 +464,13 @@ class MailingListBridgeBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
             pr.setBody("This should not be ready");
             pr.setState(Issue.State.CLOSED);
@@ -480,7 +480,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // A PR that isn't ready for review should not be archived
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
 
             // Now it has been integrated
@@ -493,17 +493,17 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should now contain an entry
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: Integrated: 1234: This is a pull request"));
 
             var updatedHash = CheckableRepository.appendAndCommit(localRepo, "Another change");
-            localRepo.push(updatedHash, author.url(), "edit");
+            localRepo.push(updatedHash, author.authenticatedUrl(), "edit");
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should now contain another entry
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: Integrated: 1234: This is a pull request \\[v2\\]"));
             assertFalse(archiveContains(archiveFolder.path(), "Withdrawn"));
         }
@@ -544,13 +544,13 @@ class MailingListBridgeBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
             pr.setBody("This should be ready");
 
@@ -559,7 +559,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // A PR that isn't ready for review should not be archived
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
 
             // Flag it as ready for review
@@ -569,19 +569,19 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should now contain an entry
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: RFR: 1234: This is a pull request"));
 
             // Close it and then push another change
             pr.setState(Issue.State.CLOSED);
             var updatedHash = CheckableRepository.appendAndCommit(localRepo, "Another change");
-            localRepo.push(updatedHash, author.url(), "edit");
+            localRepo.push(updatedHash, author.authenticatedUrl(), "edit");
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should now contain another entry - should retain the RFR thread prefix
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: RFR: 1234: This is a pull request \\[v2\\]"));
         }
     }
@@ -621,13 +621,13 @@ class MailingListBridgeBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
             pr.setBody("This should be ready");
 
@@ -636,7 +636,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // A PR that isn't ready for review should not be archived
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
 
             // Flag it as ready for review
@@ -646,7 +646,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should now contain an entry
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: RFR: 1234: This is a pull request"));
 
             // Close it (as a separate user)
@@ -657,14 +657,14 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should now contain another entry - should say that it is closed
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Subject: Withdrawn: 1234: This is a pull request"));
 
             pr.addComment("Fair enough");
 
             // Run another archive pass - only a single close notice should have been posted
             TestBotRunner.runPeriodicItems(mlBot);
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Subject: Withdrawn: 1234: This is a pull request"));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Subject: Re: RFR: 1234: This is a pull request"));
 
@@ -709,13 +709,13 @@ class MailingListBridgeBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "Cannot automatically merge");
             pr.setBody("This is an automated merge PR");
             pr.addLabel("failed-auto-merge");
@@ -725,7 +725,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should contain an entry
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: RFR: Cannot automatically merge"));
         }
     }
@@ -764,12 +764,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
             TestBotRunner.runPeriodicItems(mlBot);
@@ -788,7 +788,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The archive should now contain an entry
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "This is a pull request"));
             assertTrue(archiveContains(archiveFolder.path(), "This is now ready"));
             assertTrue(archiveContains(archiveFolder.path(), "Review comment"));
@@ -810,7 +810,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The archive should contain the additional comment (but no quoted footers)
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "This is a review reply"));
             assertTrue(archiveContains(archiveFolder.path(), ">> This is now ready"));
             assertFalse(archiveContains(archiveFolder.path(), "^> PR:"));
@@ -830,7 +830,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The archive should contain the additional comment
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "File review comment"));
             assertTrue(archiveContains(archiveFolder.path(), reviewFile + ":"));
         }
@@ -868,12 +868,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
             pr.addComment("Avoid combining");
@@ -891,7 +891,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The archive should contain a combined entry
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertEquals(2, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
 
             // As well as the mailing list
@@ -921,7 +921,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The archive should contain a new entry
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertEquals(3, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
 
             // The combined review comments should only appear unquoted once
@@ -963,12 +963,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
             TestBotRunner.runPeriodicItems(mlBot);
@@ -1004,7 +1004,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // Sanity check the archive
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertEquals(9, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
 
             // File specific comments should appear after the approval
@@ -1095,12 +1095,12 @@ class MailingListBridgeBotTests {
             Files.writeString(localRepo.root().resolve(reviewFile2), "1\n2\n3\n4\n5\n6\n", StandardCharsets.UTF_8);
             localRepo.add(reviewFile2);
             var masterHash = localRepo.commit("Another one", "duke", "duke@openjdk.org");
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
             TestBotRunner.runPeriodicItems(mlBot);
@@ -1121,7 +1121,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // Sanity check the archive
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertEquals(2, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
 
             var archiveText = archiveContents(archiveFolder.path(), "").orElseThrow();
@@ -1164,12 +1164,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
             TestBotRunner.runPeriodicItems(mlBot);
@@ -1188,7 +1188,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The first comment should be quoted more often than the second
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertEquals(2, archiveContainsCount(archiveFolder.path(), "First comment"));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Second comment"));
         }
@@ -1228,12 +1228,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
             TestBotRunner.runPeriodicItems(mlBot);
@@ -1253,7 +1253,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The first comment should be quoted more often than the second
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertEquals(3, archiveContainsCount(archiveFolder.path(), "First review comment"));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Second review comment"));
         }
@@ -1293,12 +1293,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
             TestBotRunner.runPeriodicItems(mlBot);
@@ -1318,7 +1318,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The first comment should be replied to once, and the original post once
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertEquals(1, archiveContainsCount(archiveFolder.path(), Pattern.quote(reviewPr.author().fullName()) + ".* wrote"));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), Pattern.quote(pr.author().fullName()) + ".* wrote"));
         }
@@ -1356,12 +1356,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Line 1\nLine 2\nLine 3\nLine 4");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
             TestBotRunner.runPeriodicItems(mlBot);
@@ -1374,7 +1374,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The archive should only contain context up to and including Line 2
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "^> 2: Line 1$"));
             assertFalse(archiveContains(archiveFolder.path(), "^> 3: Line 2$"));
         }
@@ -1412,8 +1412,8 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
             var initialHash = CheckableRepository.appendAndCommit(localRepo,
                                                                   "Line 0.1\nLine 0.2\nLine 0.3\nLine 0.4\n" +
                                                                           "Line 1\nLine 2\nLine 3\nLine 4\n" +
@@ -1421,7 +1421,7 @@ class MailingListBridgeBotTests {
                                                                           "Line 8.1\nLine 8.2\nLine 8.3\nLine 8.4\n" +
                                                                           "Line 9\nLine 10\nLine 11\nLine 12\n" +
                                                                           "Line 13\nLine 14\nLine 15\nLine 16\n");
-            localRepo.push(initialHash, author.url(), "master");
+            localRepo.push(initialHash, author.authenticatedUrl(), "master");
 
             // Make a change with a corresponding PR
             var current = Files.readString(localRepo.root().resolve(reviewFile), StandardCharsets.UTF_8);
@@ -1429,7 +1429,7 @@ class MailingListBridgeBotTests {
             updated = updated.replaceAll("Line 13", "Line 12.5\nLine 13 edit");
             Files.writeString(localRepo.root().resolve(reviewFile), updated, StandardCharsets.UTF_8);
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
             TestBotRunner.runPeriodicItems(mlBot);
@@ -1443,7 +1443,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The archive should only contain context around line 2 and 20
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "reviewfile.txt line 7"));
             assertTrue(archiveContains(archiveFolder.path(), "^> 6: Line 1$"));
             assertTrue(archiveContains(archiveFolder.path(), "^> 7: Line 2 edit$"));
@@ -1488,12 +1488,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready\n<!-- this is a comment -->\nAnd this is not\n" +
                                "<!-- Anything below this marker will be hidden -->\nStatus stuff");
@@ -1512,7 +1512,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should not contain the comment
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "This is now ready"));
             assertFalse(archiveContains(archiveFolder.path(), "this is a comment"));
             assertFalse(archiveContains(archiveFolder.path(), "Status stuff"));
@@ -1536,7 +1536,7 @@ class MailingListBridgeBotTests {
             // And a stand-alone multiline comment should not cause another mail to be sent
             pr.addComment("/another\nmultiline\nwill not cause another mail");
             TestBotRunner.runPeriodicItems(mlBot);
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             lines = archiveContents(archiveFolder.path(), "").orElseThrow();
             var mails = Mbox.splitMbox(lines, EmailAddress.from("duke@openjdk.org"));
             assertEquals(2, mails.size());
@@ -1576,12 +1576,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
 
@@ -1590,7 +1590,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             var nextHash = CheckableRepository.appendAndCommit(localRepo, "Yet one more line", "Fixing");
-            localRepo.push(nextHash, author.url(), "edit");
+            localRepo.push(nextHash, author.authenticatedUrl(), "edit");
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
@@ -1599,7 +1599,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The archive should reference the updated push
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "has updated the pull request incrementally"));
             assertTrue(archiveContains(archiveFolder.path(), "full.*/" + pr.id() + "/01"));
             assertTrue(archiveContains(archiveFolder.path(), "inc.*/" + pr.id() + "/00-01"));
@@ -1638,7 +1638,7 @@ class MailingListBridgeBotTests {
             // Ensure that additional updates are only reported once
             for (int i = 0; i < 3; ++i) {
                 var anotherHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fixing");
-                localRepo.push(anotherHash, author.url(), "edit");
+                localRepo.push(anotherHash, author.authenticatedUrl(), "edit");
 
                 TestBotRunner.runPeriodicItems(mlBot);
                 TestBotRunner.runPeriodicItems(mlBot);
@@ -1687,13 +1687,13 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path().resolve("first"), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, main.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, main.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A line", "Original msg");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, main, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
 
@@ -1701,16 +1701,16 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
-            var newLocalRepo = Repository.materialize(tempFolder.path().resolve("second"), author.url(), "master");
+            var newLocalRepo = Repository.materialize(tempFolder.path().resolve("second"), author.authenticatedUrl(), "master");
             var newEditHash = CheckableRepository.appendAndCommit(newLocalRepo, "Another line", "Replaced msg");
-            newLocalRepo.push(newEditHash, author.url(), "edit", true);
+            newLocalRepo.push(newEditHash, author.authenticatedUrl(), "edit", true);
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
             // The archive should reference the rebased push
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "has refreshed the contents of this pull request, and previous commits have been removed."));
             assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/01"));
             assertTrue(archiveContains(archiveFolder.path(), "Patch"));
@@ -1774,13 +1774,13 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path().resolve("first"), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, main.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, main.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Edit line", "Original msg");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, main, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
 
@@ -1791,19 +1791,19 @@ class MailingListBridgeBotTests {
             // Add another change in the master
             localRepo.checkout(masterHash);
             var newMasterHash = CheckableRepository.appendAndCommit(localRepo, "New master line", "New master commit message");
-            localRepo.push(newMasterHash, main.url(), "master");
+            localRepo.push(newMasterHash, main.authenticatedUrl(), "master");
             // Add a new "rebased" version of the edit change on top of the new master and force
             // push it to the PR. This should emulate a rebase.
-            localRepo.push(newMasterHash, author.url(), "master");
+            localRepo.push(newMasterHash, author.authenticatedUrl(), "master");
             var newEditHash = CheckableRepository.appendAndCommit(localRepo, "Edit line", "New edit commit message");
-            localRepo.push(newEditHash, author.url(), "edit", true);
+            localRepo.push(newEditHash, author.authenticatedUrl(), "edit", true);
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
             // The archive should reference the rebased push
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "has updated the pull request with a new target base"));
             assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/01"));
             assertFalse(archiveContains(archiveFolder.path(), "Incremental"));
@@ -1868,13 +1868,13 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path().resolve("first"), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
-            localRepo.push(masterHash, archive.url(), "archive", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "archive", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A line", "Original msg");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
 
@@ -1888,7 +1888,7 @@ class MailingListBridgeBotTests {
             Files.writeString(unrelatedFile, "Other things happens in master");
             localRepo.add(unrelatedFile);
             var newMasterHash = localRepo.commit("Unrelated change", "duke", "duke@openjdk.org");
-            localRepo.push(newMasterHash, author.url(), "master");
+            localRepo.push(newMasterHash, author.authenticatedUrl(), "master");
 
             // And more stuff to the pr branch
             localRepo.checkout(editHash, true);
@@ -1897,14 +1897,14 @@ class MailingListBridgeBotTests {
             // Merge master
             localRepo.merge(newMasterHash);
             var newEditHash = localRepo.commit("Latest changes from master", "duke", "duke@openjdk.org");
-            localRepo.push(newEditHash, author.url(), "edit");
+            localRepo.push(newEditHash, author.authenticatedUrl(), "edit");
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
             // The archive should reference the rebased push
-            Repository.materialize(archiveFolder.path(), archive.url(), "archive");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "archive");
             assertTrue(archiveContains(archiveFolder.path(), "has updated the pull request with a new target base"));
             assertTrue(archiveContains(archiveFolder.path(), "excludes"));
             assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/01"));
@@ -1948,16 +1948,16 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "archive", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "archive", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Create a diverging branch
             var editOnlyFile = Path.of("editonly.txt");
             Files.writeString(localRepo.root().resolve(editOnlyFile), "Only added in the edit");
             localRepo.add(editOnlyFile);
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Edited");
-            localRepo.push(editHash, author.url(), "edit");
+            localRepo.push(editHash, author.authenticatedUrl(), "edit");
 
             // Make conflicting changes in the target
             localRepo.checkout(masterHash, true);
@@ -1965,7 +1965,7 @@ class MailingListBridgeBotTests {
             Files.writeString(localRepo.root().resolve(masterOnlyFile), "Only added in master");
             localRepo.add(masterOnlyFile);
             var updatedMasterHash = CheckableRepository.appendAndCommit(localRepo, "Master change");
-            localRepo.push(updatedMasterHash, author.url(), "master");
+            localRepo.push(updatedMasterHash, author.authenticatedUrl(), "master");
 
             // Perform the merge - resolve conflicts in our favor
             localRepo.merge(editHash, "ours");
@@ -1976,7 +1976,7 @@ class MailingListBridgeBotTests {
             Files.writeString(localRepo.root().resolve(reviewFile), "Overwriting the conflict resolution");
             localRepo.add(reviewFile);
             var appendedCommit = localRepo.amend("Updated merge commit", "duke", "duke@openjdk.org");
-            localRepo.push(appendedCommit, author.url(), "merge_of_edit", true);
+            localRepo.push(appendedCommit, author.authenticatedUrl(), "merge_of_edit", true);
 
             // Make a merge PR
             var pr = credentials.createPullRequest(archive, "master", "merge_of_edit", "Merge edit");
@@ -1987,7 +1987,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The archive should contain a merge style webrev
-            Repository.materialize(archiveFolder.path(), archive.url(), "archive");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "archive");
             assertTrue(archiveContains(archiveFolder.path(), "The webrevs contain the adjustments done while merging with regards to each parent branch:"));
             assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/00.0"));
             assertTrue(archiveContains(archiveFolder.path(), "3 lines in 2 files changed: 1 ins; 1 del; 1 mod"));
@@ -2034,9 +2034,9 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "archive", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "archive", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Create a merge
             var editOnlyFile = Path.of("editonly.txt");
@@ -2048,8 +2048,8 @@ class MailingListBridgeBotTests {
             Files.writeString(localRepo.root().resolve(masterOnlyFile), "Only added in master");
             localRepo.add(masterOnlyFile);
             var updatedMasterHash = CheckableRepository.appendAndCommit(localRepo, "Master change");
-            localRepo.push(updatedMasterHash, author.url(), "master");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(updatedMasterHash, author.authenticatedUrl(), "master");
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
 
             // Make a merge PR
             var pr = credentials.createPullRequest(archive, "master", "edit", "Merge edit");
@@ -2060,7 +2060,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The archive should contain a merge style webrev
-            Repository.materialize(archiveFolder.path(), archive.url(), "archive");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "archive");
             assertTrue(archiveContains(archiveFolder.path(), "The webrev contains the conflicts with master:"));
             assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/00.conflicts"));
             assertTrue(archiveContains(archiveFolder.path(), "2 lines in 2 files changed: 2 ins; 0 del; 0 mod"));
@@ -2106,9 +2106,9 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "archive", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "archive", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Create a merge
             var editOnlyFile = Path.of("editonly.txt");
@@ -2120,10 +2120,10 @@ class MailingListBridgeBotTests {
             Files.writeString(localRepo.root().resolve(masterOnlyFile), "Only added in master");
             localRepo.add(masterOnlyFile);
             var updatedMasterHash = localRepo.commit("Only added in master", "duke", "duke@openjdk.org");
-            localRepo.push(updatedMasterHash, author.url(), "master");
+            localRepo.push(updatedMasterHash, author.authenticatedUrl(), "master");
             localRepo.merge(editHash);
             var mergeCommit = localRepo.commit("Merged edit", "duke", "duke@openjdk.org");
-            localRepo.push(mergeCommit, author.url(), "edit", true);
+            localRepo.push(mergeCommit, author.authenticatedUrl(), "edit", true);
 
             // Make a merge PR
             var pr = credentials.createPullRequest(archive, "master", "edit", "Merge edit");
@@ -2134,7 +2134,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The archive should contain a merge style webrev
-            Repository.materialize(archiveFolder.path(), archive.url(), "archive");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "archive");
             assertTrue(archiveContains(archiveFolder.path(), "so no merge-specific webrevs have been generated"));
 
             // The PR should not contain a webrev comment
@@ -2176,13 +2176,13 @@ class MailingListBridgeBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
 
             // Flag it as ready for review
@@ -2192,7 +2192,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should now contain an entry
-            var archiveRepo = Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            var archiveRepo = Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), editHash.abbreviate()));
 
             // And there should be a webrev comment
@@ -2206,7 +2206,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, countSubstrings(webrevComments.get(0).body(), pr.id() + "/00"));
 
             // Pretend the archive didn't work out
-            archiveRepo.push(masterHash, archive.url(), "master", true);
+            archiveRepo.push(masterHash, archive.authenticatedUrl(), "master", true);
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
@@ -2257,12 +2257,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
 
@@ -2277,7 +2277,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should contain a note
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Changes requested by "));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), " by integrationreviewer1"));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 1"));
@@ -2289,7 +2289,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should contain another note
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Marked as reviewed by "));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 2"));
             assertEquals(2, archiveContainsCount(archiveFolder.path(), "Re: RFR:"));
@@ -2301,7 +2301,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should contain another note
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertEquals(2, archiveContainsCount(archiveFolder.path(), "Changes requested by "));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 3"));
         }
@@ -2342,12 +2342,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
 
@@ -2364,7 +2364,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should not contain the ignored comments
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "This is now ready"));
             assertFalse(archiveContains(archiveFolder.path(), "ignore this comment"));
             assertFalse(archiveContains(archiveFolder.path(), "it is time to"));
@@ -2407,12 +2407,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
             TestBotRunner.runPeriodicItems(mlBot);
@@ -2429,7 +2429,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The approval text should be included in the quote
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "^> Marked as reviewed"));
         }
     }
@@ -2467,12 +2467,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Line 1\nLine 2\nLine 3\nLine 4");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
 
@@ -2494,7 +2494,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // Check the archive
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Looks good"));
         }
     }
@@ -2532,12 +2532,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Line 1\nLine 2\nLine 3\nLine 4");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
 
@@ -2549,7 +2549,7 @@ class MailingListBridgeBotTests {
 
             // Commit another revision
             var updatedHash = CheckableRepository.appendAndCommit(localRepo, "More stuff");
-            localRepo.push(updatedHash, author.url(), "edit");
+            localRepo.push(updatedHash, author.authenticatedUrl(), "edit");
 
             // Bot with cooldown configured should not create a new webrev
             TestBotRunner.runPeriodicItems(mlBotWithCooldown);
@@ -2560,7 +2560,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // Check the archive
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/01"));
         }
     }
@@ -2599,12 +2599,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Line 1\nLine 2\nLine 3\nLine 4");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
 
@@ -2652,7 +2652,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // Check the archive
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Looks good - " + counter + " -"));
         }
     }
@@ -2689,13 +2689,13 @@ class MailingListBridgeBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
             pr.setBody("This is a PR");
 
@@ -2708,7 +2708,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // Check the archive
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: \\[master\\] RFR: "));
             assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: \\[master\\] RFR: "));
         }
@@ -2746,13 +2746,13 @@ class MailingListBridgeBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
             pr.setBody("This is a PR");
 
@@ -2765,7 +2765,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // Check the archive
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: \\[" + pr.repository().name() + "\\] RFR: "));
             assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: \\[" + pr.repository().name() + "\\] RFR: "));
         }
@@ -2804,13 +2804,13 @@ class MailingListBridgeBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
             pr.setBody("This is a PR");
 
@@ -2823,7 +2823,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // Check the archive
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: \\[" + pr.repository().name() + ":master\\] RFR: "));
             assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: \\[" + pr.repository().name() + ":master\\] RFR: "));
         }
@@ -2863,12 +2863,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Line 1\nLine 2\nLine 3\nLine 4");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
 
@@ -2883,7 +2883,7 @@ class MailingListBridgeBotTests {
             for (counter = 1; counter < 10; ++counter) {
                 var start = Instant.now();
                 var revHash = CheckableRepository.appendAndCommit(localRepo, "more stuff", "Update number - " + counter + " -");
-                localRepo.push(revHash, author.url(), "edit");
+                localRepo.push(revHash, author.authenticatedUrl(), "edit");
 
                 // The bot should not bridge the new revision due to cooldown
                 TestBotRunner.runPeriodicItems(mlBot);
@@ -2917,7 +2917,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // Check the archive
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Update number - " + counter + " -"));
         }
     }
@@ -2955,13 +2955,13 @@ class MailingListBridgeBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
             pr.setBody("This is a PR");
             pr.addLabel("list1");
@@ -3041,13 +3041,13 @@ class MailingListBridgeBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
             pr.setBody("This should not be ready");
 
@@ -3055,7 +3055,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // A PR that isn't ready for review should not be archived
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
 
             // Flag it as ready for review
@@ -3066,7 +3066,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // But it should still not be archived
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
 
             // Now post a general comment - not a ready marker
@@ -3077,7 +3077,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // It should still not be archived
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
 
             // Now post a ready comment
@@ -3087,7 +3087,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should now contain an entry
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "This is a pull request"));
             assertTrue(archiveContains(archiveFolder.path(), "This should now be ready"));
             assertTrue(archiveContains(archiveFolder.path(), "Patch:"));
@@ -3116,7 +3116,7 @@ class MailingListBridgeBotTests {
             assertEquals("val2", mail.headerValue("Extra2"));
 
             // And there should be a JSON version of a webrev
-            Repository.materialize(webrevFolder.path(), archive.url(), "webrev");
+            Repository.materialize(webrevFolder.path(), archive.authenticatedUrl(), "webrev");
             var jsonDir = webrevFolder.path()
                                       .resolve(author.name())
                                       .resolve(pr.id())
@@ -3167,7 +3167,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should now contain the comment, but not the ignored one
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "This is a comment"));
             assertTrue(archiveContains(archiveFolder.path(), "> This should now be ready"));
             assertFalse(archiveContains(archiveFolder.path(), "Don't mind me"));
@@ -3185,7 +3185,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should contain the additional comment
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "This is another comment"));
             assertTrue(archiveContains(archiveFolder.path(), ">> This should now be ready"));
 
@@ -3239,13 +3239,13 @@ class MailingListBridgeBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
 
             // Flag it as ready for review
@@ -3253,7 +3253,7 @@ class MailingListBridgeBotTests {
             pr.addLabel("rfr");
 
             // The archive should not yet contain an entry
-            var archiveRepo = Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            var archiveRepo = Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
 
             // Interfere while creating
             webrevServer.setHandleCallback(uri -> {
@@ -3263,7 +3263,7 @@ class MailingListBridgeBotTests {
                         Files.writeString(unrelatedFile, "Unrelated");
                         archiveRepo.add(unrelatedFile);
                         var unrelatedHash = archiveRepo.commit("Unrelated", "duke", "duke@openjdk.org");
-                        archiveRepo.push(unrelatedHash, archive.url(), "master");
+                        archiveRepo.push(unrelatedHash, archive.authenticatedUrl(), "master");
                     }
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
@@ -3274,7 +3274,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should now contain an entry
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "This is a pull request"));
             assertTrue(archiveContains(archiveFolder.path(), "This should now be ready"));
             assertTrue(archiveContains(archiveFolder.path(), "Patch:"));
@@ -3321,16 +3321,16 @@ class MailingListBridgeBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Create a separate change
             var depHash = CheckableRepository.appendAndCommit(localRepo, "A simple change");
-            localRepo.push(depHash, author.url(), "dep", true);
+            localRepo.push(depHash, author.authenticatedUrl(), "dep", true);
             var depPr = credentials.createPullRequest(archive, "master", "dep", "The first pr");
 
             // Simulate the pr dependency notifier creating the corresponding branch
-            localRepo.push(depHash, author.url(), "pr/" + depPr.id(), true);
+            localRepo.push(depHash, author.authenticatedUrl(), "pr/" + depPr.id(), true);
 
             // Run an archive pass
             TestBotRunner.runPeriodicItems(mlBot);
@@ -3340,7 +3340,7 @@ class MailingListBridgeBotTests {
             localRepo.checkout(masterHash, true);
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "pr/" + depPr.id(), "edit", "1234: This is a pull request");
             pr.setBody("This is a PR");
 
@@ -3353,7 +3353,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // Check the archive
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: RFR: "), pr.id());
             assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: RFR: ", pr.id()));
 
@@ -3395,12 +3395,12 @@ class MailingListBridgeBotTests {
             var reviewFile = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
             TestBotRunner.runPeriodicItems(mlBot);
@@ -3429,7 +3429,7 @@ class MailingListBridgeBotTests {
             assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
 
             // The first comment should be replied to once, and the original post once
-            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             assertEquals(1, archiveContainsCount(archiveFolder.path(), Pattern.quote("List User <listuser@openjdk.org>") + ".* wrote"));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), Pattern.quote(pr.author().fullName()) + ".* wrote"));
 

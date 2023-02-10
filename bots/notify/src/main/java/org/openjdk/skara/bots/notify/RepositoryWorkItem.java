@@ -349,11 +349,11 @@ public class RepositoryWorkItem implements WorkItem {
 
         try {
             var localRepo = repositoryPool.materializeBare(repository, scratchPath.resolve("notify").resolve("repowi").resolve(repository.name()));
-            var knownRefs = localRepo.remoteBranches(repository.url().toString())
+            var knownRefs = localRepo.remoteBranches(repository.authenticatedUrl().toString())
                                      .stream()
                                      .filter(ref -> branches.matcher(ref.name()).matches())
                                      .collect(Collectors.toList());
-            localRepo.fetchAll(repository.url(), true);
+            localRepo.fetchAll(repository.authenticatedUrl(), true);
 
             var history = UpdateHistory.create(tagStorageBuilder, historyPath.resolve("tags"), branchStorageBuilder, historyPath.resolve("branches"));
             var errors = new ArrayList<Throwable>();

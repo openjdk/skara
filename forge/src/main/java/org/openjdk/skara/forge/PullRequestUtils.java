@@ -93,7 +93,7 @@ public class PullRequestUtils {
         String ref;
         if (!source.contains(":")) {
             // Try to fetch the source as a name of a ref (branch or tag)
-            var hash = fetchRef(localRepo, pr.repository().url(), source);
+            var hash = fetchRef(localRepo, pr.repository().authenticatedUrl(), source);
             if (hash.isPresent()) {
                 return hash.get();
             }
@@ -117,7 +117,7 @@ public class PullRequestUtils {
             throw new CommitFailure("Could not find project `" + repoName + "` - check that it is correct.");
         }
 
-        var hash = fetchRef(localRepo, sourceRepo.get().url(), ref);
+        var hash = fetchRef(localRepo, sourceRepo.get().authenticatedUrl(), ref);
         if (hash.isPresent()) {
             return hash.get();
         } else {
@@ -164,7 +164,7 @@ public class PullRequestUtils {
 
     public static Repository materialize(HostedRepositoryPool hostedRepositoryPool, PullRequest pr, Path path) throws IOException {
         var localRepo = hostedRepositoryPool.checkout(pr.repository(), pr.headHash().hex(), path);
-        localRepo.fetch(pr.repository().url(), "+" + pr.targetRef() + ":prutils_targetref", false);
+        localRepo.fetch(pr.repository().authenticatedUrl(), "+" + pr.targetRef() + ":prutils_targetref", false);
         return localRepo;
     }
 

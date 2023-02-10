@@ -213,7 +213,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public URI url() {
+    public URI authenticatedUrl() {
         var builder = URIBuilder.base(gitHubHost.getURI())
                                 .setPath("/" + repository + ".git");
         var token = gitHubHost.getInstallationToken();
@@ -259,7 +259,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public URI remoteUrl() {
+    public URI url() {
         var endpoint = "/" + repository + ".git";
         return gitHubHost.getWebURI(endpoint);
     }

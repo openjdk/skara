@@ -1243,14 +1243,14 @@ class MergeBotTests {
             Files.writeString(fromFileB, "Hello B\n");
             fromLocalRepo.add(fromFileB);
             var fromHashB = fromLocalRepo.commit("Adding a.txt", "duke", "duke@openjdk.org", now);
-            fromLocalRepo.push(fromHashB, fromHostedRepo.url(), "master");
+            fromLocalRepo.push(fromHashB, fromHostedRepo.authenticatedUrl(), "master");
 
             // Diverge the target with something non-conflicting
             var toFileC = toDir.resolve("c.txt");
             Files.writeString(toFileC, "Hello C\n");
             toLocalRepo.add(toFileC);
             var toHashC = toLocalRepo.commit("Adding c.txt", "duke", "duke@openjdk.org");
-            toLocalRepo.push(toHashC, toHostedRepo.url(), "master");
+            toLocalRepo.push(toHashC, toHostedRepo.authenticatedUrl(), "master");
 
             // But push something out of place to the local storage as well
             var sanitizedForkUrl = URLEncoder.encode(toFork.webUrl().toString(), StandardCharsets.UTF_8);

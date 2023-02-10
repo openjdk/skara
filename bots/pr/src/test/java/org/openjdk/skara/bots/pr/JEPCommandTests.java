@@ -60,7 +60,7 @@ public class JEPCommandTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
                     Path.of("appendable.txt"), Set.of("issues"), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             var mainIssue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
             var jepIssue = issueProject.createIssue("The jep issue", List.of("Jep body"),
@@ -70,7 +70,7 @@ public class JEPCommandTests {
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", mainIssue.id() + ": " + mainIssue.title());
             var prAsReviewer = reviewer.pullRequest(pr.id());
 
@@ -224,7 +224,7 @@ public class JEPCommandTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
                     Path.of("appendable.txt"), Set.of("issues"), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             var mainIssue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
             var jepIssue = issueProject.createIssue("The jep issue", List.of("Jep body"),
@@ -232,7 +232,7 @@ public class JEPCommandTests {
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", mainIssue.id() + ": " + mainIssue.title());
             var prAsReviewer = reviewer.pullRequest(pr.id());
             var prAsCommitter = committer.pullRequest(pr.id());
@@ -307,7 +307,7 @@ public class JEPCommandTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
                     Path.of("appendable.txt"), Set.of("issues"), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             var mainIssue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
             var jepIssue = issueProject.createIssue("The jep issue", List.of("Jep body"),
@@ -315,7 +315,7 @@ public class JEPCommandTests {
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", mainIssue.id() + ": " + mainIssue.title());
 
             // PR should not have the `jep` label
@@ -418,7 +418,7 @@ public class JEPCommandTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
                     Path.of("appendable.txt"), Set.of("issues"), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             var mainIssue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
             var statusList = List.of("Draft", "Submitted", "Candidate", "Proposed to Target",
@@ -433,7 +433,7 @@ public class JEPCommandTests {
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", mainIssue.id() + ": " + mainIssue.title());
 
             // PR should not have the `jep` label
@@ -478,7 +478,7 @@ public class JEPCommandTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
                     Path.of("appendable.txt"), Set.of("issues"), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             var mainIssue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
             var jepIssue = issueProject.createIssue("The jep issue", List.of("Jep body"),
@@ -486,7 +486,7 @@ public class JEPCommandTests {
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", mainIssue.id() + ": " + mainIssue.title());
 
             // Test the PR bot with jep disable

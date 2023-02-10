@@ -94,7 +94,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -125,12 +125,12 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Save the state
-            var historyState = localRepo.fetch(repo.url(), "history");
+            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history");
 
             // Create an issue and commit a fix
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             var pr = credentials.createPullRequest(repo, "master", "master", issue.id() + ": Fix that issue");
             pr.setBody("\n\n### Issue\n * [" + issue.id() + "](http://www.test.test/): The issue");
             pr.addLabel("integrated");
@@ -146,7 +146,7 @@ public class IssueNotifierTests {
             assertEquals(repo.webUrl(editHash), link.uri().orElseThrow());
 
             // Wipe the history
-            localRepo.push(historyState, repo.url(), "history", true);
+            localRepo.push(historyState, repo.authenticatedUrl(), "history", true);
 
             // Run it again
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -166,7 +166,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -197,7 +197,7 @@ public class IssueNotifierTests {
             // Create an issue and a pull request to fix it
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fix that issue");
-            localRepo.push(editHash, repo.url(), "edit", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": Fix that issue");
             pr.setBody("\n\n### Issue\n * [" + issue.id() + "](http://www.test.test/): The issue");
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -328,7 +328,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -360,7 +360,7 @@ public class IssueNotifierTests {
             // Create an issue and a pull request to fix it
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fix that issue");
-            localRepo.push(editHash, repo.url(), "edit", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": Fix that issue");
             pr.setBody("\n\n### Issue\n * [" + issue.id() + "](http://www.test.test/): The issue");
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -393,7 +393,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
@@ -413,7 +413,7 @@ public class IssueNotifierTests {
             // Push a commit and create a pull request
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line",
                             issue.id() + ": This is an issue\n", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": This is an issue");
             pr.setBody("\n\n### Issues\n" +
                     " * [" + issue.id() + "](http://www.test.test/): This is an issue\n" +
@@ -468,7 +468,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
@@ -487,7 +487,7 @@ public class IssueNotifierTests {
             // Push a commit and create a pull request
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line",
                     issue.id() + ": This is an issue\n", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": This is an issue");
             pr.setBody("\n\n### Issues\n" +
                     " * [" + issue.id() + "](http://www.test.test/): This is an issue\n" +
@@ -527,7 +527,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
@@ -536,13 +536,13 @@ public class IssueNotifierTests {
             var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
 
             // Initialize history
-            localRepo.push(localRepo.resolve("master").orElseThrow(), repo.url(), "other");
+            localRepo.push(localRepo.resolve("master").orElseThrow(), repo.authenticatedUrl(), "other");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and a pull request to fix it
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
-            localRepo.push(editHash, repo.url(), "edit", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(repo, "other", "edit", issue.id() + ": Fix that issue");
             pr.setBody("\n\n### Issue\n * [" + issue.id() + "](http://www.test.test/): The issue");
             pr.addLabel("rfr");
@@ -562,7 +562,7 @@ public class IssueNotifierTests {
             pr.addComment("Pushed as commit " + editHash.hex() + ".");
             pr.addLabel("integrated");
             pr.setState(Issue.State.CLOSED);
-            localRepo.push(editHash, repo.url(), "other");
+            localRepo.push(editHash, repo.authenticatedUrl(), "other");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The changeset should be reflected in another link
@@ -577,7 +577,7 @@ public class IssueNotifierTests {
             assertTrue(comments.get(0).body().contains(pr.webUrl().toString()));
 
             // Now simulate a merge to another branch
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // No additional link should have been created
@@ -602,7 +602,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
@@ -624,7 +624,7 @@ public class IssueNotifierTests {
                                                                        issue2.id() + ": And fix the other issue\n" +
                                                                        issue3.id() + ": As well as this one\n",
                                                                "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
             TestBotRunner.runPeriodicItems(notifyBot);
 
@@ -669,7 +669,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
@@ -684,7 +684,7 @@ public class IssueNotifierTests {
             var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The changeset should be reflected in a comment
@@ -714,7 +714,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
@@ -742,7 +742,7 @@ public class IssueNotifierTests {
             var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The changeset should be reflected in a comment
@@ -762,8 +762,8 @@ public class IssueNotifierTests {
             assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
 
             // Restore the history to simulate looking at another repository
-            localRepo.fetch(repo.url(), "history");
-            localRepo.push(blankHistory, repo.url(), "history", true);
+            localRepo.fetch(repo.authenticatedUrl(), "history");
+            localRepo.push(blankHistory, repo.authenticatedUrl(), "history", true);
 
             // When the second notifier sees it, it should upgrade the build name
             TestBotRunner.runPeriodicItems(notifyBot2);
@@ -772,8 +772,8 @@ public class IssueNotifierTests {
             assertEquals("master", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Restore the history to simulate looking at another repository
-            localRepo.fetch(repo.url(), "history");
-            localRepo.push(blankHistory, repo.url(), "history", true);
+            localRepo.fetch(repo.authenticatedUrl(), "history");
+            localRepo.push(blankHistory, repo.authenticatedUrl(), "history", true);
 
             // When the third notifier sees it, it should switch to a build number
             TestBotRunner.runPeriodicItems(notifyBot3);
@@ -782,8 +782,8 @@ public class IssueNotifierTests {
             assertEquals("b04", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Restore the history to simulate looking at another repository
-            localRepo.fetch(repo.url(), "history");
-            localRepo.push(blankHistory, repo.url(), "history", true);
+            localRepo.fetch(repo.authenticatedUrl(), "history");
+            localRepo.push(blankHistory, repo.authenticatedUrl(), "history", true);
 
             // When the fourth notifier sees it, it should switch to a lower build number
             TestBotRunner.runPeriodicItems(notifyBot4);
@@ -792,8 +792,8 @@ public class IssueNotifierTests {
             assertEquals("b02", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Restore the history to simulate looking at another repository
-            localRepo.fetch(repo.url(), "history");
-            localRepo.push(blankHistory, repo.url(), "history", true);
+            localRepo.fetch(repo.authenticatedUrl(), "history");
+            localRepo.push(blankHistory, repo.authenticatedUrl(), "history", true);
 
             // When the fifth notifier sees it, it should NOT switch to a higher build number
             TestBotRunner.runPeriodicItems(notifyBot5);
@@ -812,7 +812,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
@@ -823,14 +823,14 @@ public class IssueNotifierTests {
             // Initialize history
             var current = localRepo.resolve("master").orElseThrow();
             localRepo.tag(current, "jdk-16+9", "First tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and commit a fix
             var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The changeset should be reflected in a comment
@@ -851,7 +851,7 @@ public class IssueNotifierTests {
 
             // Tag it
             localRepo.tag(editHash, "jdk-16+110", "Second tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The build should now be updated
@@ -860,7 +860,7 @@ public class IssueNotifierTests {
 
             // Tag it again
             localRepo.tag(editHash, "jdk-16+10", "Third tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The build should now be updated
@@ -869,7 +869,7 @@ public class IssueNotifierTests {
 
             // Tag it once again
             localRepo.tag(editHash, "jdk-16+8", "Fourth tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The build should now be updated
@@ -887,7 +887,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
@@ -900,9 +900,9 @@ public class IssueNotifierTests {
 
             // Initialize history
             var current = localRepo.resolve("master").orElseThrow();
-            localRepo.push(current, repo.url(), "other");
+            localRepo.push(current, repo.authenticatedUrl(), "other");
             localRepo.tag(current, "jdk-16+9", "First tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and commit a fix
@@ -910,10 +910,10 @@ public class IssueNotifierTests {
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             issue.setProperty("fixVersions", JSON.of("16.0.2"));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
-            localRepo.push(editHash, repo.url(), "other");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "other");
             // Add an extra branch that is not configured with any fixVersion
-            localRepo.push(editHash, repo.url(), "extra");
+            localRepo.push(editHash, repo.authenticatedUrl(), "extra");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The changeset should be reflected in a comment in the issue and in a new backport
@@ -944,7 +944,7 @@ public class IssueNotifierTests {
 
             // Tag it
             localRepo.tag(editHash, "jdk-16+110", "Second tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The build should now be updated
@@ -956,7 +956,7 @@ public class IssueNotifierTests {
 
             // Tag it again
             localRepo.tag(editHash, "jdk-16+10", "Third tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The build should now be updated
@@ -967,7 +967,7 @@ public class IssueNotifierTests {
 
             // Tag it once again
             localRepo.tag(editHash, "jdk-16+8", "Fourth tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The build should now be updated
@@ -987,7 +987,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
@@ -999,10 +999,10 @@ public class IssueNotifierTests {
 
             // Initialize history
             var current = localRepo.resolve("master").orElseThrow();
-            localRepo.push(current, repo.url(), "other");
+            localRepo.push(current, repo.authenticatedUrl(), "other");
             localRepo.tag(current, "jdk8u342-b00", "First tag", "duke", "duke@openjdk.org");
             localRepo.tag(current, "jdk9u352-b00", "First unrelated tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and commit a fix
@@ -1010,10 +1010,10 @@ public class IssueNotifierTests {
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             issue.setProperty("fixVersions", JSON.of("openjdk8u352"));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
-            localRepo.push(editHash, repo.url(), "other");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "other");
             // Add an extra branch that is not configured with any fixVersion
-            localRepo.push(editHash, repo.url(), "extra");
+            localRepo.push(editHash, repo.authenticatedUrl(), "extra");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The changeset should be reflected in a comment in the issue and in a new backport
@@ -1044,7 +1044,7 @@ public class IssueNotifierTests {
 
             // Tag it
             localRepo.tag(editHash, "jdk8u342-b01", "Second tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The build should now be updated
@@ -1056,7 +1056,7 @@ public class IssueNotifierTests {
 
             // Tag it with an unrelated tag
             localRepo.tag(editHash, "jdk9u352-b01", "Second tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The build should not change
@@ -1077,7 +1077,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
@@ -1089,10 +1089,10 @@ public class IssueNotifierTests {
 
             // Initialize history
             var current = localRepo.resolve("master").orElseThrow();
-            localRepo.push(current, repo.url(), "other");
+            localRepo.push(current, repo.authenticatedUrl(), "other");
             localRepo.tag(current, "jdk8u341-b00", "First tag", "duke", "duke@openjdk.org");
             localRepo.tag(current, "jdk8u341-foo-b00", "First foo tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and commit a fix
@@ -1100,8 +1100,8 @@ public class IssueNotifierTests {
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             issue.setProperty("fixVersions", JSON.of("8u341"));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
-            localRepo.push(editHash, repo.url(), "other");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "other");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The changeset should be reflected in a comment in the issue and in a new backport
@@ -1132,7 +1132,7 @@ public class IssueNotifierTests {
 
             // Tag it
             localRepo.tag(editHash, "jdk8u341-b01", "Second tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The build should now be updated
@@ -1144,7 +1144,7 @@ public class IssueNotifierTests {
 
             // Tag it with a properly formatted tag for the foo version
             localRepo.tag(editHash, "jdk8u341-foo-b01", "Second foo tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The build should now be updated
@@ -1167,7 +1167,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
@@ -1181,10 +1181,10 @@ public class IssueNotifierTests {
 
             // Initialize history
             var current = localRepo.resolve("master").orElseThrow();
-            localRepo.push(current, repo.url(), "other");
+            localRepo.push(current, repo.authenticatedUrl(), "other");
             localRepo.tag(current, "jdk8u341-b00", "First tag", "duke", "duke@openjdk.org");
             localRepo.tag(current, "foo8u341-b00", "First foo tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and commit a fix
@@ -1192,8 +1192,8 @@ public class IssueNotifierTests {
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             issue.setProperty("fixVersions", JSON.of("8u341"));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
-            localRepo.push(editHash, repo.url(), "other");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "other");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The changeset should be reflected in a comment in the issue and in a new backport
@@ -1224,7 +1224,7 @@ public class IssueNotifierTests {
 
             // Tag it
             localRepo.tag(editHash, "jdk8u341-b01", "Second tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The notifier requires prefix to be matched, but the default tag prefix of "jdk"
@@ -1237,7 +1237,7 @@ public class IssueNotifierTests {
 
             // Tag it with a properly formatted tag for the foo version
             localRepo.tag(editHash, "foo8u341-b02", "Second foo tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The build should now be updated
@@ -1258,7 +1258,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
@@ -1269,14 +1269,14 @@ public class IssueNotifierTests {
             // Initialize history
             var current = localRepo.resolve("master").orElseThrow();
             localRepo.tag(current, "jdk-16+9", "First tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and commit a fix
             var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The changeset should be reflected in a comment
@@ -1297,7 +1297,7 @@ public class IssueNotifierTests {
 
             // Tag it
             localRepo.tag(editHash, "jdk-16+110", "Second tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The build should now be updated
@@ -1306,10 +1306,10 @@ public class IssueNotifierTests {
 
             // Tag it again
             localRepo.tag(editHash, "jdk-16+10", "Third tag", "duke", "duke@openjdk.org");
-            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
 
             // Claim that it is already processed
-            localRepo.fetch(repo.url(), "+history:history");
+            localRepo.fetch(repo.authenticatedUrl(), "+history:history");
             localRepo.checkout(new Branch("history"), true);
             var historyFile = repoFolder.resolve("test.tags.txt");
             var processed = new ArrayList<>(Files.readAllLines(historyFile, StandardCharsets.UTF_8));
@@ -1317,7 +1317,7 @@ public class IssueNotifierTests {
             Files.writeString(historyFile, String.join("\n", processed), StandardCharsets.UTF_8);
             localRepo.add(historyFile);
             var updatedHash = localRepo.commit("Marking jdk-16+10 as done", "duke", "duke@openjdk.org");
-            localRepo.push(updatedHash, repo.url(), "history");
+            localRepo.push(updatedHash, repo.authenticatedUrl(), "history");
 
             // Now let the notifier see it
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1332,7 +1332,7 @@ public class IssueNotifierTests {
             Files.writeString(repoFolder.resolve("test.tags.txt"), String.join("\n", processed), StandardCharsets.UTF_8);
             localRepo.add(historyFile);
             var retryHash = localRepo.commit("Marking jdk-16+10 as needing retry", "duke", "duke@openjdk.org");
-            localRepo.push(retryHash, repo.url(), "history");
+            localRepo.push(retryHash, repo.authenticatedUrl(), "history");
 
             // Now let the notifier see it
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1352,7 +1352,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var issueProject = credentials.getIssueProject();
             var censusBuilder = credentials.getCensusBuilder()
@@ -1373,7 +1373,7 @@ public class IssueNotifierTests {
             var authorEmailAddress = "integrationreviewer1@otherjdk.org";
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The changeset should be reflected in a comment
@@ -1401,7 +1401,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var storageFolder = tempFolder.path().resolve("storage");
             var issueProject = credentials.getIssueProject();
@@ -1414,7 +1414,7 @@ public class IssueNotifierTests {
             // Create an issue and commit a fix
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The changeset should be reflected in a comment
@@ -1444,7 +1444,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), "1");
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
             var baseHash = localRepo.resolve("HEAD").orElseThrow();
 
             var storageFolder = tempFolder.path().resolve("storage");
@@ -1473,7 +1473,7 @@ public class IssueNotifierTests {
             localRepo.checkout(new Branch("master"));
             localRepo.merge(newVersionHash);
             var mergeHash = localRepo.commit("Merge", "testauthor", "ta@none.none");
-            localRepo.push(mergeHash, repo.url(), "master");
+            localRepo.push(mergeHash, repo.authenticatedUrl(), "master");
 
             TestBotRunner.runPeriodicItems(notifyBot);
 
@@ -1500,7 +1500,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var storageFolder = tempFolder.path().resolve("storage");
             var issueProject = credentials.getIssueProject();
@@ -1513,7 +1513,7 @@ public class IssueNotifierTests {
             // Create an issue and commit a fix
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The changeset should not reflected in a comment
@@ -1539,7 +1539,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var storageFolder = tempFolder.path().resolve("storage");
             var issueProject = credentials.getIssueProject();
@@ -1550,12 +1550,12 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Save the state
-            var historyState = localRepo.fetch(repo.url(), "history");
+            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history");
 
             // Create an issue and commit a fix
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The changeset should be reflected in a comment
@@ -1568,7 +1568,7 @@ public class IssueNotifierTests {
             assertEquals(Set.of("0.1"), fixVersions(issue));
 
             // Wipe the history
-            localRepo.push(historyState, repo.url(), "history", true);
+            localRepo.push(historyState, repo.authenticatedUrl(), "history", true);
 
             // Run it again
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1594,7 +1594,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var storageFolder = tempFolder.path().resolve("storage");
             var issueProject = credentials.getIssueProject();
@@ -1605,12 +1605,12 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Save the state
-            var historyState = localRepo.fetch(repo.url(), "history");
+            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history");
 
             // Create an issue and commit a fix
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
 
             // Add a comment for the fix with the old url hash format
             var lastCommit = localRepo.commits().stream().findFirst().orElseThrow();
@@ -1628,7 +1628,7 @@ public class IssueNotifierTests {
             assertEquals(Set.of("0.1"), fixVersions(issue));
 
             // Wipe the history
-            localRepo.push(historyState, repo.url(), "history", true);
+            localRepo.push(historyState, repo.authenticatedUrl(), "history", true);
 
             // Run it again
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1648,7 +1648,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var storageFolder = tempFolder.path().resolve("storage");
             var issueProject = credentials.getIssueProject();
@@ -1663,7 +1663,7 @@ public class IssueNotifierTests {
             issue.setProperty("fixVersions", JSON.array().add("12-pool").add("tbd_major").add("unknown"));
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The fixVersion should have been updated
@@ -1679,7 +1679,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var storageFolder = tempFolder.path().resolve("storage");
             var issueProject = credentials.getIssueProject();
@@ -1703,7 +1703,7 @@ public class IssueNotifierTests {
 
             var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The fixVersion should not have been updated
@@ -1741,11 +1741,11 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
             // Initialize other branches
             var initialHead = localRepo.head();
-            localRepo.push(initialHead, repo.url(), "other");
-            localRepo.push(initialHead, repo.url(), "other2");
+            localRepo.push(initialHead, repo.authenticatedUrl(), "other");
+            localRepo.push(initialHead, repo.authenticatedUrl(), "other2");
 
             var storageFolder = tempFolder.path().resolve("storage");
             var issueProject = credentials.getIssueProject();
@@ -1774,7 +1774,7 @@ public class IssueNotifierTests {
 
             var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             {
@@ -1796,7 +1796,7 @@ public class IssueNotifierTests {
             }
 
             // Push the fix to other branch
-            localRepo.push(editHash, repo.url(), "other");
+            localRepo.push(editHash, repo.authenticatedUrl(), "other");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             {
@@ -1814,7 +1814,7 @@ public class IssueNotifierTests {
             // Set security on the original issue
             issue.setProperty("security", JSON.of("200"));
             // Push to another branch
-            localRepo.push(editHash, repo.url(), "other2");
+            localRepo.push(editHash, repo.authenticatedUrl(), "other2");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             {
@@ -1841,7 +1841,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
@@ -1861,9 +1861,9 @@ public class IssueNotifierTests {
             var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             // Also create a pull request that should not get processed due to repoonly being set
-            localRepo.push(editHash, repo.url(), "edit", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": Fix that issue");
             pr.setBody("\n\n### Issue\n * [" + issue.id() + "](http://www.test.test/): The issue");
             pr.addLabel("rfr");
@@ -1883,8 +1883,8 @@ public class IssueNotifierTests {
             var comment = comments.get(0);
             assertTrue(comment.body().contains(editHash.toString()));
             // Verify that the 'original' repo URL is used in the comment and not the main one
-            assertTrue(comment.body().contains(originalRepo.url().toString()));
-            assertFalse(comment.body().contains(repo.url().toString()));
+            assertTrue(comment.body().contains(originalRepo.authenticatedUrl().toString()));
+            assertFalse(comment.body().contains(repo.authenticatedUrl().toString()));
 
             // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
@@ -1904,7 +1904,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var storageFolder = tempFolder.path().resolve("storage");
             var issueProject = credentials.getIssueProject();
@@ -1923,7 +1923,7 @@ public class IssueNotifierTests {
 
             var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The fixVersion should not have been updated
@@ -1954,7 +1954,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var storageFolder = tempFolder.path().resolve("storage");
             var issueProject = credentials.getIssueProject();
@@ -1973,7 +1973,7 @@ public class IssueNotifierTests {
 
             var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The fixVersion should not have been updated
@@ -1986,7 +1986,7 @@ public class IssueNotifierTests {
             assertEquals(1, comments.size());
             var comment = comments.get(0);
             assertTrue(comment.body().contains(editHash.toString()));
-            assertTrue(comment.body().contains(repo.url().toString()));
+            assertTrue(comment.body().contains(repo.authenticatedUrl().toString()));
 
             // There should be no link
             var links = updatedIssue.links();
@@ -2002,7 +2002,7 @@ public class IssueNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var storageFolder = tempFolder.path().resolve("storage");
             var issueProject = credentials.getIssueProject();
@@ -2021,7 +2021,7 @@ public class IssueNotifierTests {
 
             var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The fixVersion should not have been updated
@@ -2034,7 +2034,7 @@ public class IssueNotifierTests {
             assertEquals(1, comments.size());
             var comment = comments.get(0);
             assertTrue(comment.body().contains(editHash.toString()));
-            assertTrue(comment.body().contains(repo.url().toString()));
+            assertTrue(comment.body().contains(repo.authenticatedUrl().toString()));
 
             // There should be no link
             var links = updatedIssue.links();

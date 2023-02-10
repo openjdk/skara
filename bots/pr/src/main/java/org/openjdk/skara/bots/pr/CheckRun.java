@@ -737,7 +737,7 @@ class CheckRun {
     }
 
     private String reviewUsingGitHelp() {
-        var repoUrl = pr.repository().remoteUrl();
+        var repoUrl = pr.repository().url();
         var firstTime =
            "`$ git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id() + "` \\\n" +
            "`$ git checkout pull/" + pr.id() + "`\n";
@@ -1055,7 +1055,7 @@ class CheckRun {
                 "and update this pull request you can run the following commands in the local repository for your personal fork:\n" +
                 "```bash\n" +
                 "git checkout " + pr.sourceRef() + "\n" +
-                "git fetch " + pr.repository().remoteUrl() + " " + pr.targetRef() + "\n" +
+                "git fetch " + pr.repository().url() + " " + pr.targetRef() + "\n" +
                 "git merge FETCH_HEAD\n" +
                 "# resolve conflicts and follow the instructions given by git merge\n" +
                 "git commit -m \"Merge " + pr.targetRef() + "\"\n" +
@@ -1213,7 +1213,7 @@ class CheckRun {
 
             if (pr.sourceRepository().isPresent()) {
                 var branchNames = pr.repository().branches().stream().map(HostedBranch::name).collect(Collectors.toSet());
-                if (!pr.repository().url().equals(pr.sourceRepository().get().url()) && branchNames.contains(pr.sourceRef())) {
+                if (!pr.repository().authenticatedUrl().equals(pr.sourceRepository().get().authenticatedUrl()) && branchNames.contains(pr.sourceRef())) {
                     addSourceBranchWarningComment();
                 }
             }

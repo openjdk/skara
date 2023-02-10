@@ -25,7 +25,6 @@ package org.openjdk.skara.bots.notify.mailinglist;
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.bots.notify.*;
-import org.openjdk.skara.mailinglist.Conversation;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.test.*;
 
@@ -34,7 +33,6 @@ import java.nio.file.Files;
 import java.time.Duration;
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.notify.TestUtils.*;
@@ -50,7 +48,7 @@ public class MailingListNotifierTests {
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
@@ -86,7 +84,7 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
 
@@ -124,7 +122,7 @@ public class MailingListNotifierTests {
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
@@ -159,10 +157,10 @@ public class MailingListNotifierTests {
 
             var editHash1 = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes",
                     "first_author", "first@author.example.com");
-            localRepo.push(editHash1, repo.url(), "master");
+            localRepo.push(editHash1, repo.authenticatedUrl(), "master");
             var editHash2 = CheckableRepository.appendAndCommit(localRepo, "Yet another line", "3456789A: Even more fixes",
                     "another_author", "another@author.example.com");
-            localRepo.push(editHash2, repo.url(), "master");
+            localRepo.push(editHash2, repo.authenticatedUrl(), "master");
 
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
@@ -201,7 +199,7 @@ public class MailingListNotifierTests {
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
@@ -236,7 +234,7 @@ public class MailingListNotifierTests {
 
             var editHash1 = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes",
                                                                 "first_author", "first@author.example.com");
-            localRepo.push(editHash1, repo.url(), "master");
+            localRepo.push(editHash1, repo.authenticatedUrl(), "master");
             var editHash2 = CheckableRepository.appendAndCommit(localRepo, "Yet another line", "3456789A: Even more fixes",
                                                                 "another_author", "another@author.example.com");
             localRepo.checkout(editHash1, true);
@@ -245,7 +243,7 @@ public class MailingListNotifierTests {
             localRepo.commit("Unrelated", "unrelated_author", "unrelated@author.example.com");
             localRepo.merge(editHash2);
             var mergeHash = localRepo.commit("Merge", "merge_author", "merge@author.example.com");
-            localRepo.push(mergeHash, repo.url(), "master");
+            localRepo.push(mergeHash, repo.authenticatedUrl(), "master");
 
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
@@ -281,7 +279,7 @@ public class MailingListNotifierTests {
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
@@ -317,7 +315,7 @@ public class MailingListNotifierTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes",
                     "author", "author@test.test",
                     "committer", "committer@test.test");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
 
@@ -347,7 +345,7 @@ public class MailingListNotifierTests {
             var masterHash = localRepo.resolve("master").orElseThrow();
             credentials.commitLock(localRepo);
             var branch = localRepo.branch(masterHash, "another");
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
@@ -385,9 +383,9 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var editHash1 = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
-            localRepo.push(editHash1, repo.url(), "master");
+            localRepo.push(editHash1, repo.authenticatedUrl(), "master");
             var editHash2 = CheckableRepository.appendAndCommit(localRepo, "Yet another line", "3456789A: Even more fixes");
-            localRepo.push(editHash2, repo.url(), "master");
+            localRepo.push(editHash2, repo.authenticatedUrl(), "master");
 
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
@@ -417,7 +415,7 @@ public class MailingListNotifierTests {
 
             localRepo.checkout(branch, true);
             var editHash3 = CheckableRepository.appendAndCommit(localRepo, "Another branch", "456789AB: Yet more fixes");
-            localRepo.push(editHash3, repo.url(), "another");
+            localRepo.push(editHash3, repo.authenticatedUrl(), "another");
 
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
@@ -451,7 +449,7 @@ public class MailingListNotifierTests {
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
@@ -485,8 +483,8 @@ public class MailingListNotifierTests {
             updater.attachTo(notifyBot);
 
             // Populate our known branches
-            localRepo.push(masterHash, repo.url(), "master", true);
-            localRepo.push(masterHash, repo.url(), "other", true);
+            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, repo.authenticatedUrl(), "other", true);
 
             // Two mails should be sent on first commit
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -495,7 +493,7 @@ public class MailingListNotifierTests {
 
             localRepo.checkout(masterHash, true);
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
-            localRepo.push(editHash, repo.url(), "edit");
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit");
             var pr = credentials.createPullRequest(repo, "master", "edit", "RFR: My PR");
 
             // PR hasn't been integrated yet, so there should be no mail
@@ -513,7 +511,7 @@ public class MailingListNotifierTests {
             pr.addComment("Pushed as commit " + editHash.hex() + ".");
 
             // Now push the same commit to another branch
-            localRepo.push(editHash, repo.url(), "other");
+            localRepo.push(editHash, repo.authenticatedUrl(), "other");
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
 
@@ -536,7 +534,7 @@ public class MailingListNotifierTests {
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
@@ -571,12 +569,12 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
-            localRepo.push(editHash, repo.url(), "edit");
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit");
             var pr = credentials.createPullRequest(repo, "master", "edit", "RFR: My PR");
 
             // Create a potentially conflicting one
             var otherHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
-            localRepo.push(otherHash, repo.url(), "other");
+            localRepo.push(otherHash, repo.authenticatedUrl(), "other");
             var otherPr = credentials.createPullRequest(repo, "master", "other", "RFR: My other PR");
 
             // PR hasn't been integrated yet, so there should be no mail
@@ -593,10 +591,10 @@ public class MailingListNotifierTests {
 
             // And an integration
             pr.addComment("Pushed as commit " + editHash.hex() + ".");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
 
             // Push the other one without a matching PR
-            localRepo.push(otherHash, repo.url(), "master");
+            localRepo.push(otherHash, repo.authenticatedUrl(), "master");
 
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
@@ -627,7 +625,7 @@ public class MailingListNotifierTests {
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
@@ -663,7 +661,7 @@ public class MailingListNotifierTests {
 
             var editHash1 = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes",
                                                                 "first_author", "first@author.example.com");
-            localRepo.push(editHash1, repo.url(), "edit");
+            localRepo.push(editHash1, repo.authenticatedUrl(), "edit");
             CheckableRepository.appendAndCommit(localRepo, "And another line", "12345678: And more fixes",
                                                 "second_author", "second@author.example.com");
             var editHash2 = CheckableRepository.appendAndCommit(localRepo, "Yet another line", "3456789A: Even more fixes",
@@ -674,7 +672,7 @@ public class MailingListNotifierTests {
             localRepo.commit("Unrelated", "unrelated_author", "unrelated@author.example.com");
             localRepo.merge(editHash2);
             var mergeHash = localRepo.commit("Merge", "merge_author", "merge@author.example.com");
-            localRepo.push(mergeHash, repo.url(), "edit");
+            localRepo.push(mergeHash, repo.authenticatedUrl(), "edit");
 
             var pr = credentials.createPullRequest(repo, "master", "edit", "Merge test");
 
@@ -692,7 +690,7 @@ public class MailingListNotifierTests {
 
             // And an integration
             pr.addComment("Pushed as commit " + mergeHash.hex() + ".");
-            localRepo.push(mergeHash, repo.url(), "master");
+            localRepo.push(mergeHash, repo.authenticatedUrl(), "master");
 
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
@@ -726,7 +724,7 @@ public class MailingListNotifierTests {
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.branch(masterHash, "other");
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
@@ -764,7 +762,7 @@ public class MailingListNotifierTests {
 
             localRepo.checkout(masterHash, true);
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
-            localRepo.push(editHash, repo.url(), "edit");
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit");
             var pr = credentials.createPullRequest(repo, "master", "edit", "RFR: My PR");
 
             // PR hasn't been integrated yet, so there should be no mail
@@ -781,7 +779,7 @@ public class MailingListNotifierTests {
 
             // And an integration
             pr.addComment("Pushed as commit " + editHash.hex() + ".");
-            localRepo.push(editHash, repo.url(), "master", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "master", true);
 
             TestBotRunner.runPeriodicItems(notifyBot);
             assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
@@ -794,7 +792,7 @@ public class MailingListNotifierTests {
             assertEquals(1, prConversation.allMessages().size());
 
             // Now push the change to another monitored branch
-            localRepo.push(editHash, repo.url(), "other", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "other", true);
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
 
@@ -824,7 +822,7 @@ public class MailingListNotifierTests {
             credentials.commitLock(localRepo);
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.tag(masterHash, "jdk-12+1", "Added tag 1", "Duke Tagger", "tagger@openjdk.org");
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
@@ -867,7 +865,7 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
-            localRepo.fetch(repo.url(), "history:history");
+            localRepo.fetch(repo.authenticatedUrl(), "history:history");
             localRepo.tag(editHash, "jdk-12+2", "Added tag 2", "Duke Tagger", "tagger@openjdk.org");
             CheckableRepository.appendAndCommit(localRepo, "Another line 1", "34567890: Even more fixes");
             CheckableRepository.appendAndCommit(localRepo, "Another line 2", "45678901: Yet even more fixes");
@@ -876,7 +874,7 @@ public class MailingListNotifierTests {
             CheckableRepository.appendAndCommit(localRepo, "Another line 4", "67890123: Brand new fixes");
             var editHash3 = CheckableRepository.appendAndCommit(localRepo, "Another line 5", "78901234: More brand new fixes");
             localRepo.tag(editHash3, "jdk-13+0", "Added tag 4", "Duke Tagger", "tagger@openjdk.org");
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             TestBotRunner.runPeriodicItems(notifyBot, scratchFolder.path());
             listServer.processIncoming();
@@ -947,7 +945,7 @@ public class MailingListNotifierTests {
             credentials.commitLock(localRepo);
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.tag(masterHash, "jdk-12+1", "Added tag 1", "Duke Tagger", "tagger@openjdk.org");
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
@@ -990,7 +988,7 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
-            localRepo.fetch(repo.url(), "history:history");
+            localRepo.fetch(repo.authenticatedUrl(), "history:history");
             localRepo.tag(editHash, "jdk-12+2", "Added tag 2", "Duke Tagger", "tagger@openjdk.org");
             CheckableRepository.appendAndCommit(localRepo, "Another line 1", "34567890: Even more fixes");
             CheckableRepository.appendAndCommit(localRepo, "Another line 2", "45678901: Yet even more fixes");
@@ -999,7 +997,7 @@ public class MailingListNotifierTests {
             CheckableRepository.appendAndCommit(localRepo, "Another line 4", "67890123: Brand new fixes");
             var editHash3 = CheckableRepository.appendAndCommit(localRepo, "Another line 5", "78901234: More brand new fixes");
             localRepo.tag(editHash3, "jdk-13+0", "Added tag 4", "Duke Tagger", "tagger@openjdk.org");
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
@@ -1043,7 +1041,7 @@ public class MailingListNotifierTests {
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
@@ -1078,7 +1076,7 @@ public class MailingListNotifierTests {
 
             CheckableRepository.appendAndCommit(localRepo, "Another line", "12345678: Some fixes");
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
-            localRepo.push(editHash, repo.url(), "newbranch1");
+            localRepo.push(editHash, repo.authenticatedUrl(), "newbranch1");
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
 
@@ -1098,7 +1096,7 @@ public class MailingListNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
             assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
 
-            localRepo.push(editHash, repo.url(), "newbranch2");
+            localRepo.push(editHash, repo.authenticatedUrl(), "newbranch2");
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
 
@@ -1123,7 +1121,7 @@ public class MailingListNotifierTests {
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
@@ -1159,10 +1157,10 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             // Save history state
-            var historyHash = localRepo.fetch(repo.url(), "history");
+            var historyHash = localRepo.fetch(repo.authenticatedUrl(), "history");
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
 
@@ -1170,7 +1168,7 @@ public class MailingListNotifierTests {
             assertEquals(2, conversations.size());
 
             // Reset the history
-            localRepo.push(historyHash, repo.url(), "history", true);
+            localRepo.push(historyHash, repo.authenticatedUrl(), "history", true);
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
 
@@ -1190,7 +1188,7 @@ public class MailingListNotifierTests {
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
@@ -1224,14 +1222,14 @@ public class MailingListNotifierTests {
             CheckableRepository.appendAndCommit(localRepo,"commit1", "commit1");
             CheckableRepository.appendAndCommit(localRepo,"commit2", "commit2");
             var updateHash = CheckableRepository.appendAndCommit(localRepo,"commit3", "commit3");
-            localRepo.push(updateHash,repo.url(),"master");
+            localRepo.push(updateHash,repo.authenticatedUrl(),"master");
 
             // No mail should be sent on first commit because it has a long history(commit count > 5)
             TestBotRunner.runPeriodicItems(notifyBot);
             assertThrows(RuntimeException.class, () -> listServer.processIncoming());
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
 

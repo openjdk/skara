@@ -55,11 +55,11 @@ public class CommitCommandTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change directly on master
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "master");
+            localRepo.push(editHash, author.authenticatedUrl(), "master");
 
             // Add a help command
             author.addCommitComment(editHash, "/help");
@@ -108,11 +108,11 @@ public class CommitCommandTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Add a `backport` command
@@ -123,7 +123,7 @@ public class CommitCommandTests {
 
             // Simulate an integration
             var botPr = botRepo.pullRequest(pr.id());
-            localRepo.push(editHash, author.url(), "master");
+            localRepo.push(editHash, author.authenticatedUrl(), "master");
             botPr.addComment("Pushed as commit " + editHash.hex() + ".");
             botPr.addLabel("integrated");
             botPr.setState(Issue.State.CLOSED);
@@ -168,15 +168,15 @@ public class CommitCommandTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change directly on master
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "master");
+            localRepo.push(editHash, author.authenticatedUrl(), "master");
 
             // Make a commit only present in pr branch
             var prHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(prHash, author.url(), "pr/1", true);
+            localRepo.push(prHash, author.authenticatedUrl(), "pr/1", true);
 
             // Add a help command to commit in pr branch
             var comment = author.addCommitComment(prHash, "/help");
@@ -209,11 +209,11 @@ public class CommitCommandTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change directly on master
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "master");
+            localRepo.push(editHash, author.authenticatedUrl(), "master");
 
             // Add a help command
             author.addCommitComment(editHash, "/help");
@@ -252,7 +252,7 @@ public class CommitCommandTests {
             Files.writeString(readme, "Hello, world!");
             localRepo.add(readme);
             var masterHash = localRepo.commit("Added README", "duke", "duke@openjdk.org");
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Add a help command
             author.addCommitComment(masterHash, "/help");

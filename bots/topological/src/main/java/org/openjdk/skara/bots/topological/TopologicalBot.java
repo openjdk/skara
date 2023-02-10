@@ -73,7 +73,7 @@ class TopologicalBot implements Bot, WorkItem {
             if (!Files.exists(dir)) {
                 log.info("Cloning " + hostedRepo.name());
                 Files.createDirectories(dir);
-                repo = Repository.clone(hostedRepo.url(), dir);
+                repo = Repository.clone(hostedRepo.authenticatedUrl(), dir);
             } else {
                 log.info("Found existing scratch directory for " + hostedRepo.name());
                 repo = Repository.get(dir)
@@ -166,7 +166,7 @@ class TopologicalBot implements Bot, WorkItem {
                             .collect(Collectors.joining("\n", "\n", "\n")));
             }
             try {
-                repo.push(repo.head(), hostedRepo.url(), branch.name());
+                repo.push(repo.head(), hostedRepo.authenticatedUrl(), branch.name());
             } catch (IOException e) {
                 log.severe("Pushing failed! Aborting...");
                 repo.reset(oldHead, true);

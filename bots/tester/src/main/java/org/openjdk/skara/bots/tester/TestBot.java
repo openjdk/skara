@@ -95,7 +95,7 @@ public class TestBot implements Bot {
         Predicate<HostUser> isCommitter = null;
         if (checkCommitterStatus) {
             try {
-                var censusRepo = Repository.materialize(censusDir, censusRemote.url(), Branch.defaultFor(VCS.GIT).name());
+                var censusRepo = Repository.materialize(censusDir, censusRemote.authenticatedUrl(), Branch.defaultFor(VCS.GIT).name());
                 var census = Census.parse(censusDir);
                 var namespace = census.namespace(repo.namespace());
                 var jcheckConf = repo.fileContents(".jcheck/conf", Branch.defaultFor(VCS.GIT).name())

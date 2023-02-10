@@ -241,7 +241,7 @@ public class IntegrateCommand implements CommandHandler {
             if (!localHash.equals(checkablePr.targetHash())) {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 addPrePushComment(pr, amendedHash, rebaseMessage.toString());
-                localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
+                localRepo.push(amendedHash, pr.repository().authenticatedUrl(), pr.targetRef());
                 markIntegratedAndClosed(pr, amendedHash, reply, allComments);
             } else {
                 reply.print("Warning! Your commit did not result in any changes! ");

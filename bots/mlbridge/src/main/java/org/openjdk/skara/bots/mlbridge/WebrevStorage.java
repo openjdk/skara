@@ -149,7 +149,7 @@ class WebrevStorage {
         return "This file was too large to be included in the published webrev, and has been replaced with " +
                 "this placeholder message. It is possible to generate the original content locally by " +
                 "following these instructions:\n\n" +
-                "  $ git fetch " + pr.repository().remoteUrl() + " " + pr.fetchRef() + "\n" +
+                "  $ git fetch " + pr.repository().url() + " " + pr.fetchRef() + "\n" +
                 "  $ git checkout " + head.hex() + "\n" +
                 "  $ git webrev -r " + base.hex() + "\n";
     }
@@ -292,27 +292,27 @@ class WebrevStorage {
             URI uri = null;
 
             if (generateJSON) {
-                var jsonLocalStorage = Repository.materialize(scratchPath, jsonStorage.url(),
+                var jsonLocalStorage = Repository.materialize(scratchPath, jsonStorage.authenticatedUrl(),
                                                               "+" + storageRef + ":mlbridge_webrevs");
                 if (Files.exists(outputFolder)) {
                     clearDirectory(outputFolder);
                 }
                 generateJSON(pr, localRepository, outputFolder, diff, base, head);
                 if (!jsonLocalStorage.isClean()) {
-                    push(jsonLocalStorage, jsonStorage.url(), outputFolder, baseFolder.resolve(pr.id()).toString(), placeholder);
+                    push(jsonLocalStorage, jsonStorage.authenticatedUrl(), outputFolder, baseFolder.resolve(pr.id()).toString(), placeholder);
                 }
                 var repoName = Path.of(pr.repository().name()).getFileName();
                 uri = URI.create(baseUri.toString() + "?repo=" + repoName + "&pr=" + pr.id() + "&range=" + identifier);
             }
             if (generateHTML) {
-                var htmlLocalStorage = Repository.materialize(scratchPath, htmlStorage.url(),
+                var htmlLocalStorage = Repository.materialize(scratchPath, htmlStorage.authenticatedUrl(),
                                                               "+" + storageRef + ":mlbridge_webrevs");
                 if (Files.exists(outputFolder)) {
                     clearDirectory(outputFolder);
                 }
                 generateHTML(pr, localRepository, outputFolder, diff, base, head);
                 if (!htmlLocalStorage.isClean()) {
-                    push(htmlLocalStorage, htmlStorage.url(), outputFolder, baseFolder.resolve(pr.id()).toString(), placeholder);
+                    push(htmlLocalStorage, htmlStorage.authenticatedUrl(), outputFolder, baseFolder.resolve(pr.id()).toString(), placeholder);
                 }
                 uri = URIBuilder.base(baseUri).appendPath(relativeFolder.toString().replace('\\', '/')).build();
                 awaitPublication(uri, Duration.ofMinutes(30));

@@ -28,7 +28,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 import org.openjdk.skara.census.Census;
 import org.openjdk.skara.census.Contributor;
@@ -115,7 +114,7 @@ class LimitedCensusInstance {
     }
 
     private static Path getRepoFolder(HostedRepositoryPool hostedRepositoryPool, HostedRepository censusRepo, String censusRef, Path folder) {
-        var repoName = censusRepo.url().getHost() + "/" + censusRepo.name();
+        var repoName = censusRepo.authenticatedUrl().getHost() + "/" + censusRepo.name();
         var repoFolder = folder.resolve(URLEncoder.encode(repoName, StandardCharsets.UTF_8));
         try {
             hostedRepositoryPool.checkoutAllowStale(censusRepo, censusRef, repoFolder);

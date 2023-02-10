@@ -231,13 +231,13 @@ public class CensusSyncSplitBot implements Bot, WorkItem {
             }
 
             var toDir = scratch.resolve("to.git");
-            var toRepo = Repository.materialize(toDir, to.url(), Branch.defaultFor(VCS.GIT).name());
+            var toRepo = Repository.materialize(toDir, to.authenticatedUrl(), Branch.defaultFor(VCS.GIT).name());
 
             var updatedFiles = sync(currentCensus, toDir);
             if (!toRepo.isClean()) {
                 toRepo.add(updatedFiles);
                 var head = toRepo.commit("Updated census", "duke", "duke@openjdk.org");
-                toRepo.push(head, to.url(), Branch.defaultFor(VCS.GIT).name(), false);
+                toRepo.push(head, to.authenticatedUrl(), Branch.defaultFor(VCS.GIT).name(), false);
             } else {
                 log.info("New census data did not result in any changes");
             }

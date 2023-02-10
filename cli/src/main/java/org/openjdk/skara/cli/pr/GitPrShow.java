@@ -80,7 +80,7 @@ public class GitPrShow {
         var pr = getPullRequest(uri, repo, host, id);
         var useTool = getSwitch("tool", "show", arguments);
 
-        var fetchHead = repo.fetch(pr.repository().remoteUrl(), pr.fetchRef());
+        var fetchHead = repo.fetch(pr.repository().url(), pr.fetchRef());
         show(pr.targetRef(), fetchHead, useTool);
     }
 }

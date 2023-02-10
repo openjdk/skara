@@ -32,7 +32,6 @@ import org.openjdk.skara.storage.StorageBuilder;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.nio.file.*;
 import java.nio.charset.StandardCharsets;
 import java.net.URI;
@@ -64,7 +63,7 @@ public class CheckoutBot implements Bot, WorkItem {
     }
 
     private URI uri() {
-        var uri = from.url().toString();
+        var uri = from.authenticatedUrl().toString();
         if (!uri.endsWith(".git")) {
             uri += ".git";
         }
@@ -94,7 +93,7 @@ public class CheckoutBot implements Bot, WorkItem {
     @Override
     public Collection<WorkItem> run(Path scratch) {
         try {
-            var fromDir = storage.resolve(urlEncode(from.remoteUrl()));
+            var fromDir = storage.resolve(urlEncode(from.url()));
             Repository fromRepo = null;
             if (!Files.exists(fromDir)) {
                 Files.createDirectories(fromDir);

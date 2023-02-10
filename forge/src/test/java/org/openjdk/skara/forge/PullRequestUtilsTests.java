@@ -43,12 +43,12 @@ public class PullRequestUtilsTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var issueProject = credentials.getIssueProject();
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             var pr1 = credentials.createPullRequest(repo, "master", "master", issue.id() + ": Fix that issue");
 
             {

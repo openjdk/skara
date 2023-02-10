@@ -296,7 +296,7 @@ class ReviewArchive {
             digest.update(identifier.getBytes(StandardCharsets.UTF_8));
             var encodedCommon = Base64.getUrlEncoder().encodeToString(digest.digest());
 
-            return EmailAddress.from(encodedCommon + "." + UUID.randomUUID() + "@" + pr.repository().url().getHost());
+            return EmailAddress.from(encodedCommon + "." + UUID.randomUUID() + "@" + pr.repository().authenticatedUrl().getHost());
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Cannot find SHA-256");
         }

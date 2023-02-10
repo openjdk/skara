@@ -94,7 +94,7 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public URI url() {
+    public URI authenticatedUrl() {
         return url;
     }
 
@@ -235,7 +235,7 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public URI remoteUrl() {
+    public URI url() {
         return null;
     }
 

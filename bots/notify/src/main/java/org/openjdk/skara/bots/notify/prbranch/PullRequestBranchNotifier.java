@@ -50,14 +50,14 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
         var hostedRepositoryPool = new HostedRepositoryPool(seedFolder);
         try {
             var seedRepo = hostedRepositoryPool.seedRepository(pr.repository(), false);
-            seedRepo.fetch(pr.repository().url(), pr.headHash().hex());
+            seedRepo.fetch(pr.repository().authenticatedUrl(), pr.headHash().hex());
             String branch = PreIntegrations.preIntegrateBranch(pr);
             if (protectBranches) {
                 log.info("Protecting branch " + branch);
                 pr.repository().protectBranchPattern(branch);
             }
             log.info("Creating new pull request pre-integration branch " + branch);
-            seedRepo.push(pr.headHash(), pr.repository().url(), branch, true);
+            seedRepo.push(pr.headHash(), pr.repository().authenticatedUrl(), branch, true);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -109,7 +109,7 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
                             git commit -m "Merge %s"
                             git push
                             ```
-                            """.formatted(retargeted.sourceRef(), pr.repository().remoteUrl(), pr.targetRef(),
+                            """.formatted(retargeted.sourceRef(), pr.repository().url(), pr.targetRef(),
                             pr.targetRef()));
                 }
             } else {

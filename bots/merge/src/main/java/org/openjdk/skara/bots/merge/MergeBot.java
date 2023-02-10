@@ -261,10 +261,10 @@ class MergeBot implements Bot, WorkItem {
         var repo = pool.materialize(fork, to);
 
         // Sync personal fork
-        var remoteBranches = repo.remoteBranches(target.url().toString());
+        var remoteBranches = repo.remoteBranches(target.authenticatedUrl().toString());
         for (var branch : remoteBranches) {
-            var fetchHead = repo.fetch(target.url(), branch.hash().hex(), false);
-            repo.push(fetchHead, fork.url(), branch.name());
+            var fetchHead = repo.fetch(target.authenticatedUrl(), branch.hash().hex(), false);
+            repo.push(fetchHead, fork.authenticatedUrl(), branch.name());
         }
 
         // Must fetch once to update refs/heads
@@ -447,7 +447,7 @@ class MergeBot implements Bot, WorkItem {
 
                 log.info("Trying to merge " + fromRepo.name() + ":" + fromBranch.name() + " to " + toBranch.name());
                 log.info("Fetching " + fromRepo.name() + ":" + fromBranch.name());
-                var fetchHead = repo.fetch(fromRepo.url(), fromBranch.name(), false);
+                var fetchHead = repo.fetch(fromRepo.authenticatedUrl(), fromBranch.name(), false);
                 var head = repo.resolve(toBranch.name()).orElseThrow(() ->
                         new IOException("Could not resolve branch " + toBranch.name())
                 );
@@ -473,7 +473,7 @@ class MergeBot implements Bot, WorkItem {
                                 "duke", "duke@openjdk.org");
                     }
                     try {
-                        repo.push(toBranch, target.url().toString(), false);
+                        repo.push(toBranch, target.authenticatedUrl().toString(), false);
                     } catch (IOException e) {
                         // A failed push can result in the local and remote branch diverging,
                         // re-create the repository from the remote.
@@ -495,7 +495,7 @@ class MergeBot implements Bot, WorkItem {
 
                     var numBranchesInFork = repo.remoteBranches(fork.webUrl().toString()).size();
                     var branchDesc = Integer.toString(numBranchesInFork + 1);
-                    repo.push(fetchHead, fork.url(), branchDesc);
+                    repo.push(fetchHead, fork.authenticatedUrl(), branchDesc);
 
                     log.info("Creating pull request to alert");
                     var mergeBase = repo.mergeBase(fetchHead, head);

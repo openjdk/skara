@@ -89,12 +89,12 @@ class ArchiveWorkItem implements WorkItem {
 
         for (int counter = 0; counter < 3; ++counter) {
             try {
-                localRepo.push(hash, bot.archiveRepo().url(), bot.archiveRef());
+                localRepo.push(hash, bot.archiveRepo().authenticatedUrl(), bot.archiveRef());
                 return;
             } catch (IOException e) {
                 log.info("Push to archive failed: " + e);
                 try {
-                    var remoteHead = localRepo.fetch(bot.archiveRepo().url(), bot.archiveRef(), false);
+                    var remoteHead = localRepo.fetch(bot.archiveRepo().authenticatedUrl(), bot.archiveRef(), false);
                     localRepo.rebase(remoteHead, bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
                     hash = localRepo.head();
                     log.info("Rebase successful -  new hash: " + hash);
@@ -110,7 +110,7 @@ class ArchiveWorkItem implements WorkItem {
 
     private Repository materializeArchive(Path scratchPath) {
         try {
-            return Repository.materialize(scratchPath, bot.archiveRepo().url(),
+            return Repository.materialize(scratchPath, bot.archiveRepo().authenticatedUrl(),
                                           "+" + bot.archiveRef() + ":mlbridge_archive");
         } catch (IOException e) {
             throw new UncheckedIOException(e);

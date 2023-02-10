@@ -55,11 +55,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -88,7 +88,7 @@ class IntegrateTests {
             assertEquals(1, pushed);
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();
@@ -125,11 +125,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Review it twice
@@ -149,7 +149,7 @@ class IntegrateTests {
             assertEquals(1, pushed);
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
             var headCommit = pushedRepo.commits("HEAD").asList().get(0);
             assertTrue(String.join("", headCommit.message())
@@ -172,11 +172,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Attempt a merge, but point the check at some other commit
@@ -213,11 +213,11 @@ class IntegrateTests {
                                                      Set.of(), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Now enable checks
@@ -225,7 +225,7 @@ class IntegrateTests {
             CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
                                      Set.of("author", "reviewers", "whitespace"), null);
             var updatedHash = localRepo.resolve("HEAD").orElseThrow();
-            localRepo.push(updatedHash, author.url(), "master", true);
+            localRepo.push(updatedHash, author.authenticatedUrl(), "master", true);
 
             // Attempt a merge
             pr.addComment("/integrate");
@@ -250,11 +250,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "trailing whitespace   ");
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Attempt a merge
@@ -285,11 +285,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Flag it as checked
@@ -300,7 +300,7 @@ class IntegrateTests {
 
             // Now push another change
             var updatedHash = CheckableRepository.appendAndCommit(localRepo, "Yet another line");
-            localRepo.push(updatedHash, author.url(), "edit", true);
+            localRepo.push(updatedHash, author.authenticatedUrl(), "edit", true);
 
             // Attempt a merge, but point the check at some other commit
             pr.addComment("/integrate");
@@ -338,11 +338,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -418,11 +418,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Issue a merge command not as the PR author
@@ -456,11 +456,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -504,11 +504,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -521,7 +521,7 @@ class IntegrateTests {
             Files.writeString(unrelated, "Hello");
             localRepo.add(unrelated);
             var unrelatedHash = localRepo.commit("Unrelated", "X", "x@y.z");
-            localRepo.push(unrelatedHash, author.url(), "master");
+            localRepo.push(unrelatedHash, author.authenticatedUrl(), "master");
 
             // Attempt a merge (the bot should only process the first one)
             pr.addComment("/integrate");
@@ -541,7 +541,7 @@ class IntegrateTests {
             assertEquals(1, pushed);
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
         }
     }
@@ -564,11 +564,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -579,19 +579,19 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // Break the census to cause an exception
-            var localCensus = Repository.materialize(censusFolder.path(), censusRepo.url(), "+master:current_census");
+            var localCensus = Repository.materialize(censusFolder.path(), censusRepo.authenticatedUrl(), "+master:current_census");
             var currentCensusHash = localCensus.resolve("current_census").orElseThrow();
             Files.writeString(censusFolder.path().resolve("contributors.xml"), "This is not xml", StandardCharsets.UTF_8);
             localCensus.add(censusFolder.path().resolve("contributors.xml"));
             var badCensusHash = localCensus.commit("Bad census update", "duke", "duke@openjdk.org");
-            localCensus.push(badCensusHash, censusRepo.url(), "master", true);
+            localCensus.push(badCensusHash, censusRepo.authenticatedUrl(), "master", true);
 
             // Attempt a merge
             pr.addComment("/integrate");
             assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(mergeBot));
 
             // Restore the census
-            localCensus.push(currentCensusHash, censusRepo.url(), "master", true);
+            localCensus.push(currentCensusHash, censusRepo.authenticatedUrl(), "master", true);
 
             // The bot should now retry
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -620,11 +620,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -634,7 +634,7 @@ class IntegrateTests {
             // Push something conflicting to master
             localRepo.checkout(masterHash, true);
             var conflictingHash = CheckableRepository.appendAndCommit(localRepo, "This looks like a conflict");
-            localRepo.push(conflictingHash, author.url(), "master");
+            localRepo.push(conflictingHash, author.authenticatedUrl(), "master");
 
             // Trigger a new check run
             pr.setBody(pr.body() + " recheck");
@@ -670,11 +670,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -687,7 +687,7 @@ class IntegrateTests {
             Files.writeString(unrelated, "Hello");
             localRepo.add(unrelated);
             var unrelatedHash = localRepo.commit("Unrelated", "X", "x@y.z");
-            localRepo.push(unrelatedHash, author.url(), "master");
+            localRepo.push(unrelatedHash, author.authenticatedUrl(), "master");
 
             // Attempt a merge
             pr.addComment("/integrate " + masterHash);
@@ -704,7 +704,7 @@ class IntegrateTests {
             assertLastCommentContains(pr, "Pushed as commit");
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
         }
     }
@@ -726,11 +726,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -766,11 +766,11 @@ class IntegrateTests {
             localRepo.commit("Add CONTRIBUTING.md", "duke", "duke@openjdk.org");
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -803,12 +803,12 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR with an empty e-mail
             var authorFullName = author.forge().currentUser().fullName();
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Content", "A commit", authorFullName, "");
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Run the bot
@@ -845,11 +845,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -899,11 +899,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR with auto integration
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "PR Title", List.of("/integrate auto"));
 
             // The bot should add the auto label and reply
@@ -929,7 +929,7 @@ class IntegrateTests {
             assertEquals(1, pushed);
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();
@@ -966,11 +966,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR with auto integration
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "PR Title");
 
             // The bot should add the auto label and reply
@@ -997,7 +997,7 @@ class IntegrateTests {
             assertEquals(1, pushed);
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();
@@ -1034,11 +1034,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR with auto integration
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "PR Title", List.of("/integrate auto"));
 
             // The bot should add the auto label and reply
@@ -1088,7 +1088,7 @@ class IntegrateTests {
             assertEquals(1, pushed);
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();
@@ -1127,11 +1127,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -1158,7 +1158,7 @@ class IntegrateTests {
             pr.addLabel("ready");
             pr.setState(Issue.State.OPEN);
             pr.removeLabel("integrated");
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
             // The bot should now retry
             TestBotRunner.runPeriodicItems(mergeBot);
             // The bot should reply with an ok message
@@ -1253,13 +1253,13 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editBranch = localRepo.branch(masterHash, "edit");
             localRepo.checkout(editBranch);
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -1286,12 +1286,12 @@ class IntegrateTests {
 
             // Add a new commit to master branch
             localRepo.checkout(new Branch("master"));
-            localRepo.fetch(author.url(), "master");
+            localRepo.fetch(author.authenticatedUrl(), "master");
             localRepo.merge(new Branch("FETCH_HEAD"));
             var integratedHash = localRepo.resolve("master");
             var newMasterHash = CheckableRepository.appendAndCommit(localRepo, "Another line",
                     "New master commit");
-            localRepo.push(newMasterHash, author.url(), "master", true);
+            localRepo.push(newMasterHash, author.authenticatedUrl(), "master", true);
 
             // The bot should now retry
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -1329,11 +1329,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var authorPr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -1422,7 +1422,7 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();
@@ -1465,11 +1465,11 @@ class IntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var authorPr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -1520,7 +1520,7 @@ class IntegrateTests {
             assertFalse(authorPr.store().labelNames().contains("ready"));
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();

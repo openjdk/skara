@@ -130,7 +130,7 @@ public class SponsorCommand implements CommandHandler {
             if (!localHash.equals(checkablePr.targetHash())) {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 IntegrateCommand.addPrePushComment(pr, amendedHash, rebaseMessage.toString());
-                localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
+                localRepo.push(amendedHash, pr.repository().authenticatedUrl(), pr.targetRef());
                 markIntegratedAndClosed(pr, amendedHash, reply, allComments);
             } else {
                 reply.print("Warning! This commit did not result in any changes! ");

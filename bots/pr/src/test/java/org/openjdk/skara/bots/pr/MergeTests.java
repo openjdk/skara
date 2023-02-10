@@ -59,15 +59,15 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make more changes in another branch
             var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other_/-1.2",
                                                                 "First other_/-1.2\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash1, author.url(), "other_/-1.2", true);
+            localRepo.push(otherHash1, author.authenticatedUrl(), "other_/-1.2", true);
             var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other_/-1.2",
                                                                 "Second other_/-1.2\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash2, author.url(), "other_/-1.2");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "other_/-1.2");
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -77,10 +77,10 @@ class MergeTests {
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other_/-1.2");
 
             // Approve it as another user
@@ -102,7 +102,7 @@ class MergeTests {
 
             // The change should now be present on the master branch
             var pushedRepoFolder = tempFolder.path().resolve("pushedrepo");
-            var pushedRepo = Repository.materialize(pushedRepoFolder, author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedRepoFolder, author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             // The commits from the "other" branch should be preserved and not squashed (but not the merge commit)
@@ -148,15 +148,15 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make more changes in another branch
             var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other",
                                                                  "First other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash1, author.url(), "other", true);
+            localRepo.push(otherHash1, author.authenticatedUrl(), "other", true);
             var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
                                                                  "Second other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash2, author.url(), "other");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "other");
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -166,10 +166,10 @@ class MergeTests {
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other");
 
             // Approve it as another user
@@ -209,15 +209,15 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make more changes in another branch
             var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other",
                                                                  "First other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash1, author.url(), "other", true);
+            localRepo.push(otherHash1, author.authenticatedUrl(), "other", true);
             var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
                                                                  "Second other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash2, author.url(), "other");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "other");
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -227,10 +227,10 @@ class MergeTests {
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other");
 
             // Approve it as another user
@@ -266,15 +266,15 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make more changes in another branch
             var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other",
                                                                  "First other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash1, author.url(), "other", true);
+            localRepo.push(otherHash1, author.authenticatedUrl(), "other", true);
             var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
                                                                  "Second other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash2, author.url(), "other");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "other");
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -284,10 +284,10 @@ class MergeTests {
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + otherHash2.hex());
 
             // Approve it as another user
@@ -309,7 +309,7 @@ class MergeTests {
 
             // The change should now be present on the master branch
             var pushedRepoFolder = tempFolder.path().resolve("pushedrepo");
-            var pushedRepo = Repository.materialize(pushedRepoFolder, author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedRepoFolder, author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             // The commits from the "other" branch should be preserved and not squashed (but not the merge commit)
@@ -351,18 +351,18 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make more changes in another branch
             var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other",
                                                                  "First other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash1, author.url(), "other", true);
+            localRepo.push(otherHash1, author.authenticatedUrl(), "other", true);
             var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
                                                                  "Second other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash2, author.url(), "other");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "other");
 
             // Push the new commits to master and then return to the original one
-            localRepo.push(otherHash2, author.url(), "master");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "master");
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
@@ -371,7 +371,7 @@ class MergeTests {
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + otherHash2.hex());
 
             // Approve it as another user
@@ -414,15 +414,15 @@ class MergeTests {
                                                      Path.of("appendable.txt"), Set.of("merge"), "1.0");
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make more changes in another branch
             var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other",
                                                                  "First other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash1, author.url(), "other", true);
+            localRepo.push(otherHash1, author.authenticatedUrl(), "other", true);
             var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
                                                                  "Second other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash2, author.url(), "other");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "other");
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -432,10 +432,10 @@ class MergeTests {
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other");
 
             // Approve it as another user
@@ -454,7 +454,7 @@ class MergeTests {
 
             // The change should now be present on the master branch
             var pushedRepoFolder = tempFolder.path().resolve("pushedrepo");
-            var pushedRepo = Repository.materialize(pushedRepoFolder, author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedRepoFolder, author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             // The commits from the "other" branch should be preserved and not squashed (but not the merge commit)
@@ -496,15 +496,15 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make more changes in another branch
             var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other",
                                                                  "First other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash1, author.url(), "other", true);
+            localRepo.push(otherHash1, author.authenticatedUrl(), "other", true);
             var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
                                                                  "Second other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash2, author.url(), "other");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "other");
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -513,11 +513,11 @@ class MergeTests {
             var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             localRepo.merge(otherHash2);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge other");
 
             // Approve it as another user
@@ -539,7 +539,7 @@ class MergeTests {
 
             // The change should now be present on the master branch
             var pushedRepoFolder = tempFolder.path().resolve("pushedrepo");
-            var pushedRepo = Repository.materialize(pushedRepoFolder, author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedRepoFolder, author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             // The commits from the "other" branch should be preserved and not squashed (but not the merge commit)
@@ -580,17 +580,17 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make more changes in another branch
             var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other",
                                                                  "First other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash1, author.url(), "other", true);
+            localRepo.push(otherHash1, author.authenticatedUrl(), "other", true);
             var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
                                                                  "Second other\n\nReviewed-by: integrationreviewer2");
             var tag = localRepo.tag(otherHash2, "othertag", "Tagging other", "tagger", "tagger@one");
             var tagHash = localRepo.lookup(tag).orElseThrow().hash();
-            localRepo.push(tagHash, author.url(), "refs/tags/othertag");
+            localRepo.push(tagHash, author.authenticatedUrl(), "refs/tags/othertag");
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -599,11 +599,11 @@ class MergeTests {
             var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             localRepo.merge(otherHash2);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge othertag");
 
             // Approve it as another user
@@ -625,7 +625,7 @@ class MergeTests {
 
             // The change should now be present on the master branch
             var pushedRepoFolder = tempFolder.path().resolve("pushedrepo");
-            var pushedRepo = Repository.materialize(pushedRepoFolder, author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedRepoFolder, author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             // The commits from the "other" branch should be preserved and not squashed (but not the merge commit)
@@ -666,15 +666,15 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make more changes in another branch
             var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other",
                                                                  "First other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash1, author.url(), "other", true);
+            localRepo.push(otherHash1, author.authenticatedUrl(), "other", true);
             var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
                                                                  "Second other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash2, author.url(), "other");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "other");
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -683,11 +683,11 @@ class MergeTests {
             var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             localRepo.merge(otherHash2);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other");
 
             // Approve it as another user
@@ -702,7 +702,7 @@ class MergeTests {
             var newMaster = Files.writeString(localRepo.root().resolve("newmaster.txt"), "New on master", StandardCharsets.UTF_8);
             localRepo.add(newMaster);
             var newMasterHash = localRepo.commit("New commit on master", "some", "some@one");
-            localRepo.push(newMasterHash, author.url(), "master");
+            localRepo.push(newMasterHash, author.authenticatedUrl(), "master");
 
             // Let the bot notice
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -719,7 +719,7 @@ class MergeTests {
 
             // The change should now be present on the master branch
             var pushedRepoFolder = tempFolder.path().resolve("pushedrepo");
-            var pushedRepo = Repository.materialize(pushedRepoFolder, author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedRepoFolder, author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             // The commits from the "other" branch should be preserved and not squashed (but not the merge commit)
@@ -760,15 +760,15 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make more changes in another branch
             var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other",
                                                                  "First other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash1, author.url(), "other", true);
+            localRepo.push(otherHash1, author.authenticatedUrl(), "other", true);
             var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
                                                                  "Second other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash2, author.url(), "other");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "other");
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -777,11 +777,11 @@ class MergeTests {
             var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             localRepo.merge(otherHash2);
             var mergeHash = localRepo.commit("Our own merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other");
 
             // Approve it as another user
@@ -796,7 +796,7 @@ class MergeTests {
             var newMaster = Files.writeString(localRepo.root().resolve("newmaster.txt"), "New on master", StandardCharsets.UTF_8);
             localRepo.add(newMaster);
             var newMasterHash = localRepo.commit("New commit on master", "some", "some@one");
-            localRepo.push(newMasterHash, author.url(), "master");
+            localRepo.push(newMasterHash, author.authenticatedUrl(), "master");
 
             // Let the bot notice
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -804,7 +804,7 @@ class MergeTests {
             // Add another commit on top of the merge commit
             localRepo.checkout(mergeHash, true);
             var extraHash = CheckableRepository.appendAndCommit(localRepo, "Fixing up stuff after merge");
-            localRepo.push(extraHash, author.url(), "edit");
+            localRepo.push(extraHash, author.authenticatedUrl(), "edit");
 
             // Let the bot notice again
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -812,7 +812,7 @@ class MergeTests {
             // Merge the latest from master
             localRepo.merge(newMasterHash);
             var latestMergeHash = localRepo.commit("Our to be squashed merge commit", "some", "some@one");
-            localRepo.push(latestMergeHash, author.url(), "edit");
+            localRepo.push(latestMergeHash, author.authenticatedUrl(), "edit");
 
             // Let the bot notice again
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -829,7 +829,7 @@ class MergeTests {
 
             // The change should now be present on the master branch
             var pushedRepoFolder = tempFolder.path().resolve("pushedrepo");
-            var pushedRepo = Repository.materialize(pushedRepoFolder, author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedRepoFolder, author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             // The commits from the "other" branch should be preserved and not squashed (but not the merge commit)
@@ -874,12 +874,12 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change in another branch
             var otherHash = CheckableRepository.appendAndCommit(localRepo, "Change in other",
                                                                 "Other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash, author.url(), "other", true);
+            localRepo.push(otherHash, author.authenticatedUrl(), "other", true);
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -890,7 +890,7 @@ class MergeTests {
             localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other");
 
             // Approve it as another user
@@ -912,7 +912,7 @@ class MergeTests {
 
             // The change should now be present with correct parents on the master branch
             var pushedRepoFolder = tempFolder.path().resolve("pushedrepo");
-            var pushedRepo = Repository.materialize(pushedRepoFolder, author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedRepoFolder, author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             var head = pushedRepo.commitMetadata("HEAD^!").get(0);
@@ -939,12 +939,12 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change in another branch
             var otherHash = CheckableRepository.appendAndCommit(localRepo, "Change in other",
                                                                 "Other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash, author.url(), "other", true);
+            localRepo.push(otherHash, author.authenticatedUrl(), "other", true);
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -953,11 +953,11 @@ class MergeTests {
             var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + TestHost.NON_EXISTING_REPO + ":other");
 
             // Approve it as another user
@@ -999,12 +999,12 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change in another branch
             var otherHash = CheckableRepository.appendAndCommit(localRepo, "Change in other",
                                                                 "Other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash, author.url(), "other", true);
+            localRepo.push(otherHash, author.authenticatedUrl(), "other", true);
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -1013,11 +1013,11 @@ class MergeTests {
             var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":otherxyz");
 
             // Approve it as another user
@@ -1059,12 +1059,12 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change in another branch
             var otherHash = CheckableRepository.appendAndCommit(localRepo, "Change in other",
                                                                 "Other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash, author.url(), "other", true);
+            localRepo.push(otherHash, author.authenticatedUrl(), "other", true);
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -1073,11 +1073,11 @@ class MergeTests {
             var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + TestHost.NON_EXISTING_REPO);
 
             // Approve it as another user
@@ -1119,12 +1119,12 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change in another branch
             var other1Hash = CheckableRepository.appendAndCommit(localRepo, "Change in other1",
                                                                 "Other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(other1Hash, author.url(), "other1", true);
+            localRepo.push(other1Hash, author.authenticatedUrl(), "other1", true);
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -1132,18 +1132,18 @@ class MergeTests {
             // Make yet another change in another branch
             var other2Hash = CheckableRepository.appendAndCommit(localRepo, "Change in other2",
                                                                 "Unrelated\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(other2Hash, author.url(), "other2", true);
+            localRepo.push(other2Hash, author.authenticatedUrl(), "other2", true);
 
             // Make a change with a corresponding PR
             localRepo.checkout(masterHash, true);
             var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             localRepo.merge(other1Hash, "ours");
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other2");
 
             // Approve it as another user
@@ -1185,12 +1185,12 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change in another branch
             var otherHash = CheckableRepository.appendAndCommit(localRepo, "Change in other",
                                                                 "Other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash, author.url(), "other", true);
+            localRepo.push(otherHash, author.authenticatedUrl(), "other", true);
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -1199,11 +1199,11 @@ class MergeTests {
             var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other");
 
             // Approve it as another user
@@ -1246,7 +1246,7 @@ class MergeTests {
             var masterHash = localRepo.resolve("master").orElseThrow();
 
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make an unrelated change in another branch
             var unrelatedRepoFolder = tempFolder.path().resolve("unrelated");
@@ -1254,8 +1254,8 @@ class MergeTests {
             unrelatedRepo.amend("Unrelated initial commit\n\nReviewed-by: integrationreviewer2", "some", "one@mail");
             var otherHash = CheckableRepository.appendAndCommit(unrelatedRepo, "Change in other",
                                                                 "Other\n\nReviewed-by: integrationreviewer2");
-            unrelatedRepo.push(otherHash, author.url(), "other", true);
-            localRepo.fetch(author.url(), "other");
+            unrelatedRepo.push(otherHash, author.authenticatedUrl(), "other", true);
+            localRepo.fetch(author.authenticatedUrl(), "other");
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -1275,7 +1275,7 @@ class MergeTests {
 
             //localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other");
 
             // Approve it as another user
@@ -1317,12 +1317,12 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType(), Path.of("appendable.txt"), Set.of("merge"), "1.0");
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change in another branch
             var otherHash = CheckableRepository.appendAndCommit(localRepo, "Change in other",
                                                                 "Other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash, author.url(), "other", true);
+            localRepo.push(otherHash, author.authenticatedUrl(), "other", true);
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -1331,11 +1331,11 @@ class MergeTests {
             var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge this or that");
 
             // Let the bot check the status
@@ -1373,12 +1373,12 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType(), Path.of("appendable.txt"), Set.of("merge"), "1.0");
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change in another branch
             var otherHash = CheckableRepository.appendAndCommit(localRepo, "Change in other",
                                                                 "Other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash, author.url(), "branch-a+b", true);
+            localRepo.push(otherHash, author.authenticatedUrl(), "branch-a+b", true);
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -1387,11 +1387,11 @@ class MergeTests {
             var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge branch-a+b");
 
             // Let the bot check the status
@@ -1420,15 +1420,15 @@ class MergeTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make more changes in another branch
             var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other",
                                                                  "First other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash1, author.url(), "other", true);
+            localRepo.push(otherHash1, author.authenticatedUrl(), "other", true);
             var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
                                                                  "Second other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash2, author.url(), "other");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "other");
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -1437,7 +1437,7 @@ class MergeTests {
             var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit( "Unrelated", "some", "some@one");
-            localRepo.push(updatedMaster, author.url(), "master");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             // Go back to the original master again
             localRepo.checkout(masterHash, true);
@@ -1448,7 +1448,7 @@ class MergeTests {
             // Merge the latest commit from master
             localRepo.merge(updatedMaster);
             var masterMergeHash = localRepo.commit("Master merge commit", "some", "some@one");
-            localRepo.push(masterMergeHash, author.url(), "edit", true);
+            localRepo.push(masterMergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "1234: A change");
 
             // Let the bot check the status
@@ -1459,7 +1459,7 @@ class MergeTests {
 
             localRepo.merge(otherHash2);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
-            localRepo.push(mergeHash, author.url(), "edit", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
 
             // Let the bot check the status
             TestBotRunner.runPeriodicItems(mergeBot);

@@ -221,7 +221,7 @@ public class CensusBuilder {
 
             localRepository.add(folder);
             var hash = localRepository.commit("Generated census", "Census User", "cu@test.test");
-            localRepository.push(hash, repository.url(), Branch.defaultFor(VCS.GIT).name(), true);
+            localRepository.push(hash, repository.authenticatedUrl(), Branch.defaultFor(VCS.GIT).name(), true);
             return repository;
 
         } catch (IOException e) {

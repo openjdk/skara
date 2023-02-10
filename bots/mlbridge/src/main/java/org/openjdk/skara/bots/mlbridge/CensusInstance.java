@@ -49,7 +49,7 @@ class CensusInstance {
 
     private static Repository initialize(HostedRepository repo, String ref, Path folder) {
         try {
-            return Repository.materialize(folder, repo.url(), "+" + ref + ":" + "mlbridge_census_" + repo.name());
+            return Repository.materialize(folder, repo.authenticatedUrl(), "+" + ref + ":" + "mlbridge_census_" + repo.name());
         } catch (IOException e) {
             throw new RuntimeException("Failed to retrieve census to " + folder, e);
         }
@@ -82,13 +82,13 @@ class CensusInstance {
     }
 
     static CensusInstance create(HostedRepository censusRepo, String censusRef, Path folder, PullRequest pr) {
-        var repoName = censusRepo.url().getHost() + "/" + censusRepo.name();
+        var repoName = censusRepo.authenticatedUrl().getHost() + "/" + censusRepo.name();
         var repoFolder = folder.resolve(URLEncoder.encode(repoName, StandardCharsets.UTF_8));
         try {
             var localRepo = Repository.get(repoFolder)
                                       .or(() -> Optional.of(initialize(censusRepo, censusRef, repoFolder)))
                                       .orElseThrow();
-            var hash = localRepo.fetch(censusRepo.url(), censusRef, false);
+            var hash = localRepo.fetch(censusRepo.authenticatedUrl(), censusRef, false);
             localRepo.checkout(hash, true);
         } catch (IOException e) {
             initialize(censusRepo, censusRef, repoFolder);

@@ -171,7 +171,7 @@ class BridgeBotTests {
             runHgCommand(localHgRepo, "strip", "-r", "bd7a3ed1210f");
             TestBotRunner.runPeriodicItems(bridge);
 
-            var localGitRepo = Repository.materialize(gitFolder.path(), destinationRepo.url(), "master");
+            var localGitRepo = Repository.materialize(gitFolder.path(), destinationRepo.authenticatedUrl(), "master");
 
             // Only a subset of known tags should be present
             var localGitTags = getTagNames(localGitRepo);
@@ -184,7 +184,7 @@ class BridgeBotTests {
             TestBotRunner.runPeriodicItems(bridge);
 
             // There should now be more tags present
-            Repository.materialize(gitFolder.path(), destinationRepo.url(), "master");
+            Repository.materialize(gitFolder.path(), destinationRepo.authenticatedUrl(), "master");
             localGitTags = getTagNames(localGitRepo);
             assertEquals(getTagNames(localHgRepo), localGitTags);
             assertTrue(localGitTags.contains("jtreg4.1-b02"));
@@ -193,13 +193,13 @@ class BridgeBotTests {
             // Export it again with different storage to force an export from scratch
             bridge = new JBridgeBot(config, storageFolder2.path());
             TestBotRunner.runPeriodicItems(bridge);
-            Repository.materialize(gitFolder.path(), destinationRepo.url(), "master");
+            Repository.materialize(gitFolder.path(), destinationRepo.authenticatedUrl(), "master");
             var newLocalGitTags = getTagNames(localGitRepo);
             assertEquals(localGitTags, newLocalGitTags);
 
             // Export it once more when nothing has changed
             TestBotRunner.runPeriodicItems(bridge);
-            Repository.materialize(gitFolder.path(), destinationRepo.url(), "master");
+            Repository.materialize(gitFolder.path(), destinationRepo.authenticatedUrl(), "master");
             newLocalGitTags = getTagNames(localGitRepo);
             assertEquals(localGitTags, newLocalGitTags);
         }
@@ -219,7 +219,7 @@ class BridgeBotTests {
             TestBotRunner.runPeriodicItems(bridge);
 
             // Materialize it and ensure that it contains a known commit
-            var localGitRepo = Repository.materialize(gitFolder.path(), destinationRepo.url(), "master");
+            var localGitRepo = Repository.materialize(gitFolder.path(), destinationRepo.authenticatedUrl(), "master");
             var localGitCommits = getCommitHashes(localGitRepo);
             assertTrue(localGitCommits.contains("9cb6a5b843c0e9f6d45273a1a6f5c98979ab0766"));
 
@@ -237,7 +237,7 @@ class BridgeBotTests {
 
             // Now export it again - should still be intact
             TestBotRunner.runPeriodicItems(bridge);
-            Repository.materialize(gitFolder.path(), destinationRepo.url(), "master");
+            Repository.materialize(gitFolder.path(), destinationRepo.authenticatedUrl(), "master");
             localGitCommits = getCommitHashes(localGitRepo);
             assertTrue(localGitCommits.contains("9cb6a5b843c0e9f6d45273a1a6f5c98979ab0766"));
         }
@@ -264,7 +264,7 @@ class BridgeBotTests {
             TestBotRunner.runPeriodicItems(goodBridge);
 
             // Verify that it now contains a known commit
-            var localGitRepo = Repository.materialize(gitFolder.path(), destinationRepo.url(), "master");
+            var localGitRepo = Repository.materialize(gitFolder.path(), destinationRepo.authenticatedUrl(), "master");
             var localGitCommits = getCommitHashes(localGitRepo);
             assertTrue(localGitCommits.contains("9cb6a5b843c0e9f6d45273a1a6f5c98979ab0766"));
         }
@@ -287,17 +287,17 @@ class BridgeBotTests {
             TestBotRunner.runPeriodicItems(bridge);
 
             // Materialize it and ensure that it contains a known commit
-            var localGitRepo = Repository.materialize(gitFolder.path(), destinationRepo.url(), "master");
+            var localGitRepo = Repository.materialize(gitFolder.path(), destinationRepo.authenticatedUrl(), "master");
             var localGitCommits = getCommitHashes(localGitRepo);
             assertTrue(localGitCommits.contains("9cb6a5b843c0e9f6d45273a1a6f5c98979ab0766"));
 
             // Push something else to overwrite it (but retain the lock)
             var localRepo = CheckableRepository.init(gitFolder2.path(), destinationRepo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(destinationRepo.url());
+            localRepo.pushAll(destinationRepo.authenticatedUrl());
 
             // Materialize it again and ensure that the known commit is now gone
-            localGitRepo = Repository.materialize(gitFolder3.path(), destinationRepo.url(), "master");
+            localGitRepo = Repository.materialize(gitFolder3.path(), destinationRepo.authenticatedUrl(), "master");
             localGitCommits = getCommitHashes(localGitRepo);
             assertFalse(localGitCommits.contains("9cb6a5b843c0e9f6d45273a1a6f5c98979ab0766"));
 
@@ -305,7 +305,7 @@ class BridgeBotTests {
             TestBotRunner.runPeriodicItems(bridge);
 
             // Materialize it yet again and ensure that the known commit is still gone
-            localGitRepo = Repository.materialize(gitFolder4.path(), destinationRepo.url(), "master");
+            localGitRepo = Repository.materialize(gitFolder4.path(), destinationRepo.authenticatedUrl(), "master");
             localGitCommits = getCommitHashes(localGitRepo);
             assertFalse(localGitCommits.contains("9cb6a5b843c0e9f6d45273a1a6f5c98979ab0766"));
         }
@@ -329,16 +329,16 @@ class BridgeBotTests {
             TestBotRunner.runPeriodicItems(bridge);
 
             // Materialize it and ensure that it contains a known commit
-            var localGitRepo = Repository.materialize(gitFolder.path(), destinationRepo.url(), "master");
+            var localGitRepo = Repository.materialize(gitFolder.path(), destinationRepo.authenticatedUrl(), "master");
             var localGitCommits = getCommitHashes(localGitRepo);
             assertTrue(localGitCommits.contains("9cb6a5b843c0e9f6d45273a1a6f5c98979ab0766"));
 
             // Push something else to overwrite it
             var localRepo = CheckableRepository.init(gitFolder2.path(), destinationRepo.repositoryType());
-            localRepo.pushAll(destinationRepo.url());
+            localRepo.pushAll(destinationRepo.authenticatedUrl());
 
             // Materialize it again and ensure that the known commit is now gone
-            localGitRepo = Repository.materialize(gitFolder3.path(), destinationRepo.url(), "master");
+            localGitRepo = Repository.materialize(gitFolder3.path(), destinationRepo.authenticatedUrl(), "master");
             localGitCommits = getCommitHashes(localGitRepo);
             assertFalse(localGitCommits.contains("9cb6a5b843c0e9f6d45273a1a6f5c98979ab0766"));
 
@@ -346,7 +346,7 @@ class BridgeBotTests {
             TestBotRunner.runPeriodicItems(bridge);
 
             // Materialize it yet again and ensure that the known commit is still gone
-            localGitRepo = Repository.materialize(gitFolder4.path(), destinationRepo.url(), "master");
+            localGitRepo = Repository.materialize(gitFolder4.path(), destinationRepo.authenticatedUrl(), "master");
             localGitCommits = getCommitHashes(localGitRepo);
             assertFalse(localGitCommits.contains("9cb6a5b843c0e9f6d45273a1a6f5c98979ab0766"));
 
@@ -366,7 +366,7 @@ class BridgeBotTests {
             TestBotRunner.runPeriodicItems(bridge);
 
             // Materialize it and ensure that the known commit is back
-            localGitRepo = Repository.materialize(gitFolder5.path(), destinationRepo.url(), "master");
+            localGitRepo = Repository.materialize(gitFolder5.path(), destinationRepo.authenticatedUrl(), "master");
             localGitCommits = getCommitHashes(localGitRepo);
             assertTrue(localGitCommits.contains("9cb6a5b843c0e9f6d45273a1a6f5c98979ab0766"));
         }

@@ -56,11 +56,11 @@ public class PreIntegrateTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "First PR", "Base change");
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -72,11 +72,11 @@ public class PreIntegrateTests {
             assertLastCommentContains(pr, "To integrate this PR with the above commit message to the `master` branch");
 
             // Simulate population of the pr branch
-            localRepo.push(editHash, author.url(), PreIntegrations.preIntegrateBranch(pr), true);
+            localRepo.push(editHash, author.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr), true);
 
             // Create follow-up work
             var followUp = CheckableRepository.appendAndCommit(localRepo, "Follow-up work", "Follow-up change");
-            localRepo.push(followUp, author.url(), "followup", true);
+            localRepo.push(followUp, author.authenticatedUrl(), "followup", true);
             var followUpPr = credentials.createPullRequest(author, PreIntegrations.preIntegrateBranch(pr), "followup", "This is another pull request");
             TestBotRunner.runPeriodicItems(mergeBot);
 
@@ -99,7 +99,7 @@ public class PreIntegrateTests {
             Files.writeString(unrelatedFile, "Other things happens in master");
             localRepo.add(unrelatedFile);
             var newMasterHash = localRepo.commit("Unrelated change", "duke", "duke@openjdk.org");
-            localRepo.push(newMasterHash, author.url(), "master");
+            localRepo.push(newMasterHash, author.authenticatedUrl(), "master");
 
             // Now integrate the first one
             pr.addComment("/integrate");
@@ -117,13 +117,13 @@ public class PreIntegrateTests {
             assertTrue(followUpPr.store().labelNames().contains("ready"));
 
             // Push something else unrelated to the target
-            var currentMaster = localRepo.fetch(author.url(), "master");
+            var currentMaster = localRepo.fetch(author.authenticatedUrl(), "master");
             localRepo.checkout(currentMaster, true);
             var unrelatedFile2 = localRepo.root().resolve("unrelated2.txt");
             Files.writeString(unrelatedFile2, "Some other things happens in master");
             localRepo.add(unrelatedFile2);
             newMasterHash = localRepo.commit("Second unrelated change", "duke", "duke@openjdk.org");
-            localRepo.push(newMasterHash, author.url(), "master");
+            localRepo.push(newMasterHash, author.authenticatedUrl(), "master");
 
             // Refresh the status
             followUpPr.setBody(followUpPr.body() + " recheck");
@@ -135,7 +135,7 @@ public class PreIntegrateTests {
             assertLastCommentContains(followUpPr, "Pushed as commit");
 
             // Check that everything is present
-            var finalMaster = localRepo.fetch(author.url(), "master");
+            var finalMaster = localRepo.fetch(author.authenticatedUrl(), "master");
             localRepo.checkout(finalMaster, true);
             assertEquals("Other things happens in master", Files.readString(localRepo.root().resolve("unrelated.txt")));
             assertEquals("Some other things happens in master", Files.readString(localRepo.root().resolve("unrelated2.txt")));

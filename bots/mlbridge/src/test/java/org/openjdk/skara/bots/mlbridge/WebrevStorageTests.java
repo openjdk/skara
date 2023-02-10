@@ -50,15 +50,15 @@ class WebrevStorageTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Check that the web link wasn't verified yet
             assertFalse(webrevServer.isChecked());
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.addLabel("rfr");
             pr.setBody("This is now ready");
@@ -68,7 +68,7 @@ class WebrevStorageTests {
                                             webrevServer.uri(), from);
 
             var prFolder = tempFolder.path().resolve("pr");
-            var prRepo = Repository.materialize(prFolder, pr.repository().url(), "edit");
+            var prRepo = Repository.materialize(prFolder, pr.repository().authenticatedUrl(), "edit");
             var scratchFolder = tempFolder.path().resolve("scratch");
             var generator = storage.generator(pr, prRepo, scratchFolder);
             generator.generate(masterHash, editHash, "00", WebrevDescription.Type.FULL);
@@ -78,12 +78,12 @@ class WebrevStorageTests {
             assertTrue(webrevServer.isRedirectFollowed());
 
             // Update the local repository and check that the webrev has been generated
-            Repository.materialize(repoFolder, archive.url(), "webrev");
+            Repository.materialize(repoFolder, archive.authenticatedUrl(), "webrev");
             assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/00/index.html")));
 
             // Create it again - it will overwrite the previous one
             generator.generate(masterHash, editHash, "00", WebrevDescription.Type.FULL);
-            Repository.materialize(repoFolder, archive.url(), "webrev");
+            Repository.materialize(repoFolder, archive.authenticatedUrl(), "webrev");
             assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/00/index.html")));
         }
     }
@@ -101,8 +101,8 @@ class WebrevStorageTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             CheckableRepository.appendAndCommit(localRepo);
@@ -111,7 +111,7 @@ class WebrevStorageTests {
             localRepo.add(repoFolder.resolve("large.txt"));
             var editHash = localRepo.commit("Add large file", "duke", "duke@openjdk.org");
 
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.addLabel("rfr");
             pr.setBody("This is now ready");
@@ -121,13 +121,13 @@ class WebrevStorageTests {
                                             webrevServer.uri(), from);
 
             var prFolder = tempFolder.path().resolve("pr");
-            var prRepo = Repository.materialize(prFolder, pr.repository().url(), "edit");
+            var prRepo = Repository.materialize(prFolder, pr.repository().authenticatedUrl(), "edit");
             var scratchFolder = tempFolder.path().resolve("scratch");
             var generator = storage.generator(pr, prRepo, scratchFolder);
             generator.generate(masterHash, editHash, "00", WebrevDescription.Type.FULL);
 
             // Update the local repository and check that the webrev has been generated
-            Repository.materialize(repoFolder, archive.url(), "webrev");
+            Repository.materialize(repoFolder, archive.authenticatedUrl(), "webrev");
             assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/00/index.html")));
             assertTrue(Files.size(repoFolder.resolve("test/" + pr.id() + "/00/large.txt")) > 0);
             assertTrue(Files.size(repoFolder.resolve("test/" + pr.id() + "/00/large.txt")) < 1000);
@@ -159,11 +159,11 @@ class WebrevStorageTests {
                 }
 
                 try {
-                    var repo = Repository.materialize(scratchPath, archive.url(), ref);
+                    var repo = Repository.materialize(scratchPath, archive.authenticatedUrl(), ref);
                     Files.writeString(repo.root().resolve("intercept.txt"), UUID.randomUUID().toString(), StandardCharsets.UTF_8);
                     repo.add(repo.root().resolve("intercept.txt"));
                     var commit = repo.commit("Concurrent unrelated commit", "duke", "duke@openjdk.org");
-                    repo.push(commit, archive.url(), ref);
+                    repo.push(commit, archive.authenticatedUrl(), ref);
                     hasIntercepted = true;
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
@@ -189,12 +189,12 @@ class WebrevStorageTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.addLabel("rfr");
             pr.setBody("This is now ready");
@@ -204,7 +204,7 @@ class WebrevStorageTests {
                                             webrevServer.uri(), from);
 
             var prFolder = tempFolder.path().resolve("pr");
-            var prRepo = Repository.materialize(prFolder, pr.repository().url(), "edit");
+            var prRepo = Repository.materialize(prFolder, pr.repository().authenticatedUrl(), "edit");
             var scratchFolder = tempFolder.path().resolve("scratch");
             var generatorProgressMarker = scratchFolder.resolve("test/" + pr.id() + "/00/nanoduke.ico");
             var generator = storage.generator(pr, prRepo, scratchFolder);
@@ -217,7 +217,7 @@ class WebrevStorageTests {
             generator.generate(masterHash, interceptEditHash, "00", WebrevDescription.Type.FULL);
 
             // Update the local repository and check that the webrev has been generated
-            var archiveRepo = Repository.materialize(repoFolder, archive.url(), "webrev");
+            var archiveRepo = Repository.materialize(repoFolder, archive.authenticatedUrl(), "webrev");
             assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/00/index.html")));
 
             // The intercepting commit should be present in the history

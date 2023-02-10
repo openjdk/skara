@@ -85,7 +85,7 @@ class MirrorBot implements Bot, WorkItem {
             if (!Files.exists(dir)) {
                 log.info("Cloning " + from.name());
                 Files.createDirectories(dir);
-                repo = Repository.mirror(from.url(), dir);
+                repo = Repository.mirror(from.authenticatedUrl(), dir);
             } else {
                 log.info("Found existing scratch directory for " + to.name());
                 repo = Repository.get(dir).orElseGet(() -> {
@@ -95,7 +95,7 @@ class MirrorBot implements Bot, WorkItem {
                                 .map(Path::toFile)
                                 .sorted(Comparator.reverseOrder())
                                 .forEach(File::delete);
-                        return Repository.mirror(from.url(), dir);
+                        return Repository.mirror(from.authenticatedUrl(), dir);
                     } catch (IOException io) {
                         throw new RuntimeException(io);
                     }
@@ -103,17 +103,17 @@ class MirrorBot implements Bot, WorkItem {
             }
 
             log.info("Pulling " + from.name());
-            repo.fetchAll(from.url(), includeTags);
+            repo.fetchAll(from.authenticatedUrl(), includeTags);
             if (shouldMirrorEverything) {
                 log.info("Pushing to " + to.name());
-                repo.pushAll(to.url());
+                repo.pushAll(to.authenticatedUrl());
             } else {
                 var branches = repo.branches();
                 for (var branch : branches) {
                     if (branchPatterns.stream().anyMatch(p -> p.matcher(branch.name()).matches())) {
                         var hash = repo.resolve(branch);
                         if (hash.isPresent()) {
-                            repo.push(hash.get(), to.url(), branch.name(), true, includeTags);
+                            repo.push(hash.get(), to.authenticatedUrl(), branch.name(), true, includeTags);
                         } else {
                             log.severe("Branch " + branch + " not found in repo " + repo);
                         }

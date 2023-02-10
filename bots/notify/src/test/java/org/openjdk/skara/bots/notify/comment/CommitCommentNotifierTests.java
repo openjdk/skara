@@ -43,7 +43,7 @@ public class CommitCommentNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -69,11 +69,11 @@ public class CommitCommentNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Save the state
-            var historyState = localRepo.fetch(repo.url(), "history");
+            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history");
 
             // Commit a fix
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fix an issue");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             var pr = credentials.createPullRequest(repo, "master", "master", "Fix an issue");
             pr.setBody("I made a fix");
             pr.addLabel("integrated");
@@ -106,7 +106,7 @@ public class CommitCommentNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -138,10 +138,10 @@ public class CommitCommentNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Save the state
-            var historyState = localRepo.fetch(repo.url(), "history");
+            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history");
 
             // Commit a fix
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             var pr = credentials.createPullRequest(repo, "master", "master", commitMessageTitle);
             pr.setBody("\n\n### Issue\n * [" + issue.id() + "](http://www.test.test/): The issue");
             pr.addLabel("integrated");
@@ -181,7 +181,7 @@ public class CommitCommentNotifierTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -207,11 +207,11 @@ public class CommitCommentNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Save the state
-            var historyState = localRepo.fetch(repo.url(), "history");
+            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history");
 
             // Commit a fix
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fix an issue");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             var pr = credentials.createPullRequest(repo, "master", "master", "Fix an issue");
             pr.setBody("I made a fix");
             pr.addLabel("integrated");

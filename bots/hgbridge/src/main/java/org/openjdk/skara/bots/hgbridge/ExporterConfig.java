@@ -168,7 +168,7 @@ class ExporterConfig {
     }
 
     public Converter resolve(Path scratchPath) throws IOException {
-        var localRepo = Repository.materialize(scratchPath, configurationRepo.url(),
+        var localRepo = Repository.materialize(scratchPath, configurationRepo.authenticatedUrl(),
                                                "+" + configurationRef + ":hgbridge_config_" + configurationRepo.name());
 
         var replacements = parseMap(localRepo.root(), replacementsFile,

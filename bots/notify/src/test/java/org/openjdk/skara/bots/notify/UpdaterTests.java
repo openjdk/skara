@@ -104,7 +104,7 @@ public class UpdaterTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -131,7 +131,7 @@ public class UpdaterTests {
 
             // Create an issue and commit a fix
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fix stuff");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Both updaters should have run
@@ -139,7 +139,7 @@ public class UpdaterTests {
             assertEquals(2, nonIdempotent.updateCount);
 
             var nextEditHash = CheckableRepository.appendAndCommit(localRepo, "Yet another line", "Fix more stuff");
-            localRepo.push(nextEditHash, repo.url(), "master");
+            localRepo.push(nextEditHash, repo.authenticatedUrl(), "master");
 
             idempotent.shouldFail = true;
             nonIdempotent.shouldFail = true;
