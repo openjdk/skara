@@ -3551,6 +3551,36 @@ class MailingListBridgeBotTests {
             assertEquals(3, archiveContainsCount(archiveFolder.path(), "RFR: 1234: This is a pull request"));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "This is a comment"));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "This is a new comment"));
+
+            // Add a new comment before making it as draft.
+            pr.addComment("This is a comment before making");
+
+            // Make it as draft again.
+            pr.makeDraft();
+
+            // Add a new comment after making it as draft.
+            pr.addComment("This is a comment after making");
+
+            // Run another archive pass.
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should only contain the comments before making it as draft.
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(4, archiveContainsCount(archiveFolder.path(), "RFR: 1234: This is a pull request"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "This is a comment before making"));
+            assertFalse(archiveContains(archiveFolder.path(), "This is a comment after making"));
+
+            // Make it as not draft again.
+            pr.makeNotDraft();
+
+            // Run another archive pass.
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should now contain all the comments.
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(5, archiveContainsCount(archiveFolder.path(), "RFR: 1234: This is a pull request"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "This is a comment before making"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "This is a comment after making"));
         }
     }
 }

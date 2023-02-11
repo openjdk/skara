@@ -117,7 +117,7 @@ class ArchiveWorkItem implements WorkItem {
         }
     }
 
-    private boolean ignoreComment(HostUser author, String body) {
+    private boolean ignoreComment(HostUser author, String body, ZonedDateTime createdTime) {
         if (pr.repository().forge().currentUser().equals(author)) {
             return true;
         }
@@ -135,6 +135,14 @@ class ArchiveWorkItem implements WorkItem {
         for (var ignoredCommentPattern : bot.ignoredComments()) {
             var ignoredCommentMatcher = ignoredCommentPattern.matcher(body);
             if (ignoredCommentMatcher.find()) {
+                return true;
+            }
+        }
+        // If the pull request was converted to draft, the comments
+        // after the last converted time should be ignored.
+        if (pr.isDraft()) {
+            var lastDraftTime = pr.lastMarkedAsDraftTime();
+            if (lastDraftTime.isPresent() && lastDraftTime.get().isBefore(createdTime)) {
                 return true;
             }
         }
@@ -338,7 +346,7 @@ class ArchiveWorkItem implements WorkItem {
 
             // Regular comments
             for (var comment : comments) {
-                if (ignoreComment(comment.author(), comment.body())) {
+                if (ignoreComment(comment.author(), comment.body(), comment.createdAt())) {
                     archiver.addIgnored(comment);
                 } else {
                     archiver.addComment(comment);
@@ -348,7 +356,7 @@ class ArchiveWorkItem implements WorkItem {
             // Review comments
             var reviews = pr.reviews();
             for (var review : reviews) {
-                if (ignoreComment(review.reviewer(), review.body().orElse(""))) {
+                if (ignoreComment(review.reviewer(), review.body().orElse(""), review.createdAt())) {
                     continue;
                 }
                 archiver.addReview(review);
@@ -360,7 +368,7 @@ class ArchiveWorkItem implements WorkItem {
                                    .sorted(Comparator.comparing(ReviewComment::path))
                                    .collect(Collectors.toList());
             for (var reviewComment : reviewComments) {
-                if (ignoreComment(reviewComment.author(), reviewComment.body())) {
+                if (ignoreComment(reviewComment.author(), reviewComment.body(), reviewComment.createdAt())) {
                     continue;
                 }
                 archiver.addReviewComment(reviewComment);

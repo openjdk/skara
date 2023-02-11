@@ -230,6 +230,11 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     }
 
     @Override
+    public Optional<ZonedDateTime> lastMarkedAsDraftTime() {
+        return Optional.ofNullable(store().lastMarkedAsDraftTime());
+    }
+
+    @Override
     public URI diffUrl() {
         return URI.create(webUrl().toString() + ".diff");
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -779,6 +779,22 @@ public class GitLabMergeRequest implements PullRequest {
         if (title.startsWith(draftPrefix)) {
             setTitle(title.substring(draftPrefix.length()).stripLeading());
         }
+    }
+
+    @Override
+    public Optional<ZonedDateTime> lastMarkedAsDraftTime() {
+        var draftMessage = "marked this merge request as **draft**";
+        var notes = request.get("notes").execute();
+        var lastMarkedAsDraftTime = notes.stream()
+                .map(JSONValue::asObject)
+                .filter(obj -> obj.get("system").asBoolean())
+                .filter(obj -> draftMessage.equals(obj.get("body").asString()))
+                .reduce((a, b) -> a)
+                .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()));
+        if (lastMarkedAsDraftTime.isEmpty() && isDraft()) {
+            return Optional.of(createdAt());
+        }
+        return lastMarkedAsDraftTime;
     }
 
     @Override
