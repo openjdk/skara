@@ -114,7 +114,7 @@ public class GitLabRepository implements HostedRepository {
         var pr = request.post("merge_requests")
                         .body("source_branch", sourceRef)
                         .body("target_branch", targetRef)
-                        .body("title", draft ? "WIP: " : "" + title)
+                        .body("title", (draft ? "Draft: " : "") + title)
                         .body("description", String.join("\n", body))
                         .body("target_project_id", Long.toString(target.id()))
                         .execute();

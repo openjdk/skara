@@ -439,7 +439,7 @@ public class JSONParserTests {
                 "\"source_project_id\":55," +
                 "\"target_project_id\":55," +
                 "\"labels\":[]," +
-                "\"work_in_progress\":false," +
+                "\"draft\":false," +
                 "\"milestone\":null," +
                 "\"merge_when_pipeline_succeeds\":false," +
                 "\"merge_status\":\"can_be_merged\"," +
