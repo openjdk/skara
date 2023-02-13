@@ -82,13 +82,7 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public HostUser author() {
-        var username = json.get("author").get("username").asString();
-        var author = repository.forge().user(username);
-        if (author.isPresent()) {
-            return author.get();
-        } else {
-            throw new RuntimeException("Author of GitLab merge request unknown: " + username + "(maybe the user is inactive)");
-        }
+        return host.parseAuthorField(json);
     }
 
     @Override
