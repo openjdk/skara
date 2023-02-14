@@ -790,7 +790,7 @@ public class GitLabMergeRequest implements PullRequest {
                 .filter(obj -> obj.get("system").asBoolean())
                 .filter(obj -> draftMessage.equals(obj.get("body").asString()))
                 .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()))
-                .reduce((a, b) -> a.isBefore(b) ? b : a);
+                .max(ZonedDateTime::compareTo);
         if (lastMarkedAsDraftTime.isEmpty() && isDraft()) {
             return Optional.of(createdAt());
         }
