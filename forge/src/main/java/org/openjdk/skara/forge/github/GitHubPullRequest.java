@@ -709,8 +709,8 @@ public class GitHubPullRequest implements PullRequest {
                 .map(JSONValue::asObject)
                 .filter(obj -> obj.contains("event"))
                 .filter(obj -> obj.get("event").asString().equals("convert_to_draft"))
-                .reduce((a, b) -> b)
-                .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()));
+                .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()))
+                .reduce((a, b) -> a.isBefore(b) ? b : a);
         if (lastMarkedAsDraftTime.isEmpty() && isDraft()) {
             return Optional.of(createdAt());
         }

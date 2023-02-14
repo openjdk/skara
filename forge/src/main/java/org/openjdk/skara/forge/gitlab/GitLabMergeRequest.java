@@ -789,8 +789,8 @@ public class GitLabMergeRequest implements PullRequest {
                 .map(JSONValue::asObject)
                 .filter(obj -> obj.get("system").asBoolean())
                 .filter(obj -> draftMessage.equals(obj.get("body").asString()))
-                .reduce((a, b) -> a)
-                .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()));
+                .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()))
+                .reduce((a, b) -> a.isBefore(b) ? b : a);
         if (lastMarkedAsDraftTime.isEmpty() && isDraft()) {
             return Optional.of(createdAt());
         }
