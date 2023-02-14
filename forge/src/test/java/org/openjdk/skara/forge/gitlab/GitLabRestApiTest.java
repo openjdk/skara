@@ -33,11 +33,11 @@ import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 import org.openjdk.skara.vcs.git.GitRepository;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * To be able to run the tests, you need to remove or comment out the @Disabled annotation first.
@@ -232,5 +232,26 @@ public class GitLabRestApiTest {
 
         var lastMarkedAsDraftTime = gitLabMergeRequest.lastMarkedAsDraftTime();
         assertEquals("2023-02-11T08:43:52.408Z", lastMarkedAsDraftTime.get().toString());
+    }
+
+    @Test
+    void testDraftMR() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var username = settings.getProperty("gitlab.user");
+        var token = settings.getProperty("gitlab.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
+
+        var gitLabMergeRequest = gitLabRepo.createPullRequest(gitLabRepo, settings.getProperty("gitlab.targetRef"),
+                settings.getProperty("gitlab.sourceRef"), "Test", List.of("test"), true);
+        assertTrue(gitLabMergeRequest.isDraft());
+        assertEquals("Draft: Test", gitLabMergeRequest.title());
+
+        gitLabMergeRequest.makeNotDraft();
+        gitLabMergeRequest = gitLabRepo.pullRequest(gitLabMergeRequest.id());
+        assertFalse(gitLabMergeRequest.isDraft());
+        assertEquals("Test", gitLabMergeRequest.title());
     }
 }

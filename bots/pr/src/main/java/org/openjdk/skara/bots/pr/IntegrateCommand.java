@@ -167,7 +167,7 @@ public class IntegrateCommand implements CommandHandler {
             return;
         }
 
-        var problem = checkProblem(pr.checks(pr.headHash()), "jcheck", pr);
+        var problem = checkProblem(pr.checks(pr.headHash()), CheckRun.getJcheckName(pr), pr);
         if (problem.isPresent()) {
             reply.print("Your integration request cannot be fulfilled at this time, as ");
             reply.println(problem.get());
