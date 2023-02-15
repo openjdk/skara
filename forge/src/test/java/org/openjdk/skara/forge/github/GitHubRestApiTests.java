@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -210,5 +210,15 @@ public class GitHubRestApiTests {
                     "Diff for huge file contents, printing first 50 chars of each '"
                     + fileContent.substring(0, 50) + "' '" + returnedContents.get().substring(0, 50) + "'");
         }
+    }
+
+    @Test
+    void testLastMarkedAsDraftTime() {
+        var githubRepoOpt = githubHost.repository("openjdk/playground");
+        assumeTrue(githubRepoOpt.isPresent());
+        var githubRepo = githubRepoOpt.get();
+        var pr = githubRepo.pullRequest("129");
+        var lastMarkedAsDraftTime = pr.lastMarkedAsDraftTime();
+        assertEquals("2023-02-11T11:51:12Z", lastMarkedAsDraftTime.get().toString());
     }
 }

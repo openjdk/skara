@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -3435,6 +3435,152 @@ class MailingListBridgeBotTests {
 
             // There should have been a reply directed towards the bridged mail id
             assertEquals(1, archiveContainsCount(archiveFolder.path(), Pattern.quote("In-Reply-To: <bridgedemailid@bridge.bridge>")));
+        }
+    }
+
+    @Test
+    void notArchiveDraftPR(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var ignored = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBot = MailingListBridgeBot.newBuilder()
+                    .from(from)
+                    .repo(author)
+                    .archive(archive)
+                    .censusRepo(censusBuilder.build())
+                    .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
+                    .ignoredUsers(Set.of(ignored.forge().currentUser().username()))
+                    .ignoredComments(Set.of())
+                    .listArchive(listServer.getArchive())
+                    .smtpServer(listServer.getSMTP())
+                    .webrevStorageHTMLRepository(archive)
+                    .webrevStorageRef("webrev")
+                    .webrevStorageBase(Path.of("test"))
+                    .webrevStorageBaseUri(webrevServer.uri())
+                    .readyLabels(Set.of("rfr"))
+                    .readyComments(Map.of(ignored.forge().currentUser().username(), Pattern.compile("ready")))
+                    .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                    .headers(Map.of("Extra1", "val1", "Extra2", "val2"))
+                    .sendInterval(Duration.ZERO)
+                    .build();
+
+            // Populate the repository.
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR.
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
+                    "Change msg\n\nWith several lines");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
+            pr.setBody("This is not ready now");
+
+            // Make it as draft, now the PR is not ready.
+            pr.makeDraft();
+
+            // Run an archive pass.
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // A draft PR should not be archived.
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
+
+            // Make it as not draft.
+            pr.makeNotDraft();
+
+            // Flag it as ready for review.
+            pr.setBody("This should be ready now");
+            pr.addLabel("rfr");
+
+            // Post a ready comment.
+            var ignoredPr = ignored.pullRequest(pr.id());
+            ignoredPr.addComment("ready");
+
+            // Run another archive pass.
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should now contain an entry.
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "RFR: 1234: This is a pull request"));
+
+            // Add a comment.
+            pr.addComment("This is a comment");
+
+            // Run another archive pass.
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should now contain the comment.
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(2, archiveContainsCount(archiveFolder.path(), "RFR: 1234: This is a pull request"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "This is a comment"));
+
+            // Make it as draft again.
+            pr.makeDraft();
+
+            // Add a new comment.
+            pr.addComment("This is a new comment");
+
+            // Run another archive pass.
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should not now contain the new comment.
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(2, archiveContainsCount(archiveFolder.path(), "RFR: 1234: This is a pull request"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "This is a comment"));
+            assertFalse(archiveContains(archiveFolder.path(), "This is a new comment"));
+
+            // Make it as not draft again.
+            pr.makeNotDraft();
+
+            // Run another archive pass.
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should now contain the new comment.
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(3, archiveContainsCount(archiveFolder.path(), "RFR: 1234: This is a pull request"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "This is a comment"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "This is a new comment"));
+
+            // Add a new comment before making it as draft.
+            pr.addComment("This is a comment before making");
+
+            // Make it as draft again.
+            pr.makeDraft();
+
+            // Add a new comment after making it as draft.
+            pr.addComment("This is a comment after making");
+
+            // Run another archive pass.
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should only contain the comments before making it as draft.
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(4, archiveContainsCount(archiveFolder.path(), "RFR: 1234: This is a pull request"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "This is a comment before making"));
+            assertFalse(archiveContains(archiveFolder.path(), "This is a comment after making"));
+
+            // Make it as not draft again.
+            pr.makeNotDraft();
+
+            // Run another archive pass.
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should now contain all the comments.
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(5, archiveContainsCount(archiveFolder.path(), "RFR: 1234: This is a pull request"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "This is a comment before making"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "This is a comment after making"));
         }
     }
 }

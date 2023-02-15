@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -48,6 +48,7 @@ public class TestPullRequestStore extends TestIssueStore {
     private final List<ReferenceChange> targetReferenceChanges = new ArrayList<>();
 
     private ZonedDateTime lastMarkedAsReadyTime;
+    private ZonedDateTime lastMarkedAsDraftTime;
 
     public TestPullRequestStore(String id, HostUser author, String title, List<String> body,
             TestHostedRepository sourceRepository, String targetRef, String sourceRef, boolean draft) {
@@ -56,7 +57,9 @@ public class TestPullRequestStore extends TestIssueStore {
         this.targetRef = targetRef;
         this.sourceRef = sourceRef;
         this.draft = draft;
-        if (!draft) {
+        if (draft) {
+            lastMarkedAsDraftTime = ZonedDateTime.now();
+        } else {
             lastMarkedAsReadyTime = ZonedDateTime.now();
         }
     }
@@ -129,7 +132,9 @@ public class TestPullRequestStore extends TestIssueStore {
 
     public void setDraft(boolean draft) {
         this.draft = draft;
-        if (!draft) {
+        if (draft) {
+            lastMarkedAsDraftTime = ZonedDateTime.now();
+        } else {
             lastMarkedAsReadyTime = ZonedDateTime.now();
         }
     }
@@ -140,5 +145,9 @@ public class TestPullRequestStore extends TestIssueStore {
 
     public ZonedDateTime lastMarkedAsReadyTime() {
         return lastMarkedAsReadyTime;
+    }
+
+    public ZonedDateTime lastMarkedAsDraftTime() {
+        return lastMarkedAsDraftTime;
     }
 }
