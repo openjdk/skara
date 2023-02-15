@@ -79,6 +79,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     // when parsing a version from a tag).
     private final boolean tagMatchPrefix;
 
+    record BranchSecurity(Pattern branch, String securityId) {}
+    private final List<BranchSecurity> defaultSecurity;
+
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
     // Lazy loaded
@@ -89,7 +92,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                   JbsBackport jbsBackport, boolean prOnly, boolean repoOnly, String buildName,
                   HostedRepository censusRepository, String censusRef, String namespace, boolean useHeadVersion,
                   HostedRepository originalRepository, boolean resolve, Set<String> tagIgnoreOpt,
-                  boolean tagMatchPrefix) {
+                  boolean tagMatchPrefix, List<BranchSecurity> defaultSecurity) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -110,6 +113,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.resolve = resolve;
         this.tagIgnoreOpt = tagIgnoreOpt;
         this.tagMatchPrefix = tagMatchPrefix;
+        this.defaultSecurity = defaultSecurity;
     }
 
     static IssueNotifierBuilder newBuilder() {
@@ -302,7 +306,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                             if (existing.isEmpty()) {
                                 log.info("Creating new backport for " + issue.id() + " with fixVersion " + requestedVersion);
                                 try {
-                                    issue = jbsBackport.createBackport(issue, requestedVersion, username.orElse(null));
+                                    issue = jbsBackport.createBackport(issue, requestedVersion, username.orElse(null), defaultSecurity(branch));
                                 } catch (Exception exp) {
                                     existing = Backports.findIssue(issue, fixVersion);
                                     if (existing.isPresent()) {
@@ -379,6 +383,14 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                     .findFirst());
         }
         return Optional.empty();
+    }
+
+    private String defaultSecurity(Branch branch) {
+        return defaultSecurity.stream()
+                .filter(branchSecurity -> branchSecurity.branch.matcher(branch.name()).matches())
+                .map(BranchSecurity::securityId)
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
