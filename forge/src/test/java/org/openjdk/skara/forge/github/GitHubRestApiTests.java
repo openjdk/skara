@@ -221,4 +221,14 @@ public class GitHubRestApiTests {
         var lastMarkedAsDraftTime = pr.lastMarkedAsDraftTime();
         assertEquals("2023-02-11T11:51:12Z", lastMarkedAsDraftTime.get().toString());
     }
+
+    @Test
+    void testClosedBy() {
+        var githubRepoOpt = githubHost.repository("openjdk/playground");
+        assumeTrue(githubRepoOpt.isPresent());
+        var githubRepo = githubRepoOpt.get();
+        var pr = githubRepo.pullRequest("96");
+        var user = pr.closedBy();
+        assertEquals("lgxbslgx", user.get().username());
+    }
 }
