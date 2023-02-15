@@ -769,11 +769,7 @@ public class GitHubPullRequest implements PullRequest {
                       .map(JSONValue::asObject)
                       .filter(obj -> obj.contains("event"))
                       .filter(obj -> obj.get("event").asString().equals("closed"))
-                      .max((first, second) -> {
-                          var firstTime = ZonedDateTime.parse(first.get("created_at").asString());
-                          var secondTime = ZonedDateTime.parse(second.get("created_at").asString());
-                          return firstTime.compareTo(secondTime);
-                      })
+                      .max(Comparator.comparing(o -> ZonedDateTime.parse(o.get("created_at").asString())))
                       .map(e -> host.parseUserObject(e.get("actor")));
     }
 
@@ -794,7 +790,7 @@ public class GitHubPullRequest implements PullRequest {
                 .filter(obj -> obj.get("event").asString().equals("head_ref_force_pushed"))
                 .filter(obj -> ZonedDateTime.parse(obj.get("created_at").asString()).isAfter(lastMarkedAsReadyTime(timelineJSON)))
                 .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()))
-                .max(ZonedDateTime::compareTo);
+                .max(Comparator.naturalOrder());
     }
 
     @Override
