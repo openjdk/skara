@@ -153,6 +153,9 @@ class ArchiveWorkItem implements WorkItem {
     private static final String webrevListMarker = "<!-- mlbridge webrev list -->";
 
     private void updateWebrevComment(List<Comment> comments, int index, List<WebrevDescription> webrevs) {
+        if (webrevs.stream().noneMatch(w -> w.uri() != null)) {
+            return;
+        }
         var existing = comments.stream()
                                .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))
                                .filter(comment -> comment.body().contains(webrevCommentMarker))
