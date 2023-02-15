@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,8 +40,8 @@ public class CommitCommandWorkItem implements WorkItem {
     private final CommitComment commitComment;
     private final Consumer<RuntimeException> onError;
 
-    private static final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
-    private static final Pattern commandReplyPattern = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
+    static final String COMMAND_REPLY_MARKER = "<!-- Jmerge command reply message (%s) -->";
+    static final Pattern COMMAND_REPLY_PATTERN = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
 
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
@@ -75,7 +75,7 @@ public class CommitCommandWorkItem implements WorkItem {
 
         var handled = allComments.stream()
                               .filter(c -> c.author().equals(self))
-                              .map(c -> commandReplyPattern.matcher(c.body()))
+                              .map(c -> COMMAND_REPLY_PATTERN.matcher(c.body()))
                               .filter(Matcher::find)
                               .map(matcher -> matcher.group(1))
                               .collect(Collectors.toSet());
@@ -92,7 +92,7 @@ public class CommitCommandWorkItem implements WorkItem {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
-        printer.println(String.format(commandReplyMarker, command.id()));
+        printer.println(String.format(COMMAND_REPLY_MARKER, command.id()));
         printer.print("@");
         printer.print(command.user().username());
         printer.print(" ");
@@ -122,11 +122,10 @@ public class CommitCommandWorkItem implements WorkItem {
     public Collection<WorkItem> run(Path scratchPath) {
         log.info("Looking for commit comment commands");
 
-        var commit = bot.repo().commit(commitComment.commit()).orElseThrow(() ->
-            new IllegalStateException("Commit with hash " + commitComment.commit() + " missing"));
+        var hash = commitComment.commit();
         var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-        var allComments = bot.repo().commitComments(commit.hash());
+        var allComments = bot.repo().commitComments(hash);
         var nextCommand = nextCommand(allComments);
         if (nextCommand.isEmpty()) {
             log.info("No new commit comments found, stopping further processing");
@@ -135,49 +134,51 @@ public class CommitCommandWorkItem implements WorkItem {
             var command = nextCommand.get();
             try {
                 census = LimitedCensusInstance.createLimitedCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(),
-                        scratchPath.resolve("census"), bot.repo(), commit.hash().hex(),
+                        scratchPath.resolve("census"), bot.repo(), hash.hex(),
                         bot.confOverrideRepository().orElse(null),
                         bot.confOverrideName(),
                         bot.confOverrideRef());
             } catch (MissingJCheckConfException e) {
                 if (bot.confOverrideRepository().isEmpty()) {
                     log.log(Level.SEVERE, "No .jcheck/conf found in repo " + bot.repo().name(), e);
-                    var comment = String.format(commandReplyMarker, command.id()) + "\n" +
+                    var comment = String.format(COMMAND_REPLY_MARKER, command.id()) + "\n" +
                             "@" + command.user().username() +
                             " There is no `.jcheck/conf` present at revision " +
-                            commit.hash().abbreviate() + " - cannot process command.";
-                    bot.repo().addCommitComment(commit.hash(), comment);
+                            hash.abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(hash, comment);
                 } else {
                     log.log(Level.SEVERE, "Jcheck configuration file " + bot.confOverrideName()
                             + " not found in external repo " + bot.confOverrideRepository().get().name(), e);
-                    var comment = String.format(commandReplyMarker, command.id()) + "\n" +
+                    var comment = String.format(COMMAND_REPLY_MARKER, command.id()) + "\n" +
                             "@" + command.user().username() +
                             " There is no Jcheck configuration file " + bot.confOverrideName()
                             + " present in external repo " + bot.confOverrideRepository().get().name() + " at revision "
-                            + commit.hash().abbreviate() + " - cannot process command.";
-                    bot.repo().addCommitComment(commit.hash(), comment);
+                            + hash.abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(hash, comment);
                 }
                 return List.of();
             } catch (InvalidJCheckConfException e) {
                 if (bot.confOverrideRepository().isEmpty()) {
                     log.log(Level.SEVERE, "Invalid .jcheck/conf found in repo " + bot.repo().name(), e);
-                    var comment = String.format(commandReplyMarker, command.id()) + "\n" +
+                    var comment = String.format(COMMAND_REPLY_MARKER, command.id()) + "\n" +
                             "@" + command.user().username() +
                             " Invalid `.jcheck/conf` present at revision " +
-                            commit.hash().abbreviate() + " - cannot process command.";
-                    bot.repo().addCommitComment(commit.hash(), comment);
+                            hash.abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(hash, comment);
                 } else {
                     log.log(Level.SEVERE, "Invalid Jcheck configuration file " + bot.confOverrideName()
                             + " in external repo " + bot.confOverrideRepository().get().name(), e);
-                    var comment = String.format(commandReplyMarker, command.id()) + "\n" +
+                    var comment = String.format(COMMAND_REPLY_MARKER, command.id()) + "\n" +
                             "@" + command.user().username() +
                             " Invalid Jcheck configuration file " + bot.confOverrideName() + " present in external repo "
                             + bot.confOverrideRepository().get().name() + " at revision " +
-                            commit.hash().abbreviate() + " - cannot process command.";
-                    bot.repo().addCommitComment(commit.hash(), comment);
+                            hash.abbreviate() + " - cannot process command.";
+                    bot.repo().addCommitComment(hash, comment);
                 }
                 return List.of();
             }
+            var commit = bot.repo().commit(hash).orElseThrow(() ->
+                    new IllegalStateException("Commit with hash " + hash + " missing"));
             processCommand(scratchPath, commit, census, command, allComments);
         }
         return List.of();

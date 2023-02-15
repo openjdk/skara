@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge;
 
+import java.time.Duration;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.issuetracker.Label;
@@ -82,22 +83,75 @@ public interface HostedRepository {
     URI webUrl(String baseRef, String headRef);
     URI diffUrl(String prId);
     VCS repositoryType();
-    String fileContents(String filename, String ref);
+
+    /**
+     * Returns contents of the file, if the file does not exist, returns Optional.empty().
+     */
+    Optional<String> fileContents(String filename, String ref);
+
+    /**
+     * Writes new contents to a file in the repo by creating a new commit.
+     *
+     * @param filename    Name of file inside repository to write to
+     * @param content     New file content to write, always replacing existing content
+     * @param branch      Branch to add commit on top of
+     * @param message     Commit message
+     * @param authorName  Name of author and committer for commit
+     * @param authorEmail Email of author and committer for commit
+     */
+    void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail);
     String namespace();
     Optional<WebHook> parseWebHook(JSONValue body);
     HostedRepository fork();
     long id();
     Optional<Hash> branchHash(String ref);
     List<HostedBranch> branches();
+
+    /**
+     * Adds a branch protection rule based on a branch pattern. The rule prevents
+     * normal users from pushing to the branch, but still allows admins to force
+     * push.
+     * @param pattern Pattern for branches
+     */
+    void protectBranchPattern(String pattern);
+
+    /**
+     * Removes a branch protection rule based on the branch pattern.
+     * @param pattern Pattern for branches
+     */
+    void unprotectBranchPattern(String pattern);
     void deleteBranch(String ref);
     List<CommitComment> commitComments(Hash hash);
     default List<CommitComment> recentCommitComments() {
-        return recentCommitComments(Map.of(), Set.of());
+        return recentCommitComments(null, Set.of(), null, ZonedDateTime.now().minus(Duration.ofDays(4)));
     }
-    List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits, Set<Integer> excludeAuthors);
+
+    /**
+     * Fetch recent commit comments from the forge.
+     * @param localRepo Only needed for certain implementations. Needs to be a
+     *                  reasonably up-to-date clone of this repository
+     * @param excludeAuthors Set of authors to exclude from the results
+     * @param Branches Optional list of branches to limit the search to if
+     *                 supported by the implementation.
+     * @param updatedAfter Filter out comments older than this
+     * @return A list of CommitComments
+     */
+    List<CommitComment> recentCommitComments(ReadOnlyRepository localRepo, Set<Integer> excludeAuthors,
+            List<Branch> Branches, ZonedDateTime updatedAfter);
     CommitComment addCommitComment(Hash hash, String body);
     void updateCommitComment(String id, String body);
-    Optional<HostedCommit> commit(Hash hash);
+
+    /**
+     * Gets a Commit instance for a given hash, if present.
+     * @param hash Hash to get Commit for
+     * @param includeDiffs Set to true to include parent diffs in Commit, default false
+     * @return Commit instance for the hash in this repository, empty if not
+     * found.
+     */
+    Optional<HostedCommit> commit(Hash hash, boolean includeDiffs);
+    default Optional<HostedCommit> commit(Hash hash) {
+        return commit(hash, false);
+    }
     List<Check> allChecks(Hash hash);
     WorkflowStatus workflowStatus();
     URI createPullRequestUrl(HostedRepository target,

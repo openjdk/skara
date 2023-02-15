@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,6 +31,9 @@ module org.openjdk.skara.bots.censussync {
     requires java.logging;
     requires java.xml;
     requires java.net.http;
+    requires org.openjdk.skara.jcheck;
+    requires org.openjdk.skara.jbs;
+    requires org.openjdk.skara.bots.common;
 
     provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.censussync.CensusSyncBotFactory;
 }

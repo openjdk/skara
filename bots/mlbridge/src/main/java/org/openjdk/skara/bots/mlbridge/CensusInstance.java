@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -76,7 +76,8 @@ class CensusInstance {
     }
 
     private static JCheckConfiguration configuration(HostedRepository remoteRepo, String ref) {
-        var confFile = remoteRepo.fileContents(".jcheck/conf", ref);
+        var confFile = remoteRepo.fileContents(".jcheck/conf", ref)
+                .orElseThrow(() -> new RuntimeException("Could not find .jcheck/conf on ref " + ref + " in repo " + remoteRepo.name()));
         return JCheckConfiguration.parse(confFile.lines().collect(Collectors.toList()));
     }
 

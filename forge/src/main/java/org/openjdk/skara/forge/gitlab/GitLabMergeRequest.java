@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -82,13 +82,7 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public HostUser author() {
-        var username = json.get("author").get("username").asString();
-        var author = repository.forge().user(username);
-        if (author.isPresent()) {
-            return author.get();
-        } else {
-            throw new RuntimeException("Author of GitLab merge request unknown: " + username + "(maybe the user is inactive)");
-        }
+        return host.parseAuthorField(json);
     }
 
     @Override
@@ -634,7 +628,7 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public boolean isDraft() {
-        return json.get("work_in_progress").asBoolean();
+        return json.get("draft").asBoolean();
     }
 
 
@@ -775,10 +769,26 @@ public class GitLabMergeRequest implements PullRequest {
     @Override
     public void makeNotDraft() {
         var title = title();
-        var draftPrefix = "WIP:";
+        var draftPrefix = "Draft:";
         if (title.startsWith(draftPrefix)) {
             setTitle(title.substring(draftPrefix.length()).stripLeading());
         }
+    }
+
+    @Override
+    public Optional<ZonedDateTime> lastMarkedAsDraftTime() {
+        var draftMessage = "marked this merge request as **draft**";
+        var notes = request.get("notes").execute();
+        var lastMarkedAsDraftTime = notes.stream()
+                .map(JSONValue::asObject)
+                .filter(obj -> obj.get("system").asBoolean())
+                .filter(obj -> draftMessage.equals(obj.get("body").asString()))
+                .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()))
+                .max(ZonedDateTime::compareTo);
+        if (lastMarkedAsDraftTime.isEmpty() && isDraft()) {
+            return Optional.of(createdAt());
+        }
+        return lastMarkedAsDraftTime;
     }
 
     @Override

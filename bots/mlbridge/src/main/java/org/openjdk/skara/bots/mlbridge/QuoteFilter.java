@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,10 +27,10 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 class QuoteFilter {
-    private static final Pattern leadingQuotesPattern = Pattern.compile("^([>\\s]+).*");
+    private static final Pattern LEADING_QUOTES_PATTERN = Pattern.compile("^([>\\s]+).*");
 
     private static Optional<String> leadingQuotes(String line) {
-        var leadingQuotesMatcher = leadingQuotesPattern.matcher(line);
+        var leadingQuotesMatcher = LEADING_QUOTES_PATTERN.matcher(line);
         if (leadingQuotesMatcher.matches()) {
             if (leadingQuotesMatcher.group(1).contains(">")) {
                 return Optional.of(leadingQuotesMatcher.group(1).trim());

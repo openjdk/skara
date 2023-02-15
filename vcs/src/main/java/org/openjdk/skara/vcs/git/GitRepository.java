@@ -469,7 +469,7 @@ public class GitRepository implements Repository {
 
     @Override
     public void revert(Hash h) throws IOException {
-        try (var p = capture("git", "checkout", "--recurse-submodules", h.hex(), "--", ".")) {
+        try (var p = capture("git", "restore", "--recurse-submodules", "--source", h.hex(), "--", ".")) {
             await(p);
         }
     }
@@ -601,6 +601,13 @@ public class GitRepository implements Repository {
 
         cmd.add(uri.toString());
 
+        /*
+         * https://git-scm.com/docs/git-push
+         * Specify what destination ref to update with what source object.
+         * The format of a <refspec> parameter is an optional plus +, followed by
+         * the source object, followed by a colon : and finally by the destination
+         * ref.
+         */
         String refspec = force ? "+" : "";
         if (!ref.startsWith("refs/")) {
             ref = "refs/heads/" + ref;

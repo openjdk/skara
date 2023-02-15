@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.forge.github;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.regex.Matcher;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
@@ -63,11 +65,7 @@ public class GitHubRepository implements HostedRepository {
                 .build();
         request = new RestRequest(apiBase, gitHubHost.authId().orElse(null), (r) -> {
             var headers = new ArrayList<>(List.of(
-                "Accept", "application/vnd.github.machine-man-preview+json",
-                "Accept", "application/vnd.github.antiope-preview+json",
-                "Accept", "application/vnd.github.shadow-cat-preview+json",
-                "Accept", "application/vnd.github.comfort-fade-preview+json",
-                "Accept", "application/vnd.github.mockingbird-preview+json"));
+                "X-GitHub-Api-Version", "2022-11-28"));
             var token = gitHubHost.getInstallationToken();
             if (token.isPresent()) {
                 headers.add("Authorization");
@@ -261,14 +259,50 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public String fileContents(String filename, String ref) {
-        var conf = request.get("contents/" + filename)
-                          .param("ref", ref)
-                          .execute().asObject();
-        // Content may contain newline characters
-        return conf.get("content").asString().lines()
-                   .map(line -> new String(Base64.getDecoder().decode(line), StandardCharsets.UTF_8))
-                   .collect(Collectors.joining());
+    public Optional<String> fileContents(String filename, String ref) {
+        // Get file contents using raw format. This allows us to get files of
+        // size up to 100MB (up from 1MB if getting in object from).
+        try {
+            var content = request.get("contents/" + filename)
+                    .param("ref", ref)
+                    .header("Accept", "application/vnd.github.raw+json")
+                    .executeUnparsed();
+            return Optional.of(content);
+        } catch (UncheckedRestException e) {
+            // The onError handler is not used with executeUnparsed, so have to
+            // resort to catching exception for 404 handling.
+            if (e.getStatusCode() == 404) {
+                return Optional.empty();
+            } else {
+                throw e;
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Override
+    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail) {
+        var body = JSON.object()
+                .put("message", message)
+                .put("branch", branch.name())
+                .put("committer", JSON.object()
+                        .put("name", authorName)
+                        .put("email", authorEmail))
+                .put("content", new String(Base64.getEncoder().encode(content.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
+
+        // If the file exists, we have to supply the current sha with the update request.
+        var curentFileData = request.get("contents/" + filename)
+                .param("ref", branch.name())
+                .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
+                .execute();
+        if (curentFileData.contains("sha")) {
+            body.put("sha", curentFileData.get("sha").asString());
+        }
+
+        request.put("contents/" + filename)
+                .body(body)
+                .execute();
     }
 
     @Override
@@ -313,6 +347,18 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
+    public void protectBranchPattern(String pattern) {
+        // This could be implemented using GraphQL, but we currently don't need it for GitHub
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void unprotectBranchPattern(String pattern) {
+        // This could be implemented using GraphQL, but we currently don't need it for GitHub
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void deleteBranch(String ref) {
         request.delete("git/refs/heads/" + ref)
                .execute();
@@ -342,7 +388,8 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits, Set<Integer> excludeAuthors) {
+    public List<CommitComment> recentCommitComments(ReadOnlyRepository unused, Set<Integer> excludeAuthors,
+            List<Branch> branches, ZonedDateTime updatedAfter) {
         var parts = name().split("/");
         var owner = parts[0];
         var name = parts[1];
@@ -376,6 +423,8 @@ public class GitHubRepository implements HostedRepository {
         var data = gitHubHost.graphQL()
                              .post()
                              .body(JSON.object().put("query", query))
+                             // This is a single point graphql query so shouldn't need to be limited to once a second
+                             .skipLimiter(true)
                              .execute()
                              .get("data");
         var comments = data.get("repository")
@@ -405,6 +454,10 @@ public class GitHubRepository implements HostedRepository {
                                                         createdAt,
                                                         updatedAt);
                            })
+                           // It's not possible to filter on timestamp in the GraphQL API, but we
+                           // can at least filter here to limit the amount of data returned to the
+                           // caller.
+                           .filter(c -> c.updatedAt().isAfter(updatedAfter))
                            .collect(Collectors.toList());
         Collections.reverse(comments);
         return comments;
@@ -486,19 +539,33 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public Optional<HostedCommit> commit(Hash hash) {
-        // Need to specify an explicit per_page < 70 to guarantee that we get patch information in the result set.
-        var o = request.get("commits/" + hash.hex())
-                       .param("per_page", "50")
-                       .onError(r -> Optional.of(JSON.of()))
-                       .execute();
+    public Optional<HostedCommit> commit(Hash hash, boolean includeDiffs) {
+        var queryBuilder = request.get("commits/" + hash.hex())
+                .onError(r -> Optional.of(JSON.of()));
+        if (includeDiffs) {
+            // Need to specify an explicit per_page < 70 to guarantee that we get patch information in the result set.
+            queryBuilder.param("per_page", "50");
+        } else {
+            // Minimize size of response when diffs aren't needed.
+            queryBuilder
+                    .param("per_page", "1")
+                    .maxPages(1);
+        }
+
+        var o = queryBuilder.execute();
+
         if (o.isNull()) {
             return Optional.empty();
         }
 
         var metadata = toCommitMetadata(o);
-        var diffs = toDiff(metadata.parents().get(0), hash, o.get("files"));
-        return Optional.of(new HostedCommit(metadata, List.of(diffs), URI.create(o.get("html_url").asString())));
+        List<Diff> diffs;
+        if (includeDiffs) {
+            diffs = List.of(toDiff(metadata.parents().get(0), hash, o.get("files")));
+        } else {
+            diffs = List.of();
+        }
+        return Optional.of(new HostedCommit(metadata, diffs, URI.create(o.get("html_url").asString())));
     }
 
     @Override

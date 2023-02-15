@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,20 +25,24 @@ package org.openjdk.skara.bots.csr;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.openjdk.skara.bot.WorkItem;
+import org.openjdk.skara.bots.common.BotUtils;
+import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.jbs.Backports;
-import org.openjdk.skara.jbs.JdkVersion;
-import org.openjdk.skara.jcheck.JCheckConfiguration;
+
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
 /**
  * The PullRequestWorkItem is the work horse of the CSRBot. It gets triggered when
@@ -47,9 +51,6 @@ import org.openjdk.skara.jcheck.JCheckConfiguration;
  * for it.
  */
 class PullRequestWorkItem implements WorkItem {
-    private final static String CSR_LABEL = "csr";
-    private final static String CSR_UPDATE_MARKER = "<!-- csr: 'update' -->";
-    private static final String PROGRESS_MARKER = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.csr");
     private final HostedRepository repository;
     private final String prId;
@@ -89,35 +90,32 @@ class PullRequestWorkItem implements WorkItem {
         return pr.repository().name() + "#" + pr.id();
     }
 
-    /**
-     * Get the fix version from the provided PR.
-     */
-    private static Optional<JdkVersion> getVersion(PullRequest pullRequest) {
-        var confFile = pullRequest.repository().fileContents(".jcheck/conf", pullRequest.targetRef());
-        var configuration = JCheckConfiguration.parse(confFile.lines().toList());
-        var version = configuration.general().version().orElse(null);
-        if (version == null || "".equals(version)) {
-            return Optional.empty();
-        }
-        return JdkVersion.parse(version);
+    private String generateCSRProgressMessage(org.openjdk.skara.issuetracker.Issue issue) {
+        return "Change requires CSR request [" + issue.id() + "](" + issue.webUrl() + ") to be approved";
     }
 
     private boolean hasCsrIssueAndProgress(PullRequest pr, Issue csr) {
         var statusMessage = getStatusMessage(pr);
         return hasCsrIssue(statusMessage, csr) &&
-                (statusMessage.contains("- [ ] Change requires a CSR request to be approved") ||
-                        statusMessage.contains("- [x] Change requires a CSR request to be approved"));
+                (statusMessage.contains("- [ ] " + generateCSRProgressMessage(csr)) ||
+                        statusMessage.contains("- [x] " + generateCSRProgressMessage(csr)));
     }
 
     private boolean hasCsrIssueAndProgressChecked(PullRequest pr, Issue csr) {
         var statusMessage = getStatusMessage(pr);
-        return hasCsrIssue(statusMessage, csr) && statusMessage.contains("- [x] Change requires a CSR request to be approved");
+        return hasCsrIssue(statusMessage, csr) && statusMessage.contains("- [x] " + generateCSRProgressMessage(csr));
     }
 
     private boolean hasCsrIssue(String statusMessage, Issue csr) {
         return statusMessage.contains(csr.id()) &&
                 statusMessage.contains(csr.webUrl().toString()) &&
                 statusMessage.contains(csr.title() + " (**CSR**)");
+    }
+
+    private boolean hasWithdrawnCsrIssue(String statusMessage, Issue csr) {
+        return statusMessage.contains(csr.id()) &&
+                statusMessage.contains(csr.webUrl().toString()) &&
+                statusMessage.contains(csr.title() + " (**CSR**) (Withdrawn)");
     }
 
     private String getStatusMessage(PullRequest pr) {
@@ -131,7 +129,9 @@ class PullRequestWorkItem implements WorkItem {
 
     private void addUpdateMarker(PullRequest pr) {
         var statusMessage = getStatusMessage(pr);
-        if (!statusMessage.contains(CSR_UPDATE_MARKER)) {
+        if (statusMessage.isEmpty()) {
+            log.info("No PROGRESS_MARKER found in PR body, wait for first CheckRun before adding csr update marker.");
+        } else if (!statusMessage.contains(CSR_UPDATE_MARKER)) {
             pr.setBody(pr.body() + "\n" + CSR_UPDATE_MARKER + "\n");
         } else {
             log.info("The pull request " + describe(pr) + " has already had a csr update marker. Do not need to add it again.");
@@ -141,102 +141,146 @@ class PullRequestWorkItem implements WorkItem {
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         var pr = repository.pullRequest(prId);
+        // All the issues this pr solves
+        var mainIssue = org.openjdk.skara.vcs.openjdk.Issue.fromStringRelaxed(pr.title());
+        var issues = new ArrayList<org.openjdk.skara.vcs.openjdk.Issue>();
+        mainIssue.ifPresent(issues::add);
+        issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), pr.comments()));
 
-        var issue = org.openjdk.skara.vcs.openjdk.Issue.fromStringRelaxed(pr.title());
-        if (issue.isEmpty()) {
-            log.info("No issue found in title for " + describe(pr));
+        if (issues.isEmpty()) {
+            log.info("No issue found for " + describe(pr));
             return List.of();
         }
-        var jbsIssueOpt = project.issue(issue.get().shortId());
-        if (jbsIssueOpt.isEmpty()) {
-            log.info("No issue found in JBS for " + describe(pr));
-            return List.of();
-        }
 
-        var versionOpt = getVersion(pr);
+        var versionOpt = BotUtils.getVersion(pr);
         if (versionOpt.isEmpty()) {
             log.info("No fix version found in `.jcheck/conf` for " + describe(pr));
             return List.of();
         }
 
-        var csrOptional = Backports.findCsr(jbsIssueOpt.get(), versionOpt.get());
-        if (csrOptional.isEmpty()) {
-            log.info("No CSR found for " + describe(pr));
-            return List.of();
-        }
-        var csr = csrOptional.get();
+        boolean notExistingUnresolvedCSR = true;
+        boolean needToAddUpdateMarker = false;
+        boolean existingCSR = false;
+        boolean existingApprovedCSR = false;
 
-        log.info("Found CSR " + csr.id() + " for " + describe(pr));
-        if (!hasCsrIssueAndProgress(pr, csr) && !isWithdrawnCSR(csr)) {
-            // If the PR body doesn't have the CSR issue or doesn't have the CSR progress,
-            // this bot need to add the csr update marker so that the PR bot can update the message of the PR body.
-            log.info("The PR body doesn't have the CSR issue or progress, adding the csr update marker for " + describe(pr));
+        for (var issue : issues) {
+            var jbsIssueOpt = project.issue(issue.shortId());
+            if (jbsIssueOpt.isEmpty()) {
+                // An issue could not be found, so the csr label cannot be removed
+                notExistingUnresolvedCSR = false;
+                var issueId = issue.project().isEmpty() ? (project.name() + "-" + issue.id()) : issue.id();
+                log.info(issueId + " for " + describe(pr) + " not found");
+                continue;
+            }
+
+            var csrOptional = Backports.findCsr(jbsIssueOpt.get(), versionOpt.get());
+            if (csrOptional.isEmpty()) {
+                log.info("No CSR found for issue " + jbsIssueOpt.get().id() + " for " + describe(pr) + " with fixVersion " + versionOpt.get().raw());
+                continue;
+            }
+            var csr = csrOptional.get();
+            existingCSR = true;
+
+            log.info("Found CSR " + csr.id() + " for issue " + jbsIssueOpt.get().id() + " for " + describe(pr));
+            if (!hasCsrIssueAndProgress(pr, csr) && !isWithdrawnCSR(csr)) {
+                // If the PR body doesn't have the CSR issue or doesn't have the CSR progress,
+                // this bot need to add the csr update marker so that the PR bot can update the message of the PR body.
+                log.info("The PR body doesn't have the CSR issue or progress, adding the csr update marker for this csr issue"
+                        + csr.id() + " for " + describe(pr));
+                needToAddUpdateMarker = true;
+            }
+
+            var resolution = csr.properties().get("resolution");
+            if (resolution == null || resolution.isNull()) {
+                notExistingUnresolvedCSR = false;
+                if (!pr.labelNames().contains(CSR_LABEL)) {
+                    log.info("CSR issue resolution is null for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
+                    pr.addLabel(CSR_LABEL);
+                } else {
+                    log.info("CSR issue resolution is null for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
+                }
+                continue;
+            }
+
+            var name = resolution.get("name");
+            if (name == null || name.isNull()) {
+                notExistingUnresolvedCSR = false;
+                if (!pr.labelNames().contains(CSR_LABEL)) {
+                    log.info("CSR issue resolution name is null for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
+                    pr.addLabel(CSR_LABEL);
+                } else {
+                    log.info("CSR issue resolution name is null for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
+                }
+                continue;
+            }
+
+            if (csr.state() != Issue.State.CLOSED) {
+                notExistingUnresolvedCSR = false;
+                if (!pr.labelNames().contains(CSR_LABEL)) {
+                    log.info("CSR issue state is not closed for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
+                    pr.addLabel(CSR_LABEL);
+                } else {
+                    log.info("CSR issue state is not closed for csr issue" + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
+                }
+                continue;
+            }
+
+            if (!name.asString().equals("Approved")) {
+                if (name.asString().equals("Withdrawn")) {
+                    // This condition is necessary to prevent the bot from adding the CSR label again.
+                    // And the bot can't remove the CSR label automatically here.
+                    // Because the PR author with the role of Committer may withdraw a CSR that
+                    // a Reviewer had requested and integrate it without satisfying that requirement.
+                    if (!hasWithdrawnCsrIssue(getStatusMessage(pr), csr)) {
+                        needToAddUpdateMarker = true;
+                    }
+                    log.info("CSR closed and withdrawn for csr issue " + csr.id() + " for " + describe(pr));
+                } else if (!pr.labelNames().contains(CSR_LABEL)) {
+                    notExistingUnresolvedCSR = false;
+                    log.info("CSR issue resolution is not 'Approved' for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
+                    pr.addLabel(CSR_LABEL);
+                } else {
+                    notExistingUnresolvedCSR = false;
+                    log.info("CSR issue resolution is not 'Approved' for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
+                }
+                continue;
+            } else {
+                existingApprovedCSR = true;
+            }
+
+            // The CSR issue has been closed and approved
+            if (!hasCsrIssueAndProgressChecked(pr, csr)) {
+                // If the PR body doesn't have the CSR issue or doesn't have the CSR progress or the CSR progress checkbox is not selected,
+                // this bot need to add the csr update marker so that the PR bot can update the message of the PR body.
+                log.info("CSR closed and approved for " + describe(pr) + ", adding the csr update marker");
+                needToAddUpdateMarker = true;
+            }
+        }
+        if (needToAddUpdateMarker) {
             addUpdateMarker(pr);
         }
-
-        var resolution = csr.properties().get("resolution");
-        if (resolution == null || resolution.isNull()) {
-            if (!pr.labelNames().contains(CSR_LABEL)) {
-                log.info("CSR issue resolution is null for " + describe(pr) + ", adding the CSR label");
-                pr.addLabel(CSR_LABEL);
-            } else {
-                log.info("CSR issue resolution is null for " + describe(pr) + ", not removing the CSR label");
-            }
-            logLatency();
-            return List.of();
-        }
-        var name = resolution.get("name");
-        if (name == null || name.isNull()) {
-            if (!pr.labelNames().contains(CSR_LABEL)) {
-                log.info("CSR issue resolution name is null for " + describe(pr) + ", adding the CSR label");
-                pr.addLabel(CSR_LABEL);
-            } else {
-                log.info("CSR issue resolution name is null for " + describe(pr) + ", not removing the CSR label");
-            }
-            logLatency();
-            return List.of();
-        }
-
-        if (csr.state() != Issue.State.CLOSED) {
-            if (!pr.labelNames().contains(CSR_LABEL)) {
-                log.info("CSR issue state is not closed for " + describe(pr) + ", adding the CSR label");
-                pr.addLabel(CSR_LABEL);
-            } else {
-                log.info("CSR issue state is not closed for " + describe(pr) + ", not removing the CSR label");
-            }
-            logLatency();
-            return List.of();
-        }
-
-        if (!name.asString().equals("Approved")) {
-            if (name.asString().equals("Withdrawn")) {
-                // This condition is necessary to prevent the bot from adding the CSR label again.
-                // And the bot can't remove the CSR label automatically here.
-                // Because the PR author with the role of Committer may withdraw a CSR that
-                // a Reviewer had requested and integrate it without satisfying that requirement.
-                log.info("CSR closed and withdrawn for " + describe(pr) + ", not revising (not adding and not removing) CSR label");
-            } else if (!pr.labelNames().contains(CSR_LABEL)) {
-                log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", adding the CSR label");
-                pr.addLabel(CSR_LABEL);
-            } else {
-                log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", not removing the CSR label");
-            }
-            logLatency();
-            return List.of();
-        }
-
-        if (pr.labelNames().contains(CSR_LABEL)) {
-            log.info("CSR closed and approved for " + describe(pr) + ", removing CSR label");
+        if (notExistingUnresolvedCSR && existingCSR && (!isCSRNeeded(pr.comments()) || existingApprovedCSR) && pr.labelNames().contains(CSR_LABEL)) {
+            log.info("All CSR issues closed and approved for " + describe(pr) + ", removing CSR label");
             pr.removeLabel(CSR_LABEL);
-        }
-        if (!hasCsrIssueAndProgressChecked(pr, csr)) {
-            // If the PR body doesn't have the CSR issue or doesn't have the CSR progress or the CSR progress checkbox is not selected,
-            // this bot need to add the csr update marker so that the PR bot can update the message of the PR body.
-            log.info("CSR closed and approved for " + describe(pr) + ", adding the csr update marker");
-            addUpdateMarker(pr);
         }
         logLatency();
         return List.of();
+    }
+
+    /**
+     * Determine whether the CSR label is added via '/csr needed' command
+     */
+    private boolean isCSRNeeded(List<Comment> comments) {
+        for (int i = comments.size() - 1; i >= 0; i--) {
+            var comment = comments.get(i);
+            if (comment.body().contains(CSR_NEEDED_MARKER)) {
+                return true;
+            }
+            if (comment.body().contains(CSR_UNNEEDED_MARKER)) {
+                return false;
+            }
+        }
+        return false;
     }
 
     private void logLatency() {

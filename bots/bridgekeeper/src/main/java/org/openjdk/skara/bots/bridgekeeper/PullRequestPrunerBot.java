@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -70,14 +70,14 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
         return count + " " + unit;
     }
 
-    private final String noticeMarker = "<!-- PullrequestCloserBot auto close notification -->";
+    private static final String NOTICE_MARKER = "<!-- PullrequestCloserBot auto close notification -->";
 
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         var comments = pr.comments();
         if (comments.size() > 0) {
             var lastComment = comments.get(comments.size() - 1);
-            if (lastComment.author().equals(pr.repository().forge().currentUser()) && lastComment.body().contains(noticeMarker)) {
+            if (lastComment.author().equals(pr.repository().forge().currentUser()) && lastComment.body().contains(NOTICE_MARKER)) {
                 var message = "@" + pr.author().username() + " This pull request has been inactive for more than " +
                         formatDuration(maxAge.multipliedBy(2)) + " and will now be automatically closed. If you would " +
                         "like to continue working on this pull request in the future, feel free to reopen it! This can be done " +
@@ -95,7 +95,7 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
                 "to ask for assistance if you need help with progressing this pull request towards integration!";
 
         log.fine("Posting prune notification message");
-        pr.addComment(noticeMarker + "\n\n" + message);
+        pr.addComment(NOTICE_MARKER + "\n\n" + message);
         return List.of();
     }
 

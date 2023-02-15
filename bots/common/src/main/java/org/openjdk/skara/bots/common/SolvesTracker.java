@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.pr;
+package org.openjdk.skara.bots.common;
 
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
@@ -32,25 +32,25 @@ import java.util.regex.*;
 import java.util.stream.Collectors;
 
 public class SolvesTracker {
-    private final static String solvesMarker = "<!-- solves: '%s' '%s' -->";
-    private final static Pattern markerPattern = Pattern.compile("<!-- solves: '(.*?)' '(.*?)' -->");
+    private static final String SOLVES_MARKER = "<!-- solves: '%s' '%s' -->";
+    private static final Pattern MARKER_PATTERN = Pattern.compile("<!-- solves: '(.*?)' '(.*?)' -->");
 
-    static String setSolvesMarker(Issue issue) {
+    public static String setSolvesMarker(Issue issue) {
         var encodedDescription = Base64.getEncoder().encodeToString(issue.description().getBytes(StandardCharsets.UTF_8));
-        return String.format(solvesMarker, issue.shortId(), encodedDescription);
+        return String.format(SOLVES_MARKER, issue.shortId(), encodedDescription);
     }
 
-    static String removeSolvesMarker(Issue issue) {
-        return String.format(solvesMarker, issue.shortId(), "");
+    public static String removeSolvesMarker(Issue issue) {
+        return String.format(SOLVES_MARKER, issue.shortId(), "");
     }
 
-    static List<Issue> currentSolved(HostUser botUser, List<Comment> comments) {
+    public static List<Issue> currentSolved(HostUser botUser, List<Comment> comments) {
         var solvesActions = comments.stream()
-                                    .filter(comment -> comment.author().equals(botUser))
-                                    .flatMap(comment -> comment.body().lines())
-                                    .map(markerPattern::matcher)
-                                    .filter(Matcher::find)
-                                    .collect(Collectors.toList());
+                .filter(comment -> comment.author().equals(botUser))
+                .flatMap(comment -> comment.body().lines())
+                .map(MARKER_PATTERN::matcher)
+                .filter(Matcher::find)
+                .collect(Collectors.toList());
         var current = new LinkedHashMap<String, Issue>();
         for (var action : solvesActions) {
             var key = action.group(1);

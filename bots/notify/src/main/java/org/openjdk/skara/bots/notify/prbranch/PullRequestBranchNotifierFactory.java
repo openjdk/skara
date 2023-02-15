@@ -35,7 +35,11 @@ public class PullRequestBranchNotifierFactory implements NotifierFactory {
     @Override
     public Notifier create(BotConfiguration botConfiguration, JSONObject notifierConfiguration) {
         var seedFolder = botConfiguration.storageFolder();
-        return new PullRequestBranchNotifier(seedFolder.resolve("seeds"));
+        var protectBranches = false;
+        if (notifierConfiguration.contains("protect")) {
+            protectBranches = notifierConfiguration.get("protect").asBoolean();
+        }
+        return new PullRequestBranchNotifier(seedFolder.resolve("seeds"), protectBranches);
     }
 
 }

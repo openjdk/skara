@@ -98,7 +98,9 @@ public class TestBot implements Bot {
                 var censusRepo = Repository.materialize(censusDir, censusRemote.url(), Branch.defaultFor(VCS.GIT).name());
                 var census = Census.parse(censusDir);
                 var namespace = census.namespace(repo.namespace());
-                var jcheckConf = repo.fileContents(".jcheck/conf", Branch.defaultFor(VCS.GIT).name());
+                var jcheckConf = repo.fileContents(".jcheck/conf", Branch.defaultFor(VCS.GIT).name())
+                        .orElseThrow(() -> new RuntimeException("Could not find .jcheck/conf on ref "
+                                + Branch.defaultFor(VCS.GIT).name() + " in repo " + repo.name()));
                 var jcheck = JCheckConfiguration.parse(jcheckConf.lines().collect(Collectors.toList()));
                 var project = census.project(jcheck.general().project());
                 isCommitter = u -> {

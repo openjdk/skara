@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -89,6 +89,7 @@ enum RestRequestCache {
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final Logger log = Logger.getLogger("org.openjdk.skara.network");
     private final ConcurrentHashMap<String, Lock> authLocks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Lock> authNonGetLocks = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Instant> lastUpdates = new ConcurrentHashMap<>();
 
     private static class LockWithTimeout implements AutoCloseable {
@@ -181,15 +182,14 @@ enum RestRequestCache {
         }
     }
 
-    HttpResponse<String> send(String authId, HttpRequest.Builder requestBuilder) throws IOException, InterruptedException {
+    HttpResponse<String> send(String authId, HttpRequest.Builder requestBuilder, boolean skipLimiter) throws IOException, InterruptedException {
         if (authId == null) {
             authId = "anonymous";
         }
         var unauthenticatedRequest = requestBuilder.build();
         var requestContext = new RequestContext(authId, unauthenticatedRequest);
-        authLocks.computeIfAbsent(authId, id -> new ReentrantLock());
-        var authLock = authLocks.get(authId);
-        if (unauthenticatedRequest.method().equals("GET")) {
+        var authLock = authLocks.computeIfAbsent(authId, id -> new ReentrantLock());
+        if (unauthenticatedRequest.method().equals("GET") || skipLimiter) {
             var cached = cachedResponses.get(requestContext);
             if (cached != null) {
                 if (Instant.now().minus(maxAllowedAge(requestContext)).isBefore(cached.callTime)) {
@@ -201,12 +201,15 @@ enum RestRequestCache {
             }
             var finalRequest = requestBuilder.build();
             HttpResponse<String> response;
+            var beforeLock = Instant.now();
             try (var ignored = new LockWithTimeout(authLock)) {
                 // Perform requests using a certain account serially
-                var before = Instant.now();
+                var beforeCall = Instant.now();
+                var lockDelay = Duration.between(beforeLock, beforeCall);
+                log.log(Level.FINE, "Taking lock for " + finalRequest.method() + " " + finalRequest.uri() + " took " + lockDelay, lockDelay);
                 response = client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
-                var duration = Duration.between(before, Instant.now());
-                log.log(Level.FINE, "Calling GET " + finalRequest.uri().toString() + " took " + duration, duration);
+                var callDuration = Duration.between(beforeCall, Instant.now());
+                log.log(Level.FINE, "Calling " + finalRequest.method() + " " + finalRequest.uri().toString() + " took " + callDuration, callDuration);
             }
             if (cached != null && response.statusCode() == 304) {
                 cacheHitsCounter.inc();
@@ -219,27 +222,32 @@ enum RestRequestCache {
                 return response;
             }
         } else {
+            var authNonGetLock = authNonGetLocks.computeIfAbsent(authId, id -> new ReentrantLock());
             var finalRequest = requestBuilder.build();
             log.finer("Not using response cache for " + finalRequest + " (" + authId + ")");
             Instant lastUpdate;
-            try (var ignored = new LockWithTimeout(authLock)) {
+            var beforeLock = Instant.now();
+            try (var ignored = new LockWithTimeout(authNonGetLock)) {
+                // Perform at most one update per second
                 lastUpdate = lastUpdates.getOrDefault(authId, Instant.now().minus(Duration.ofDays(1)));
-                lastUpdates.put(authId, Instant.now());
-            }
-            // Perform at most one update per second
-            var requiredDelay = Duration.between(Instant.now().minus(Duration.ofSeconds(1)), lastUpdate);
-            if (!requiredDelay.isNegative()) {
-                try {
-                    Thread.sleep(requiredDelay.toMillis());
-                } catch (InterruptedException ignored) {
+                var requiredDelay = Duration.between(Instant.now().minus(Duration.ofSeconds(1)), lastUpdate);
+                if (!requiredDelay.isNegative()) {
+                    try {
+                        Thread.sleep(requiredDelay.toMillis());
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
                 }
-            }
-            try (var ignored = new LockWithTimeout(authLock)) {
-                var before = Instant.now();
-                var response = client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
-                var duration = Duration.between(before, Instant.now());
-                log.log(Level.FINE, "Calling " + finalRequest.method() + " " + finalRequest.uri().toString() + " took " + duration, duration);
-                return response;
+                try (var ignored2 = new LockWithTimeout(authLock)) {
+                    var beforeCall = Instant.now();
+                    lastUpdates.put(authId, beforeCall);
+                    var lockDelay = Duration.between(beforeLock, beforeCall);
+                    log.log(Level.FINE, "Taking lock and adding required delay for " + finalRequest.method() + " " + finalRequest.uri() + " took " + lockDelay, lockDelay);
+                    var response = client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
+                    var callDuration = Duration.between(beforeCall, Instant.now());
+                    log.log(Level.FINE, "Calling " + finalRequest.method() + " " + finalRequest.uri().toString() + " took " + callDuration, callDuration);
+                    return response;
+                }
             } finally {
                 // Invalidate any related GET caches
                 var postUriString = unauthenticatedRequest.uri().toString();

@@ -78,7 +78,7 @@ public class IssueNotifierTests {
                              .addConfiguration("repositories", JSON.object()
                                                                    .put("hostedrepo", JSON.object()
                                                                                           .put("basename", "test")
-                                                                                          .put("branches", "master|other")
+                                                                                          .put("branches", "master|other|other2")
                                                                                           .put("issue", notifierConfig)));
     }
 
@@ -407,6 +407,8 @@ public class IssueNotifierTests {
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var csrIssue = issueProject.createIssue("This is a csr issue", List.of("Indeed"), Map.of("issuetype", JSON.of("CSR")));
             issue.addLink(Link.create(csrIssue, "csr for").build());
+            var withdrawnCsrIssue = issueProject.createIssue("This is a withdrawn csr issue", List.of("Indeed"), Map.of("issuetype", JSON.of("CSR")));
+            issue.addLink(Link.create(withdrawnCsrIssue, "csr for").build());
 
             // Push a commit and create a pull request
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line",
@@ -415,7 +417,9 @@ public class IssueNotifierTests {
             var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": This is an issue");
             pr.setBody("\n\n### Issues\n" +
                     " * [" + issue.id() + "](http://www.test.test/): This is an issue\n" +
-                    " * [" + csrIssue.id() + "](http://www.test2.test/): This is a csr issue (**CSR**)");
+                    " * [" + csrIssue.id() + "](http://www.test2.test/): This is a csr issue (**CSR**)\n" +
+                    " * [" + withdrawnCsrIssue.id() + "](http://www.test3.test/): This is a withdrawn csr issue (**CSR**) (Withdrawn)\n"
+            );
             pr.addLabel("rfr");
             pr.addComment("This is now ready");
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -423,12 +427,14 @@ public class IssueNotifierTests {
             // Get the issues.
             var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             var updatedCsrIssue = issueProject.issue(csrIssue.id()).orElseThrow();
+            var updatedWithdrawnCsrIssue = issueProject.issue(withdrawnCsrIssue.id()).orElseThrow();
 
             // Non-csr issue should have the PR link and PR comment.
             var issueLinks = updatedIssue.links();
-            assertEquals(2, issueLinks.size());
+            assertEquals(3, issueLinks.size());
             assertEquals("csr for", issueLinks.get(0).relationship().orElseThrow());
-            assertEquals(pr.webUrl(), issueLinks.get(1).uri().orElseThrow());
+            assertEquals("csr for", issueLinks.get(1).relationship().orElseThrow());
+            assertEquals(pr.webUrl(), issueLinks.get(2).uri().orElseThrow());
 
             var issueComments = updatedIssue.comments();
             assertEquals(1, issueComments.size());
@@ -438,10 +444,18 @@ public class IssueNotifierTests {
             // csr issue shouldn't have the PR link or PR comment.
             var csrIssueLinks = updatedCsrIssue.links();
             assertEquals(1, csrIssueLinks.size());
-            assertEquals("csr for", issueLinks.get(0).relationship().orElseThrow());
+            assertEquals("csr of", csrIssueLinks.get(0).relationship().orElseThrow());
 
             var csrIssueComments = updatedCsrIssue.comments();
             assertEquals(0, csrIssueComments.size());
+
+            // Withdrawn csr issue shouldn't have the PR link or PR comment.
+            var withdrawnCsrIssueLinks = updatedWithdrawnCsrIssue.links();
+            assertEquals(1, withdrawnCsrIssueLinks.size());
+            assertEquals("csr of", withdrawnCsrIssueLinks.get(0).relationship().orElseThrow());
+
+            var withdrawnCsrIssueComments = updatedWithdrawnCsrIssue.comments();
+            assertEquals(0, withdrawnCsrIssueComments.size());
         }
     }
 
@@ -1716,10 +1730,103 @@ public class IssueNotifierTests {
 
             // Labels should not
             assertEquals(0, backport.labelNames().size());
+        }
+    }
 
-            // If the parent issue has a security level (can be configured when running a test manually) it should be propagated
-            if (level != null) {
-                assertEquals(level.asString(), backport.properties().get("security").asString());
+    @Test
+    void testIssueBackportDefaultSecurity(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+            // Initialize other branches
+            var initialHead = localRepo.head();
+            localRepo.push(initialHead, repo.url(), "other");
+            localRepo.push(initialHead, repo.url(), "other2");
+
+            var storageFolder = tempFolder.path().resolve("storage");
+            var issueProject = credentials.getIssueProject();
+            var jbsNotifierConfig = JSON.object()
+                    .put("fixversions", JSON.object()
+                            .put(".*aster", "20.0.2")
+                            .put("other", "20.0.1")
+                            .put("other2", "19.0.2"))
+                    .put("defaultsecurity", JSON.object()
+                            .put("othe.*", "100"));
+
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"),
+                    Map.of("issuetype", JSON.of("Enhancement"),
+                            SUBCOMPONENT, JSON.of("java.io"),
+                            RESOLVED_IN_BUILD, JSON.of("b07")
+                    ));
+            var level = issue.properties().get("security");
+            issue.setProperty("fixVersions", JSON.array().add("21"));
+            issue.setProperty("priority", JSON.of("1"));
+
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            {
+                // The fixVersion should not have been updated
+                var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+                assertEquals(Set.of("21"), fixVersions(updatedIssue));
+                assertEquals(OPEN, updatedIssue.state());
+                assertEquals(List.of(), updatedIssue.assignees());
+
+                // There should be a link
+                var links = updatedIssue.links();
+                assertEquals(1, links.size());
+                var link = links.get(0);
+                var backport = link.issue().orElseThrow();
+
+                // The backport issue should have a correct fixVersion and no security
+                assertEquals(Set.of("20.0.2"), fixVersions(backport));
+                assertNull(backport.properties().get("security"));
+            }
+
+            // Push the fix to other branch
+            localRepo.push(editHash, repo.url(), "other");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            {
+                // Find the new backport
+                var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+                var links = updatedIssue.links();
+                assertEquals(2, links.size());
+                var backport = links.get(1).issue().orElseThrow();
+
+                // The backport issue should have a correct fixVersion and security
+                assertEquals(Set.of("20.0.1"), fixVersions(backport));
+                assertEquals("100", backport.properties().get("security").asString());
+            }
+
+            // Set security on the original issue
+            issue.setProperty("security", JSON.of("200"));
+            // Push to another branch
+            localRepo.push(editHash, repo.url(), "other2");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            {
+                // Find the new backport
+                var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+                var links = updatedIssue.links();
+                assertEquals(3, links.size());
+                var backport = links.get(2).issue().orElseThrow();
+
+                // The backport issue should have a correct fixVersion and security
+                assertEquals(Set.of("19.0.2"), fixVersions(backport));
+                assertEquals("200", backport.properties().get("security").asString());
             }
         }
     }

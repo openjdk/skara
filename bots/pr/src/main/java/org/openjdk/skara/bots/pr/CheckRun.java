@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.bots.common.BotUtils;
+import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.census.Contributor;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
@@ -29,7 +31,6 @@ import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jbs.Backports;
 import org.openjdk.skara.jbs.JdkVersion;
-import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
@@ -40,6 +41,8 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.stream.*;
+
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
 class CheckRun {
     public static final String MSG_EMPTY_BODY = "The pull request body must not be empty.";
@@ -59,22 +62,22 @@ class CheckRun {
     private final CheckablePullRequest checkablePullRequest;
 
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
-    private static final String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
-    private static final String mergeReadyMarker = "<!-- PullRequestBot merge is ready comment -->";
-    private static final String outdatedHelpMarker = "<!-- PullRequestBot outdated help comment -->";
-    private static final String sourceBranchWarningMarker = "<!-- PullRequestBot source branch warning comment -->";
-    private static final String mergeCommitWarningMarker = "<!-- PullRequestBot merge commit warning comment -->";
-    private static final String emptyPrBodyMarker = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
+    private static final String MERGE_READY_MARKER = "<!-- PullRequestBot merge is ready comment -->";
+    private static final String OUTDATED_HELP_MARKER = "<!-- PullRequestBot outdated help comment -->";
+    private static final String SOURCE_BRANCH_WARNING_MARKER = "<!-- PullRequestBot source branch warning comment -->";
+    private static final String MERGE_COMMIT_WARNING_MARKER = "<!-- PullRequestBot merge commit warning comment -->";
+    private static final String EMPTY_PR_BODY_MARKER = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
-    private static final String fullNameWarningMarker = "<!-- PullRequestBot full name warning comment -->";
-    private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
+    private static final String FULL_NAME_WARNING_MARKER = "<!-- PullRequestBot full name warning comment -->";
+    private static final Set<String> PRIMARY_TYPES = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final Set<String> newLabels;
+    private final boolean reviewCleanBackport;
 
     private Duration expiresIn;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
-                     CensusInstance censusInstance, boolean ignoreStaleReviews, Set<String> integrators) throws IOException {
+                     CensusInstance censusInstance, boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport) throws IOException {
         this.workItem = workItem;
         this.pr = pr;
         this.localRepo = localRepo;
@@ -86,6 +89,7 @@ class CheckRun {
         this.censusInstance = censusInstance;
         this.ignoreStaleReviews = ignoreStaleReviews;
         this.integrators = integrators;
+        this.reviewCleanBackport = reviewCleanBackport;
 
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
         checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews,
@@ -96,8 +100,9 @@ class CheckRun {
 
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                         List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance,
-                        boolean ignoreStaleReviews, Set<String> integrators) throws IOException {
-        var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance, ignoreStaleReviews, integrators);
+                        boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport) throws IOException {
+        var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance,
+                ignoreStaleReviews, integrators, reviewCleanBackport);
         run.checkStatus();
         if (run.expiresIn != null) {
             return Optional.of(Instant.now().plus(run.expiresIn));
@@ -114,56 +119,59 @@ class CheckRun {
         return matcher.matches();
     }
 
-    private List<Issue> issues(boolean withCsr, boolean withJep) {
+    private List<Issue> issues() {
         var issue = Issue.fromStringRelaxed(pr.title());
         if (issue.isPresent()) {
             var issues = new ArrayList<Issue>();
             issues.add(issue.get());
             issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
-            if (withCsr) {
-                getCsrIssue(issue.get()).ifPresent(issues::add);
-            }
-            if (withJep) {
-                getJepIssue().ifPresent(issues::add);
-            }
+            return issues;
+        }
+        return List.of();
+    }
+
+    private List<Issue> issuesWithCSRAndJEP(List<Issue> issues, List<org.openjdk.skara.issuetracker.Issue> csrIssueTrackerIssues) {
+        if (!issues.isEmpty()) {
+            issues.addAll(getCsrIssues(csrIssueTrackerIssues));
+            getJepIssue().ifPresent(issues::add);
             return issues;
         }
         return List.of();
     }
 
     /**
-     * Get the fix version from the provided PR.
+     * Get the csr issues. Note: this `Issue` is the issue in module `issuetracker`.
      */
-    public static Optional<JdkVersion> getVersion(PullRequest pullRequest) {
-        var confFile = pullRequest.repository().fileContents(".jcheck/conf", pullRequest.targetRef());
-        var configuration = JCheckConfiguration.parse(confFile.lines().toList());
-        var version = configuration.general().version().orElse(null);
-        if (version == null || "".equals(version)) {
-            return Optional.empty();
+    private List<org.openjdk.skara.issuetracker.Issue> getCsrIssueTrackerIssues(List<Issue> issues, JdkVersion version) {
+        var issueProject = issueProject();
+        if (issueProject == null) {
+            return List.of();
         }
-        return JdkVersion.parse(version);
+        if (version == null) {
+            return List.of();
+        }
+        var csrIssues = new ArrayList<org.openjdk.skara.issuetracker.Issue>();
+        for (var issue : issues) {
+            var jbsIssueOpt = issueProject.issue(issue.shortId());
+            if (jbsIssueOpt.isEmpty()) {
+                continue;
+            }
+            Backports.findCsr(jbsIssueOpt.get(), version)
+                    .ifPresent(csrIssues::add);
+        }
+        return csrIssues;
     }
 
     /**
      * Get the csr issue. Note: this `Issue` is not the issue in module `issuetracker`.
      */
-    private Optional<Issue> getCsrIssue(Issue issue) {
-        var issueProject = issueProject();
-        if (issueProject == null) {
-            return Optional.empty();
-        }
-        var jbsIssueOpt = issueProject.issue(issue.shortId());
-        if (jbsIssueOpt.isEmpty()) {
-            return Optional.empty();
-        }
+    private List<Issue> getCsrIssues(List<org.openjdk.skara.issuetracker.Issue> csrIssueTrackerIssues) {
 
-        var versionOpt = getVersion(pr);
-        if (versionOpt.isEmpty()) {
-            return Optional.empty();
-        }
-
-        return Backports.findCsr(jbsIssueOpt.get(), versionOpt.get())
-                .flatMap(perIssue -> Issue.fromStringRelaxed(perIssue.id() + ": " + perIssue.title()));
+        return csrIssueTrackerIssues.stream()
+                .map(perIssue -> Issue.fromStringRelaxed(perIssue.id() + ": " + perIssue.title()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .toList();
     }
 
     private Optional<Issue> getJepIssue() {
@@ -178,7 +186,7 @@ class CheckRun {
         var jepComment = pr.comments().stream()
                 .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))
                 .flatMap(comment -> comment.body().lines())
-                .map(JEPCommand.jepMarkerPattern::matcher)
+                .map(JEP_MARKER_PATTERN::matcher)
                 .filter(Matcher::find)
                 .reduce((first, second) -> second)
                 .orElse(null);
@@ -240,27 +248,59 @@ class CheckRun {
         return ret;
     }
 
-    // Additional bot-specific progresses that are not handled by JCheck
-    private Map<String, Boolean> botSpecificProgresses() {
-        var ret = new HashMap<String, Boolean>();
-        if (pr.labelNames().contains("csr")) {
-            // If the PR have csr label, the CSR request need to be approved.
-            ret.put("Change requires a CSR request to be approved", false);
-        } else {
-            var csrIssue = Issue.fromStringRelaxed(pr.title()).flatMap(this::getCsrIssue)
-                    .flatMap(value -> issueProject() != null ? issueProject().issue(value.shortId()) : Optional.empty());
-            if (csrIssue.isPresent()) {
-                var resolution = csrIssue.get().properties().get("resolution");
-                if (resolution != null && !resolution.isNull()
-                        && resolution.get("name") != null && !resolution.get("name").isNull()
-                        && csrIssue.get().state() == org.openjdk.skara.issuetracker.Issue.State.CLOSED
-                        && "Approved".equals(resolution.get("name").asString())) {
-                    // The PR doesn't have csr label and the csr request has been Approved.
-                    ret.put("Change requires a CSR request to be approved", true);
+    private boolean isWithdrawnCSR(org.openjdk.skara.issuetracker.Issue csr) {
+        if (csr.isClosed()) {
+            var resolution = csr.properties().get("resolution");
+            if (resolution != null && !resolution.isNull()) {
+                var name = resolution.get("name");
+                if (name != null && !name.isNull() && name.asString().equals("Withdrawn")) {
+                    return true;
                 }
             }
-            // At other states, no need to add the csr progress.
         }
+        return false;
+    }
+
+    private String generateCSRProgressMessage(org.openjdk.skara.issuetracker.Issue issue) {
+        return "Change requires CSR request [" + issue.id() + "](" + issue.webUrl() + ") to be approved";
+    }
+
+    // Additional bot-specific progresses that are not handled by JCheck
+    private Map<String, Boolean> botSpecificProgresses(List<org.openjdk.skara.issuetracker.Issue> csrIssueTrackerIssues, JdkVersion version) {
+        var ret = new HashMap<String, Boolean>();
+
+        var csrIssues = csrIssueTrackerIssues.stream()
+                .filter(issue -> issue.properties().containsKey("issuetype"))
+                .filter(issue -> issue.properties().get("issuetype").asString().equals("CSR"))
+                .filter(issue -> !isWithdrawnCSR(issue))
+                .toList();
+        if (csrIssues.isEmpty() && pr.labelNames().contains("csr")) {
+            ret.put("Change requires a CSR request matching fixVersion " + (version != null ? version.raw() : "(No fixVersion in .jcheck/conf)")
+                    + " to be approved (needs to be created)", false);
+        }
+        for (var csrIssue : csrIssues) {
+            if (!csrIssue.isClosed()) {
+                ret.put(generateCSRProgressMessage(csrIssue), false);
+                continue;
+            }
+            var resolution = csrIssue.properties().get("resolution");
+            if (resolution == null || resolution.isNull()) {
+                ret.put(generateCSRProgressMessage(csrIssue), false);
+                continue;
+            }
+            var name = resolution.get("name");
+            if (name == null || name.isNull()) {
+                ret.put(generateCSRProgressMessage(csrIssue), false);
+                continue;
+            }
+            if (!name.asString().equals("Approved")) {
+                ret.put(generateCSRProgressMessage(csrIssue), false);
+                continue;
+            }
+            ret.put(generateCSRProgressMessage(csrIssue), true);
+        }
+
+
         if (pr.labelNames().contains("jep")) {
             ret.put("Change requires a JEP request to be targeted", false);
         } else {
@@ -283,10 +323,9 @@ class CheckRun {
         return Map.of("rejected", "The change is currently blocked from integration by a rejection.");
     }
 
-    private List<String> botSpecificIntegrationBlockers() {
+    private List<String> botSpecificIntegrationBlockers(List<Issue> issues) {
         var ret = new ArrayList<String>();
 
-        var issues = issues(false, false);
         var issueProject = issueProject();
         if (issueProject != null) {
             for (var currentIssue : issues) {
@@ -306,7 +345,7 @@ class CheckRun {
                             setExpiration(Duration.ofMinutes(10));
                         } else {
                             var issueType = properties.get("issuetype").asString();
-                            if (!primaryTypes.contains(issueType)) {
+                            if (!PRIMARY_TYPES.contains(issueType)) {
                                 ret.add("Issue of type `" + issueType + "` is not allowed for integrations");
                                 setExpiration(Duration.ofMinutes(10));
                             }
@@ -351,24 +390,26 @@ class CheckRun {
         }
     }
 
-    private void updateReadyForReview(PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
+    private boolean updateReadyForReview(PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
         // Additional errors are not allowed
         if (!additionalErrors.isEmpty()) {
             newLabels.remove("rfr");
-            return;
+            return false;
         }
 
         // Draft requests are not for review
         if (pr.isDraft()) {
             newLabels.remove("rfr");
-            return;
+            return false;
         }
 
         // Check if the visitor found any issues that should be resolved before reviewing
         if (visitor.isReadyForReview()) {
             newLabels.add("rfr");
+            return true;
         } else {
             newLabels.remove("rfr");
+            return false;
         }
     }
 
@@ -402,7 +443,7 @@ class CheckRun {
         if (hash == null) {
             return Optional.empty();
         }
-        var commit = pr.repository().forge().search(hash);
+        var commit = pr.repository().forge().search(hash, true);
         if (commit.isEmpty()) {
             throw new IllegalStateException("Backport comment for PR " + pr.id() + " contains bad hash: " + hash.hex());
         }
@@ -454,7 +495,7 @@ class CheckRun {
             ret.append("@");
             ret.append(user.username());
             ret.append(" (no known ");
-            ret.append(censusInstance.namespace().name());
+            ret.append(censusInstance.configuration().census().domain());
             ret.append(" user name / role)");
         } else {
             // The HostUser is null and the Contributor is not null
@@ -480,8 +521,8 @@ class CheckRun {
         return ret.toString();
     }
 
-    private String getChecksList(PullRequestCheckIssueVisitor visitor, boolean isCleanBackport, Map<String, Boolean> additionalProgresses) {
-        var checks = isCleanBackport ? visitor.getReadyForReviewChecks() : visitor.getChecks();
+    private String getChecksList(PullRequestCheckIssueVisitor visitor, boolean reviewNeeded, Map<String, Boolean> additionalProgresses) {
+        var checks = reviewNeeded ? visitor.getChecks() : visitor.getReadyForReviewChecks();
         checks.putAll(additionalProgresses);
         return checks.entrySet().stream()
                 .map(entry -> "- [" + (entry.getValue() ? "x" : " ") + "] " + entry.getKey())
@@ -573,11 +614,11 @@ class CheckRun {
 
     private String getStatusMessage(PullRequestCheckIssueVisitor visitor,
                                     List<String> additionalErrors, Map<String, Boolean> additionalProgresses,
-                                    List<String> integrationBlockers, boolean isCleanBackport) {
+                                    List<String> integrationBlockers, boolean reviewNeeded, List<Issue> allIssues) {
         var progressBody = new StringBuilder();
         progressBody.append("---------\n");
         progressBody.append("### Progress\n");
-        progressBody.append(getChecksList(visitor, isCleanBackport, additionalProgresses));
+        progressBody.append(getChecksList(visitor, reviewNeeded, additionalProgresses));
 
         var allAdditionalErrors = Stream.concat(visitor.hiddenMessages().stream(), additionalErrors.stream())
                                         .sorted()
@@ -600,15 +641,14 @@ class CheckRun {
             progressBody.append(warningListToText(integrationBlockers));
         }
 
-        var issues = issues(true, true);
         var issueProject = issueProject();
-        if (issueProject != null && !issues.isEmpty()) {
+        if (issueProject != null && !allIssues.isEmpty()) {
             progressBody.append("\n\n### Issue");
-            if (issues.size() > 1) {
+            if (allIssues.size() > 1) {
                 progressBody.append("s");
             }
             progressBody.append("\n");
-            for (var currentIssue : issues) {
+            for (var currentIssue : allIssues) {
                 progressBody.append(" * ");
                 if (currentIssue.project().isPresent() && !currentIssue.project().get().equals(issueProject.name())) {
                     progressBody.append("⚠️ Issue `");
@@ -625,10 +665,13 @@ class CheckRun {
                             progressBody.append("](");
                             progressBody.append(iss.get().webUrl());
                             progressBody.append("): ");
-                            progressBody.append(iss.get().title());
+                            progressBody.append(BotUtils.escape(iss.get().title()));
                             var issueType = iss.get().properties().get("issuetype");
                             if (issueType != null && "CSR".equals(issueType.asString())) {
                                 progressBody.append(" (**CSR**)");
+                                if (isWithdrawnCSR(iss.get())) {
+                                    progressBody.append(" (Withdrawn)");
+                                }
                             }
                             if (issueType != null && "JEP".equals(issueType.asString())) {
                                 progressBody.append(" (**JEP**)");
@@ -725,7 +768,7 @@ class CheckRun {
 
     private String bodyWithoutStatus() {
         var description = pr.body();
-        var markerIndex = description.lastIndexOf(progressMarker);
+        var markerIndex = description.lastIndexOf(PROGRESS_MARKER);
         return (markerIndex < 0 ?
                 description :
                 description.substring(0, markerIndex)).trim();
@@ -733,7 +776,7 @@ class CheckRun {
 
     private String updateStatusMessage(String message) {
         var description = pr.body();
-        var markerIndex = description.lastIndexOf(progressMarker);
+        var markerIndex = description.lastIndexOf(PROGRESS_MARKER);
 
         if (markerIndex >= 0 && description.substring(markerIndex).equals(message)) {
             log.info("Progress already up to date");
@@ -741,9 +784,9 @@ class CheckRun {
         }
         var originalBody = bodyWithoutStatus();
         if (originalBody.isBlank()) {
-            originalBody = emptyPrBodyMarker;
+            originalBody = EMPTY_PR_BODY_MARKER;
         }
-        var newBody = originalBody + "\n\n" + progressMarker + "\n" + message;
+        var newBody = originalBody + "\n\n" + PROGRESS_MARKER + "\n" + message;
 
         // Retrieve the body again here to lower the chance of concurrent updates
         var latestPR = pr.repository().pullRequest(pr.id());
@@ -895,7 +938,7 @@ class CheckRun {
             message.append("[/integrate](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) ");
             message.append("in a new comment.\n");
         }
-        message.append(mergeReadyMarker);
+        message.append(MERGE_READY_MARKER);
         return message.toString();
     }
 
@@ -904,12 +947,12 @@ class CheckRun {
         message.append("@");
         message.append(pr.author().username());
         message.append(" This change is no longer ready for integration - check the PR body for details.\n");
-        message.append(mergeReadyMarker);
+        message.append(MERGE_READY_MARKER);
         return message.toString();
     }
 
     private void addFullNameWarningComment() {
-        var existing = findComment(fullNameWarningMarker);
+        var existing = findComment(FULL_NAME_WARNING_MARKER);
         if (existing.isPresent()) {
             // Only warn once
             return;
@@ -938,12 +981,12 @@ class CheckRun {
                           "$ git commit --author='Preferred Full Name <you@example.com>' --allow-empty -m 'Update full name'\n" +
                           "$ git push\n" +
                           "```\n";
-            pr.addComment(fullNameWarningMarker + "\n" + message);
+            pr.addComment(FULL_NAME_WARNING_MARKER + "\n" + message);
         }
     }
 
     private void updateMergeReadyComment(boolean isReady, String commitMessage, boolean rebasePossible) {
-        var existing = findComment(mergeReadyMarker);
+        var existing = findComment(MERGE_READY_MARKER);
         if (isReady && rebasePossible) {
             addFullNameWarningComment();
             var message = getMergeReadyComment(commitMessage);
@@ -970,7 +1013,7 @@ class CheckRun {
     }
 
     private void addSourceBranchWarningComment() {
-        var existing = findComment(sourceBranchWarningMarker);
+        var existing = findComment(SOURCE_BRANCH_WARNING_MARKER);
         if (existing.isPresent()) {
             // Only add the comment once per PR
             return;
@@ -996,13 +1039,13 @@ class CheckRun {
             "\n" +
             "Then proceed to create a new pull request with `NEW-BRANCH-NAME` as the source branch and " +
             "close this one.\n" +
-            sourceBranchWarningMarker;
+            SOURCE_BRANCH_WARNING_MARKER;
         log.info("Adding source branch warning comment");
         pr.addComment(message);
     }
 
     private void addOutdatedComment() {
-        var existing = findComment(outdatedHelpMarker);
+        var existing = findComment(OUTDATED_HELP_MARKER);
         if (existing.isPresent()) {
             // Only add the comment once per PR
             return;
@@ -1018,13 +1061,13 @@ class CheckRun {
                 "git commit -m \"Merge " + pr.targetRef() + "\"\n" +
                 "git push\n" +
                 "```\n" +
-                outdatedHelpMarker;
+                OUTDATED_HELP_MARKER;
         log.info("Adding merge conflict comment");
         pr.addComment(message);
     }
 
     private void addMergeCommitWarningComment() {
-        var existing = findComment(mergeCommitWarningMarker);
+        var existing = findComment(MERGE_COMMIT_WARNING_MARKER);
         if (existing.isPresent()) {
             // Only add the comment once per PR
             return;
@@ -1037,13 +1080,17 @@ class CheckRun {
                       " If this is your intention, then please ignore this message. If you want to preserve the commit structure, you must change" +
                       " the title of this pull request to `Merge <project>:<branch>` where `<project>` is the name of another project in the" +
                       " [OpenJDK organization](https://github.com/openjdk) (for example `Merge jdk:" + defaultBranch + "`).\n" +
-                      mergeCommitWarningMarker;
+                      MERGE_COMMIT_WARNING_MARKER;
         log.info("Adding merge commit warning comment");
         pr.addComment(message);
     }
 
+    static String getJcheckName(PullRequest pr) {
+        return pr.repository().forge().name().equals("GitHub") ? "jcheck-" + pr.repository().name() + "-" + pr.id() : "jcheck";
+    }
+
     private void checkStatus() {
-        var checkBuilder = CheckBuilder.create("jcheck", pr.headHash());
+        var checkBuilder = CheckBuilder.create(getJcheckName(pr), pr.headHash());
         var censusDomain = censusInstance.configuration().census().domain();
         Exception checkException = null;
 
@@ -1070,6 +1117,7 @@ class CheckRun {
 
             List<String> additionalErrors = List.of();
             Map<String, Boolean> additionalProgresses = Map.of();
+            List<String> secondJCheckMessage = new ArrayList<>();
             Hash localHash;
             try {
                 // Do not pass eventual original commit even for backports since it will cause
@@ -1080,6 +1128,8 @@ class CheckRun {
                 localHash = baseHash;
             }
             PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor();
+            boolean needUpdateAdditionalProgresses = false;
+            boolean sourceBranchJCheckConfValid = true;
             if (localHash.equals(baseHash)) {
                 if (additionalErrors.isEmpty()) {
                     additionalErrors = List.of("This PR contains no changes");
@@ -1089,31 +1139,63 @@ class CheckRun {
             } else {
                 // Determine current status
                 var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), comments);
-                checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration);
+                checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration, checkablePullRequest.targetHash());
+                // Don't need to run the second round if confOverride is set.
+                if (workItem.bot.confOverrideRepository().isEmpty() && isFileUpdated(".jcheck/conf", localHash)) {
+                    try {
+                        PullRequestCheckIssueVisitor visitor2 = checkablePullRequest.createVisitorUsingHeadHash();
+                        log.info("Run jcheck again with the updated configuration");
+                        checkablePullRequest.executeChecks(localHash, censusInstance, visitor2, additionalConfiguration, pr.headHash());
+                        secondJCheckMessage.addAll(visitor2.messages().stream()
+                                .map(StringBuilder::new)
+                                .map(e -> e.append(" (failed with the updated jcheck configuration)"))
+                                .map(StringBuilder::toString)
+                                .toList());
+                    } catch (Exception e) {
+                        var message = e.getMessage() + " (exception thrown when running jcheck with updated jcheck configuration)";
+                        log.warning(message);
+                        secondJCheckMessage.add(message);
+                        sourceBranchJCheckConfValid = false;
+                    }
+                }
                 additionalErrors = botSpecificChecks(isCleanBackport);
-                additionalProgresses = botSpecificProgresses();
+                needUpdateAdditionalProgresses = true;
             }
-            updateCheckBuilder(checkBuilder, visitor, additionalErrors);
-            updateReadyForReview(visitor, additionalErrors);
 
-            var integrationBlockers = botSpecificIntegrationBlockers();
+            JdkVersion version = null;
+            if (sourceBranchJCheckConfValid) {
+                version = BotUtils.getVersion(pr).orElse(null);
+            }
+            // issues without CSR issues and JEP issues
+            var issues = issues();
+            var csrIssueTrackerIssues = getCsrIssueTrackerIssues(issues, version);
+            if (needUpdateAdditionalProgresses) {
+                additionalProgresses = botSpecificProgresses(csrIssueTrackerIssues, version);
+            }
+
+            updateCheckBuilder(checkBuilder, visitor, additionalErrors);
+            var readyForReview = updateReadyForReview(visitor, additionalErrors);
+
+            var integrationBlockers = botSpecificIntegrationBlockers(issues);
+            integrationBlockers.addAll(secondJCheckMessage);
+
+            var reviewNeeded = !isCleanBackport || reviewCleanBackport;
 
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, isCleanBackport);
+            var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, reviewNeeded, issuesWithCSRAndJEP(issues, csrIssueTrackerIssues));
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
 
             var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace(), original.map(Commit::hash).orElse(null));
             var commit = localRepo.lookup(amendedHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
-            var readyForIntegration = visitor.messages().isEmpty() &&
-                                      additionalErrors.isEmpty() &&
+            var readyForIntegration = readyForReview &&
+                                      visitor.messages().isEmpty() &&
                                       !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty();
-            if (isCleanBackport) {
-                // Reviews are not needed for clean backports
-                readyForIntegration = visitor.isReadyForReview() &&
-                                      additionalErrors.isEmpty() &&
+            if (!reviewNeeded) {
+                // Reviews are not needed for clean backports unless this repo is configured with reviewCleanBackport enabled
+                readyForIntegration = readyForReview &&
                                       !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty();
             }
@@ -1188,5 +1270,13 @@ class CheckRun {
         if (checkException != null) {
             throw new RuntimeException("Exception during jcheck", checkException);
         }
+    }
+
+    private boolean isFileUpdated(String filename, Hash hash) throws IOException {
+        return localRepo.commits(hash.hex(), 1).stream()
+                .anyMatch(commit -> commit.parentDiffs().stream()
+                        .anyMatch(diff -> diff.patches().stream()
+                                .anyMatch(patch -> (patch.source().path().isPresent() && patch.source().path().get().toString().equals(filename))
+                                        || ((patch.target().path().isPresent() && patch.target().path().get().toString().equals(filename))))));
     }
 }

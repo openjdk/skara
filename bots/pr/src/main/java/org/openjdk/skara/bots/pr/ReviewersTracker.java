@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,12 +31,12 @@ import java.util.regex.*;
 import java.util.stream.Collectors;
 
 class ReviewersTracker {
-    private final static String reviewersMarker = "<!-- additional required reviewers id marker (%d) (%s) -->";
-    private final static Pattern reviewersMarkerPattern = Pattern.compile(
+    private static final String REVIEWERS_MARKER = "<!-- additional required reviewers id marker (%d) (%s) -->";
+    private static final Pattern REVIEWERS_MARKER_PATTERN = Pattern.compile(
             "<!-- additional required reviewers id marker \\((\\d+)\\) \\((\\w+)\\) -->");
 
     static String setReviewersMarker(int numReviewers, String role) {
-        return String.format(reviewersMarker, numReviewers, role);
+        return String.format(REVIEWERS_MARKER, numReviewers, role);
     }
 
     static LinkedHashMap<String, Integer> updatedRoleLimits(JCheckConfiguration checkConfiguration, int count, String role) {
@@ -114,7 +114,7 @@ class ReviewersTracker {
         var ret = new HashMap<String, Integer>();
         var reviewersActions = comments.stream()
                                        .filter(comment -> comment.author().equals(botUser))
-                                       .map(comment -> reviewersMarkerPattern.matcher(comment.body()))
+                                       .map(comment -> REVIEWERS_MARKER_PATTERN.matcher(comment.body()))
                                        .filter(Matcher::find)
                                        .collect(Collectors.toList());
         if (reviewersActions.isEmpty()) {

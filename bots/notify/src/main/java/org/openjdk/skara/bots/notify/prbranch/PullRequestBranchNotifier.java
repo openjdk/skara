@@ -33,10 +33,12 @@ import java.util.logging.Logger;
 
 public class PullRequestBranchNotifier implements Notifier, PullRequestListener {
     private final Path seedFolder;
+    private final boolean protectBranches;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
-    public PullRequestBranchNotifier(Path seedFolder) {
+    public PullRequestBranchNotifier(Path seedFolder, boolean protectBranches) {
         this.seedFolder = seedFolder;
+        this.protectBranches = protectBranches;
     }
 
     @Override
@@ -50,6 +52,10 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
             var seedRepo = hostedRepositoryPool.seedRepository(pr.repository(), false);
             seedRepo.fetch(pr.repository().url(), pr.headHash().hex());
             String branch = PreIntegrations.preIntegrateBranch(pr);
+            if (protectBranches) {
+                log.info("Protecting branch " + branch);
+                pr.repository().protectBranchPattern(branch);
+            }
             log.info("Creating new pull request pre-integration branch " + branch);
             seedRepo.push(pr.headHash(), pr.repository().url(), branch, true);
         } catch (IOException e) {
@@ -60,6 +66,10 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
     private void deleteBranch(PullRequest pr) {
         String branch = PreIntegrations.preIntegrateBranch(pr);
         var branchExists = pr.repository().branchHash(branch).isPresent();
+        if (protectBranches) {
+            log.info("Removing branch protection for " + branch);
+            pr.repository().unprotectBranchPattern(branch);
+        }
         if (!branchExists) {
             log.info("Pull request pre-integration branch " + branch + " doesn't exist on remote - ignoring");
             return;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class CommandExtractor {
-    private static final Pattern commandPattern = Pattern.compile("^\\s*/([A-Za-z]+)(?:\\s+(.*))?");
+    private static final Pattern COMMAND_PATTERN = Pattern.compile("^\\s*/([A-Za-z]+)(?:\\s+(.*))?");
 
     private static String formatId(String baseId, int subId) {
         if (subId > 0) {
@@ -108,7 +108,7 @@ public class CommandExtractor {
         String multiLineCommand = null;
         int subId = 0;
         for (var line : text.split("\\R")) {
-            var commandMatcher = commandPattern.matcher(line);
+            var commandMatcher = COMMAND_PATTERN.matcher(line);
             if (commandMatcher.matches()) {
                 if (multiLineHandler != null) {
                     ret.add(new CommandInvocation(formatId(baseId, subId++), user, multiLineHandler, multiLineCommand,

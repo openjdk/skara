@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import java.util.logging.Level;
 import org.openjdk.skara.bot.WorkItem;
+import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
@@ -43,17 +44,17 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 class CheckWorkItem extends PullRequestWorkItem {
-    private final Pattern metadataComments = Pattern.compile("<!-- (?:backport)|(?:(add|remove) (?:contributor|reviewer))|(?:summary: ')|(?:solves: ')|(?:additional required reviewers)|(?:jep: ')|(?:csr: ')");
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     static final Pattern ISSUE_ID_PATTERN = Pattern.compile("^(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)"
             + "(?::(?<space>[\\s\u00A0\u2007\u202F]+)(?<title>.+))?$");
     private static final Pattern BACKPORT_HASH_TITLE_PATTERN = Pattern.compile("^Backport\\s*([0-9a-z]{40})\\s*$");
     private static final Pattern BACKPORT_ISSUE_TITLE_PATTERN = Pattern.compile("^Backport\\s*(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)\\s*$");
+    private static final Pattern METADATA_COMMENTS_PATTERN = Pattern.compile("<!-- (?:backport)|(?:(add|remove) (?:contributor|reviewer))|(?:summary: ')|(?:solves: ')|(?:additional required reviewers)|(?:jep: ')|(?:csr: ')");
     private static final String ELLIPSIS = "…";
     protected static final String FORCE_PUSH_MARKER = "<!-- force-push suggestion -->";
     protected static final String FORCE_PUSH_SUGGESTION= """
             Please do not rebase or force-push to an active PR as it invalidates existing review comments. \
-            All changes will be squashed into a single commit automatically when integrating. \
+            Note for future reference, the bots always squash all changes into a single commit automatically as part of the integration. \
             See [OpenJDK Developers’ Guide](https://openjdk.org/guide/#working-with-pull-requests) for more information.
             """;
 
@@ -91,7 +92,7 @@ class CheckWorkItem extends PullRequestWorkItem {
             var commentString = comments.stream()
                                         .filter(comment -> comment.author().id().equals(pr.repository().forge().currentUser().id()))
                                         .flatMap(comment -> comment.body().lines())
-                                        .filter(line -> metadataComments.matcher(line).find())
+                                        .filter(line -> METADATA_COMMENTS_PATTERN.matcher(line).find())
                                         .collect(Collectors.joining());
             var labelString = labels.stream()
                                     .sorted()
@@ -119,9 +120,10 @@ class CheckWorkItem extends PullRequestWorkItem {
         var hash = pr.headHash();
         var metadata = getMetadata(censusInstance, pr.title(), pr.body(), comments, reviews, labels, pr.targetRef(), pr.isDraft(), null);
         var currentChecks = pr.checks(hash);
+        var jcheckName = CheckRun.getJcheckName(pr);
 
-        if (currentChecks.containsKey("jcheck")) {
-            var check = currentChecks.get("jcheck");
+        if (currentChecks.containsKey(jcheckName)) {
+            var check = currentChecks.get(jcheckName);
             if (check.completedAt().isPresent() && check.metadata().isPresent()) {
                 var previousMetadata = check.metadata().get();
                 if (previousMetadata.contains(":")) {
@@ -228,13 +230,10 @@ class CheckWorkItem extends PullRequestWorkItem {
 
     @Override
     public Collection<WorkItem> prRun(Path scratchPath) {
-        // First determine if the current state of the PR has already been checked
         var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
         CensusInstance census;
-        var comments = pr.comments();
-        var allReviews = pr.reviews();
-        var labels = new HashSet<>(pr.labelNames());
+        var comments = prComments();
         try {
             census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
                     bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
@@ -268,8 +267,11 @@ class CheckWorkItem extends PullRequestWorkItem {
             return List.of();
         }
 
+        var allReviews = pr.reviews();
+        var labels = new HashSet<>(pr.labelNames());
         // Filter out the active reviews
         var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews, pr.targetRef());
+        // Determine if the current state of the PR has already been checked
         if (!currentCheckValid(census, comments, activeReviews, labels)) {
             if (labels.contains("integrated")) {
                 log.info("Skipping check of integrated PR");
@@ -406,7 +408,8 @@ class CheckWorkItem extends PullRequestWorkItem {
             try {
                 Repository localRepo = materializeLocalRepo(scratchPath, hostedRepositoryPool);
 
-                var expiresAt = CheckRun.execute(this, pr, localRepo, comments, allReviews, activeReviews, labels, census, bot.ignoreStaleReviews(), bot.integrators());
+                var expiresAt = CheckRun.execute(this, pr, localRepo, comments, allReviews,
+                        activeReviews, labels, census, bot.ignoreStaleReviews(), bot.integrators(), bot.reviewCleanBackport());
                 if (log.isLoggable(Level.INFO)) {
                     // Log latency from the original updatedAt of the PR when this WorkItem
                     // was triggered to when it was just updated by the CheckRun.execute above.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.csr;
 
+import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.forge.PullRequestUtils;
 import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.issuetracker.Issue;
@@ -36,6 +37,7 @@ import java.nio.file.Files;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
 class CSRBotTests {
     @Test
@@ -315,31 +317,26 @@ class CSRBotTests {
             // be able to trigger on CSR issue updates
             PullRequestUtils.postPullRequestLinkComment(issue, pr);
 
-            // Remove `version=0.1` from `.jcheck/conf`, set the version as null
-            localRepo.checkout(localRepo.defaultBranch());
+            // Remove `version=0.1` from `.jcheck/conf`, set the version as null in the edit branch
             var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
             var newConf = defaultConf.replace("version=0.1", "");
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             var confHash = localRepo.commit("Set version as null", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.url(), "master", true);
+            localRepo.push(confHash, repo.url(), "edit", true);
             assertFalse(pr.store().labelNames().contains("csr"));
             // Run bot. The bot won't get a CSR.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the `csr` label.
             assertFalse(pr.store().labelNames().contains("csr"));
 
-            // Test the method `TestPullRequest#diff`.
-            assertEquals(1, pr.diff().patches().size());
-
             // Add `version=bla` to `.jcheck/conf`, set the version as a wrong value
-            localRepo.checkout(localRepo.defaultBranch());
             defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
             newConf = defaultConf.replace("project=test", "project=test\nversion=bla");
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as a wrong value", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.url(), "master", true);
+            localRepo.push(confHash, repo.url(), "edit", true);
             // Run bot. The bot won't get a CSR.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the `csr` label.
@@ -349,13 +346,12 @@ class CSRBotTests {
             assertEquals(1, pr.diff().patches().size());
 
             // Set the `version` in `.jcheck/conf` as 17 which is an available version.
-            localRepo.checkout(localRepo.defaultBranch());
             defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
             newConf = defaultConf.replace("version=bla", "version=17");
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 17", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.url(), "master", true);
+            localRepo.push(confHash, repo.url(), "edit", true);
             // Run bot. The primary CSR doesn't have the fix version `17`, so the bot won't get a CSR.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the `csr` label.
@@ -399,13 +395,12 @@ class CSRBotTests {
             // Set the backport CSR to have multiple fix versions, included 11.
             backportCsr.setProperty("fixVersions", JSON.array().add("17").add("11").add("8"));
             // Set the `version` in `.jcheck/conf` as 11.
-            localRepo.checkout(localRepo.defaultBranch());
             defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
             newConf = defaultConf.replace("version=17", "version=11");
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 11", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.url(), "master", true);
+            localRepo.push(confHash, repo.url(), "edit", true);
             pr.removeLabel("csr");
             // Run bot.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
@@ -422,10 +417,12 @@ class CSRBotTests {
         }
     }
 
+    private String generateCSRProgressMessage(org.openjdk.skara.issuetracker.Issue issue) {
+        return "Change requires CSR request [" + issue.id() + "](" + issue.webUrl() + ") to be approved";
+    }
+
     @Test
     void testCsrUpdateMarker(TestInfo testInfo) throws IOException {
-        String csrUpdateMarker = "<!-- csr: 'update' -->";
-        String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -455,7 +452,7 @@ class CSRBotTests {
             // Run bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the csr update marker
-            assertFalse(pr.store().body().contains(csrUpdateMarker));
+            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
 
             // Add the csr issue.
             var csr = issueProject.createIssue("This is an CSR", List.of(), Map.of());
@@ -465,19 +462,19 @@ class CSRBotTests {
             // Run just the pull request bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // Nothing should have happened
-            assertFalse(pr.store().body().contains(csrUpdateMarker));
+            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
             // Run csr issue bot to trigger updates on the CSR issue
             TestBotRunner.runPeriodicItems(csrIssueBot);
-            // The bot should add the csr update marker
-            assertTrue(pr.store().body().contains(csrUpdateMarker));
+            // The bot should not add the csr update marker
+            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
 
             // Add csr issue and progress to the PR body
-            pr.setBody("PR body\n" + progressMarker + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
-                    + "- [ ] Change requires a CSR request to be approved");
+            pr.setBody("PR body\n" + PROGRESS_MARKER + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
+                    + "- [ ] " + generateCSRProgressMessage(csr));
             // Run bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the csr update marker
-            assertFalse(pr.store().body().contains(csrUpdateMarker));
+            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
 
             // Set csr status to closed and approved.
             csr.setState(Issue.State.CLOSED);
@@ -485,31 +482,29 @@ class CSRBotTests {
             // un csr issue bot to trigger updates on the CSR issue
             TestBotRunner.runPeriodicItems(csrIssueBot);
             // The bot should add the csr update marker
-            assertTrue(pr.store().body().contains(csrUpdateMarker));
+            assertTrue(pr.store().body().contains(CSR_UPDATE_MARKER));
 
             // Add csr issue and selected progress to the PR body
-            pr.setBody("PR body\n" + progressMarker + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
-                    + "- [x] Change requires a CSR request to be approved");
+            pr.setBody("PR body\n" + PROGRESS_MARKER + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
+                    + "- [x] " + generateCSRProgressMessage(csr));
             // Run bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the csr update marker
-            assertFalse(pr.store().body().contains(csrUpdateMarker));
+            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
 
             // Add csr update marker to the pull request body manually.
-            pr.setBody("PR body\n" + progressMarker + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
-                    + "- [ ] Change requires a CSR request to be approved" + csrUpdateMarker);
+            pr.setBody("PR body\n" + PROGRESS_MARKER + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
+                    + "- [ ] " + generateCSRProgressMessage(csr));
             // Run bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the csr update marker again. The PR should have only one csr update marker.
-            assertTrue(pr.store().body().contains(csrUpdateMarker));
-            assertEquals(pr.store().body().indexOf(csrUpdateMarker), pr.store().body().lastIndexOf(csrUpdateMarker));
+            assertTrue(pr.store().body().contains(CSR_UPDATE_MARKER));
+            assertEquals(pr.store().body().indexOf(CSR_UPDATE_MARKER), pr.store().body().lastIndexOf(CSR_UPDATE_MARKER));
         }
     }
 
     @Test
     void testCsrUpdateMarkerWithWithdrawnCSRIssue(TestInfo testInfo) throws IOException {
-        String csrUpdateMarker = "<!-- csr: 'update' -->";
-        String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -539,7 +534,7 @@ class CSRBotTests {
             // Run bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the csr update marker
-            assertFalse(pr.store().body().contains(csrUpdateMarker));
+            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
 
             // Add a withdrawn csr issue.
             var csr = issueProject.createIssue("This is an CSR", List.of(), Map.of());
@@ -550,11 +545,98 @@ class CSRBotTests {
             // Run just the pull request bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // Nothing should have happened
-            assertFalse(pr.store().body().contains(csrUpdateMarker));
+            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
             // Run csr issue bot to trigger updates on the CSR issue
             TestBotRunner.runPeriodicItems(csrIssueBot);
             // The bot should not add the csr update marker
-            assertFalse(pr.store().body().contains(csrUpdateMarker));
+            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
+        }
+    }
+
+    @Test
+    void testPRWithMultipleIssues(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
+            var csrPullRequestBot = new CSRPullRequestBot(repo, issueProject);
+            var csrIssueBot = new CSRIssueBot(issueProject, List.of(repo));
+
+            // Run issue bot once to initialize lastUpdatedAt
+            TestBotRunner.runPeriodicItems(csrIssueBot);
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, repo.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, repo.url(), "edit", true);
+            var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
+            pr.setBody("PR body\n" + PROGRESS_MARKER);
+            // Add the notification link to the PR in the issue. This is needed for the CSRIssueBot to
+            // be able to trigger on CSR issue updates
+            PullRequestUtils.postPullRequestLinkComment(issue, pr);
+            // Run bot
+            TestBotRunner.runPeriodicItems(csrPullRequestBot);
+
+            // Add another issue to this pr
+            var issue2 = issueProject.createIssue("This is an issue 2", List.of(), Map.of());
+            issue2.setProperty("issuetype", JSON.of("Bug"));
+            pr.addComment(SolvesTracker.setSolvesMarker(new org.openjdk.skara.vcs.openjdk.Issue(issue2.id(), issue2.title())));
+            PullRequestUtils.postPullRequestLinkComment(issue2, pr);
+
+            // Add a csr to issue2
+            var csr2 = issueProject.createIssue("This is an CSR for issue2", List.of(), Map.of());
+            csr2.setProperty("issuetype", JSON.of("CSR"));
+            csr2.setState(Issue.State.OPEN);
+            issue2.addLink(Link.create(csr2, "csr for").build());
+
+            TestBotRunner.runPeriodicItems(csrIssueBot);
+            // PR should contain csr label
+            assertTrue(pr.store().labelNames().contains("csr"));
+
+            // Add another issue to this pr
+            var issue3 = issueProject.createIssue("This is an issue 3", List.of(), Map.of());
+            issue3.setProperty("issuetype", JSON.of("Bug"));
+            pr.addComment(SolvesTracker.setSolvesMarker(new org.openjdk.skara.vcs.openjdk.Issue(issue3.id(), issue3.title())));
+            PullRequestUtils.postPullRequestLinkComment(issue3, pr);
+
+            // Withdrawn the csr for issue2
+            csr2.setState(Issue.State.CLOSED);
+            csr2.setProperty("resolution", JSON.object().put("name", "Withdrawn"));
+            TestBotRunner.runPeriodicItems(csrIssueBot);
+            assertTrue(pr.store().body().contains(CSR_UPDATE_MARKER));
+            // PR should not contain csr label
+            assertFalse(pr.store().labelNames().contains("csr"));
+
+            // Add a csr to issue3
+            var csr3 = issueProject.createIssue("This is an CSR for issue3", List.of(), Map.of());
+            csr3.setProperty("issuetype", JSON.of("CSR"));
+            csr3.setState(Issue.State.OPEN);
+            issue3.addLink(Link.create(csr3, "csr for").build());
+
+            TestBotRunner.runPeriodicItems(csrIssueBot);
+            // PR should contain csr label
+            assertTrue(pr.store().labelNames().contains("csr"));
+
+            // Approve CSR3
+            csr3.setState(Issue.State.CLOSED);
+            csr3.setProperty("resolution", JSON.object().put("name", "Approved"));
+            TestBotRunner.runPeriodicItems(csrIssueBot);
+            // PR should not contain csr label
+            assertFalse(pr.store().labelNames().contains("csr"));
+
+            // Approve CSR2
+            csr2.setProperty("resolution", JSON.object().put("name", "Approved"));
+            TestBotRunner.runPeriodicItems(csrIssueBot);
+            // PR should not contain csr label
+            assertFalse(pr.store().labelNames().contains("csr"));
         }
     }
 }

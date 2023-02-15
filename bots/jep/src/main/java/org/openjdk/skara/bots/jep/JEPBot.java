@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,14 +34,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.openjdk.skara.bots.jep.JEPBotFactory.NAME;
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
 public class JEPBot implements Bot, WorkItem {
-    final static String JEP_LABEL = "jep";
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");
-    private final static Pattern jepMarkerPattern = Pattern.compile("<!-- jep: '(.*?)' '(.*?)' '(.*?)' -->");
     private final HostedRepository repo;
     private final IssueProject issueProject;
 
@@ -65,7 +63,7 @@ public class JEPBot implements Bot, WorkItem {
             var jepComment = pr.comments().stream()
                     .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))
                     .flatMap(comment -> comment.body().lines())
-                    .map(jepMarkerPattern::matcher)
+                    .map(JEP_MARKER_PATTERN::matcher)
                     .filter(Matcher::find)
                     .reduce((first, second) -> second)
                     .orElse(null);

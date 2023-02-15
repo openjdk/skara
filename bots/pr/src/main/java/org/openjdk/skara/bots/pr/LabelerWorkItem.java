@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,7 +35,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class LabelerWorkItem extends PullRequestWorkItem {
-    private static final String initialLabelMessage = "<!-- PullRequestBot initial label help comment -->";
+    private static final String INITIAL_LABEL_MESSAGE = "<!-- PullRequestBot initial label help comment -->";
 
     LabelerWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler,
             ZonedDateTime prUpdatedAt) {
@@ -61,7 +61,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
     }
 
     private void updateLabelMessage(List<Comment> comments, List<String> newLabels) {
-        var existing = findComment(comments, initialLabelMessage);
+        var existing = findComment(comments, INITIAL_LABEL_MESSAGE);
         if (existing.isPresent()) {
             // Only add the comment once per PR
             return;
@@ -111,7 +111,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         }
 
         message.append("\n");
-        message.append(initialLabelMessage);
+        message.append(INITIAL_LABEL_MESSAGE);
         pr.addComment(message.toString());
     }
 
@@ -126,7 +126,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             return List.of();
         }
 
-        var comments = pr.comments();
+        var comments = prComments();
         var manuallyAdded = LabelTracker.currentAdded(pr.repository().forge().currentUser(), comments);
         var manuallyRemoved = LabelTracker.currentRemoved(pr.repository().forge().currentUser(), comments);
 

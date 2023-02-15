@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,13 +37,12 @@ import java.util.logging.Logger;
 import java.util.regex.*;
 import java.util.stream.*;
 
+import static org.openjdk.skara.bots.pr.CommitCommandWorkItem.COMMAND_REPLY_MARKER;
+import static org.openjdk.skara.bots.pr.CommitCommandWorkItem.COMMAND_REPLY_PATTERN;
+
 public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
-
-    private static final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
-    private static final Pattern commandReplyPattern = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
-
-    public static final String VALID_BOT_COMMAND_MARKER = "<!-- Valid self-command -->";
+    static final String VALID_BOT_COMMAND_MARKER = "<!-- Valid self-command -->";
 
     PullRequestCommandWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler,
             ZonedDateTime prUpdatedAt, boolean needsReadyCheck) {
@@ -85,7 +84,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         var self = pr.repository().forge().currentUser();
         return comments.stream()
                 .filter(comment -> comment.author().equals(self))
-                .map(comment -> commandReplyPattern.matcher(comment.body()))
+                .map(comment -> COMMAND_REPLY_PATTERN.matcher(comment.body()))
                 .filter(Matcher::find)
                 .map(matcher -> matcher.group(1))
                 .collect(Collectors.toSet());
@@ -119,7 +118,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
-        printer.println(String.format(commandReplyMarker, command.id()));
+        printer.println(String.format(COMMAND_REPLY_MARKER, command.id()));
         printer.print("@");
         printer.print(command.user().username());
         printer.print(" ");
@@ -179,7 +178,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     public Collection<WorkItem> prRun(Path scratchPath) {
         log.info("Looking for PR commands");
 
-        var comments = pr.comments();
+        var comments = getAllComments();
         var nextCommand = nextCommand(pr, comments);
 
         if (nextCommand.isEmpty()) {
@@ -227,5 +226,14 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     @Override
     public String workItemName() {
         return "pr-command";
+    }
+
+    /**
+     * This method returns all the comments in the pr including comments in reviews(review body)
+     */
+    private List<Comment> getAllComments() {
+        return Stream.concat(prComments().stream(),
+                        pr.reviews().stream().map(review -> new Comment("Review" + review.id(), review.body().orElse(""), review.reviewer(), review.createdAt(), null)))
+                .sorted(Comparator.comparing(Comment::createdAt)).toList();
     }
 }

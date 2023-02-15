@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,14 +44,14 @@ class PullRequestCloserBotWorkItem implements WorkItem {
         this.errorHandler = errorHandler;
     }
 
-    private final String welcomeMarker = "<!-- PullrequestCloserBot welcome message -->";
+    private static final String WELCOME_MARKER = "<!-- PullrequestCloserBot welcome message -->";
 
     private void checkWelcomeMessage() {
         log.info("Checking welcome message of " + pr);
 
         var comments = pr.comments();
         var welcomePosted = comments.stream()
-                                    .anyMatch(comment -> comment.body().contains(welcomeMarker));
+                                    .anyMatch(comment -> comment.body().contains(WELCOME_MARKER));
 
         if (!welcomePosted) {
             String message = null;
@@ -74,7 +74,7 @@ class PullRequestCloserBotWorkItem implements WorkItem {
             }
 
             log.fine("Posting welcome message");
-            pr.addComment(welcomeMarker + "\n\n" + message);
+            pr.addComment(WELCOME_MARKER + "\n\n" + message);
         }
         pr.setState(PullRequest.State.CLOSED);
     }

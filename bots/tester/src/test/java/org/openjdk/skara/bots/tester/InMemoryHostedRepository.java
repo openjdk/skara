@@ -129,8 +129,12 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public String fileContents(String filename, String ref) {
-        return null;
+    public Optional<String> fileContents(String filename, String ref) {
+        return Optional.empty();
+    }
+
+    @Override
+    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail) {
     }
 
     @Override
@@ -169,6 +173,14 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public void protectBranchPattern(String ref) {
+    }
+
+    @Override
+    public void unprotectBranchPattern(String ref) {
+    }
+
+    @Override
     public void deleteBranch(String ref) {
     }
 
@@ -187,7 +199,7 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public Optional<HostedCommit> commit(Hash commit) {
+    public Optional<HostedCommit> commit(Hash commit, boolean includeDiffs) {
         return Optional.empty();
     }
 
@@ -202,7 +214,8 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits, Set<Integer> excludeAuthors) {
+    public List<CommitComment> recentCommitComments(ReadOnlyRepository unused, Set<Integer> excludeAuthors,
+            List<Branch> branches, ZonedDateTime updatedAfter) {
         return List.of();
     }
 

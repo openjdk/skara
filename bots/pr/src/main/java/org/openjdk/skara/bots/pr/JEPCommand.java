@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,15 +31,12 @@ import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
 public class JEPCommand implements CommandHandler {
-    static final String JEP_LABEL = "jep";
-    private static final String jepMarker = "<!-- jep: '%s' '%s' '%s' -->"; // <!-- jep: 'JEP-ID' 'ISSUE-ID' 'ISSUE-TITLE' -->
-    static final Pattern jepMarkerPattern = Pattern.compile("<!-- jep: '(.*?)' '(.*?)' '(.*?)' -->");
-    private static final String unneededMarker = "<!-- jep: 'unneeded' 'unneeded' 'unneeded' -->";
+    private static final String UNNEEDED_MARKER = "<!-- jep: 'unneeded' 'unneeded' 'unneeded' -->";
 
     private void showHelp(PrintWriter reply) {
         reply.println("""
@@ -109,7 +106,7 @@ public class JEPCommand implements CommandHandler {
             if (labelNames.contains(JEP_LABEL)) {
                 labelsToRemove.add(JEP_LABEL);
             }
-            reply.println(unneededMarker);
+            reply.println(UNNEEDED_MARKER);
             reply.println("determined that the JEP request is not needed for this pull request.");
             return;
         }
@@ -142,7 +139,7 @@ public class JEPCommand implements CommandHandler {
 
         // Set the marker and output the result
         var jepNumber = jbsIssue.properties().get(JEP_NUMBER).asString();
-        reply.println(String.format(jepMarker, jepNumber, jbsIssue.id(), jbsIssue.title()));
+        reply.println(String.format(JEP_MARKER, jepNumber, jbsIssue.id(), jbsIssue.title()));
         if ("Targeted".equals(issueStatus) || "Integrated".equals(issueStatus) ||
             "Completed".equals(issueStatus) || ("Closed".equals(issueStatus) && "Delivered".equals(resolutionName))) {
             reply.println("The JEP for this pull request, [JEP-" + jepNumber + "](" + jbsIssue.webUrl() + "), has already been targeted.");

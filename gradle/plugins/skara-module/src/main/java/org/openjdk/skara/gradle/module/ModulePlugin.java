@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,22 +23,19 @@
 
 package org.openjdk.skara.gradle.module;
 
-import org.gradle.api.Plugin;
-import org.gradle.api.Project;
-import org.gradle.api.GradleException;
-import org.gradle.api.Action;
-import org.gradle.api.DefaultTask;
-import org.gradle.api.Task;
-import org.gradle.api.tasks.compile.JavaCompile;
-import org.gradle.api.tasks.SourceSet;
-import org.gradle.api.tasks.testing.Test;
-import org.gradle.api.plugins.JavaPluginConvention;
-
-import java.util.List;
+import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.io.File;
+import org.gradle.api.Action;
+import org.gradle.api.GradleException;
+import org.gradle.api.Plugin;
+import org.gradle.api.Project;
+import org.gradle.api.Task;
+import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.tasks.compile.JavaCompile;
+import org.gradle.api.tasks.testing.Test;
 
 public class ModulePlugin implements Plugin<Project> {
     public void apply(Project project) {
@@ -47,8 +44,7 @@ public class ModulePlugin implements Plugin<Project> {
 
         project.afterEvaluate(p -> {
             for (var task : project.getTasksByName("compileJava", false)) {
-                if (task instanceof JavaCompile) {
-                    var compileJavaTask = (JavaCompile) task;
+                if (task instanceof JavaCompile compileJavaTask) {
                     compileJavaTask.doFirst(new Action<>() {
                         @Override
                         public void execute(Task at) {
@@ -62,18 +58,16 @@ public class ModulePlugin implements Plugin<Project> {
             }
 
             for (var task : project.getTasksByName("compileTestJava", false)) {
-                if (task instanceof JavaCompile) {
-                    var compileTestJavaTask = (JavaCompile) task;
+                if (task instanceof JavaCompile compileTestJavaTask) {
                     compileTestJavaTask.doFirst(new Action<>() {
                         @Override
                         public void execute(Task at) {
-                            var t = (JavaCompile) at;
-                            var maybeModuleName = extension.getName().get();
-                            if (maybeModuleName == null) {
+                            var maybeModuleName = extension.getName();
+                            if (!maybeModuleName.isPresent()) {
                                 throw new GradleException("project " + p.getName() + " has not set ext.moduleName");
                             }
-                            var moduleName = maybeModuleName.toString();
-                            var testSourceSet = project.getConvention().getPlugin(JavaPluginConvention.class).getSourceSets().getByName("test");
+                            var moduleName = maybeModuleName.get();
+                            var testSourceSet = project.getExtensions().getByType(JavaPluginExtension.class).getSourceSets().getByName("test");
                             var testSourceDirs = testSourceSet.getAllJava().getSrcDirs().stream().map(File::toString).collect(Collectors.joining(":"));
                             var classpath = compileTestJavaTask.getClasspath().getAsPath();
 
@@ -98,22 +92,24 @@ public class ModulePlugin implements Plugin<Project> {
             }
 
             for (var task : project.getTasksByName("test", false)) {
-                if (task instanceof Test) {
-                    var testTask = (Test) task;
+                if (task instanceof Test testTask) {
                     testTask.doFirst(new Action<>() {
                         @Override
                         public void execute(Task at) {
                             var t = (Test) at;
-                            var maybeModuleName = extension.getName().get();
-                            if (maybeModuleName == null) {
+                            var maybeModuleName = extension.getName();
+                            if (!maybeModuleName.isPresent()) {
                                 throw new GradleException("project " + p.getName() + " has not set ext.moduleName");
                             }
-                            var moduleName = maybeModuleName.toString();
-                            var testSourceSet = project.getConvention().getPlugin(JavaPluginConvention.class).getSourceSets().getByName("test");
-                            var outputDir = testSourceSet.getJava().getOutputDir().toString();
+                            var moduleName = maybeModuleName.get();
+                            var testSourceSet = project.getExtensions().getByType(JavaPluginExtension.class).getSourceSets().getByName("test");
+                            var outputDir = testSourceSet.getJava().getClassesDirectory().get().toString();
                             var classpath = testTask.getClasspath().getAsPath();
 
-                            var jvmArgs = new ArrayList<>(testTask.getJvmArgs());
+                            var jvmArgs = new ArrayList<>();
+                            if (testTask.getJvmArgs() != null) {
+                                jvmArgs.addAll(testTask.getJvmArgs());
+                            }
                             jvmArgs.addAll(List.of(
                                     "-Djunit.jupiter.extensions.autodetection.enabled=true",
                                     "--module-path", classpath,

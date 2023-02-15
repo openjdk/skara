@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge.github;
 
+import java.util.Properties;
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.forge.HostedRepository;
@@ -30,6 +31,7 @@ import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.test.ManualTestSettings;
+import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Diff;
 import org.openjdk.skara.vcs.DiffComparator;
 import org.openjdk.skara.vcs.Hash;
@@ -49,11 +51,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class GitHubRestApiTests {
     private static final String GITHUB_REST_URI = "https://github.com";
     Forge githubHost;
+    private Properties settings;
 
     @BeforeEach
     void setupHost() throws IOException {
         HttpProxy.setup();
-        var settings = ManualTestSettings.loadManualTestSettings();
+        settings = ManualTestSettings.loadManualTestSettings();
         // Here use the OAuth2 token. To use a GitHub App, please see ManualForgeTests#gitHubLabels.
         var username = settings.getProperty("github.user");
         var token = settings.getProperty("github.pat");
@@ -159,5 +162,73 @@ public class GitHubRestApiTests {
 
         // Won't get the force push time when if the force push is during draft period
         assertEquals(Optional.empty(), testPr.lastForcePushTime());
+    }
+
+    @Test
+    void fileContentsNonExisting() {
+        var gitHubRepo = githubHost.repository(settings.getProperty("github.repository")).orElseThrow();
+        var branch = new Branch(settings.getProperty("github.repository.branch"));
+        var fileName = "testfile-that-does-not-exist.txt";
+        var returnedContents = gitHubRepo.fileContents(fileName, branch.name());
+        assertTrue(returnedContents.isEmpty());
+    }
+
+    @Test
+    void writeFileContents() {
+        var gitHubRepo = githubHost.repository(settings.getProperty("github.repository")).orElseThrow();
+        var branch = new Branch(settings.getProperty("github.repository.branch"));
+
+        var fileName = "testfile.txt";
+
+        // Create new file
+        {
+            var fileContent = "File content";
+            gitHubRepo.writeFileContents(fileName, fileContent, branch,
+                    "First commit message", "Duke", "duke@openjdk.org");
+            var returnedContents = gitHubRepo.fileContents(fileName, branch.name());
+            assertEquals(fileContent, returnedContents.orElseThrow());
+        }
+
+        // Update file
+        {
+            var fileContent = "New file content";
+            gitHubRepo.writeFileContents(fileName, fileContent, branch,
+                    "Second commit message", "Duke", "duke@openjdk.org");
+            var returnedContents = gitHubRepo.fileContents(fileName, branch.name());
+            assertEquals(fileContent, returnedContents.orElseThrow());
+        }
+
+        // Make the file huge
+        {
+            var fileContent = "a".repeat(1024 * 1024 * 10);
+            gitHubRepo.writeFileContents(fileName, fileContent, branch,
+                    "Third commit message", "Duke", "duke@openjdk.org");
+            var returnedContents = gitHubRepo.fileContents(fileName, branch.name());
+            assertTrue(returnedContents.isPresent());
+            assertEquals(fileContent.length(), returnedContents.get().length());
+            assertTrue(fileContent.equals(returnedContents.get()),
+                    "Diff for huge file contents, printing first 50 chars of each '"
+                    + fileContent.substring(0, 50) + "' '" + returnedContents.get().substring(0, 50) + "'");
+        }
+    }
+
+    @Test
+    void testLastMarkedAsDraftTime() {
+        var githubRepoOpt = githubHost.repository("openjdk/playground");
+        assumeTrue(githubRepoOpt.isPresent());
+        var githubRepo = githubRepoOpt.get();
+        var pr = githubRepo.pullRequest("129");
+        var lastMarkedAsDraftTime = pr.lastMarkedAsDraftTime();
+        assertEquals("2023-02-11T11:51:12Z", lastMarkedAsDraftTime.get().toString());
+    }
+
+    @Test
+    void testClosedBy() {
+        var githubRepoOpt = githubHost.repository("openjdk/playground");
+        assumeTrue(githubRepoOpt.isPresent());
+        var githubRepo = githubRepoOpt.get();
+        var pr = githubRepo.pullRequest("96");
+        var user = pr.closedBy();
+        assertEquals("lgxbslgx", user.get().username());
     }
 }

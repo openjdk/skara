@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,18 +38,17 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 class ArchiveMessages {
-    private static final Pattern commentPattern = Pattern.compile("<!--.*?-->",
+    private static final Pattern COMMENT_PATTERN = Pattern.compile("<!--.*?-->",
                                                                   Pattern.DOTALL | Pattern.MULTILINE);
-    private static final Pattern commandPattern = Pattern.compile("^\\s*/([A-Za-z]+).*$", Pattern.MULTILINE | Pattern.DOTALL);
-
+    static final Pattern COMMAND_PATTERN = Pattern.compile("^\\s*/([A-Za-z]+).*$", Pattern.MULTILINE | Pattern.DOTALL);
     private static String filterCommentsAndCommands(String body) {
         var parsedBody = PullRequestBody.parse(body);
         body = parsedBody.bodyText();
 
-        var commentMatcher = commentPattern.matcher(body);
+        var commentMatcher = COMMENT_PATTERN.matcher(body);
         body = commentMatcher.replaceAll("");
 
-        var commandLineMatcher = commandPattern.matcher(body);
+        var commandLineMatcher = COMMAND_PATTERN.matcher(body);
         body = commandLineMatcher.replaceAll("");
 
         body = MarkdownToText.removeFormatting(body);
@@ -392,7 +391,10 @@ class ArchiveMessages {
             body.append(":\n\n");
             if (reviewComment.hash().isPresent() && reviewComment.line() > 0) {
                 try {
-                    var contents = pr.repository().fileContents(reviewComment.path(), reviewComment.hash().get().hex()).lines().collect(Collectors.toList());
+                    var contents = pr.repository().fileContents(reviewComment.path(), reviewComment.hash().get().hex())
+                            .orElseThrow(() -> new RuntimeException("Could not find " + reviewComment.path() + " on ref "
+                                    + reviewComment.hash().get().hex() + " in repo " + pr.repository().name()))
+                            .lines().collect(Collectors.toList());
                     for (int i = Math.max(0, reviewComment.line() - 3); i < Math.min(contents.size(), reviewComment.line()); ++i) {
                         body.append("> ").append(i + 1).append(": ").append(contents.get(i)).append("\n");
                     }

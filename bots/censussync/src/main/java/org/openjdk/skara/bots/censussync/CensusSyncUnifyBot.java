@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 package org.openjdk.skara.bots.censussync;
 
 import org.openjdk.skara.bot.*;
+import org.openjdk.skara.bots.common.BotUtils;
 import org.openjdk.skara.census.Census;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.vcs.*;
@@ -47,10 +48,6 @@ public class CensusSyncUnifyBot implements Bot, WorkItem {
         this.to = to;
         this.version = version;
         this.last = null;
-    }
-
-    private static String escape(String s) {
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
     @Override
@@ -102,7 +99,7 @@ public class CensusSyncUnifyBot implements Bot, WorkItem {
                 }
                 for (var group : census.groups()) {
                     file.println("<group name=\"" + group.name() + "\">");
-                    file.println("  <full-name>" + escape(group.fullName()) + "</full-name>");
+                    file.println("  <full-name>" + BotUtils.escape(group.fullName()) + "</full-name>");
                     file.println("  <person ref=\"" + group.lead().username() + "\" role=\"lead\" />");
                     for (var member : group.members()) {
                         if (!member.username().equals(group.lead().username())) {
@@ -113,7 +110,7 @@ public class CensusSyncUnifyBot implements Bot, WorkItem {
                 }
                 for (var project : census.projects()) {
                     file.println("<project name=\"" + project.name() + "\">");
-                    file.println("  <full-name>" + escape(project.fullName()) + "</full-name>");
+                    file.println("  <full-name>" + BotUtils.escape(project.fullName()) + "</full-name>");
                     file.println("  <sponsor ref=\"" + project.sponsor().name() + "\" />");
 
                     var roles = project.roles(version);

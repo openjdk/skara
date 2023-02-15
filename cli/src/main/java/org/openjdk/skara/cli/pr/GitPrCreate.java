@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -108,7 +108,10 @@ public class GitPrCreate {
         var skaraRemoteRepo = forge.repository(group + "/skara").orElseThrow(() ->
             new IOException("error: could not resolve Skara repository")
         );
-        var rules = skaraRemoteRepo.fileContents("config/mailinglist/rules/jdk.json", Branch.defaultFor(VCS.GIT).name());
+        var rules = skaraRemoteRepo
+                .fileContents("config/mailinglist/rules/jdk.json", Branch.defaultFor(VCS.GIT).name())
+                .orElseThrow(() -> new RuntimeException("Could not find config/mailinglist/rules/jdk.json on ref "
+                        + Branch.defaultFor(VCS.GIT).name() + " in repo " + skaraRemoteRepo.name()));
         var json = JSON.parse(rules);
         return LabelConfigurationJson.from(json);
     }

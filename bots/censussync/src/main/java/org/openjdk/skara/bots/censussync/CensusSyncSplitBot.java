@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 package org.openjdk.skara.bots.censussync;
 
 import org.openjdk.skara.bot.*;
+import org.openjdk.skara.bots.common.BotUtils;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.network.RestRequest;
 import org.openjdk.skara.vcs.*;
@@ -75,10 +76,6 @@ public class CensusSyncSplitBot implements Bot, WorkItem {
 
     private static PrintWriter newPrintWriter(Path p) throws IOException {
         return new PrintWriter(Files.newBufferedWriter(p));
-    }
-
-    private static String escape(String s) {
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
     private static List<Path> syncVersion(Element census, Path to) throws IOException {
@@ -133,7 +130,7 @@ public class CensusSyncSplitBot implements Bot, WorkItem {
             var filename = dir.resolve(name + ".xml");
             try (var file = newPrintWriter(filename)) {
                 file.format("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>%n");
-                file.format("<group name=\"%s\" full-name=\"%s\">%n", name, escape(fullName));
+                file.format("<group name=\"%s\" full-name=\"%s\">%n", name, BotUtils.escape(fullName));
                 file.format("    <lead username=\"%s\" />%n", lead);
                 for (var member : members) {
                     file.format("    <member username=\"%s\" />%n", member);
@@ -191,7 +188,7 @@ public class CensusSyncSplitBot implements Bot, WorkItem {
             var filename = dir.resolve(name + ".xml");
             try (var file = newPrintWriter(filename)) {
                 file.format("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>%n");
-                file.format("<project name=\"%s\" full-name=\"%s\" sponsor=\"%s\">%n", name, escape(fullName), sponsor);
+                file.format("<project name=\"%s\" full-name=\"%s\" sponsor=\"%s\">%n", name, BotUtils.escape(fullName), sponsor);
                 file.format("    <lead username=\"%s\" since=\"0\" />%n", lead);
 
                 for (var reviewer : reviewers) {

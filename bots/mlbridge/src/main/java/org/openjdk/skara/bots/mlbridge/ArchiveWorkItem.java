@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,14 +32,14 @@ import org.openjdk.skara.mailinglist.*;
 import org.openjdk.skara.vcs.*;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.*;
 import java.util.*;
 import java.util.function.*;
 import java.util.logging.Logger;
-import java.util.regex.*;
 import java.util.stream.Collectors;
+
+import static org.openjdk.skara.bots.mlbridge.ArchiveMessages.COMMAND_PATTERN;
 
 class ArchiveWorkItem implements WorkItem {
     private final PullRequest pr;
@@ -117,9 +117,7 @@ class ArchiveWorkItem implements WorkItem {
         }
     }
 
-    private static final Pattern commandPattern = Pattern.compile("^\\s*/([A-Za-z]+).*$", Pattern.MULTILINE | Pattern.DOTALL);
-
-    private boolean ignoreComment(HostUser author, String body) {
+    private boolean ignoreComment(HostUser author, String body, ZonedDateTime createdTime, ZonedDateTime lastDraftTime) {
         if (pr.repository().forge().currentUser().equals(author)) {
             return true;
         }
@@ -127,7 +125,7 @@ class ArchiveWorkItem implements WorkItem {
             return true;
         }
         // Check if this comment only contains command lines
-        var commandLineMatcher = commandPattern.matcher(body);
+        var commandLineMatcher = COMMAND_PATTERN.matcher(body);
         if (commandLineMatcher.find()) {
             var filteredBody = commandLineMatcher.replaceAll("");
             if (filteredBody.strip().isEmpty()) {
@@ -137,6 +135,13 @@ class ArchiveWorkItem implements WorkItem {
         for (var ignoredCommentPattern : bot.ignoredComments()) {
             var ignoredCommentMatcher = ignoredCommentPattern.matcher(body);
             if (ignoredCommentMatcher.find()) {
+                return true;
+            }
+        }
+        // If the pull request was converted to draft, the comments
+        // after the last converted time should be ignored.
+        if (pr.isDraft()) {
+            if (lastDraftTime != null && lastDraftTime.isBefore(createdTime)) {
                 return true;
             }
         }
@@ -239,18 +244,18 @@ class ArchiveWorkItem implements WorkItem {
         return ret.toString();
     }
 
+    private String mboxFile() {
+        return bot.codeRepo().name() + "/" + pr.id() + ".mbox";
+    }
+
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         var path = scratchPath.resolve("mlbridge");
-        var archiveRepo = materializeArchive(path);
-        var mboxBasePath = path.resolve(bot.codeRepo().name());
 
         var sentMails = new ArrayList<Email>();
-        try {
-            var archiveContents = Files.readString(mboxBasePath.resolve(pr.id() + ".mbox"), StandardCharsets.UTF_8);
-            sentMails.addAll(Mbox.splitMbox(archiveContents, bot.emailAddress()));
-        } catch (IOException ignored) {
-        }
+        // Load in already sent emails from the archive, if there are any.
+        var archiveContents = bot.archiveRepo().fileContents(mboxFile(), bot.archiveRef());
+        archiveContents.ifPresent(s -> sentMails.addAll(Mbox.splitMbox(s, bot.emailAddress())));
 
         var labels = new HashSet<>(pr.labelNames());
 
@@ -337,10 +342,11 @@ class ArchiveWorkItem implements WorkItem {
             var webrevPath = scratchPath.resolve("mlbridge-webrevs");
             var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer(), bot.sendInterval());
             var archiver = new ReviewArchive(pr, bot.emailAddress());
+            var lastDraftTime = pr.lastMarkedAsDraftTime().orElse(null);
 
             // Regular comments
             for (var comment : comments) {
-                if (ignoreComment(comment.author(), comment.body())) {
+                if (ignoreComment(comment.author(), comment.body(), comment.createdAt(), lastDraftTime)) {
                     archiver.addIgnored(comment);
                 } else {
                     archiver.addComment(comment);
@@ -350,7 +356,7 @@ class ArchiveWorkItem implements WorkItem {
             // Review comments
             var reviews = pr.reviews();
             for (var review : reviews) {
-                if (ignoreComment(review.reviewer(), review.body().orElse(""))) {
+                if (ignoreComment(review.reviewer(), review.body().orElse(""), review.createdAt(), lastDraftTime)) {
                     continue;
                 }
                 archiver.addReview(review);
@@ -362,7 +368,7 @@ class ArchiveWorkItem implements WorkItem {
                                    .sorted(Comparator.comparing(ReviewComment::path))
                                    .collect(Collectors.toList());
             for (var reviewComment : reviewComments) {
-                if (ignoreComment(reviewComment.author(), reviewComment.body())) {
+                if (ignoreComment(reviewComment.author(), reviewComment.body(), reviewComment.createdAt(), lastDraftTime)) {
                     continue;
                 }
                 archiver.addReviewComment(reviewComment);
@@ -382,14 +388,17 @@ class ArchiveWorkItem implements WorkItem {
             }
 
             // Push all new mails to the archive repository
-            var mbox = MailingListServerFactory.createMboxFileServer(mboxBasePath);
+            var newArchivedContents = new StringBuilder();
+            archiveContents.ifPresent(newArchivedContents::append);
             for (var newMail : newMails) {
                 var forArchiving = Email.from(newMail)
                                         .recipient(EmailAddress.from(pr.id() + "@mbox"))
                                         .build();
-                mbox.post(forArchiving);
+                newArchivedContents.append(Mbox.fromMail(forArchiving));
             }
-            pushMbox(archiveRepo, "Adding comments for PR " + bot.codeRepo().name() + "/" + pr.id());
+            bot.archiveRepo().writeFileContents(mboxFile(), newArchivedContents.toString(), new Branch(bot.archiveRef()),
+                    "Adding comments for PR " + bot.codeRepo().name() + "/" + pr.id(),
+                    bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
 
             // Finally post all new mails to the actual list
             for (var newMail : newMails) {

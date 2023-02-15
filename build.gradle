@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -80,7 +80,7 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
             exceptionFormat "full"
         }
 
-        reports.html.enabled = false
+        reports.html.required = false
     }
 
     tasks.withType(Test).configureEach {
@@ -92,8 +92,8 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
     }
 
     tasks.withType(Test).configureEach {
-        reports.html.enabled = false
-        reports.junitXml.enabled = false
+        reports.html.required = false
+        reports.junitXml.required = false
     }
 
     tasks.withType(JavaCompile).configureEach {
@@ -130,8 +130,8 @@ task test {
 }
 
 task testReport(type: TestReport) {
-    destinationDir = file("$buildDir/reports/allTests")
-    reportOn subprojects.findAll()*.getTasksByName('test', false)
+    destinationDirectory = file("$buildDir/reports/allTests")
+    getTestResults().from(subprojects.findAll()*.getTasksByName('test', false))
 }
 
 task clean {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,9 +38,9 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
 public class JEPBotTests {
-    private static final String jepMarker = "<!-- jep: '%s' '%s' '%s' -->"; // <!-- jep: 'JEP-ID' 'ISSUE-ID' 'ISSUE-TITLE' -->
 
     @Test
     void testJepIssueStatus(TestInfo testInfo) throws IOException {
@@ -75,28 +75,28 @@ public class JEPBotTests {
 
             // PR should not have the `jep` label at first
             TestBotRunner.runPeriodicItems(jepBot);
-            assertFalse(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
 
             // Test draft/submitted/candidate/proposedToTarget/proposedToDrop/closedWithoutDelivered JEPs
             for (int i = 1; i <= 6; i++) {
-                pr.addComment(String.format(jepMarker, i, issueLists.get(i - 1).id(), issueLists.get(i - 1).title()));
-                pr.removeLabel(JEPBot.JEP_LABEL);
+                pr.addComment(String.format(JEP_MARKER, i, issueLists.get(i - 1).id(), issueLists.get(i - 1).title()));
+                pr.removeLabel(JEP_LABEL);
                 TestBotRunner.runPeriodicItems(jepBot);
-                assertTrue(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+                assertTrue(pr.store().labelNames().contains(JEP_LABEL));
             }
 
             // PR should have the `jep` label
             TestBotRunner.runPeriodicItems(jepBot);
-            assertTrue(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
             // Remove the `jep` label for the following test
-            pr.removeLabel(JEPBot.JEP_LABEL);
+            pr.removeLabel(JEP_LABEL);
 
             // Test targeted/integrated/completed/closedWithDelivered JEPs
             for (int i = 7; i <= 10; i++) {
-                pr.addComment(String.format(jepMarker, i, issueLists.get(i - 1).id(), issueLists.get(i - 1).title()));
-                pr.addLabel(JEPBot.JEP_LABEL);
+                pr.addComment(String.format(JEP_MARKER, i, issueLists.get(i - 1).id(), issueLists.get(i - 1).title()));
+                pr.addLabel(JEP_LABEL);
                 TestBotRunner.runPeriodicItems(jepBot);
-                assertFalse(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+                assertFalse(pr.store().labelNames().contains(JEP_LABEL));
             }
         }
     }
@@ -126,14 +126,14 @@ public class JEPBotTests {
 
             // PR should not have the `jep` label at first
             TestBotRunner.runPeriodicItems(jepBot);
-            assertFalse(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
 
             // Add the `jep` label and don't add the jep comment
-            pr.addLabel(JEPBot.JEP_LABEL);
-            assertTrue(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+            pr.addLabel(JEP_LABEL);
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
 
             TestBotRunner.runPeriodicItems(jepBot);
-            assertFalse(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
         }
     }
 
@@ -162,15 +162,15 @@ public class JEPBotTests {
 
             // PR should not have the `jep` label at first
             TestBotRunner.runPeriodicItems(jepBot);
-            assertFalse(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
 
             // Add the `jep` label and add the jep unneeded comment
-            pr.addComment(String.format(jepMarker, "unneeded", "unneeded", "unneeded"));
-            pr.addLabel(JEPBot.JEP_LABEL);
-            assertTrue(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+            pr.addComment(String.format(JEP_MARKER, "unneeded", "unneeded", "unneeded"));
+            pr.addLabel(JEP_LABEL);
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
 
             TestBotRunner.runPeriodicItems(jepBot);
-            assertFalse(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
         }
     }
 
@@ -199,15 +199,15 @@ public class JEPBotTests {
 
             // PR should not have the `jep` label at first
             TestBotRunner.runPeriodicItems(jepBot);
-            assertFalse(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
 
             // Add the `jep` label and add the non-existing jep comment
-            pr.addComment(String.format(jepMarker, "100", "TEST-100", "Demo jep"));
-            pr.addLabel(JEPBot.JEP_LABEL);
-            assertTrue(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+            pr.addComment(String.format(JEP_MARKER, "100", "TEST-100", "Demo jep"));
+            pr.addLabel(JEP_LABEL);
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
 
             TestBotRunner.runPeriodicItems(jepBot);
-            assertTrue(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
         }
     }
 
@@ -236,15 +236,15 @@ public class JEPBotTests {
 
             // PR should not have the `jep` label at first
             TestBotRunner.runPeriodicItems(jepBot);
-            assertFalse(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
 
             // Add the `jep` label and add the wrong type issue comment
-            pr.addComment(String.format(jepMarker, "1", "TEST-2", "Demo jep"));
-            pr.addLabel(JEPBot.JEP_LABEL);
-            assertTrue(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+            pr.addComment(String.format(JEP_MARKER, "1", "TEST-2", "Demo jep"));
+            pr.addLabel(JEP_LABEL);
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
 
             TestBotRunner.runPeriodicItems(jepBot);
-            assertTrue(pr.store().labelNames().contains(JEPBot.JEP_LABEL));
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
         }
     }
 }

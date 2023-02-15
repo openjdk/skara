@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,12 +36,14 @@ public class MailmanServer implements MailingListServer {
     private final URI archive;
     private final String smtpServer;
     private final Duration sendInterval;
+    private final boolean useEtag;
     private volatile Instant lastSend;
 
-    public MailmanServer(URI archive, String smtpServer, Duration sendInterval) {
+    public MailmanServer(URI archive, String smtpServer, Duration sendInterval, boolean useEtag) {
         this.archive = archive;
         this.smtpServer = smtpServer;
         this.sendInterval = sendInterval;
+        this.useEtag = useEtag;
         lastSend = Instant.EPOCH;
     }
 
@@ -72,6 +74,6 @@ public class MailmanServer implements MailingListServer {
 
     @Override
     public MailingListReader getListReader(String... listNames) {
-        return new MailmanListReader(this, Arrays.asList(listNames));
+        return new MailmanListReader(this, Arrays.asList(listNames), useEtag);
     }
 }

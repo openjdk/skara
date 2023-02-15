@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -41,7 +41,7 @@ public class MailingListArchiveReaderBot implements Bot {
     private final Map<EmailAddress, PullRequest> resolvedPullRequests = new HashMap<>();
     private final Set<EmailAddress> parsedEmailIds = new HashSet<>();
     private final Queue<CommentPosterWorkItem> commentQueue = new ConcurrentLinkedQueue<>();
-    private final Pattern pullRequestLinkPattern = Pattern.compile("^(?:PR: |Pull request:\\R)(.*?)$", Pattern.MULTILINE);
+    private static final Pattern PULL_REQUEST_LINK_PATTERN = Pattern.compile("^(?:PR: |Pull request:\\R)(.*?)$", Pattern.MULTILINE);
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
     MailingListArchiveReaderBot(MailingListReader list, HostedRepository repository) {
@@ -74,7 +74,7 @@ public class MailingListArchiveReaderBot implements Bot {
             }
 
             // Look for a pull request link
-            var matcher = pullRequestLinkPattern.matcher(first.body());
+            var matcher = PULL_REQUEST_LINK_PATTERN.matcher(first.body());
             if (!matcher.find()) {
                 log.fine("RFR email without valid pull request link: " + first.date() + " - " + first.subject());
                 return;

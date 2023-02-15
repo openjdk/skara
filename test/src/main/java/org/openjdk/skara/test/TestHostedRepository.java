@@ -22,12 +22,14 @@
  */
 package org.openjdk.skara.test;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Label;
 import org.openjdk.skara.json.JSONValue;
-import org.openjdk.skara.network.UncheckedRestException;
 import org.openjdk.skara.vcs.*;
 
 import java.io.*;
@@ -47,6 +49,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     private Map<String, Boolean> collaborators = new HashMap<>();
     private List<Label> labels = new ArrayList<>();
     private final Set<Check> checks = new HashSet<>();
+    private final Set<String> protectedBranchPatterns = new HashSet<>();
 
     public TestHostedRepository(TestHost host, String projectName, Repository localRepository) {
         super(host, projectName);
@@ -197,15 +200,31 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public String fileContents(String filename, String ref) {
+    public Optional<String> fileContents(String filename, String ref) {
         try {
-            var lines = localRepository.lines(Path.of(filename), localRepository.resolve(ref).orElseThrow());
-            return String.join("\n", lines.orElseThrow());
+            var bytes = localRepository.show(Path.of(filename), localRepository.resolve(ref).orElseThrow());
+            return bytes.map(b -> new String(b, StandardCharsets.UTF_8));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } catch (NoSuchElementException e) {
-            // Make this method behave more like other remote repo implementations
-            throw new UncheckedRestException("Can't find file " + filename, 404);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail) {
+        try {
+            localRepository.checkout(branch);
+            Path absPath = localRepository.root().resolve(filename);
+            Files.createDirectories(absPath.getParent());
+            Files.writeString(absPath, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            localRepository.add(absPath);
+            var hash = localRepository.commit(message, authorName, authorEmail);
+            // Don't leave the repository having a branch checked out as that would
+            // prevent pushing to that branch.
+            localRepository.checkout(hash);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -252,8 +271,25 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
+    public void protectBranchPattern(String pattern) {
+        protectedBranchPatterns.add(pattern);
+    }
+
+    @Override
+    public void unprotectBranchPattern(String pattern) {
+        protectedBranchPatterns.remove(pattern);
+    }
+
+    @Override
     public void deleteBranch(String ref) {
         try {
+            for (String protectedBranchPattern : protectedBranchPatterns) {
+                var pattern = Pattern.compile(protectedBranchPattern.replace("*", ".*"));
+                if (pattern.matcher(ref).matches()) {
+                    throw new RuntimeException("Branch " + ref + " is protected with pattern '"
+                            + protectedBranchPattern + "' and cannot be removed");
+                }
+            }
             localRepository.delete(new Branch(ref));
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -269,12 +305,14 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits, Set<Integer> excludeAuthors) {
+    public List<CommitComment> recentCommitComments(ReadOnlyRepository unused, Set<Integer> excludeAuthors,
+            List<Branch> branches, ZonedDateTime updatedAfter) {
         return commitComments.values()
                              .stream()
                              .flatMap(e -> e.stream())
                              .sorted((c1, c2) -> c2.updatedAt().compareTo(c1.updatedAt()))
                              .filter(c -> !excludeAuthors.contains(Integer.valueOf(c.author().id())))
+                             .filter(c -> c.updatedAt().isAfter(updatedAfter))
                              .collect(Collectors.toList());
     }
 
@@ -298,14 +336,15 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public Optional<HostedCommit> commit(Hash hash) {
+    public Optional<HostedCommit> commit(Hash hash, boolean includeDiffs) {
         try {
             var commit = localRepository.lookup(hash);
             if (!commit.isPresent()) {
                 return Optional.empty();
             }
             var url = URI.create("file://" + localRepository.root() + "/commits/" + hash.hex());
-            return Optional.of(new HostedCommit(commit.get().metadata(), commit.get().parentDiffs(), url));
+            List<Diff> parentDiffs = includeDiffs ? commit.get().parentDiffs() : List.of();
+            return Optional.of(new HostedCommit(commit.get().metadata(), parentDiffs, url));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.forge.gitlab;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.logging.Logger;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
@@ -112,7 +114,7 @@ public class GitLabRepository implements HostedRepository {
         var pr = request.post("merge_requests")
                         .body("source_branch", sourceRef)
                         .body("target_branch", targetRef)
-                        .body("title", draft ? "WIP: " : "" + title)
+                        .body("title", (draft ? "Draft: " : "") + title)
                         .body("description", String.join("\n", body))
                         .body("target_project_id", Long.toString(target.id()))
                         .execute();
@@ -286,21 +288,56 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public String fileContents(String filename, String ref) {
-        var confName = URLEncoder.encode(filename, StandardCharsets.UTF_8);
-        var conf = request.get("repository/files/" + confName)
-                          .param("ref", ref)
-                          .onError(response -> {
-                              log.warning("First time request returned bad status: " + response.statusCode());
-                              log.info("First time response body: " + response.body());
-                              // Retry once with additional escaping of the path fragment
-                              var escapedConfName = URLEncoder.encode(confName, StandardCharsets.UTF_8);
-                              return Optional.of(request.get("repository/files/" + escapedConfName)
-                                            .param("ref", ref).execute());
-                          })
-                          .execute();
-        var content = Base64.getDecoder().decode(conf.get("content").asString());
-        return new String(content, StandardCharsets.UTF_8);
+    public Optional<String> fileContents(String filename, String ref) {
+        var encodedFileName = URLEncoder.encode(filename, StandardCharsets.UTF_8);
+        var content = request.get("repository/files/" + encodedFileName)
+                .param("ref", ref)
+                .onError(response -> {
+                    // Retry once with additional escaping of the path fragment
+                    // Only retry when the error is exactly "File Not Found"
+                    if (response.statusCode() == 404 && JSON.parse(response.body()).get("message").asString().endsWith("File Not Found")) {
+                        log.warning("First time request returned bad status: " + response.statusCode());
+                        log.info("First time response body: " + response.body());
+                        var doubleEncodedFileName = URLEncoder.encode(encodedFileName, StandardCharsets.UTF_8);
+                        return Optional.of(request.get("repository/files/" + doubleEncodedFileName)
+                                .param("ref", ref)
+                                .onError(r -> r.statusCode() == 404 && JSON.parse(r.body()).get("message").asString().endsWith("File Not Found") ?
+                                        Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
+                                .execute());
+                    }
+                    return Optional.empty();
+                })
+                .execute();
+        if (content.contains("NOT_FOUND")) {
+            return Optional.empty();
+        }
+        var decodedContent = Base64.getDecoder().decode(content.get("content").asString());
+        return Optional.of(new String(decodedContent, StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail) {
+        var encodedFileName = URLEncoder.encode(filename, StandardCharsets.UTF_8);
+        var body = JSON.object()
+                .put("commit_message", message)
+                .put("branch", branch.name())
+                .put("author_name", authorName)
+                .put("author_email", authorEmail)
+                .put("encoding", "base64")
+                .put("content", new String(Base64.getEncoder().encode(content.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
+        request.put("repository/files/" + encodedFileName)
+                .body(body)
+                .onError(response -> {
+                    // Gitlab requires POST for creating new files and PUT for updating existing.
+                    // Retry with POST if we get 400 response.
+                    if (response.statusCode() == 400) {
+                        return Optional.of(request.post("repository/files/" + encodedFileName)
+                                .body(body)
+                                .execute());
+                    }
+                    return Optional.empty();
+                })
+                .execute();
     }
 
     @Override
@@ -372,7 +409,7 @@ public class GitLabRepository implements HostedRepository {
 
     @Override
     public Optional<Hash> branchHash(String ref) {
-        var branch = request.get("repository/branches/" + ref)
+        var branch = request.get("repository/branches/" + URLEncoder.encode(ref, StandardCharsets.US_ASCII))
                 .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
                 .execute();
         if (branch.contains("NOT_FOUND")) {
@@ -391,9 +428,34 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
+    public void protectBranchPattern(String pattern) {
+        var body = JSON.object()
+                .put("name", pattern)
+                .put("allow_force_push", true);
+        var existing = request.get("protected_branches/" + URLEncoder.encode(pattern, StandardCharsets.US_ASCII))
+                .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.of()) : Optional.empty())
+                .execute();
+        // Only add protection if it doesn't already exist.
+        if (existing.isNull()) {
+            request.post("protected_branches")
+                    .body(body)
+                    .execute();
+        }
+    }
+
+    @Override
+    public void unprotectBranchPattern(String pattern) {
+        request.delete("protected_branches/" + URLEncoder.encode(pattern, StandardCharsets.US_ASCII))
+                .header("Content-Type", "application/json")
+                .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.of()) : Optional.empty())
+                .execute();
+    }
+
+    @Override
     public void deleteBranch(String ref) {
         request.delete("repository/branches/" + URLEncoder.encode(ref, StandardCharsets.US_ASCII))
-               .execute();
+                .header("Content-Type", "application/json")
+                .execute();
     }
 
     private CommitComment toCommitComment(Hash hash, JSONValue o) {
@@ -465,12 +527,21 @@ public class GitLabRepository implements HostedRepository {
         throw new RuntimeException("Did not find commit with title " + commitTitle + " for repository " + projectName);
     }
 
+    /**
+     * The localRepo is needed to build a map of commit title to commit hash mappings,
+     * which in turn is needed to identify commits form the GitLab notes objects. The
+     * notes only has the commit titles, not the hashes.
+     */
     @Override
-    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits, Set<Integer> excludeAuthors) {
-        var fourDaysAgo = ZonedDateTime.now().minusDays(4);
+    public List<CommitComment> recentCommitComments(ReadOnlyRepository localRepo, Set<Integer> excludeAuthors,
+            List<Branch> branches, ZonedDateTime updatedAfter) {
+        if (localRepo == null) {
+            throw new NullPointerException("localRepo cannot be null in GitLabMergeRequest");
+        }
+
         var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         var notes = request.get("events")
-                      .param("after", fourDaysAgo.format(formatter))
+                      .param("after", updatedAfter.format(formatter))
                       .execute()
                       .stream()
                       .filter(o -> o.contains("note") &&
@@ -482,22 +553,13 @@ public class GitLabRepository implements HostedRepository {
                       .filter(o -> o.contains("author") &&
                                    o.get("author").contains("id") &&
                                    !excludeAuthors.contains(o.get("author").get("id").asInt()))
-                      .collect(Collectors.toList());
+                      .toList();
 
-        // Fetch eventual new commits
-        var commits = request.get("repository/commits")
-                             .param("since", ZonedDateTime.now().minusHours(1).format(DateTimeFormatter.ISO_DATE_TIME))
-                             .execute()
-                             .asArray();
-        for (var commit : commits) {
-            var hash = new Hash(commit.get("id").asString());
-            var title = commit.get("title").asString();
-            if (commitTitleToCommits.containsKey(title)) {
-                commitTitleToCommits.get(title).add(hash);
-            } else {
-                commitTitleToCommits.put(title, Set.of(hash));
-            }
+        if (notes.isEmpty()) {
+            return List.of();
         }
+
+        var commitTitleToCommits = getCommitTitleToCommitsMap(localRepo, branches);
 
         return notes.stream()
                     .map(o -> {
@@ -511,7 +573,47 @@ public class GitLabRepository implements HostedRepository {
                                                      commitTitleToCommits);
                         return new CommitComment(hash, null, -1, String.valueOf(id), body, user, createdAt, createdAt);
                     })
-                    .collect(Collectors.toList());
+                    .toList();
+    }
+
+    /**
+     * Lazy fetching and caching of the commitTitleToCommits map. The first time
+     * this is called, the full map is built from the local repository. After that
+     * it's just refreshed from the server.
+     */
+    private final Map<String, Set<Hash>> commitTitleToCommits = new HashMap<>();
+    private boolean commitTitleToCommitsInitialized = false;
+    private ZonedDateTime lastCommitTime = ZonedDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
+    private Map<String, Set<Hash>> getCommitTitleToCommitsMap(ReadOnlyRepository localRepo, List<Branch> branches) {
+        if (!commitTitleToCommitsInitialized) {
+            try {
+                for (var commit : localRepo.commitMetadataFor(branches)) {
+                    var title = commit.message().stream().findFirst().orElse("");
+                    commitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>()).add(commit.hash());
+                    if (lastCommitTime.isBefore(commit.authored())) {
+                        lastCommitTime = commit.authored();
+                    }
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            commitTitleToCommitsInitialized = true;
+        }
+        // Fetch eventual new commits
+        var commits = request.get("repository/commits")
+                .param("since", lastCommitTime.format(DateTimeFormatter.ISO_DATE_TIME))
+                .execute()
+                .asArray();
+        for (var commit : commits) {
+            var hash = new Hash(commit.get("id").asString());
+            var title = commit.get("title").asString();
+            commitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>()).add(hash);
+            var authored = ZonedDateTime.parse(commit.get("authored_date").asString());
+            if (lastCommitTime.isBefore(authored)) {
+                lastCommitTime = authored;
+            }
+        }
+        return commitTitleToCommits;
     }
 
     @Override
@@ -590,7 +692,7 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public Optional<HostedCommit> commit(Hash hash) {
+    public Optional<HostedCommit> commit(Hash hash, boolean includeDiffs) {
         var c = request.get("repository/commits/" + hash.hex())
                        .onError(r -> Optional.of(JSON.of()))
                        .execute();
@@ -599,14 +701,17 @@ public class GitLabRepository implements HostedRepository {
         }
         var url = URI.create(c.get("web_url").asString());
         var metadata = toCommitMetadata(c);
-        var diff = request.get("repository/commits/" + hash.hex() + "/diff")
-                          .onError(r -> Optional.of(JSON.of()))
-                          .execute();
-        var parentDiffs = new ArrayList<Diff>();
-        if (!diff.isNull()) {
-            parentDiffs.add(toDiff(metadata.parents().get(0), hash, diff));
+
+        List<Diff> diffs = List.of();
+        if (includeDiffs) {
+            var diff = request.get("repository/commits/" + hash.hex() + "/diff")
+                    .onError(r -> Optional.of(JSON.of()))
+                    .execute();
+            if (!diff.isNull()) {
+                diffs = List.of(toDiff(metadata.parents().get(0), hash, diff));
+            }
         }
-        return Optional.of(new HostedCommit(metadata, parentDiffs, url));
+        return Optional.of(new HostedCommit(metadata, diffs, url));
     }
 
     @Override
@@ -658,7 +763,7 @@ public class GitLabRepository implements HostedRepository {
 
     @Override
     public boolean canPush(HostUser user) {
-        var accessLevel = request.get("members/" + user.id())
+        var accessLevel = request.get("members/all/" + user.id())
                                  .onError(r -> r.statusCode() == 404 ?
                                                    Optional.of(JSON.object().put("access_level", 0)) :
                                                    Optional.empty())

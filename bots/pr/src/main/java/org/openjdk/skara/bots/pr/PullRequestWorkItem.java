@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,6 +34,7 @@ import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.PullRequest;
 
 import java.util.function.Consumer;
+import org.openjdk.skara.issuetracker.Comment;
 
 abstract class PullRequestWorkItem implements WorkItem {
     private static final Logger log = Logger.getLogger(PullRequestWorkItem.class.getName());
@@ -51,6 +52,7 @@ abstract class PullRequestWorkItem implements WorkItem {
      */
     final ZonedDateTime prUpdatedAt;
     PullRequest pr;
+    private List<Comment> comments;
 
     PullRequestWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler,
             ZonedDateTime prUpdatedAt, boolean needsReadyCheck) {
@@ -84,7 +86,7 @@ abstract class PullRequestWorkItem implements WorkItem {
             }
         }
 
-        var comments = pr.comments();
+        var comments = prComments();
         for (var readyComment : bot.readyComments().entrySet()) {
             var commentFound = false;
             for (var comment : comments) {
@@ -121,6 +123,16 @@ abstract class PullRequestWorkItem implements WorkItem {
             return List.of();
         }
         return prRun(scratchPath);
+    }
+
+    /**
+     * Lazy fetching of pr comments to avoid multiple fetch calls.
+     */
+    protected List<Comment> prComments() {
+        if (comments == null) {
+            comments = pr.comments();
+        }
+        return comments;
     }
 
     abstract Collection<WorkItem> prRun(Path scratchPath);

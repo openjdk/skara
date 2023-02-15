@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,6 +37,7 @@ import org.openjdk.skara.metrics.Counter;
 
 public class MailmanListReader implements MailingListReader {
     private final MailmanServer server;
+    private final boolean useEtag;
     private final List<String> names = new ArrayList<>();
     private final Logger log = Logger.getLogger("org.openjdk.skara.mailinglist");
     private final ConcurrentMap<URI, HttpResponse<String>> pageCache = new ConcurrentHashMap<>();
@@ -48,8 +49,9 @@ public class MailmanListReader implements MailingListReader {
     private static final Counter.WithOneLabel POLLING_COUNTER =
             Counter.name("skara_mailman_polling").labels("code").register();
 
-    MailmanListReader(MailmanServer server, Collection<String> names) {
+    MailmanListReader(MailmanServer server, Collection<String> names, boolean useEtag) {
         this.server = server;
+        this.useEtag = useEtag;
         for (var name : names) {
             if (name.contains("@")) {
                 this.names.add(EmailAddress.parse(name).localPart());
@@ -87,7 +89,7 @@ public class MailmanListReader implements MailingListReader {
                                         .GET();
 
         var cached = pageCache.get(uri);
-        if (cached != null) {
+        if (useEtag && cached != null) {
             var etag = cached.headers().firstValue("ETag");
             etag.ifPresent(s -> requestBuilder.header("If-None-Match", s));
         }

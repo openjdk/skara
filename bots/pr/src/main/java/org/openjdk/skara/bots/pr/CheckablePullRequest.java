@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.census.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
@@ -52,7 +53,9 @@ public class CheckablePullRequest {
         this.ignoreStaleReviews = ignoreStaleReviews;
 
         if (jcheckRepo != null) {
-            confOverride = jcheckRepo.fileContents(jcheckName, jcheckRef).lines().collect(Collectors.toList());
+            confOverride = jcheckRepo.fileContents(jcheckName, jcheckRef).orElseThrow(
+                    () -> new RuntimeException("Could not find " + jcheckName + " on ref " + jcheckRef + " in repo " + jcheckRepo.name())
+            ).lines().collect(Collectors.toList());
         } else {
             confOverride = null;
         }
@@ -198,12 +201,18 @@ public class CheckablePullRequest {
         return new PullRequestCheckIssueVisitor(checks);
     }
 
-    void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor, List<String> additionalConfiguration) throws IOException {
+    PullRequestCheckIssueVisitor createVisitorUsingHeadHash() throws IOException {
+        var checks = JCheck.checksFor(localRepo, pr.headHash());
+        return new PullRequestCheckIssueVisitor(checks);
+    }
+
+    void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor,
+                       List<String> additionalConfiguration, Hash hash) throws IOException {
         Optional<JCheckConfiguration> conf;
         if (confOverride != null) {
             conf = JCheck.parseConfiguration(confOverride, additionalConfiguration);
         } else {
-            conf = JCheck.parseConfiguration(localRepo, targetHash(), additionalConfiguration);
+            conf = JCheck.parseConfiguration(localRepo, hash, additionalConfiguration);
         }
         if (conf.isEmpty()) {
             throw new RuntimeException("Failed to parse jcheck configuration at: " + targetHash() + " with extra: " + additionalConfiguration);

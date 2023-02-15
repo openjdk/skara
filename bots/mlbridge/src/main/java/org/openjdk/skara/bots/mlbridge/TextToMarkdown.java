@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,21 +26,21 @@ import java.util.ArrayList;
 import java.util.regex.*;
 
 public class TextToMarkdown {
-    private static final Pattern punctuationPattern = Pattern.compile("([!\"#$%&'()*+,\\-./:;<=?@\\[\\]^_`{|}~])", Pattern.MULTILINE);
-    private static final Pattern indentedPattern = Pattern.compile("^ {4}", Pattern.MULTILINE);
-    private static final Pattern mentionPattern = Pattern.compile("@(\\w+)", Pattern.MULTILINE);
+    private static final Pattern PUNCTUATION_PATTERN = Pattern.compile("([!\"#$%&'()*+,\\-./:;<=?@\\[\\]^_`{|}~])", Pattern.MULTILINE);
+    private static final Pattern INDENTED_PATTERN = Pattern.compile("^ {4}", Pattern.MULTILINE);
+    private static final Pattern MENTION_PATTERN = Pattern.compile("@(\\w+)", Pattern.MULTILINE);
 
     private static String escapeBackslashes(String text) {
         return text.replace("\\", "\\\\");
     }
 
     private static String escapePunctuation(String text) {
-        var punctuationMatcher = punctuationPattern.matcher(text);
+        var punctuationMatcher = PUNCTUATION_PATTERN.matcher(text);
         return punctuationMatcher.replaceAll(mr -> "\\\\" + Matcher.quoteReplacement(mr.group(1)));
     }
 
     private static String escapeIndention(String text) {
-        var indentedMatcher = indentedPattern.matcher(text);
+        var indentedMatcher = INDENTED_PATTERN.matcher(text);
         return indentedMatcher.replaceAll("&#32;   ");
     }
 
@@ -62,7 +62,7 @@ public class TextToMarkdown {
     }
 
     private static String escapeMention(String text) {
-        var mentionMatcher = mentionPattern.matcher(text);
+        var mentionMatcher = MENTION_PATTERN.matcher(text);
         return mentionMatcher.replaceAll("@<!-- -->$1");
     }
 

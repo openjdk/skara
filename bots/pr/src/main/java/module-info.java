@@ -33,7 +33,9 @@ module org.openjdk.skara.bots.pr {
     requires org.openjdk.skara.email;
     requires org.openjdk.skara.jbs;
     requires org.openjdk.skara.network;
+    requires org.openjdk.skara.bots.common;
     requires java.logging;
 
+    exports org.openjdk.skara.bots.pr;
     provides org.openjdk.skara.bot.BotFactory with PullRequestBotFactory;
 }

@@ -109,7 +109,9 @@ public class LabelConfigurationJson implements LabelConfiguration {
     }
 
     public static LabelConfiguration fromHostedRepositoryFile(HostedRepository repository, String ref, String filename) {
-        var jsonText = repository.fileContents(filename, ref);
+        var jsonText = repository.fileContents(filename, ref).orElseThrow(() ->
+                new RuntimeException("Could not find " + filename + " on ref " + ref + " in repo" + repository.name())
+        );
         var json = JSON.parse(jsonText);
         return from(json);
     }

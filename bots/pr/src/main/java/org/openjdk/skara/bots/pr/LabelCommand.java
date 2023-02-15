@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,9 +34,9 @@ import java.util.stream.Collectors;
 public class LabelCommand implements CommandHandler {
     private final String commandName;
 
-    private static final Pattern argumentPattern = Pattern.compile("(?:(add|remove)\\s+)((?:[A-Za-z0-9_@.-]+[\\s,]*)+)");
-    private static final Pattern shortArgumentPattern = Pattern.compile("((?:[-+]?[A-Za-z0-9_@.-]+[\\s,]*)+)");
-    private static final Pattern ignoredSuffixes = Pattern.compile("^(.*)(?:-dev(?:@openjdk.org)?)$");
+    private static final Pattern ARGUMENT_PATTERN = Pattern.compile("(?:(add|remove)\\s+)((?:[A-Za-z0-9_@.-]+[\\s,]*)+)");
+    private static final Pattern SHORT_ARGUMENT_PATTERN = Pattern.compile("((?:[-+]?[A-Za-z0-9_@.-]+[\\s,]*)+)");
+    private static final Pattern IGNORED_SUFFIXES = Pattern.compile("^(.*)(?:-dev(?:@openjdk.org)?)$");
 
     LabelCommand() {
         this("label");
@@ -61,8 +61,8 @@ public class LabelCommand implements CommandHandler {
             return;
         }
 
-        var argumentMatcher = argumentPattern.matcher(command.args());
-        var shortArgumentMatcher = shortArgumentPattern.matcher(command.args());
+        var argumentMatcher = ARGUMENT_PATTERN.matcher(command.args());
+        var shortArgumentMatcher = SHORT_ARGUMENT_PATTERN.matcher(command.args());
         if (!argumentMatcher.matches() && !shortArgumentMatcher.matches()) {
             showHelp(bot.labelConfiguration(), reply);
             return;
@@ -133,7 +133,7 @@ public class LabelCommand implements CommandHandler {
         List<String> invalidLabels = new ArrayList<>();
         for (int i = 0; i < labels.size(); ++i) {
             var label = labels.get(i);
-            var ignoredSuffixMatcher = ignoredSuffixes.matcher(label);
+            var ignoredSuffixMatcher = IGNORED_SUFFIXES.matcher(label);
             if (ignoredSuffixMatcher.matches()) {
                 label = ignoredSuffixMatcher.group(1);
                 labels.set(i, label);

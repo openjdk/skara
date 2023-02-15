@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -97,7 +97,11 @@ public class MailingListBridgeBotFactory implements BotFactory {
                 .collect(Collectors.toMap(obj -> obj.get("user").asString(),
                                           obj -> Pattern.compile(obj.get("pattern").asString())));
         var cooldown = specific.contains("cooldown") ? Duration.parse(specific.get("cooldown").asString()) : Duration.ofMinutes(1);
-        var mailmanServer = MailingListServerFactory.createMailmanServer(listArchive, listSmtp, Duration.ZERO);
+        boolean useEtag = false;
+        if (specific.get("server").contains("etag")) {
+            useEtag = specific.get("server").get("etag").asBoolean();
+        }
+        var mailmanServer = MailingListServerFactory.createMailmanServer(listArchive, listSmtp, Duration.ZERO, useEtag);
 
         var mailingListReaderMap = new HashMap<List<String>, MailingListReader>();
 

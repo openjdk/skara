@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -139,6 +139,13 @@ public class IssueNotifierFactory implements NotifierFactory {
             if (tag.contains("matchprefix")) {
                 builder.tagMatchPrefix(tag.get("matchprefix").asBoolean());
             }
+        }
+
+        if (notifierConfiguration.contains("defaultsecurity")) {
+            var defaultSecurity = notifierConfiguration.get("defaultsecurity").fields().stream()
+                    .map(e -> new IssueNotifier.BranchSecurity(Pattern.compile(e.name()), e.value().asString()))
+                    .toList();
+            builder.defaultSecurity(defaultSecurity);
         }
 
         return builder.build();
