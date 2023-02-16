@@ -38,6 +38,7 @@ class TestBotTaskAggregationHandler extends BotTaskAggregationHandler {
     private final Collection<List<LogRecord>> taskRecords;
 
     TestBotTaskAggregationHandler() {
+        super(false);
         nonTaskRecords = new ConcurrentLinkedQueue<>();
         taskRecords = new ConcurrentLinkedQueue<>();
     }
