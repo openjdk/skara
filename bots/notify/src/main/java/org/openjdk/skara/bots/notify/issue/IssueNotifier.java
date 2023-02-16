@@ -305,7 +305,18 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                             var existing = Backports.findIssue(issue, fixVersion);
                             if (existing.isEmpty()) {
                                 log.info("Creating new backport for " + issue.id() + " with fixVersion " + requestedVersion);
-                                issue = jbsBackport.createBackport(issue, requestedVersion, username.orElse(null), defaultSecurity(branch));
+                                try {
+                                    issue = jbsBackport.createBackport(issue, requestedVersion, username.orElse(null), defaultSecurity(branch));
+                                } catch (Exception exp) {
+                                    existing = Backports.findIssue(issue, fixVersion);
+                                    if (existing.isPresent()) {
+                                        log.info("Race condition occurred while creating the back port. So returning an existing backport for " + issue.id() + " and requested fixVersion "
+                                                + requestedVersion + " " + existing.get().id());
+                                        issue = existing.get();
+                                    } else {
+                                        throw exp;
+                                    }
+                                }
                             } else {
                                 log.info("Found existing backport for " + issue.id() + " and requested fixVersion "
                                         + requestedVersion + " " + existing.get().id());
