@@ -31,6 +31,7 @@ import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jbs.*;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.json.JSON;
+import org.openjdk.skara.network.UncheckedRestException;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
 
@@ -307,14 +308,14 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                                 log.info("Creating new backport for " + issue.id() + " with fixVersion " + requestedVersion);
                                 try {
                                     issue = jbsBackport.createBackport(issue, requestedVersion, username.orElse(null), defaultSecurity(branch));
-                                } catch (Exception exp) {
+                                } catch (UncheckedRestException e) {
                                     existing = Backports.findIssue(issue, fixVersion);
                                     if (existing.isPresent()) {
-                                        log.info("Race condition occurred while creating the back port. So returning an existing backport for " + issue.id() + " and requested fixVersion "
+                                        log.info("Race condition occurred while creating backport issue, returning the existing backport for " + issue.id() + " and requested fixVersion "
                                                 + requestedVersion + " " + existing.get().id());
                                         issue = existing.get();
                                     } else {
-                                        throw exp;
+                                        throw e;
                                     }
                                 }
                             } else {
