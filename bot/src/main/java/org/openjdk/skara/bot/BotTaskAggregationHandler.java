@@ -46,8 +46,11 @@ public abstract class BotTaskAggregationHandler extends StreamHandler {
 
     private final Map<Long, ThreadLogs> threadLogs;
     private final Logger log;
+    // Should this class handle log level filtering or leave that to the subclass
+    private final boolean filterOnLevel;
 
-    public BotTaskAggregationHandler() {
+    public BotTaskAggregationHandler(boolean filterOnLevel) {
+        this.filterOnLevel = filterOnLevel;
         threadLogs = new ConcurrentHashMap<>();
         log = Logger.getLogger("org.openjdk.skara.bot");
     }
@@ -76,12 +79,16 @@ public abstract class BotTaskAggregationHandler extends StreamHandler {
         try {
             if (!threadEntry.inTask) {
                 if (!hasMarker(record, BotRunner.TaskPhases.BEGIN)) {
-                    publishSingle(record);
+                    if (!filterOnLevel || record.getLevel().intValue() >= getLevel().intValue()) {
+                        publishSingle(record);
+                    }
                     return;
                 }
                 threadEntry.inTask = true;
             }
-            threadEntry.logs.add(record);
+            if (!filterOnLevel || record.getLevel().intValue() >= getLevel().intValue()) {
+                threadEntry.logs.add(record);
+            }
 
             if (hasMarker(record, BotRunner.TaskPhases.END)) {
                 publishAggregated(threadEntry.logs);
