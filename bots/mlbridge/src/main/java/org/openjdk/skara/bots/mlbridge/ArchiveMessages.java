@@ -305,6 +305,20 @@ class ArchiveMessages {
         return "PR: " + pr.webUrl();
     }
 
+    static String composeReplyFooter(PullRequest pr, Comment comment, ReviewComment reviewComment, Review review) {
+        var footer = new StringBuilder();
+        if (comment != null) {
+            footer.append("Comment: " + pr.commentUrl(comment).toString());
+        }
+        if (reviewComment != null) {
+            footer.append("ReviewComment: " + pr.reviewCommentUrl(reviewComment).toString());
+        }
+        if (review != null) {
+            footer.append("Review: " + pr.reviewUrl(review).toString());
+        }
+        return footer.toString();
+    }
+
     // When changing this, ensure that the PR pattern in the notifier still matches
     static String composeConversationFooter(PullRequest pr, URI issueProject, String projectPrefix, Repository localRepo, WebrevDescription webrev, Hash base, Hash head) {
         var commits = commits(localRepo, base, head);
@@ -442,7 +456,7 @@ class ArchiveMessages {
                 result.append("\n\n");
             }
         }
-        result.append(composeReplyFooter(pr));
+        result.append(composeReplyFooter(pr, null, null, review));
         return result.toString();
     }
 

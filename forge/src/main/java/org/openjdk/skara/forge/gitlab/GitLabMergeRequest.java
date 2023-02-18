@@ -627,6 +627,21 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
+    public URI commentUrl(Comment comment) {
+        return URIBuilder.base(webUrl()).appendPath("#note_" + comment.id()).build();
+    }
+
+    @Override
+    public URI reviewCommentUrl(ReviewComment reviewComment) {
+        return URIBuilder.base(webUrl()).appendPath("#note_" + reviewComment.id()).build();
+    }
+
+    @Override
+    public URI reviewUrl(Review review) {
+        return URIBuilder.base(webUrl()).appendPath("#note_" + review.id()).build();
+    }
+
+    @Override
     public boolean isDraft() {
         return json.get("draft").asBoolean();
     }

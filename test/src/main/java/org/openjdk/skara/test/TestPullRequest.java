@@ -23,6 +23,7 @@
 package org.openjdk.skara.test;
 
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.Label;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.vcs.Diff;
@@ -204,6 +205,21 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public URI changeUrl(Hash base) {
         return URIBuilder.base(webUrl()).appendPath("/files/" + base.abbreviate()).build();
+    }
+
+    @Override
+    public URI commentUrl(Comment comment) {
+        return URIBuilder.base(webUrl()).appendPath("/comment/" + comment.id()).build();
+    }
+
+    @Override
+    public URI reviewCommentUrl(ReviewComment reviewComment) {
+        return URIBuilder.base(webUrl()).appendPath("/reviewComment/" + reviewComment.id()).build();
+    }
+
+    @Override
+    public URI reviewUrl(Review review) {
+        return URIBuilder.base(webUrl()).appendPath("/review/" + review.id()).build();
     }
 
     @Override

@@ -254,4 +254,26 @@ public class GitLabRestApiTest {
         assertFalse(gitLabMergeRequest.isDraft());
         assertEquals("Test", gitLabMergeRequest.title());
     }
+
+    @Test
+    void testHtmlUrl() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var username = settings.getProperty("gitlab.user");
+        var token = settings.getProperty("gitlab.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
+        var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
+
+        System.out.println(gitLabMergeRequest.webUrl());
+        var comment = gitLabMergeRequest.comments().get(0);
+        assertEquals(settings.getProperty("comment_html_url"), gitLabMergeRequest.commentUrl(comment).toString());
+
+        var reviewComment = gitLabMergeRequest.reviewComments().get(0);
+        assertEquals(settings.getProperty("reviewComment_html_url"), gitLabMergeRequest.reviewCommentUrl(reviewComment).toString());
+
+        var review = gitLabMergeRequest.reviews().get(0);
+        assertEquals(settings.getProperty("review_html_url"), gitLabMergeRequest.reviewUrl(review).toString());
+    }
 }
