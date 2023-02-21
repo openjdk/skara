@@ -246,7 +246,7 @@ class ArchiveItem {
                                () -> ArchiveMessages.composeReplySubject(parent.subject()),
                                () -> ArchiveMessages.composeReplyHeader(parent.createdAt(), hostUserToEmailAuthor.author(parent.author)),
                                () -> ArchiveMessages.composeComment(comment),
-                               () -> ArchiveMessages.composeReplyFooter(pr, comment, null, null));
+                               () -> ArchiveMessages.composeCommentReplyFooter(pr, comment));
     }
 
     static ArchiveItem from(PullRequest pr, Review review, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUsername hostUserToUsername, HostUserToRole hostUserToRole, ArchiveItem parent) {
@@ -262,7 +262,7 @@ class ArchiveItem {
                                () -> ArchiveMessages.composeReplySubject(parent.subject()),
                                () -> ArchiveMessages.composeReplyHeader(parent.createdAt(), hostUserToEmailAuthor.author(parent.author())),
                                () -> ArchiveMessages.composeReviewComment(pr, reviewComment),
-                               () -> ArchiveMessages.composeReplyFooter(pr, null, reviewComment, null));
+                               () -> ArchiveMessages.composeReviewCommentReplyFooter(pr, reviewComment));
     }
 
     static ArchiveItem closedNotice(PullRequest pr, HostUserToEmailAuthor hostUserToEmailAuthor, ArchiveItem parent, String subjectPrefix) {

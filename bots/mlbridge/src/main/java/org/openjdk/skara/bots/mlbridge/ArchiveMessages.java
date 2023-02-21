@@ -305,18 +305,16 @@ class ArchiveMessages {
         return "PR: " + pr.webUrl();
     }
 
-    static String composeReplyFooter(PullRequest pr, Comment comment, ReviewComment reviewComment, Review review) {
-        var footer = new StringBuilder();
-        if (comment != null) {
-            footer.append("PR Comment: " + pr.commentUrl(comment).toString());
-        }
-        if (reviewComment != null) {
-            footer.append("PR Review Comment: " + pr.reviewCommentUrl(reviewComment).toString());
-        }
-        if (review != null) {
-            footer.append("PR Review: " + pr.reviewUrl(review).toString());
-        }
-        return footer.toString();
+    static String composeCommentReplyFooter(PullRequest pr, Comment comment) {
+        return "PR Comment: " + pr.commentUrl(comment).toString();
+    }
+
+    static String composeReviewCommentReplyFooter(PullRequest pr, ReviewComment reviewComment) {
+        return "PR Review Comment: " + pr.reviewCommentUrl(reviewComment).toString();
+    }
+
+    static String composeReviewReplyFooter(PullRequest pr, Review review) {
+        return "PR Review: " + pr.reviewUrl(review).toString();
     }
 
     // When changing this, ensure that the PR pattern in the notifier still matches
@@ -456,7 +454,7 @@ class ArchiveMessages {
                 result.append("\n\n");
             }
         }
-        result.append(composeReplyFooter(pr, null, null, review));
+        result.append(composeReviewReplyFooter(pr, review));
         return result.toString();
     }
 
