@@ -314,7 +314,7 @@ class ArchiveMessages {
             footer.append("ReviewComment: " + pr.reviewCommentUrl(reviewComment).toString());
         }
         if (review != null) {
-            footer.append("Review: " + pr.reviewUrl(review).toString());
+            footer.append("PR Review: " + pr.reviewUrl(review).toString());
         }
         return footer.toString();
     }
