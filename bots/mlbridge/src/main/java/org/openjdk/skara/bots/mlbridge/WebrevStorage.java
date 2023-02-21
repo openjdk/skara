@@ -286,6 +286,9 @@ class WebrevStorage {
 
     private URI createAndArchive(PullRequest pr, Repository localRepository, Path scratchPath, Diff diff, Hash base, Hash head, String identifier) {
         try {
+            if (!generateHTML && !generateJSON) {
+                return null;
+            }
             var relativeFolder = baseFolder.resolve(String.format("%s/%s", pr.id(), identifier));
             var outputFolder = scratchPath.resolve(relativeFolder);
             var placeholder = generatePlaceholder(pr, base, head);
