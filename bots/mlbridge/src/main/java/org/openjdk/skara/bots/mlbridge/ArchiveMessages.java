@@ -315,7 +315,7 @@ class ArchiveMessages {
                 "Commit messages:\n" +
                 formatCommitMessagesBrief(commits, commitsLink).orElse("") + "\n\n" +
                 "Changes: " + pr.changeUrl() + "\n" +
-                (webrev.uri() == null ? "" : " Webrev: " + webrev.uri().toString()) + "\n" +
+                (webrev.uri() == null ? "" : " Webrev: " + webrev.uri().toString() + "\n") +
                 issueString +
                 "  Stats: " + stats(localRepo, base, head) + "\n" +
                 "  Patch: " + pr.diffUrl().toString() + "\n" +
@@ -329,7 +329,7 @@ class ArchiveMessages {
         String webrevLinks;
         if (webrevs.size() > 0) {
             if (webrevs.stream().noneMatch(w -> w.uri() != null)) {
-                webrevLinks = "Webrev is disabled\n\n";
+                webrevLinks = "";
             } else {
                 var containsConflicts = webrevs.stream().anyMatch(w -> w.type().equals(WebrevDescription.Type.MERGE_CONFLICT));
                 var containsMergeDiffs = webrevs.stream().anyMatch(w -> w.type().equals(WebrevDescription.Type.MERGE_TARGET) ||
