@@ -308,7 +308,7 @@ class ArchiveMessages {
     static String composeReplyFooter(PullRequest pr, Comment comment, ReviewComment reviewComment, Review review) {
         var footer = new StringBuilder();
         if (comment != null) {
-            footer.append("Comment: " + pr.commentUrl(comment).toString());
+            footer.append("PR Comment: " + pr.commentUrl(comment).toString());
         }
         if (reviewComment != null) {
             footer.append("ReviewComment: " + pr.reviewCommentUrl(reviewComment).toString());
