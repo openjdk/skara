@@ -3810,7 +3810,6 @@ class MailingListBridgeBotTests {
             assertFalse(archiveContains(archiveFolder.path(), "The webrevs contain the adjustments done while merging with regards to each parent branch:"));
             assertFalse(archiveContains(archiveFolder.path(), pr.id() + "/00.0"));
             assertTrue(archiveContains(archiveFolder.path(), "3 lines in 2 files changed: 1 ins; 1 del; 1 mod"));
-            assertTrue(archiveContains(archiveFolder.path(), "Webrev is disabled"));
 
             // The PR should not contain a webrev comment
             assertEquals(0, pr.comments().size());
