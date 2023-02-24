@@ -37,10 +37,13 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.openjdk.skara.bots.common.CommandNameEnum.commandNamesSepByDelim;
+
 class ArchiveMessages {
     private static final Pattern COMMENT_PATTERN = Pattern.compile("<!--.*?-->",
                                                                   Pattern.DOTALL | Pattern.MULTILINE);
-    static final Pattern COMMAND_PATTERN = Pattern.compile("^\\s*/([A-Za-z]+).*$", Pattern.MULTILINE | Pattern.DOTALL);
+    static final Pattern COMMAND_PATTERN = Pattern.compile("^\\s*/(["+ commandNamesSepByDelim("|") + "]+).*$",
+                                                                  Pattern.MULTILINE | Pattern.DOTALL);
     private static String filterCommentsAndCommands(String body) {
         var parsedBody = PullRequestBody.parse(body);
         body = parsedBody.bodyText();

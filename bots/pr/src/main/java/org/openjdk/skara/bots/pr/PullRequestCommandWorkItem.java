@@ -163,15 +163,10 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
                     printer.println("` can not be used in pull requests.");
                 }
             }
-        } else {
-            printer.print("Unknown command `");
-            printer.print(command.name());
-            printer.println("` - for a list of valid commands use `/help`.");
+            var newComment = pr.addComment(writer.toString());
+            var latency = Duration.between(command.createdAt(), newComment.createdAt());
+            log.log(Level.INFO, "Time from command '" + command.name() + "' to reply " + latency, latency);
         }
-
-        var newComment = pr.addComment(writer.toString());
-        var latency = Duration.between(command.createdAt(), newComment.createdAt());
-        log.log(Level.INFO, "Time from command '" + command.name() + "' to reply " + latency, latency);
     }
 
     @Override

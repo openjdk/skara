@@ -109,13 +109,8 @@ public class CommitCommandWorkItem implements WorkItem {
                 printer.print(command.name());
                 printer.println("` can only be used in pull requests.");
             }
-        } else {
-            printer.print("Unknown command `");
-            printer.print(command.name());
-            printer.println("` - for a list of valid commands use `/help`.");
+            bot.repo().addCommitComment(commitComment.commit(), writer.toString());
         }
-
-        bot.repo().addCommitComment(commitComment.commit(), writer.toString());
     }
 
     @Override

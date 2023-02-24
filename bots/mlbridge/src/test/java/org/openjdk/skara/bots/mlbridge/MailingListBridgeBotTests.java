@@ -184,6 +184,16 @@ class MailingListBridgeBotTests {
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
 
+            //skara command prefixed with non-white space - should be archived
+            pr.addComment("do not ignore me /help");
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            //valid skara command - should not be archived
+            pr.addComment("/help");
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
             // Now post a ready comment
             ignoredPr.addComment("ready");
 
@@ -204,6 +214,8 @@ class MailingListBridgeBotTests {
             assertTrue(archiveContains(archiveFolder.path(), "Fetch:"));
             assertTrue(archiveContains(archiveFolder.path(), "^ - Change msg"));
             assertFalse(archiveContains(archiveFolder.path(), "With several lines"));
+            assertTrue(archiveContains(archiveFolder.path(), "do not ignore me /help"));
+            assertFalse(archiveContains(archiveFolder.path(), "Available commands"));
 
             // The mailing list as well
             listServer.processIncoming();

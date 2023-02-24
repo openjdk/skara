@@ -80,8 +80,9 @@ public class CommitCommandTests {
             author.addCommitComment(editHash, "/hello");
             TestBotRunner.runPeriodicItems(bot);
 
+            // Verify that the bot did *not* reply
             replies = author.commitComments(editHash);
-            CommitCommandAsserts.assertLastCommentContains(replies, "Unknown command `hello` - for a list of valid commands use `/help`.");
+            CommitCommandAsserts.assertLastCommentContains(replies, "/hello");
         }
     }
 
