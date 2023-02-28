@@ -66,8 +66,8 @@ class PullRequestCommandTests {
             pr.addComment("/howdy");
             TestBotRunner.runPeriodicItems(mergeBot);
 
-            // Verify that the bot did *not* reply
-            PullRequestAsserts.assertLastCommentContains(pr, "/howdy");
+            // Verify that the bot did reply
+            PullRequestAsserts.assertLastCommentContains(pr, "If you intended to issue a Skara command");
         }
     }
 

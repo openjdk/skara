@@ -39,7 +39,7 @@ import java.util.function.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static org.openjdk.skara.bots.mlbridge.ArchiveMessages.COMMAND_PATTERN;
+import static org.openjdk.skara.bots.common.PatternEnum.ARCHIVAL_COMMAND_PATTERN;
 
 class ArchiveWorkItem implements WorkItem {
     private final PullRequest pr;
@@ -125,7 +125,7 @@ class ArchiveWorkItem implements WorkItem {
             return true;
         }
         // Check if this comment only contains command lines
-        var commandLineMatcher = COMMAND_PATTERN.matcher(body);
+        var commandLineMatcher = ARCHIVAL_COMMAND_PATTERN.getPattern().matcher(body);
         if (commandLineMatcher.find()) {
             var filteredBody = commandLineMatcher.replaceAll("");
             if (filteredBody.strip().isEmpty()) {

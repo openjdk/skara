@@ -31,13 +31,12 @@ import org.openjdk.skara.host.HostUser;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.openjdk.skara.bots.common.CommandNameEnum.*;
+import static org.openjdk.skara.bots.common.PatternEnum.EXECUTION_COMMAND_PATTERN;
 
 public class CommandExtractor {
-    private static final Pattern COMMAND_PATTERN = Pattern.compile("^\\s*/(["+ commandNamesSepByDelim("|") +"]+)(?:\\s+(.*))?");
 
     private static String formatId(String baseId, int subId) {
         if (subId > 0) {
@@ -110,7 +109,7 @@ public class CommandExtractor {
         String multiLineCommand = null;
         int subId = 0;
         for (var line : text.split("\\R")) {
-            var commandMatcher = COMMAND_PATTERN.matcher(line);
+            var commandMatcher = EXECUTION_COMMAND_PATTERN.getPattern().matcher(line);
             if (commandMatcher.matches()) {
                 if (multiLineHandler != null) {
                     ret.add(new CommandInvocation(formatId(baseId, subId++), user, multiLineHandler, multiLineCommand,

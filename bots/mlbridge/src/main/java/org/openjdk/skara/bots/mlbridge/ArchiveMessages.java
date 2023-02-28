@@ -34,24 +34,21 @@ import java.net.URI;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.openjdk.skara.bots.common.CommandNameEnum.commandNamesSepByDelim;
+import static org.openjdk.skara.bots.common.PatternEnum.ARCHIVAL_COMMAND_PATTERN;
+import static org.openjdk.skara.bots.common.PatternEnum.COMMENT_PATTERN;
 
 class ArchiveMessages {
-    private static final Pattern COMMENT_PATTERN = Pattern.compile("<!--.*?-->",
-                                                                  Pattern.DOTALL | Pattern.MULTILINE);
-    static final Pattern COMMAND_PATTERN = Pattern.compile("^\\s*/(["+ commandNamesSepByDelim("|") + "]+).*$",
-                                                                  Pattern.MULTILINE | Pattern.DOTALL);
+
     private static String filterCommentsAndCommands(String body) {
         var parsedBody = PullRequestBody.parse(body);
         body = parsedBody.bodyText();
 
-        var commentMatcher = COMMENT_PATTERN.matcher(body);
+        var commentMatcher = COMMENT_PATTERN.getPattern().matcher(body);
         body = commentMatcher.replaceAll("");
 
-        var commandLineMatcher = COMMAND_PATTERN.matcher(body);
+        var commandLineMatcher = ARCHIVAL_COMMAND_PATTERN.getPattern().matcher(body);
         body = commandLineMatcher.replaceAll("");
 
         body = MarkdownToText.removeFormatting(body);

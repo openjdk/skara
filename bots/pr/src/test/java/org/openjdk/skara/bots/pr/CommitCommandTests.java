@@ -80,9 +80,9 @@ public class CommitCommandTests {
             author.addCommitComment(editHash, "/hello");
             TestBotRunner.runPeriodicItems(bot);
 
-            // Verify that the bot did *not* reply
+            // Verify that the bot did reply
             replies = author.commitComments(editHash);
-            CommitCommandAsserts.assertLastCommentContains(replies, "/hello");
+            CommitCommandAsserts.assertLastCommentContains(replies, "If you intended to issue a Skara command");
         }
     }
 
