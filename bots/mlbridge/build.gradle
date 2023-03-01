@@ -46,6 +46,8 @@ dependencies {
     implementation project(':webrev')
     implementation project(':version')
     implementation project(':metrics')
+    implementation project(':bots:common')
+    implementation project(':jbs')
 
     testImplementation project(':test')
 }
