@@ -47,7 +47,7 @@ dependencies {
     implementation project(':version')
     implementation project(':metrics')
     implementation project(':bots:common')
-    implementation project(path: ':jbs')
+    implementation project(':jbs')
 
     testImplementation project(':test')
 }

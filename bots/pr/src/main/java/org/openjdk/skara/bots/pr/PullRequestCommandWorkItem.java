@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.logging.Level;
@@ -165,12 +164,11 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
                 }
             }
         } else {
-            printer.printf(MessageFormat.format("""
-                    I see that you entered a comment with `/{0}` at the beginning of a line.
-                    `/{0}` is not a recognized Skara PR command, so it was ignored and treated like an ordinary comment
-                    If you intended to issue a Skara command, use `/help` in a comment to see a complete list of Skara commands.
-                    """, command.name()));
+            printer.print("Unknown command `");
+            printer.print(command.name());
+            printer.println("` - for a list of valid commands use `/help`.");
         }
+
         var newComment = pr.addComment(writer.toString());
         var latency = Duration.between(command.createdAt(), newComment.createdAt());
         log.log(Level.INFO, "Time from command '" + command.name() + "' to reply " + latency, latency);

@@ -28,7 +28,6 @@ import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.*;
 import java.nio.file.*;
-import java.text.MessageFormat;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -111,12 +110,11 @@ public class CommitCommandWorkItem implements WorkItem {
                 printer.println("` can only be used in pull requests.");
             }
         } else {
-            printer.printf(MessageFormat.format("""
-                    I see that you entered a comment with `/{0}` at the beginning of a line.
-                    `/{0}` is not a recognized Skara PR command, so it was ignored and treated like an ordinary comment.
-                    If you intended to issue a Skara command, use `/help` in a comment to see a complete list of Skara commands.
-                    """, command.name()));
+            printer.print("Unknown command `");
+            printer.print(command.name());
+            printer.println("` - for a list of valid commands use `/help`.");
         }
+
         bot.repo().addCommitComment(commitComment.commit(), writer.toString());
     }
 

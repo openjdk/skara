@@ -66,8 +66,12 @@ class PullRequestCommandTests {
             pr.addComment("/howdy");
             TestBotRunner.runPeriodicItems(mergeBot);
 
-            // Verify that the bot did reply
-            PullRequestAsserts.assertLastCommentContains(pr, "If you intended to issue a Skara command");
+            // The bot should reply with an error message
+            var error = pr.comments().stream()
+                          .filter(comment -> comment.body().contains("Unknown command"))
+                          .filter(comment -> comment.body().contains("help"))
+                          .count();
+            assertEquals(1, error);
         }
     }
 
