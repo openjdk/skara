@@ -31,6 +31,7 @@ import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jbs.Backports;
 import org.openjdk.skara.jbs.JdkVersion;
+import org.openjdk.skara.jcheck.ReviewersCheck;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
@@ -1179,7 +1180,12 @@ class CheckRun {
             var integrationBlockers = botSpecificIntegrationBlockers(issues);
             integrationBlockers.addAll(secondJCheckMessage);
 
-            var reviewNeeded = !isCleanBackport || reviewCleanBackport;
+            var reviewersCommandIssued = ReviewersTracker.additionalRequiredReviewers(pr.repository().forge().currentUser(), comments).isPresent();
+            if (isCleanBackport && reviewersCommandIssued) {
+                pr.addComment("Warning: The /Reviewers command is used in a clean backport, it will enable Reviewers check for this pr. " +
+                        "If the Reviewers check requirements in the jcheck conf are stricter than the user's requirements, the bot will enforce the stricter requirements.");
+            }
+            var reviewNeeded = !isCleanBackport || reviewCleanBackport || reviewersCommandIssued;
 
             // Calculate and update the status message if needed
             var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, reviewNeeded, issuesWithCSRAndJEP(issues, csrIssueTrackerIssues));

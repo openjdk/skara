@@ -30,6 +30,7 @@ import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -1795,6 +1796,101 @@ class BackportTests {
             assertEquals(List.of(), message.contributors());
             assertEquals(List.of(), message.summaries());
             assertEquals(List.of(), message.additional());
+        }
+    }
+
+    @Test
+    void cleanBackportWithReviewersCommand(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory(false)) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(integrator.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+
+            var confPath = localRepo.root().resolve(".jcheck/conf");
+            var defaultConf = Files.readString(confPath, StandardCharsets.UTF_8);
+            var newConf = defaultConf.replace("reviewers=1", """
+                    lead=0
+                    reviewers=2
+                    committers=0
+                    authors=0
+                    contributors=0
+                    ignore=duke
+                    """);
+            Files.writeString(confPath, newConf);
+            localRepo.add(confPath);
+            var confHash = localRepo.commit("Change conf", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, author.url(), "master", true);
+
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            var releaseBranch = localRepo.branch(masterHash, "release");
+            localRepo.checkout(releaseBranch);
+            var newFile = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile, "hello");
+            localRepo.add(newFile);
+            var issue1 = credentials.createIssue(issues, "An issue");
+            var issue1Number = issue1.id().split("-")[1];
+            var originalMessage = issue1Number + ": An issue\n" +
+                    "\n" +
+                    "Reviewed-by: integrationreviewer2";
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
+            localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
+
+            // "backport" the new file to the master branch
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var newFile2 = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile2, "hello");
+            localRepo.add(newFile2);
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex(), List.of());
+
+            // The bot should reply with a backport message
+            TestBotRunner.runPeriodicItems(bot);
+            var comments = pr.comments();
+            var backportComment = comments.get(0).body();
+            assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
+            assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
+            assertEquals(issue1Number + ": An issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
+            assertFalse(pr.store().body().contains(ReviewersCheck.DESCRIPTION), "Reviewer requirement found in pr body");
+            assertFalse(pr.store().body().contains(CheckRun.MSG_EMPTY_BODY), "Body not empty requirement found in pr body");
+
+            // The bot should have added the "clean" label
+            assertTrue(pr.store().labelNames().contains("clean"));
+
+            pr.addComment("/reviewers 1");
+            TestBotRunner.runPeriodicItems(bot);
+            assertTrue(pr.store().comments().get(1).body().contains("This change is no longer ready for integration - check the PR body for details."));
+            assertTrue(pr.store().body().contains("Change must be properly reviewed"));
+            assertFalse(pr.store().labelNames().contains("ready"));
+
+            var reviewPr = reviewer.pullRequest(pr.id());
+            reviewPr.addReview(Review.Verdict.APPROVED, "LGTM");
+            var integratorPr = integrator.pullRequest(pr.id());
+            integratorPr.addReview(Review.Verdict.APPROVED, "LGTM");
+
+            TestBotRunner.runPeriodicItems(bot);
+            assertTrue(pr.store().comments().get(1).body().contains("This change now passes all *automated* pre-integration checks."));
+            assertTrue(pr.store().labelNames().contains("ready"));
         }
     }
 }
