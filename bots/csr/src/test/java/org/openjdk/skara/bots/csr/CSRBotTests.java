@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.csr;
 
+import org.openjdk.skara.bots.common.BotUtils;
 import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.forge.PullRequestUtils;
 import org.openjdk.skara.issuetracker.Link;
@@ -455,7 +456,7 @@ class CSRBotTests {
             assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
 
             // Add the csr issue.
-            var csr = issueProject.createIssue("This is an CSR", List.of(), Map.of());
+            var csr = issueProject.createIssue("This is an CSR <1>", List.of(), Map.of());
             csr.setProperty("issuetype", JSON.of("CSR"));
             csr.setState(Issue.State.OPEN);
             issue.addLink(Link.create(csr, "csr for").build());
@@ -469,7 +470,7 @@ class CSRBotTests {
             assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
 
             // Add csr issue and progress to the PR body
-            pr.setBody("PR body\n" + PROGRESS_MARKER + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
+            pr.setBody("PR body\n" + PROGRESS_MARKER + csr.id() + csr.webUrl().toString() + BotUtils.escape(csr.title()) + " (**CSR**)"
                     + "- [ ] " + generateCSRProgressMessage(csr));
             // Run bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
@@ -485,7 +486,7 @@ class CSRBotTests {
             assertTrue(pr.store().body().contains(CSR_UPDATE_MARKER));
 
             // Add csr issue and selected progress to the PR body
-            pr.setBody("PR body\n" + PROGRESS_MARKER + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
+            pr.setBody("PR body\n" + PROGRESS_MARKER + csr.id() + csr.webUrl().toString() + BotUtils.escape(csr.title()) + " (**CSR**)"
                     + "- [x] " + generateCSRProgressMessage(csr));
             // Run bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
@@ -493,7 +494,7 @@ class CSRBotTests {
             assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
 
             // Add csr update marker to the pull request body manually.
-            pr.setBody("PR body\n" + PROGRESS_MARKER + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
+            pr.setBody("PR body\n" + PROGRESS_MARKER + csr.id() + csr.webUrl().toString() + BotUtils.escape(csr.title()) + " (**CSR**)"
                     + "- [ ] " + generateCSRProgressMessage(csr));
             // Run bot
             TestBotRunner.runPeriodicItems(csrPullRequestBot);

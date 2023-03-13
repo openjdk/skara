@@ -109,13 +109,13 @@ class PullRequestWorkItem implements WorkItem {
     private boolean hasCsrIssue(String statusMessage, Issue csr) {
         return statusMessage.contains(csr.id()) &&
                 statusMessage.contains(csr.webUrl().toString()) &&
-                statusMessage.contains(csr.title() + " (**CSR**)");
+                statusMessage.contains(BotUtils.escape(csr.title()) + " (**CSR**)");
     }
 
     private boolean hasWithdrawnCsrIssue(String statusMessage, Issue csr) {
         return statusMessage.contains(csr.id()) &&
                 statusMessage.contains(csr.webUrl().toString()) &&
-                statusMessage.contains(csr.title() + " (**CSR**) (Withdrawn)");
+                statusMessage.contains(BotUtils.escape(csr.title()) + " (**CSR**) (Withdrawn)");
     }
 
     private String getStatusMessage(PullRequest pr) {
