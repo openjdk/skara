@@ -120,7 +120,7 @@ public class JBridgeBot implements Bot, WorkItem {
 
             IOException lastException = null;
             for (var destination : exporterConfig.destinations()) {
-                var markerBase = destination.authenticatedUrl().getHost() + "/" + destination.name();
+                var markerBase = destination.url().getHost() + "/" + destination.name();
                 var successfulPushMarker = storage.resolve(URLEncoder.encode(markerBase, StandardCharsets.UTF_8) + ".success.txt");
                 if (exported.isPresent() || !successfulPushMarker.toFile().isFile()) {
                     var repo = exported.orElse(Exporter.current(storage).orElseThrow());
