@@ -1880,7 +1880,7 @@ class BackportTests {
             pr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(bot);
             assertTrue(pr.store().comments().get(1).body().contains("This change is no longer ready for integration - check the PR body for details."));
-            assertTrue(pr.store().body().contains("Change must be properly reviewed"));
+            assertTrue(pr.store().body().contains("Change must be properly reviewed (2 reviews required"));
             assertFalse(pr.store().labelNames().contains("ready"));
 
             var reviewPr = reviewer.pullRequest(pr.id());
@@ -1891,6 +1891,12 @@ class BackportTests {
             TestBotRunner.runPeriodicItems(bot);
             assertTrue(pr.store().comments().get(1).body().contains("This change now passes all *automated* pre-integration checks."));
             assertTrue(pr.store().labelNames().contains("ready"));
+
+            pr.addComment("/reviewers 3");
+            TestBotRunner.runPeriodicItems(bot);
+            assertTrue(pr.store().comments().get(1).body().contains("This change is no longer ready for integration - check the PR body for details."));
+            assertTrue(pr.store().body().contains("Change must be properly reviewed (3 reviews required"));
+            assertFalse(pr.store().labelNames().contains("ready"));
         }
     }
 }
