@@ -289,15 +289,16 @@ class MailingListBridgeBotTests {
             assertTrue(archiveContains(archiveFolder.path(), ">> This should now be ready"));
 
             listServer.processIncoming();
+            listServer.processIncoming();
             conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
-            assertEquals(3, conversations.get(0).allMessages().size());
+            assertEquals(4, conversations.get(0).allMessages().size());
             for (var newMail : conversations.get(0).allMessages()) {
                 assertEquals(from.address(), newMail.author().address());
                 assertEquals(listAddress, newMail.sender());
             }
-            assertTrue(conversations.get(0).allMessages().get(2).body().contains("This is another comment"));
-            assertTrue(conversations.get(0).allMessages().get(2).body().contains("hosted.git/pr/1/comment/5"));
+            assertTrue(conversations.get(0).allMessages().get(3).body().contains("This is another comment"));
+            assertTrue(conversations.get(0).allMessages().get(3).body().contains("hosted.git/pr/1/comment/9"));
         }
     }
 
