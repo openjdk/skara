@@ -1213,7 +1213,7 @@ class CheckRun {
 
             if (pr.sourceRepository().isPresent()) {
                 var branchNames = pr.repository().branches().stream().map(HostedBranch::name).collect(Collectors.toSet());
-                if (!pr.repository().authenticatedUrl().equals(pr.sourceRepository().get().authenticatedUrl()) && branchNames.contains(pr.sourceRef())) {
+                if (!pr.repository().url().equals(pr.sourceRepository().get().url()) && branchNames.contains(pr.sourceRef())) {
                     addSourceBranchWarningComment();
                 }
             }

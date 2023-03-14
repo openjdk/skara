@@ -214,7 +214,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public URI webUrl() {
         try {
-            return new URI(targetRepository.authenticatedUrl().toString() + "/pr/" + id());
+            return new URI(targetRepository.webUrl().toString() + "/pr/" + id());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }

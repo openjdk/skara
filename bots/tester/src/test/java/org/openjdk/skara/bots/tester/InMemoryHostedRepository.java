@@ -236,7 +236,7 @@ class InMemoryHostedRepository implements HostedRepository {
 
     @Override
     public URI url() {
-        return null;
+        return url;
     }
 
     @Override

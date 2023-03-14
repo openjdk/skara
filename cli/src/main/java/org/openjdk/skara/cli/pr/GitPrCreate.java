@@ -305,7 +305,7 @@ public class GitPrCreate {
         }
 
         var mailingLists = new ArrayList<String>();
-        var parentProject = ForgeUtils.projectName(parentRepo.authenticatedUrl());
+        var parentProject = ForgeUtils.projectName(parentRepo.url());
         var isTargetingJDKRepo = parentProject.matches(".*\\/jdk[0-9]*");
         var cc = getOption("cc", "create", arguments);
         var isCCManual = cc != null && !cc.equals("auto");

@@ -82,7 +82,7 @@ class CensusInstance {
     }
 
     static CensusInstance create(HostedRepository censusRepo, String censusRef, Path folder, PullRequest pr) {
-        var repoName = censusRepo.authenticatedUrl().getHost() + "/" + censusRepo.name();
+        var repoName = censusRepo.url().getHost() + "/" + censusRepo.name();
         var repoFolder = folder.resolve(URLEncoder.encode(repoName, StandardCharsets.UTF_8));
         try {
             var localRepo = Repository.get(repoFolder)

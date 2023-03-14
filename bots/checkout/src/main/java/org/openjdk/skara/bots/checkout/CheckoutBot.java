@@ -62,15 +62,6 @@ public class CheckoutBot implements Bot, WorkItem {
         return URLEncoder.encode(uri.toString(), StandardCharsets.UTF_8);
     }
 
-    private URI uri() {
-        var uri = from.authenticatedUrl().toString();
-        if (!uri.endsWith(".git")) {
-            uri += ".git";
-        }
-
-        return URI.create(uri);
-    }
-
     @Override
     public boolean concurrentWith(WorkItem other) {
         if (!(other instanceof CheckoutBot)) {
@@ -98,7 +89,7 @@ public class CheckoutBot implements Bot, WorkItem {
             if (!Files.exists(fromDir)) {
                 Files.createDirectories(fromDir);
                 log.info("Cloning Git repo " + from + " to " + fromDir);
-                fromRepo = Repository.clone(uri(), fromDir);
+                fromRepo = Repository.clone(from.authenticatedUrl(), fromDir);
             } else {
                 log.info("Getting existing Git repo repository from " + fromDir);
                 fromRepo = Repository.get(fromDir).orElseThrow(() ->

@@ -1883,8 +1883,8 @@ public class IssueNotifierTests {
             var comment = comments.get(0);
             assertTrue(comment.body().contains(editHash.toString()));
             // Verify that the 'original' repo URL is used in the comment and not the main one
-            assertTrue(comment.body().contains(originalRepo.authenticatedUrl().toString()));
-            assertFalse(comment.body().contains(repo.authenticatedUrl().toString()));
+            assertTrue(comment.body().contains(originalRepo.url().toString()));
+            assertFalse(comment.body().contains(repo.url().toString()));
 
             // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
@@ -1986,7 +1986,7 @@ public class IssueNotifierTests {
             assertEquals(1, comments.size());
             var comment = comments.get(0);
             assertTrue(comment.body().contains(editHash.toString()));
-            assertTrue(comment.body().contains(repo.authenticatedUrl().toString()));
+            assertTrue(comment.body().contains(repo.url().toString()));
 
             // There should be no link
             var links = updatedIssue.links();
@@ -2034,7 +2034,7 @@ public class IssueNotifierTests {
             assertEquals(1, comments.size());
             var comment = comments.get(0);
             assertTrue(comment.body().contains(editHash.toString()));
-            assertTrue(comment.body().contains(repo.authenticatedUrl().toString()));
+            assertTrue(comment.body().contains(repo.url().toString()));
 
             // There should be no link
             var links = updatedIssue.links();

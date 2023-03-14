@@ -56,7 +56,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         this.host = host;
         this.projectName = projectName;
         this.localRepository = localRepository;
-        pullRequestPattern = Pattern.compile(authenticatedUrl().toString() + "/pr/" + "(\\d+)");
+        pullRequestPattern = Pattern.compile(webUrl().toString() + "/pr/" + "(\\d+)");
         commitComments = new HashMap<>();
     }
 

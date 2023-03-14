@@ -530,7 +530,7 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     private String linkToDiff(String path, Hash hash, int line) {
-        return "[" + path + " line " + line + "](" + URIBuilder.base(repository.authenticatedUrl())
+        return "[" + path + " line " + line + "](" + URIBuilder.base(repository.url())
                          .setPath("/" + repository.name()+ "/blob/" + hash.hex() + "/" + path)
                          .setAuthentication(null)
                          .build() + "#L" + Integer.toString(line) + ")";

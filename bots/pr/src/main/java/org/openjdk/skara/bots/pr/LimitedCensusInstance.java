@@ -114,7 +114,7 @@ class LimitedCensusInstance {
     }
 
     private static Path getRepoFolder(HostedRepositoryPool hostedRepositoryPool, HostedRepository censusRepo, String censusRef, Path folder) {
-        var repoName = censusRepo.authenticatedUrl().getHost() + "/" + censusRepo.name();
+        var repoName = censusRepo.url().getHost() + "/" + censusRepo.name();
         var repoFolder = folder.resolve(URLEncoder.encode(repoName, StandardCharsets.UTF_8));
         try {
             hostedRepositoryPool.checkoutAllowStale(censusRepo, censusRef, repoFolder);
