@@ -354,6 +354,9 @@ class ReviewArchive {
                 var newFooterFragments = Stream.of(item.footer().split("\n\n"))
                                                .filter(line -> !includedFooterFragments.contains(line))
                                                .collect(Collectors.toList());
+                if (!footer.isEmpty() && !newFooterFragments.isEmpty()) {
+                    footer.append("\n");
+                }
                 footer.append(String.join("\n\n", newFooterFragments));
                 includedFooterFragments.addAll(newFooterFragments);
             }

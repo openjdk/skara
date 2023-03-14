@@ -207,6 +207,21 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
+    public URI commentUrl(Comment comment) {
+        return null;
+    }
+
+    @Override
+    public URI reviewCommentUrl(ReviewComment reviewComment) {
+        return null;
+    }
+
+    @Override
+    public URI reviewUrl(Review review) {
+        return null;
+    }
+
+    @Override
     public boolean isDraft() {
         return false;
     }

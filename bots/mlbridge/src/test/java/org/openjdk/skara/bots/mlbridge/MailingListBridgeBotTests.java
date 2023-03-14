@@ -267,12 +267,14 @@ class MailingListBridgeBotTests {
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "This is a comment"));
             assertTrue(archiveContains(archiveFolder.path(), "> This should now be ready"));
+            assertTrue(archiveContains(archiveFolder.path(), "hosted.git/pr/1/comment/3"));
             assertFalse(archiveContains(archiveFolder.path(), "Don't mind me"));
 
             listServer.processIncoming();
             conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             assertEquals(2, conversations.get(0).allMessages().size());
+            assertTrue(conversations.get(0).allMessages().get(1).body().contains("hosted.git/pr/1/comment/3"));
 
             // Remove the rfr flag and post another comment
             pr.addLabel("rfr");
@@ -294,7 +296,8 @@ class MailingListBridgeBotTests {
                 assertEquals(from.address(), newMail.author().address());
                 assertEquals(listAddress, newMail.sender());
             }
-            assertTrue(conversations.get(0).allMessages().get(2).body().contains("This is a comment 😄"));
+            assertTrue(conversations.get(0).allMessages().get(2).body().contains("This is another comment"));
+            assertTrue(conversations.get(0).allMessages().get(2).body().contains("hosted.git/pr/1/comment/5"));
         }
     }
 
@@ -843,6 +846,9 @@ class MailingListBridgeBotTests {
             conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             assertEquals(3, conversations.get(0).allMessages().size());
+            assertTrue(conversations.get(0).allMessages().get(1).body().contains("hosted.git/pr/1/reviewComment/0"));
+            assertTrue(conversations.get(0).allMessages().get(2).body().contains("hosted.git/pr/1/reviewComment/2"));
+
             for (var newMail : conversations.get(0).allMessages()) {
                 assertEquals(from.address(), newMail.author().address());
                 assertEquals(listAddress, newMail.sender());
@@ -937,6 +943,10 @@ class MailingListBridgeBotTests {
             assertEquals("RFR: This is a pull request", reviewReply.subject());
             assertTrue(reviewReply.body().contains("Review comment\n\n"), reviewReply.body());
             assertTrue(reviewReply.body().contains("Another review comment"), reviewReply.body());
+            assertTrue(reviewReply.body().contains("hosted.git/pr/1/reviewComment/0"), reviewReply.body());
+            assertTrue(reviewReply.body().contains("hosted.git/pr/1/reviewComment/1"), reviewReply.body());
+            assertTrue(reviewReply.body().contains("hosted.git/pr/1/reviewComment/2"), reviewReply.body());
+            assertTrue(reviewReply.body().contains("hosted.git/pr/1/reviewComment/3"), reviewReply.body());
 
             // Now reply to the first and second (collapsed) comment
             pr.addReviewCommentReply(first, "I agree");
@@ -2317,6 +2327,15 @@ class MailingListBridgeBotTests {
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Marked as reviewed by "));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 2"));
             assertEquals(2, archiveContainsCount(archiveFolder.path(), "Re: RFR:"));
+
+            listServer.processIncoming();
+            listServer.processIncoming();
+            listServer.processIncoming();
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertTrue(conversations.get(0).allMessages().get(1).body().contains("hosted.git/pr/1/review/0"));
+            assertTrue(conversations.get(0).allMessages().get(2).body().contains("hosted.git/pr/1/review/1"));
 
             // Yet another change
             reviewedPr.addReview(Review.Verdict.DISAPPROVED, "Reason 3");
