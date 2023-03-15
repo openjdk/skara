@@ -137,7 +137,7 @@ class ReviewArchive {
 
         // Check if we're at a revision not previously reported
         var baseHash = PullRequestUtils.baseHash(pr, localRepo);
-        if (!baseHash.equals(lastBase) || !pr.headHash().equals(lastHead)) {
+        if (!pr.isDraft() && (!baseHash.equals(lastBase) || !pr.headHash().equals(lastHead))) {
             if (generated.isEmpty()) {
                 var first = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, issueTracker, issuePrefix, webrevGenerator, webrevNotification, pr.createdAt(), pr.updatedAt(), baseHash, pr.headHash(), subjectPrefix, threadPrefix);
                 generated.add(first);
