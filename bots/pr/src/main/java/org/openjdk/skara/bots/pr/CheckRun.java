@@ -1179,7 +1179,8 @@ class CheckRun {
             var integrationBlockers = botSpecificIntegrationBlockers(issues);
             integrationBlockers.addAll(secondJCheckMessage);
 
-            var reviewNeeded = !isCleanBackport || reviewCleanBackport;
+            var reviewersCommandIssued = ReviewersTracker.additionalRequiredReviewers(pr.repository().forge().currentUser(), comments).isPresent();
+            var reviewNeeded = !isCleanBackport || reviewCleanBackport || reviewersCommandIssued;
 
             // Calculate and update the status message if needed
             var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, reviewNeeded, issuesWithCSRAndJEP(issues, csrIssueTrackerIssues));

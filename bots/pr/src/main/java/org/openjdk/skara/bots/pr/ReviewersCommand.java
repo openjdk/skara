@@ -141,6 +141,9 @@ public class ReviewersCommand implements CommandHandler {
 
         reply.println(ReviewersTracker.setReviewersMarker(numReviewers, role));
         var totalRequired = formatLimits.values().stream().mapToInt(Integer::intValue).sum();
+        if (pr.labelNames().contains("clean") && pr.labelNames().contains("backport")) {
+            reply.println("Warning: By issuing the /reviewers command in this clean backport pull request, the reviewers check has now been enabled.");
+        }
         reply.print("The total number of required reviews for this PR (including the jcheck configuration " +
                     "and the last /reviewers command) is now set to " + totalRequired);
 
