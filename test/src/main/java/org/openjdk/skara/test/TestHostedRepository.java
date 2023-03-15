@@ -56,7 +56,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         this.host = host;
         this.projectName = projectName;
         this.localRepository = localRepository;
-        pullRequestPattern = Pattern.compile(url().toString() + "/pr/" + "(\\d+)");
+        pullRequestPattern = Pattern.compile(webUrl().toString() + "/pr/" + "(\\d+)");
         commitComments = new HashMap<>();
     }
 
@@ -159,7 +159,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public URI url() {
+    public URI authenticatedUrl() {
         try {
             // We need a URL without a trailing slash
             var fileName = localRepository.root().getFileName().toString();
@@ -171,22 +171,22 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
 
     @Override
     public URI webUrl() {
-        return url();
+        return authenticatedUrl();
     }
 
     @Override
     public URI nonTransformedWebUrl() {
-        return url();
+        return authenticatedUrl();
     }
 
     @Override
     public URI webUrl(Hash hash) {
-        return URI.create(url().toString() + "/" + hash.hex());
+        return URI.create(authenticatedUrl().toString() + "/" + hash.hex());
     }
 
     @Override
     public URI webUrl(String baseRef, String headRef) {
-        return URI.create(url().toString() + "/" + baseRef + "..." + headRef);
+        return URI.create(authenticatedUrl().toString() + "/" + baseRef + "..." + headRef);
     }
 
     @Override
@@ -197,6 +197,11 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     @Override
     public VCS repositoryType() {
         return VCS.GIT;
+    }
+
+    @Override
+    public URI url() {
+        return authenticatedUrl();
     }
 
     @Override

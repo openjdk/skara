@@ -56,13 +56,13 @@ class SponsorTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var authorFullName = author.forge().currentUser().fullName();
             var authorEmail = "ta@none.none";
             var editHash = CheckableRepository.appendAndCommit(localRepo, "This is a new line", "Append commit", authorFullName, authorEmail);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -101,7 +101,7 @@ class SponsorTests {
             assertEquals(1, pushed);
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.authenticatedUrl(), "master");
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();
             var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
 
@@ -146,11 +146,11 @@ class SponsorTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Issue an invalid command
@@ -180,11 +180,11 @@ class SponsorTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Issue an invalid command
@@ -216,11 +216,11 @@ class SponsorTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Reviewer now tries to sponsor
@@ -252,12 +252,12 @@ class SponsorTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var authorFullName = author.forge().currentUser().fullName();
             var editHash = CheckableRepository.appendAndCommit(localRepo, "This is a new line", "Append commit", authorFullName, "ta@none.none");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -281,7 +281,7 @@ class SponsorTests {
 
             // Push another change
             var updateHash = CheckableRepository.appendAndCommit(localRepo, "Yet more stuff", "Append commit", authorFullName, "ta@none.none");
-            localRepo.push(updateHash, author.url(), "edit");
+            localRepo.push(updateHash, author.authenticatedUrl(), "edit");
 
             // The label should have been dropped
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -335,11 +335,11 @@ class SponsorTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -352,7 +352,7 @@ class SponsorTests {
             Files.writeString(unrelated, "Hello");
             localRepo.add(unrelated);
             var unrelatedHash = localRepo.commit("Unrelated", "X", "x@y.z");
-            localRepo.push(unrelatedHash, author.url(), "master");
+            localRepo.push(unrelatedHash, author.authenticatedUrl(), "master");
 
             // Issue a merge command without being a Committer
             pr.addComment("/integrate");
@@ -382,7 +382,7 @@ class SponsorTests {
             assertEquals(1, pushed);
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
         }
     }
@@ -406,11 +406,11 @@ class SponsorTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -423,7 +423,7 @@ class SponsorTests {
             Files.writeString(unrelated, "Hello");
             localRepo.add(unrelated);
             var unrelatedHash = localRepo.commit("Unrelated", "X", "x@y.z");
-            localRepo.push(unrelatedHash, author.url(), "master");
+            localRepo.push(unrelatedHash, author.authenticatedUrl(), "master");
 
             // Issue a merge command without being a Committer
             pr.addComment("/integrate " + masterHash);
@@ -443,7 +443,7 @@ class SponsorTests {
             Files.writeString(unrelated, "Hello again");
             localRepo.add(unrelated);
             var unrelatedHash2 = localRepo.commit("Unrelated 2", "X", "x@y.z");
-            localRepo.push(unrelatedHash2, author.url(), "master");
+            localRepo.push(unrelatedHash2, author.authenticatedUrl(), "master");
 
             // Reviewer now agrees to sponsor
             var reviewerPr = reviewer.pullRequest(pr.id());
@@ -461,7 +461,7 @@ class SponsorTests {
             assertLastCommentContains(pr, "Pushed as commit");
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
         }
     }
@@ -482,12 +482,12 @@ class SponsorTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var authorFullName = author.forge().currentUser().fullName();
             var editHash = CheckableRepository.appendAndCommit(localRepo, "This is a new line", "Append commit", authorFullName, "ta@none.none");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -559,11 +559,11 @@ class SponsorTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -593,7 +593,7 @@ class SponsorTests {
             // Push something conflicting to master
             localRepo.checkout(masterHash, true);
             var conflictingHash = CheckableRepository.appendAndCommit(localRepo, "This looks like a conflict");
-            localRepo.push(conflictingHash, author.url(), "master");
+            localRepo.push(conflictingHash, author.authenticatedUrl(), "master");
 
             // Trigger a new check run
             pr.setBody(pr.body() + " recheck");
@@ -634,13 +634,13 @@ class SponsorTests {
             Files.writeString(anotherFile, "A string\n");
             localRepo.add(anotherFile);
             var masterHash = localRepo.commit("Another commit\n\nReviewed-by: " + reviewerId, "duke", "duke@openjdk.org");
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Create a new branch, new commit and publish it
             var editBranch = localRepo.branch(initialHash, "edit");
             localRepo.checkout(editBranch);
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
 
             // Prepare to merge edit into master
             localRepo.checkout(new Branch("master"));
@@ -648,7 +648,7 @@ class SponsorTests {
             localRepo.checkout(editToMasterBranch);
             localRepo.merge(editHash);
             var mergeHash = localRepo.commit("Merge edit", "duke", "duke@openjdk.org");
-            localRepo.push(mergeHash, author.url(), "edit->master", true);
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit->master", true);
 
 
             var pr = credentials.createPullRequest(author, "master", "edit->master", "Merge edit");
@@ -693,7 +693,7 @@ class SponsorTests {
                            .count();
             assertEquals(1, pushed);
 
-            var targetRepo = Repository.clone(author.url(), tempFolder.path().resolve("target.git"));
+            var targetRepo = Repository.clone(author.authenticatedUrl(), tempFolder.path().resolve("target.git"));
             var masterHead = targetRepo.lookup(new Branch("origin/master")).orElseThrow();
             assertEquals("Merge edit", masterHead.message().get(0));
         }
@@ -715,12 +715,12 @@ class SponsorTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var authorFullName = author.forge().currentUser().fullName();
             var editHash = CheckableRepository.appendAndCommit(localRepo, "This is a new line", "Append commit", authorFullName, "ta@none.none");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Flag it as ready for integration automatically
@@ -778,12 +778,12 @@ class SponsorTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var authorFullName = author.forge().currentUser().fullName();
             var editHash = CheckableRepository.appendAndCommit(localRepo, "This is a new line", "Append commit", authorFullName, "ta@none.none");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -852,13 +852,13 @@ class SponsorTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var authorFullName = author.forge().currentUser().fullName();
             var authorEmail = "ta@none.none";
             var editHash = CheckableRepository.appendAndCommit(localRepo, "This is a new line", "Append commit", authorFullName, authorEmail);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -901,7 +901,7 @@ class SponsorTests {
                     .filter(comment -> comment.body().contains("Pushed as commit"))
                     .findAny().orElseThrow();
             pr.removeComment(commitComment);
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // The bot should now retry
             TestBotRunner.runPeriodicItems(mergeBot);

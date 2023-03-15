@@ -53,7 +53,7 @@ public class JsonNotifierTests {
             var localRepoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -78,7 +78,7 @@ public class JsonNotifierTests {
             assertEquals(1, findJsonFiles(jsonFolder, "").size());
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "One more line", "12345678: Fixes");
-            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
             var jsonFiles = findJsonFiles(jsonFolder, "");
             assertEquals(2, jsonFiles.size());
@@ -105,7 +105,7 @@ public class JsonNotifierTests {
             credentials.commitLock(localRepo);
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.tag(masterHash, "jdk-12+1", "Added tag 1", "Duke", "duke@openjdk.org");
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -130,11 +130,11 @@ public class JsonNotifierTests {
             assertEquals(1, findJsonFiles(jsonFolder, "").size());
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
-            localRepo.fetch(repo.url(), "history:history");
+            localRepo.fetch(repo.authenticatedUrl(), "history:history");
             localRepo.tag(editHash, "jdk-12+2", "Added tag 2", "Duke", "duke@openjdk.org");
             var editHash2 = CheckableRepository.appendAndCommit(localRepo, "Another line", "34567890: Even more fixes");
             localRepo.tag(editHash2, "jdk-12+4", "Added tag 3", "Duke", "duke@openjdk.org");
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             TestBotRunner.runPeriodicItems(notifyBot);
             var jsonFiles = findJsonFiles(jsonFolder, "");

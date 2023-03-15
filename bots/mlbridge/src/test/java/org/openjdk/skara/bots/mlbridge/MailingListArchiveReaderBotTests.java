@@ -93,13 +93,13 @@ class MailingListArchiveReaderBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This should now be ready");
 
@@ -169,13 +169,13 @@ class MailingListArchiveReaderBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This should now be ready");
 
@@ -245,13 +245,13 @@ class MailingListArchiveReaderBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This should now be ready");
 
@@ -321,14 +321,14 @@ class MailingListArchiveReaderBotTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, author.url(), "to_be_deleted", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "to_be_deleted", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                     "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "to_be_deleted", "edit", "This is a pull request");
             pr.setBody("This should now be ready");
 

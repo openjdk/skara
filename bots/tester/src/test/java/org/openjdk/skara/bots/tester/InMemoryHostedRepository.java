@@ -94,7 +94,7 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public URI url() {
+    public URI authenticatedUrl() {
         return url;
     }
 
@@ -232,6 +232,11 @@ class InMemoryHostedRepository implements HostedRepository {
     @Override
     public URI webUrl(Tag tag) {
         return null;
+    }
+
+    @Override
+    public URI url() {
+        return url;
     }
 
     @Override

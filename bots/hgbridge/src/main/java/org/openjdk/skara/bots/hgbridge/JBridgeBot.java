@@ -64,7 +64,7 @@ public class JBridgeBot implements Bot, WorkItem {
     }
 
     private void pushMarks(Path markSource, String destName, Path markScratchPath) throws IOException {
-        var marksRepo = Repository.materialize(markScratchPath, exporterConfig.marksRepo().url(),
+        var marksRepo = Repository.materialize(markScratchPath, exporterConfig.marksRepo().authenticatedUrl(),
                                                "+" + exporterConfig.marksRef() + ":hgbridge_marks");
 
         // We should never change existing marks
@@ -89,7 +89,7 @@ public class JBridgeBot implements Bot, WorkItem {
         Files.writeString(markDest, updated, StandardCharsets.UTF_8);
         marksRepo.add(markDest);
         var hash = marksRepo.commit("Updated marks", exporterConfig.marksAuthorName(), exporterConfig.marksAuthorEmail());
-        marksRepo.push(hash, exporterConfig.marksRepo().url(), exporterConfig.marksRef());
+        marksRepo.push(hash, exporterConfig.marksRepo().authenticatedUrl(), exporterConfig.marksRef());
     }
 
     @Override
@@ -126,10 +126,10 @@ public class JBridgeBot implements Bot, WorkItem {
                     var repo = exported.orElse(Exporter.current(storage).orElseThrow());
                     try {
                         Files.deleteIfExists(successfulPushMarker);
-                        repo.pushAll(destination.url());
+                        repo.pushAll(destination.authenticatedUrl());
                         storage.resolve(successfulPushMarker).toFile().createNewFile();
                     } catch (IOException e) {
-                        log.log(Level.SEVERE, "Failed to push to " + destination.url(), e);
+                        log.log(Level.SEVERE, "Failed to push to " + destination.authenticatedUrl(), e);
                         lastException = e;
                     }
                 } else {

@@ -55,11 +55,11 @@ class IssueTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
 
             // No arguments
@@ -146,7 +146,7 @@ class IssueTests {
 
             // The change should now be present on the master branch
             var pushedFolder = tempFolder.path().resolve("pushed");
-            var pushedRepo = Repository.materialize(pushedFolder, author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder, author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();
@@ -183,11 +183,11 @@ class IssueTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var issue1 = credentials.createIssue(issues, "Main");
             var issue1Number = Integer.parseInt(issue1.id().split("-")[1]);
             var pr = credentials.createPullRequest(author, "master", "edit", issue1Number + ": Main");
@@ -248,7 +248,7 @@ class IssueTests {
 
             // The change should now be present on the master branch
             var pushedFolder = tempFolder.path().resolve("pushed");
-            var pushedRepo = Repository.materialize(pushedFolder, author.url(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder, author.authenticatedUrl(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();
@@ -278,11 +278,11 @@ class IssueTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Issue a solves command not as the PR author
@@ -313,11 +313,11 @@ class IssueTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Add an issue
@@ -356,11 +356,11 @@ class IssueTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var issue1 = issues.createIssue("First", List.of("Hello"), Map.of());
             var pr = credentials.createPullRequest(author, "master", "edit",
                                                    issue1.id() + ": This is a pull request");
@@ -403,11 +403,11 @@ class IssueTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var issue1 = (TestIssue)issues.createIssue("First", List.of("Hello"), Map.of());
             issue1.setState(Issue.State.CLOSED);
             issue1.store().properties().put("resolution", JSON.object().put("name", JSON.of("Not an Issue")));
@@ -439,11 +439,11 @@ class IssueTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var issue1 = (TestIssue)issues.createIssue("First", List.of("Hello"), Map.of());
             issue1.setState(Issue.State.RESOLVED);
             var pr = credentials.createPullRequest(author, "master", "edit",
@@ -474,11 +474,11 @@ class IssueTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var issue1 = issues.createIssue("First", List.of("Hello"), Map.of());
             issue1.setState(Issue.State.RESOLVED);
             var pr = credentials.createPullRequest(author, "master", "edit",
@@ -520,11 +520,11 @@ class IssueTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
             pr.setBody("This is the body");
 
@@ -560,11 +560,11 @@ class IssueTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Create an issue
@@ -627,7 +627,7 @@ class IssueTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Create issues
             var issue1 = credentials.createIssue(issueProject, "Issue 1");
@@ -635,7 +635,7 @@ class IssueTests {
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", issue1.id() + ": This is a pull request");
             TestBotRunner.runPeriodicItems(prBot);
 
@@ -694,7 +694,7 @@ class IssueTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             var issue1 = credentials.createIssue(issueProject, "Issue 1");
             var issue2 = credentials.createIssue(issueProject, "Issue 2");
@@ -702,7 +702,7 @@ class IssueTests {
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Pull request title",
                      List.of("/issue add " + issue1.id(),
                              "/issue add " + issue2.id(),
@@ -744,11 +744,11 @@ class IssueTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR with a non-existing issue ID
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a PR");
 
             // Approve it as another user

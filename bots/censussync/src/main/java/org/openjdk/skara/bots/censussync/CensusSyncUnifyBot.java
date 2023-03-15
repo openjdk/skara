@@ -73,7 +73,7 @@ public class CensusSyncUnifyBot implements Bot, WorkItem {
     public Collection<WorkItem> run(Path scratch) {
         try {
             var fromDir = scratch.resolve("from.git");
-            var fromRepo = Repository.materialize(fromDir, from.url(), Branch.defaultFor(VCS.GIT).name());
+            var fromRepo = Repository.materialize(fromDir, from.authenticatedUrl(), Branch.defaultFor(VCS.GIT).name());
             if (last != null && last.equals(fromRepo.head())) {
                 // Nothing to do
                 return List.of();
@@ -82,7 +82,7 @@ public class CensusSyncUnifyBot implements Bot, WorkItem {
             var census = Census.parse(fromDir);
 
             var toDir = scratch.resolve("to.git");
-            var toRepo = Repository.materialize(toDir, to.url(), Branch.defaultFor(VCS.GIT).name());
+            var toRepo = Repository.materialize(toDir, to.authenticatedUrl(), Branch.defaultFor(VCS.GIT).name());
 
             var censusXML = toRepo.root().resolve("census.xml");
             if (!Files.exists(censusXML)) {
@@ -135,7 +135,7 @@ public class CensusSyncUnifyBot implements Bot, WorkItem {
             }
             toRepo.add(censusXML);
             var head = toRepo.commit("Updated census.xml", "duke", "duke@openjdk.org");
-            toRepo.push(head, to.url(), Branch.defaultFor(VCS.GIT).name(), false);
+            toRepo.push(head, to.authenticatedUrl(), Branch.defaultFor(VCS.GIT).name(), false);
             last = fromRepo.head();
         } catch (IOException e) {
             throw new UncheckedIOException(e);

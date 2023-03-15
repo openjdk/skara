@@ -57,7 +57,7 @@ class TopologicalBotTests {
             Files.writeString(readme, "Hello world\n");
             repo.add(readme);
             repo.commit("An initial commit", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.url());
+            repo.pushAll(hostedRepo.authenticatedUrl());
 
             var aBranch = repo.branch(repo.head(), "A");
             // no deps -> depends on master
@@ -70,7 +70,7 @@ class TopologicalBotTests {
             Files.writeString(bDeps, "A");
             repo.add(bDeps);
             repo.commit("Adding deps file to B", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.url());
+            repo.pushAll(hostedRepo.authenticatedUrl());
 
             var cBranch = repo.branch(repo.head(), "C");
             repo.checkout(cBranch);
@@ -78,14 +78,14 @@ class TopologicalBotTests {
             Files.writeString(cDeps, "B A");
             repo.add(cDeps);
             repo.commit("Adding deps file to C", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.url());
+            repo.pushAll(hostedRepo.authenticatedUrl());
 
             repo.checkout(new Branch("master"));
             var newFile = fromDir.resolve("NewFile.txt");
             Files.writeString(newFile, "Hello world\n");
             repo.add(newFile);
             var preHash = repo.commit("An additional commit", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.url());
+            repo.pushAll(hostedRepo.authenticatedUrl());
 
             var preCommits = repo.commits().asList();
             assertEquals(4, preCommits.size());
@@ -126,14 +126,14 @@ class TopologicalBotTests {
             Files.writeString(readme, "Hello world\n");
             repo.add(readme);
             repo.commit("An initial commit", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.url());
+            repo.pushAll(hostedRepo.authenticatedUrl());
 
             var aBranch = repo.branch(repo.head(), "A");
             repo.checkout(aBranch);
             Files.writeString(readme, "A conflicting line\n", APPEND);
             repo.add(readme);
             var aStartHash = repo.commit("A conflicting commit", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.url());
+            repo.pushAll(hostedRepo.authenticatedUrl());
 
             var depsFileName = "deps.txt";
 
@@ -143,7 +143,7 @@ class TopologicalBotTests {
             Files.writeString(bDeps, "A");
             repo.add(bDeps);
             var bDepsHash = repo.commit("Adding deps file to B", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.url());
+            repo.pushAll(hostedRepo.authenticatedUrl());
 
             var cBranch = repo.branch(repo.head(), "C");
             repo.checkout(cBranch);
@@ -151,13 +151,13 @@ class TopologicalBotTests {
             Files.writeString(cDeps, "B");
             repo.add(cDeps);
             var cDepsHash = repo.commit("Adding deps file to C", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.url());
+            repo.pushAll(hostedRepo.authenticatedUrl());
 
             repo.checkout(new Branch("master"));
             Files.writeString(readme, "Goodbye world!\n", APPEND);
             repo.add(readme);
             var preHash = repo.commit("An additional commit", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.url());
+            repo.pushAll(hostedRepo.authenticatedUrl());
 
             var preCommits = repo.commits().asList();
             assertEquals(5, preCommits.size());

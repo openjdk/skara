@@ -60,12 +60,12 @@ public class BackportPRCommandTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
 
             var reviewerPr = (TestPullRequest) integrator.pullRequest(pr.id());
@@ -83,7 +83,7 @@ public class BackportPRCommandTests {
             assertFalse(pr.store().labelNames().contains("backport=targetRepo2:dev"));
 
             // Enable backport for targetRepo2 on dev
-            localRepo.push(masterHash, targetRepo2.url(), "dev", true);
+            localRepo.push(masterHash, targetRepo2.authenticatedUrl(), "dev", true);
             pr.addComment("/backport targetRepo2 dev");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "Backport for repo `targetRepo2` on branch `dev` was successfully enabled");
@@ -122,7 +122,7 @@ public class BackportPRCommandTests {
             assertLastCommentContains(pr, "Could **not** automatically backport");
 
             // Resolve conflict
-            localRepo.push(masterHash, targetRepo.url(), "master", true);
+            localRepo.push(masterHash, targetRepo.authenticatedUrl(), "master", true);
             // Use /backport after the pr is integrated
             reviewerPr.addComment("/backport targetRepo");
             TestBotRunner.runPeriodicItems(prBot);
@@ -155,11 +155,11 @@ public class BackportPRCommandTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
 
             //close the pr

@@ -177,7 +177,7 @@ class ArchiveItem {
                 return true;
             }
             if (tryFetch) {
-                localRepo.fetch(pr.repository().url(), lastHead.hex(), false);
+                localRepo.fetch(pr.repository().authenticatedUrl(), lastHead.hex(), false);
                 return true;
             }
         } catch (IOException e) {

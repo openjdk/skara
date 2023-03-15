@@ -22,14 +22,11 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.forge.*;
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
 import java.nio.file.*;
-import java.util.*;
-import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
@@ -56,11 +53,11 @@ public class CleanCommandTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
             TestBotRunner.runPeriodicItems(prBot);
 
@@ -98,7 +95,7 @@ public class CleanCommandTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             var releaseBranch = localRepo.branch(masterHash, "release");
             localRepo.checkout(releaseBranch);
@@ -111,7 +108,7 @@ public class CleanCommandTests {
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
             var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
-            localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
+            localRepo.push(releaseHash, author.authenticatedUrl(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
             localRepo.checkout(localRepo.defaultBranch());
@@ -121,7 +118,7 @@ public class CleanCommandTests {
             Files.writeString(newFile2, "hello");
             localRepo.add(newFile2);
             var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex());
 
             // The bot should reply with a backport message
@@ -175,7 +172,7 @@ public class CleanCommandTests {
                                   "Reviewed-by: integrationreviewer2";
             var masterHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
 
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             var releaseBranch = localRepo.branch(masterHash, "release");
             localRepo.checkout(releaseBranch);
@@ -187,7 +184,7 @@ public class CleanCommandTests {
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
             var upstreamHash = localRepo.commit(upstreamMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
-            localRepo.push(upstreamHash, author.url(), "refs/heads/release", true);
+            localRepo.push(upstreamHash, author.authenticatedUrl(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
             localRepo.checkout(localRepo.defaultBranch());
@@ -196,7 +193,7 @@ public class CleanCommandTests {
             Files.writeString(newFile, "a\nb\nc\nd\nd");
             localRepo.add(newFile);
             var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + upstreamHash.hex());
 
             // The bot should reply with a backport message
@@ -254,7 +251,7 @@ public class CleanCommandTests {
                                   "Reviewed-by: integrationreviewer2";
             var masterHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
 
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             var releaseBranch = localRepo.branch(masterHash, "release");
             localRepo.checkout(releaseBranch);
@@ -266,7 +263,7 @@ public class CleanCommandTests {
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
             var upstreamHash = localRepo.commit(upstreamMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
-            localRepo.push(upstreamHash, author.url(), "refs/heads/release", true);
+            localRepo.push(upstreamHash, author.authenticatedUrl(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
             localRepo.checkout(localRepo.defaultBranch());
@@ -275,7 +272,7 @@ public class CleanCommandTests {
             Files.writeString(newFile, "a\nb\nc\nd\nd");
             localRepo.add(newFile);
             var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + upstreamHash.hex());
 
             // The bot should reply with a backport message
@@ -322,13 +319,13 @@ public class CleanCommandTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             var issue = credentials.createIssue(issues, "An issue");
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + issue.id());
             TestBotRunner.runPeriodicItems(prBot);
 

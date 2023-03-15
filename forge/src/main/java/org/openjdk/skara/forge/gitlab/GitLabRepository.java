@@ -235,7 +235,7 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public URI url() {
+    public URI authenticatedUrl() {
         if (gitLabHost.useSsh()) {
             return URI.create("ssh://git@" + gitLabHost.getPat().orElseThrow().username() + "." + gitLabHost.getUri().getHost() + "/" + projectName + ".git");
         } else {
@@ -285,6 +285,13 @@ public class GitLabRepository implements HostedRepository {
     @Override
     public VCS repositoryType() {
         return VCS.GIT;
+    }
+
+    @Override
+    public URI url() {
+        return URIBuilder.base(gitLabHost.getUri())
+                .setPath("/" + projectName + ".git")
+                .build();
     }
 
     @Override

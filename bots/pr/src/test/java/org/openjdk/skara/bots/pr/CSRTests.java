@@ -27,7 +27,6 @@ import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.Review;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSON;
-import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
@@ -61,11 +60,11 @@ class CSRTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
 
             // Require CSR
@@ -136,11 +135,11 @@ class CSRTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
 
             // Require CSR
@@ -175,11 +174,11 @@ class CSRTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Just a patch");
 
             // Require CSR
@@ -219,11 +218,11 @@ class CSRTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Just a patch");
 
             // Require CSR from another person who is not a reviewer and is not the author
@@ -295,11 +294,11 @@ class CSRTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Just a patch");
 
             // Require CSR with bad argument
@@ -335,11 +334,11 @@ class CSRTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is an issue");
 
             // Require CSR
@@ -379,11 +378,11 @@ class CSRTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
 
             // Require CSR
@@ -438,11 +437,11 @@ class CSRTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
 
             // Require CSR
@@ -512,11 +511,11 @@ class CSRTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
 
             // Require CSR
@@ -577,11 +576,11 @@ class CSRTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR and require CSR in PR body
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Just a patch", List.of("/csr"));
 
             // Run bot
@@ -615,11 +614,11 @@ class CSRTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Just a patch");
 
             // Approve the PR
@@ -672,11 +671,11 @@ class CSRTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Just a patch");
 
             // Test the pull request bot with csr disable
@@ -731,7 +730,7 @@ class CSRTests {
             var localRepoFolder = tempFolder.path().resolve("localrepo");
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Push a commit to the jdk18 branch
             var jdk18Branch = localRepo.branch(masterHash, "jdk18");
@@ -742,7 +741,7 @@ class CSRTests {
             var issueNumber = issue.id().split("-")[1];
             var commitMessage = issueNumber + ": This is the primary issue\n\nReviewed-by: integrationreviewer2";
             var commitHash = localRepo.commit(commitMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
-            localRepo.push(commitHash, author.url(), "jdk18", true);
+            localRepo.push(commitHash, author.authenticatedUrl(), "jdk18", true);
 
             // Remove `version=0.1` from `.jcheck/conf`, set the version as null
             localRepo.checkout(localRepo.defaultBranch());
@@ -751,7 +750,7 @@ class CSRTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             var confHash = localRepo.commit("Set version as null", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, author.url(), "master", true);
+            localRepo.push(confHash, author.authenticatedUrl(), "master", true);
             createBackport(localRepo, author, confHash, "edit1");
             var pr = credentials.createPullRequest(author, "master", "edit1", "Backport " + commitHash);
             // Run bot. Request a CSR.
@@ -780,7 +779,7 @@ class CSRTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as a wrong value", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, author.url(), "master", true);
+            localRepo.push(confHash, author.authenticatedUrl(), "master", true);
             createBackport(localRepo, author, confHash, "edit2");
             pr = credentials.createPullRequest(author, "master", "edit2", "Backport " + commitHash);
             // Run bot. Request a CSR.
@@ -809,7 +808,7 @@ class CSRTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 17", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, author.url(), "master", true);
+            localRepo.push(confHash, author.authenticatedUrl(), "master", true);
             createBackport(localRepo, author, confHash, "edit3");
             pr = credentials.createPullRequest(author, "master", "edit3", "Backport " + commitHash);
             // Run bot. Request a CSR.
@@ -911,7 +910,7 @@ class CSRTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 11", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, author.url(), "master", true);
+            localRepo.push(confHash, author.authenticatedUrl(), "master", true);
             createBackport(localRepo, author, confHash, "edit4");
             pr = credentials.createPullRequest(author, "master", "edit4", "Backport " + commitHash);
             // Run bot.
@@ -954,7 +953,7 @@ class CSRTests {
         Files.writeString(newFile2, "a_new_file");
         localRepo.add(newFile2);
         var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
-        localRepo.push(editHash, author.url(), branchName, true);
+        localRepo.push(editHash, author.authenticatedUrl(), branchName, true);
     }
 
     @Test
@@ -977,11 +976,11 @@ class CSRTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
 
             // Require CSR
@@ -1074,11 +1073,11 @@ class CSRTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
 
             var issue2 = issues.createIssue("This is an issue2", List.of(), Map.of());
@@ -1126,11 +1125,11 @@ class CSRTests {
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
 
             var issue2 = issues.createIssue("This is an issue2", List.of(), Map.of());

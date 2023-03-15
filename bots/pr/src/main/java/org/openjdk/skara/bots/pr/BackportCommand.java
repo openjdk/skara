@@ -239,8 +239,8 @@ public class BackportCommand implements CommandHandler {
                 var localRepo = bot.hostedRepositoryPool()
                                    .orElseThrow(() -> new IllegalStateException("Missing repository pool for PR bot"))
                                    .materialize(targetRepo, localRepoDir);
-                var fetchHead = localRepo.fetch(bot.repo().url(), hash.hex(), false);
-                var head = localRepo.fetch(targetRepo.url(), targetBranchName, false);
+                var fetchHead = localRepo.fetch(bot.repo().authenticatedUrl(), hash.hex(), false);
+                var head = localRepo.fetch(targetRepo.authenticatedUrl(), targetBranchName, false);
                 var backportBranch = localRepo.branch(head, backportBranchName);
                 localRepo.checkout(backportBranch);
                 var didApply = localRepo.cherryPick(fetchHead);
@@ -264,14 +264,14 @@ public class BackportCommand implements CommandHandler {
                     lines.add("");
                     lines.add("```");
                     lines.add("# Fetch the up-to-date version of the target branch");
-                    lines.add("$ git fetch --no-tags " + targetRepo.webUrl() + " " + targetBranch.name() + ":" + targetBranch.name());
+                    lines.add("$ git fetch --no-tags " + targetRepo.url() + " " + targetBranch.name() + ":" + targetBranch.name());
                     lines.add("");
                     lines.add("# Check out the target branch and create your own branch to backport");
                     lines.add("$ git checkout " + targetBranch.name());
                     lines.add("$ git checkout -b " + backportBranchName);
                     lines.add("");
                     lines.add("# Fetch the commit you want to backport");
-                    lines.add("$ git fetch --no-tags " + bot.repo().webUrl() + " " + hash.hex());
+                    lines.add("$ git fetch --no-tags " + bot.repo().url() + " " + hash.hex());
                     lines.add("");
                     lines.add("# Backport the commit");
                     lines.add("$ git cherry-pick --no-commit " + hash.hex());
@@ -297,7 +297,7 @@ public class BackportCommand implements CommandHandler {
                 }
 
                 backportHash = localRepo.commit("Backport " + hash.hex(), "duke", "duke@openjdk.org");
-                localRepo.push(backportHash, fork.url(), backportBranchName, false);
+                localRepo.push(backportHash, fork.authenticatedUrl(), backportBranchName, false);
             } else {
                 backportHash = hostedBackportBranch.get().hash();
             }
@@ -364,12 +364,12 @@ public class BackportCommand implements CommandHandler {
                           "[" + targetRepo.name() + "](" + targetRepo.webUrl() + "):\n" +
                           "\n" +
                           "```\n" +
-                          "$ git fetch " + fork.webUrl() + " " + backportBranchName + ":" + backportBranchName + "\n" +
+                          "$ git fetch " + fork.url() + " " + backportBranchName + ":" + backportBranchName + "\n" +
                           "$ git checkout " + backportBranchName + "\n" +
                           "# make changes\n" +
                           "$ git add paths/to/changed/files\n" +
                           "$ git commit --message 'Describe additional changes made'\n" +
-                          "$ git push " + fork.webUrl() + " " + backportBranchName + "\n" +
+                          "$ git push " + fork.url() + " " + backportBranchName + "\n" +
                           "```");
         } catch (IOException e) {
             throw new UncheckedIOException(e);

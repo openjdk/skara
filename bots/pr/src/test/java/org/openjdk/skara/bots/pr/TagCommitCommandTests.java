@@ -24,7 +24,6 @@ package org.openjdk.skara.bots.pr;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Tag;
 import org.openjdk.skara.vcs.Repository;
@@ -62,7 +61,7 @@ public class TagCommitCommandTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Add a tag command
             author.addCommitComment(masterHash, "/tag v1.0");
@@ -75,7 +74,7 @@ public class TagCommitCommandTests {
             assertTrue(botReply.body().contains("was successfully created"));
 
             var localAuthorRepoDir = tempFolder.path().resolve("author");
-            var localAuthorRepo = Repository.clone(author.url(), localAuthorRepoDir);
+            var localAuthorRepo = Repository.clone(author.authenticatedUrl(), localAuthorRepoDir);
             var tags = localAuthorRepo.tags();
             assertEquals(List.of(new Tag("v1.0")), tags);
         }
@@ -104,7 +103,7 @@ public class TagCommitCommandTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Add a tag command
             author.addCommitComment(masterHash, "/tag");
@@ -116,7 +115,7 @@ public class TagCommitCommandTests {
             assertTrue(botReply.body().contains("Usage: `/tag <name>`"));
 
             var localAuthorRepoDir = tempFolder.path().resolve("author");
-            var localAuthorRepo = Repository.clone(author.url(), localAuthorRepoDir);
+            var localAuthorRepo = Repository.clone(author.authenticatedUrl(), localAuthorRepoDir);
             var tags = localAuthorRepo.tags();
             assertEquals(List.of(), tags);
         }
@@ -145,7 +144,7 @@ public class TagCommitCommandTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Add a tag command
             author.addCommitComment(masterHash, "/tag a b c");
@@ -157,7 +156,7 @@ public class TagCommitCommandTests {
             assertTrue(botReply.body().contains("Usage: `/tag <name>`"));
 
             var localAuthorRepoDir = tempFolder.path().resolve("author");
-            var localAuthorRepo = Repository.clone(author.url(), localAuthorRepoDir);
+            var localAuthorRepo = Repository.clone(author.authenticatedUrl(), localAuthorRepoDir);
             var tags = localAuthorRepo.tags();
             assertEquals(List.of(), tags);
         }
@@ -186,7 +185,7 @@ public class TagCommitCommandTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Add a tag command
             author.addCommitComment(masterHash, "/tag v1.0");
@@ -199,13 +198,13 @@ public class TagCommitCommandTests {
             assertTrue(botReply.body().contains("was successfully created"));
 
             var localAuthorRepoDir = tempFolder.path().resolve("author");
-            var localAuthorRepo = Repository.clone(author.url(), localAuthorRepoDir);
+            var localAuthorRepo = Repository.clone(author.authenticatedUrl(), localAuthorRepoDir);
             var tags = localAuthorRepo.tags();
             assertEquals(List.of(new Tag("v1.0")), tags);
 
             // Make another commit
             var anotherHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(anotherHash, author.url(), "master", true);
+            localRepo.push(anotherHash, author.authenticatedUrl(), "master", true);
 
             // Try to re-create an existing tag
             author.addCommitComment(anotherHash, "/tag v1.0");
@@ -242,7 +241,7 @@ public class TagCommitCommandTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Add a tag command
             author.addCommitComment(masterHash, "/tag v1.0");
@@ -254,7 +253,7 @@ public class TagCommitCommandTests {
             assertTrue(botReply.body().contains("Only integrators for this repository are allowed to use the `/tag` command"));
 
             var localAuthorRepoDir = tempFolder.path().resolve("author");
-            var localAuthorRepo = Repository.clone(author.url(), localAuthorRepoDir);
+            var localAuthorRepo = Repository.clone(author.authenticatedUrl(), localAuthorRepoDir);
             var tags = localAuthorRepo.tags();
             assertEquals(List.of(), tags);
         }
@@ -287,7 +286,7 @@ public class TagCommitCommandTests {
             localRepo.add(List.of(Path.of(".jcheck", "conf")));
             localRepo.commit("Added tags spec", "testauthor", "ta@none.none");
             var masterHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Add a tag command
             author.addCommitComment(masterHash, "/tag bar");
@@ -300,7 +299,7 @@ public class TagCommitCommandTests {
             assertTrue(botReply.body().contains("The given tag name `bar` is not of the form `foo`"));
 
             var localAuthorRepoDir = tempFolder.path().resolve("author");
-            var localAuthorRepo = Repository.clone(author.url(), localAuthorRepoDir);
+            var localAuthorRepo = Repository.clone(author.authenticatedUrl(), localAuthorRepoDir);
             var tags = localAuthorRepo.tags();
             assertEquals(List.of(), tags);
         }

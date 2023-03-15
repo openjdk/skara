@@ -61,11 +61,11 @@ class CSRBotTests {
             var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.url(), "master", true);
+            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.url(), "edit", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
 
             // Add CSR label
@@ -92,11 +92,11 @@ class CSRBotTests {
             var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.url(), "master", true);
+            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.url(), "edit", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(repo, "master", "edit", "This is an issue");
 
             // Add CSR label
@@ -123,11 +123,11 @@ class CSRBotTests {
             var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.url(), "master", true);
+            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.url(), "edit", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(repo, "master", "edit", "123: This is an issue");
 
             // Add CSR label
@@ -161,11 +161,11 @@ class CSRBotTests {
             var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.url(), "master", true);
+            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.url(), "edit", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
 
             // Run bot
@@ -201,11 +201,11 @@ class CSRBotTests {
             var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.url(), "master", true);
+            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.url(), "edit", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
 
             // Run bot
@@ -242,11 +242,11 @@ class CSRBotTests {
             var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.url(), "master", true);
+            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.url(), "edit", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
 
             // Run bot
@@ -290,7 +290,7 @@ class CSRBotTests {
             var localRepoFolder = tempFolder.path().resolve("localrepo");
             var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, repo.url(), "master", true);
+            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
 
             // Push a commit to the jdk18 branch
             var jdk18Branch = localRepo.branch(masterHash, "jdk18");
@@ -301,7 +301,7 @@ class CSRBotTests {
             var issueNumber = issue.id().split("-")[1];
             var commitMessage = issueNumber + ": This is the primary issue\n\nReviewed-by: integrationreviewer2";
             var commitHash = localRepo.commit(commitMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
-            localRepo.push(commitHash, repo.url(), "jdk18", true);
+            localRepo.push(commitHash, repo.authenticatedUrl(), "jdk18", true);
 
             // "backport" the commit to the master branch
             localRepo.checkout(localRepo.defaultBranch());
@@ -311,7 +311,7 @@ class CSRBotTests {
             Files.writeString(newFile2, "a_new_file");
             localRepo.add(newFile2);
             var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
-            localRepo.push(editHash, repo.url(), "edit", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(repo, "master", "edit", issueNumber + ": This is the primary issue");
             pr.addLabel("backport");
             // Add the notification link to the PR in the issue. This is needed for the CSRIssueBot to
@@ -324,7 +324,7 @@ class CSRBotTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             var confHash = localRepo.commit("Set version as null", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.url(), "edit", true);
+            localRepo.push(confHash, repo.authenticatedUrl(), "edit", true);
             assertFalse(pr.store().labelNames().contains("csr"));
             // Run bot. The bot won't get a CSR.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
@@ -337,7 +337,7 @@ class CSRBotTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as a wrong value", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.url(), "edit", true);
+            localRepo.push(confHash, repo.authenticatedUrl(), "edit", true);
             // Run bot. The bot won't get a CSR.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the `csr` label.
@@ -352,7 +352,7 @@ class CSRBotTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 17", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.url(), "edit", true);
+            localRepo.push(confHash, repo.authenticatedUrl(), "edit", true);
             // Run bot. The primary CSR doesn't have the fix version `17`, so the bot won't get a CSR.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the `csr` label.
@@ -401,7 +401,7 @@ class CSRBotTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 11", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.url(), "edit", true);
+            localRepo.push(confHash, repo.authenticatedUrl(), "edit", true);
             pr.removeLabel("csr");
             // Run bot.
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
@@ -441,11 +441,11 @@ class CSRBotTests {
             var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.url(), "master", true);
+            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.url(), "edit", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
             // Add the notification link to the PR in the issue. This is needed for the CSRIssueBot to
             // be able to trigger on CSR issue updates
@@ -523,11 +523,11 @@ class CSRBotTests {
             var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.url(), "master", true);
+            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.url(), "edit", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
             // Add the notification link to the PR in the issue. This is needed for the CSRIssueBot to
             // be able to trigger on CSR issue updates
@@ -573,11 +573,11 @@ class CSRBotTests {
             var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.url(), "master", true);
+            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.url(), "edit", true);
+            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
             pr.setBody("PR body\n" + PROGRESS_MARKER);
             // Add the notification link to the PR in the issue. This is needed for the CSRIssueBot to

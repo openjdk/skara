@@ -283,7 +283,7 @@ public class HostCredentials implements AutoCloseable {
             var lockFile = repoFolder.resolve("lock.txt");
             Repository localRepo;
             try {
-                localRepo = Repository.materialize(repoFolder, repo.url(), "testlock");
+                localRepo = Repository.materialize(repoFolder, repo.authenticatedUrl(), "testlock");
             } catch (IOException e) {
                 // If the branch does not exist, we'll try to create it
                 localRepo = TestableRepository.init(repoFolder, VCS.GIT);
@@ -302,7 +302,7 @@ public class HostCredentials implements AutoCloseable {
 
             // The lock either doesn't exist or is stale, try to grab it
             var lockHash = commitLock(localRepo);
-            localRepo.push(lockHash, repo.url(), "testlock");
+            localRepo.push(lockHash, repo.authenticatedUrl(), "testlock");
             log.info("Obtained credentials lock");
 
             // If no exception occurs (such as the push fails), we have obtained the lock
@@ -315,10 +315,10 @@ public class HostCredentials implements AutoCloseable {
             var repoFolder = tempFolder.path().resolve("lock");
             var lockFile = repoFolder.resolve("lock.txt");
             Repository localRepo;
-            localRepo = Repository.materialize(repoFolder, repo.url(), "testlock");
+            localRepo = Repository.materialize(repoFolder, repo.authenticatedUrl(), "testlock");
             localRepo.remove(lockFile);
             var lockHash = localRepo.commit("Unlock", "test", "test@test.test");
-            localRepo.push(lockHash, repo.url(), "testlock");
+            localRepo.push(lockHash, repo.authenticatedUrl(), "testlock");
         }
     }
 

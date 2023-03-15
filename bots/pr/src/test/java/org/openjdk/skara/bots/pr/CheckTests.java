@@ -65,11 +65,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
@@ -120,11 +120,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A line with a trailing whitespace   ");
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
@@ -151,7 +151,7 @@ class CheckTests {
 
             // Remove the trailing whitespace in a new commit
             editHash = CheckableRepository.replaceAndCommit(localRepo, "A line without a trailing whitespace");
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
@@ -186,11 +186,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var authorPr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Let the status bot inspect the PR
@@ -207,7 +207,7 @@ class CheckTests {
 
             // Update the file after approval
             editHash = CheckableRepository.appendAndCommit(localRepo, "Now I've gone and changed it");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
 
             // Check that the review is flagged as stale
             TestBotRunner.runPeriodicItems(checkBot);
@@ -256,11 +256,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var authorPr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Let the status bot inspect the PR
@@ -297,11 +297,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
@@ -335,7 +335,7 @@ class CheckTests {
             assertTrue(pr.store().labelNames().contains("ready"));
 
             var addedHash = CheckableRepository.appendAndCommit(localRepo, "trailing whitespace   ");
-            localRepo.push(addedHash, author.url(), "edit");
+            localRepo.push(addedHash, author.authenticatedUrl(), "edit");
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
@@ -368,11 +368,11 @@ class CheckTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -388,7 +388,7 @@ class CheckTests {
             Files.writeString(unrelated, "Hello");
             localRepo.add(unrelated);
             var unrelatedHash = localRepo.commit("Unrelated", "X", "x@y.z");
-            localRepo.push(unrelatedHash, author.url(), "master");
+            localRepo.push(unrelatedHash, author.authenticatedUrl(), "master");
 
             // Let the bot see the changes
             pr.setBody(pr.store().body() + "recheck");
@@ -420,11 +420,11 @@ class CheckTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
@@ -438,7 +438,7 @@ class CheckTests {
             // Push something conflicting to master
             localRepo.checkout(masterHash, true);
             var conflictingHash = CheckableRepository.appendAndCommit(localRepo, "This looks like a conflict");
-            localRepo.push(conflictingHash, author.url(), "master");
+            localRepo.push(conflictingHash, author.authenticatedUrl(), "master");
 
             // Let the bot see the changes
             pr.setBody(pr.store().body() + "recheck");
@@ -467,7 +467,7 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // Restore the master branch
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Let the bot see the changes
             pr.setBody(pr.store().body() + "recheck");
@@ -500,11 +500,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
             pr.addLabel("block");
 
@@ -551,11 +551,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Another PR");
             pr.setBody("    ");
 
@@ -616,14 +616,14 @@ class CheckTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
                     Path.of("executable.exe"), Set.of("reviewers", "executable"), "0.1");
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             Files.writeString(tempFolder.path().resolve("executable.exe"), "Executable file contents", StandardCharsets.UTF_8);
             Files.setPosixFilePermissions(tempFolder.path().resolve("executable.exe"), Set.of(PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.OWNER_READ));
             localRepo.add(Path.of("executable.exe"));
             var editHash = localRepo.commit("Make it executable", "duke", "duke@openjdk.org");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Another PR");
             pr.setBody("This should now be ready");
 
@@ -649,7 +649,7 @@ class CheckTests {
             Files.setPosixFilePermissions(tempFolder.path().resolve("executable.exe"), Set.of(PosixFilePermission.OWNER_READ));
             localRepo.add(Path.of("executable.exe"));
             var updatedHash = localRepo.commit("Make it unexecutable", "duke", "duke@openjdk.org");
-            localRepo.push(updatedHash, author.url(), "edit");
+            localRepo.push(updatedHash, author.authenticatedUrl(), "edit");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready for review
@@ -677,11 +677,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
@@ -718,11 +718,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
@@ -761,11 +761,11 @@ class CheckTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
                                                      Set.of("issues"), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
@@ -808,14 +808,14 @@ class CheckTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
                     Set.of("issues"), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Verify that a cut-off title is corrected
             var issue1 = issues.createIssue("My first issue with a very long title that is going to be cut off by the Git Forge provider", List.of("Hello"), Map.of());
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var prBadTitle =  credentials.createPullRequest(author, "master", "edit", issue1.id() + ": My OTHER issue with a very long title that is going to be cut off by …", List.of("…the Git Forge provider"), false);
 
             // Check the status
@@ -840,7 +840,7 @@ class CheckTests {
 
             // Make a change with a corresponding PR
             var editHash2 = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash2, author.url(), "edit", true);
+            localRepo.push(editHash2, author.authenticatedUrl(), "edit", true);
 
             var prCutOff2 =  credentials.createPullRequest(author, "master", "edit", issue2.id() + ": My second issue ending in space", List.of(), false);
 
@@ -869,13 +869,13 @@ class CheckTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
                                                      Set.of("issues"), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             var issue1 = issues.createIssue("My first issue", List.of("Hello"), Map.of("issuetype", JSON.of("Bug")));
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", issue1.id() + ": This is a pull request");
 
             // Check the status
@@ -966,13 +966,13 @@ class CheckTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
                                                      Set.of("issues"), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             var issue1 = issues.createIssue("My first issue", List.of("Hello"), Map.of("issuetype", JSON.of("Bug")));
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", issue1.id() + ": This is a pull request");
 
             // Check the status
@@ -1045,7 +1045,7 @@ class CheckTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
                                     Path.of("appendable.txt"), Set.of("issues"), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Set the version to 17
             localRepo.checkout(localRepo.defaultBranch());
@@ -1054,14 +1054,14 @@ class CheckTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             var confHash = localRepo.commit("Set version as 17", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, author.url(), "master", true);
+            localRepo.push(confHash, author.authenticatedUrl(), "master", true);
 
             var mainIssue = issues.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
             var csrIssue = issues.createIssue("The csr issue", List.of("csr"), Map.of("issuetype", JSON.of("CSR")));
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", mainIssue.id() + ": " + mainIssue.title());
 
             // PR should have one issue
@@ -1085,7 +1085,7 @@ class CheckTests {
             csrIssue.setState(Issue.State.CLOSED);
             // Push a commit to trigger the check which can update the PR body.
             var newHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(newHash, author.url(), "edit", false);
+            localRepo.push(newHash, author.authenticatedUrl(), "edit", false);
 
             // PR should have two issues
             TestBotRunner.runPeriodicItems(checkBot);
@@ -1115,7 +1115,7 @@ class CheckTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
                     Path.of("appendable.txt"), Set.of("issues"), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             var mainIssue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
             var jepIssue = issueProject.createIssue("The jep issue", List.of("Jep body"),
@@ -1123,7 +1123,7 @@ class CheckTests {
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", mainIssue.id() + ": " + mainIssue.title());
 
             // PR should have one issue
@@ -1152,7 +1152,7 @@ class CheckTests {
 
             // Push a commit to trigger the check which can update the PR body.
             var newHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(newHash, author.url(), "edit", false);
+            localRepo.push(newHash, author.authenticatedUrl(), "edit", false);
 
             // PR should have two issues even though the jep issue has been targeted
             TestBotRunner.runPeriodicItems(checkBot);
@@ -1166,7 +1166,7 @@ class CheckTests {
 
             // Push a commit to trigger the check which can update the PR body.
             newHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(newHash, author.url(), "edit", false);
+            localRepo.push(newHash, author.authenticatedUrl(), "edit", false);
 
             // PR should have two issues even though the jep issue has been Closed
             TestBotRunner.runPeriodicItems(checkBot);
@@ -1187,11 +1187,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Verify no checks exists
@@ -1240,11 +1240,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Enable a new check in the target branch
@@ -1252,7 +1252,7 @@ class CheckTests {
             CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
                                      Set.of("author", "reviewers", "whitespace", "issues"), null);
             var headHash = localRepo.resolve("HEAD").orElseThrow();
-            localRepo.push(headHash, author.url(), "master", true);
+            localRepo.push(headHash, author.authenticatedUrl(), "master", true);
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
@@ -1291,11 +1291,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit",
                                                    "This is a pull request", true);
 
@@ -1329,12 +1329,12 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR containing more errors than at least GitHub can handle in a check
             var badContent = "\tline   \n".repeat(200);
             var editHash = CheckableRepository.appendAndCommit(localRepo, badContent);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit",
                                                    "This is a pull request", true);
 
@@ -1364,14 +1364,14 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Break the jcheck configuration on the "edit" branch
             var confPath = tempFolder.path().resolve(".jcheck/conf");
             Files.writeString(confPath, "Hello there!", StandardCharsets.UTF_8);
             localRepo.add(confPath);
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A change");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit",
                                                    "This is a pull request", true);
 
@@ -1404,12 +1404,12 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "master");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "master");
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
@@ -1439,15 +1439,15 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make the same change with different messages in master and edit
             String identicalChangeBody = "identical change";
             var editHash = CheckableRepository.appendAndCommit(localRepo, identicalChangeBody, "edit message");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             localRepo.checkout(masterHash, true);
             masterHash = CheckableRepository.appendAndCommit(localRepo, identicalChangeBody, "master message");
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Create PR
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
@@ -1480,11 +1480,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A line with");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
@@ -1503,7 +1503,7 @@ class CheckTests {
 
             // Add another commit
             editHash = CheckableRepository.replaceAndCommit(localRepo, "Another line");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
@@ -1517,7 +1517,7 @@ class CheckTests {
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved again");
 
             // Change the target ref of the PR
-            localRepo.push(masterHash, author.url(), "other-branch", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "other-branch", true);
             pr.setTargetRef("other-branch");
 
             // Check the status again
@@ -1567,12 +1567,12 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, author.url(), "notmaster", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "notmaster", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit",
                                                    "This is a pull request", true);
 
@@ -1629,11 +1629,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var bugHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(bugHash, author.url(), "bug", true);
+            localRepo.push(bugHash, author.authenticatedUrl(), "bug", true);
             var bugPR = credentials.createPullRequest(author, "master", "bug",
                                                       bug.id() + ": My first bug", true);
 
@@ -1648,7 +1648,7 @@ class CheckTests {
 
             // Make a change with a corresponding PR
             var backportHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(backportHash, author.url(), "backport", true);
+            localRepo.push(backportHash, author.authenticatedUrl(), "backport", true);
             var backportPR = credentials.createPullRequest(author, "master", "backport",
                                                            backport.id() + ": My first backport", true);
 
@@ -1684,11 +1684,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var bugHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(bugHash, author.url(), "bug", true);
+            localRepo.push(bugHash, author.authenticatedUrl(), "bug", true);
             var bugPR = credentials.createPullRequest(author, "master", "bug", numericId, true);
             assertEquals(numericId, bugPR.store().title());
 
@@ -1722,11 +1722,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var bugHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(bugHash, author.url(), "bug", true);
+            localRepo.push(bugHash, author.authenticatedUrl(), "bug", true);
             var bugPR = credentials.createPullRequest(author, "master", "bug", bug.id(), true);
             assertEquals(bug.id(), bugPR.store().title());
 
@@ -1763,11 +1763,11 @@ class CheckTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
                                                      Path.of("appendable.txt"), Set.of("issues"), "0.9");
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var bugHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(bugHash, author.url(), "bug", true);
+            localRepo.push(bugHash, author.authenticatedUrl(), "bug", true);
 
             var bugPR = credentials.createPullRequest(author, "master", "bug", "bad title", true);
 
@@ -1812,11 +1812,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var bugHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(bugHash, author.url(), "bug", true);
+            localRepo.push(bugHash, author.authenticatedUrl(), "bug", true);
             var bugPR = credentials.createPullRequest(author, "master", "bug",
                     bug.id() + ":\u00A0" + bug.title(), true);
 
@@ -1849,7 +1849,7 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Create a different conf on a different branch
             var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
@@ -1857,12 +1857,12 @@ class CheckTests {
             Files.writeString(localRepo.root().resolve("jcheck.conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve("jcheck.conf"));
             var confHash = localRepo.commit("Separate conf", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, author.url(), "jcheck-branch", true);
+            localRepo.push(confHash, author.authenticatedUrl(), "jcheck-branch", true);
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
             var testHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(testHash, author.url(), "test", true);
+            localRepo.push(testHash, author.authenticatedUrl(), "test", true);
             var pr = credentials.createPullRequest(author, "master", "test", "This is a PR");
 
             // Check the status (should become ready immediately as reviewercount is overridden to 0)
@@ -1891,7 +1891,7 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Create a different conf on a different branch
             var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
@@ -1899,17 +1899,17 @@ class CheckTests {
             Files.writeString(localRepo.root().resolve("jcheck.conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve("jcheck.conf"));
             var confHash = localRepo.commit("Separate conf", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, author.url(), "jcheck-branch", true);
+            localRepo.push(confHash, author.authenticatedUrl(), "jcheck-branch", true);
             localRepo.checkout(masterHash, true);
 
             // Remove the default one
             localRepo.remove(localRepo.root().resolve(".jcheck/conf"));
             var newMasterHash = localRepo.commit("No more conf", "duke", "duke@openjdk.org");
-            localRepo.push(newMasterHash, author.url(), "master");
+            localRepo.push(newMasterHash, author.authenticatedUrl(), "master");
 
             // Make a change with a corresponding PR
             var testHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(testHash, author.url(), "test", true);
+            localRepo.push(testHash, author.authenticatedUrl(), "test", true);
             var pr = credentials.createPullRequest(author, "master", "test", "This is a PR");
 
             // Check the status (should become ready immediately as reviewercount is overridden to 0)
@@ -1935,11 +1935,11 @@ class CheckTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR with an empty e-mail
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Content", "A commit", "A Random User", "a.random.user@foo.com");
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve the PR
@@ -1990,7 +1990,7 @@ class CheckTests {
             var localRepoFolder = tempFolder.path().resolve("localrepo");
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Push a commit to the jdk18 branch
             var jdk18Branch = localRepo.branch(masterHash, "jdk18");
@@ -2001,7 +2001,7 @@ class CheckTests {
             var issueNumber = issue.id().split("-")[1];
             var commitMessage = issueNumber + ": This is the primary issue\n\nReviewed-by: integrationreviewer2";
             var commitHash = localRepo.commit(commitMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
-            localRepo.push(commitHash, author.url(), "jdk18", true);
+            localRepo.push(commitHash, author.authenticatedUrl(), "jdk18", true);
 
             // "backport" the commit to the master branch
             localRepo.checkout(localRepo.defaultBranch());
@@ -2011,7 +2011,7 @@ class CheckTests {
             Files.writeString(newFile2, "a_new_file");
             localRepo.add(newFile2);
             var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + commitHash);
 
             // Remove `version=0.1` from `.jcheck/conf`, set the version as null
@@ -2020,7 +2020,7 @@ class CheckTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             var confHash = localRepo.commit("Set version as null", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, author.url(), "edit", true);
+            localRepo.push(confHash, author.authenticatedUrl(), "edit", true);
             // Simulate the CSRBot.
             pr.setBody(pr.store().body() + CSR_UPDATE_MARKER);
             // Run bot. The bot won't get a CSR.
@@ -2039,7 +2039,7 @@ class CheckTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as a wrong value", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, author.url(), "edit", true);
+            localRepo.push(confHash, author.authenticatedUrl(), "edit", true);
             // Simulate the CSRBot.
             pr.setBody(pr.store().body() + CSR_UPDATE_MARKER);
             // Run bot. The bot won't get a CSR.
@@ -2058,7 +2058,7 @@ class CheckTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 17", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, author.url(), "edit", true);
+            localRepo.push(confHash, author.authenticatedUrl(), "edit", true);
             // Simulate the CSRBot.
             pr.setBody(pr.store().body() + CSR_UPDATE_MARKER);
             // Run bot. The primary CSR doesn't have the fix version `17`, so the bot won't get a CSR.
@@ -2136,7 +2136,7 @@ class CheckTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 11", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, author.url(), "edit", true);
+            localRepo.push(confHash, author.authenticatedUrl(), "edit", true);
             // Simulate the CSRBot.
             pr.setBody(pr.store().body() + CSR_UPDATE_MARKER);
             // Run bot.
@@ -2201,11 +2201,11 @@ class CheckTests {
             localRepo.add(problemList);
             localRepo.commit("add problemList.txt", "testauthor", "ta@none.none");
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A line");
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
 
             var issue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
 
@@ -2244,13 +2244,13 @@ class CheckTests {
             localRepo.remove(localRepo.root().resolve(".jcheck/conf"));
             localRepo.commit("no conf", "testauthor", "ta@none.none");
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Create a new branch
             var editBranch = localRepo.branch(masterHash, "edit");
             localRepo.checkout(editBranch);
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
 
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
@@ -2271,7 +2271,7 @@ class CheckTests {
             writeToCheckConf(checkConf);
             localRepo.add(checkConf);
             var restoreHash = localRepo.commit("add conf to master", "testauthor", "ta@none.none");
-            localRepo.push(restoreHash, author.url(), "master", true);
+            localRepo.push(restoreHash, author.authenticatedUrl(), "master", true);
 
             pr.addComment(".jcheck/conf is uploaded");
             TestBotRunner.runPeriodicItems(checkBot);
@@ -2305,13 +2305,13 @@ class CheckTests {
             Files.writeString(checkConf, "\nRandomCharacters", StandardOpenOption.APPEND);
             localRepo.add(checkConf);
             var masterHash = localRepo.commit("make .jcheck/conf invalid", "testauthor", "ta@none.none");
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Create a new branch
             var editBranch = localRepo.branch(masterHash, "edit");
             localRepo.checkout(editBranch);
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
 
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
@@ -2331,7 +2331,7 @@ class CheckTests {
             writeToCheckConf(checkConf);
             localRepo.add(checkConf);
             var restoreHash = localRepo.commit("restore conf", "testauthor", "ta@none.none");
-            localRepo.push(restoreHash, author.url(), "master", true);
+            localRepo.push(restoreHash, author.authenticatedUrl(), "master", true);
 
             // Restore .jcheck/conf in source branch
             localRepo.checkout(editHash);
@@ -2339,7 +2339,7 @@ class CheckTests {
             writeToCheckConf(checkConf);
             localRepo.add(checkConf);
             var restoreEditHash = localRepo.commit("restore source branch conf", "testauthor", "ta@none.none");
-            localRepo.push(restoreEditHash, author.url(), "edit", true);
+            localRepo.push(restoreEditHash, author.authenticatedUrl(), "edit", true);
 
             pr.addComment(".jcheck/conf is uploaded");
             TestBotRunner.runPeriodicItems(checkBot);
@@ -2367,18 +2367,18 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Remove conf
             localRepo.remove(localRepo.root().resolve(".jcheck/conf"));
             var newMasterHash = localRepo.commit("No more conf", "duke", "duke@openjdk.org");
-            localRepo.push(newMasterHash, author.url(), "master");
+            localRepo.push(newMasterHash, author.authenticatedUrl(), "master");
 
             // Create a new branch
             var editBranch = localRepo.branch(masterHash, "edit");
             localRepo.checkout(editBranch);
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
 
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
@@ -2398,7 +2398,7 @@ class CheckTests {
             writeToCheckConf(checkConf);
             localRepo.add(checkConf);
             var restoreHash = localRepo.commit("restore conf", "testauthor", "ta@none.none");
-            localRepo.push(restoreHash, conf.url(), "jcheck-branch", true);
+            localRepo.push(restoreHash, conf.authenticatedUrl(), "jcheck-branch", true);
 
             pr.addComment("jcheck.conf is uploaded");
             TestBotRunner.runPeriodicItems(checkBot);
@@ -2426,12 +2426,12 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Remove conf
             localRepo.remove(localRepo.root().resolve(".jcheck/conf"));
             var newMasterHash = localRepo.commit("No more conf", "duke", "duke@openjdk.org");
-            localRepo.push(newMasterHash, author.url(), "master");
+            localRepo.push(newMasterHash, author.authenticatedUrl(), "master");
 
             // Upload invalid jcheck.conf to conf repo
             var jCheckBranch = localRepo.branch(masterHash, "jcheck-branch");
@@ -2440,13 +2440,13 @@ class CheckTests {
             Files.writeString(checkConf, "\nRandomCharacters", StandardOpenOption.CREATE);
             localRepo.add(checkConf);
             var confHash = localRepo.commit("restore conf", "testauthor", "ta@none.none");
-            localRepo.push(confHash, conf.url(), "jcheck-branch", true);
+            localRepo.push(confHash, conf.authenticatedUrl(), "jcheck-branch", true);
 
             // Create a new branch
             var editBranch = localRepo.branch(masterHash, "edit");
             localRepo.checkout(editBranch);
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
 
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
@@ -2465,7 +2465,7 @@ class CheckTests {
             writeToCheckConf(checkConf);
             localRepo.add(checkConf);
             var restoreHash = localRepo.commit("restore conf", "testauthor", "ta@none.none");
-            localRepo.push(restoreHash, conf.url(), "jcheck-branch", true);
+            localRepo.push(restoreHash, conf.authenticatedUrl(), "jcheck-branch", true);
 
             pr.addComment("jcheck.conf is uploaded");
             TestBotRunner.runPeriodicItems(checkBot);
@@ -2516,11 +2516,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
             pr.addComment("initial");
             TestBotRunner.runPeriodicItems(checkBot);
@@ -2534,7 +2534,7 @@ class CheckTests {
 
             // Normally push.
             var updatedHash = CheckableRepository.appendAndCommit(localRepo, "Normally push");
-            localRepo.push(updatedHash, author.url(), "edit", false);
+            localRepo.push(updatedHash, author.authenticatedUrl(), "edit", false);
             pr.addComment("Normally push");
             TestBotRunner.runPeriodicItems(checkBot);
 
@@ -2550,7 +2550,7 @@ class CheckTests {
             localRepo.checkout(editHash);
             localRepo.squash(updatedHash);
             var forcePushHash = localRepo.commit("test force-push", "duke", "duke@openjdk.org");
-            localRepo.push(forcePushHash, author.url(), "edit", true);
+            localRepo.push(forcePushHash, author.authenticatedUrl(), "edit", true);
             pr.addComment("Force-push");
             pr.setLastForcePushTime(ZonedDateTime.now());
             TestBotRunner.runPeriodicItems(checkBot);
@@ -2567,7 +2567,7 @@ class CheckTests {
 
             // Normally push again.
             updatedHash = CheckableRepository.appendAndCommit(localRepo, "Normally push");
-            localRepo.push(updatedHash, author.url(), "edit", false);
+            localRepo.push(updatedHash, author.authenticatedUrl(), "edit", false);
             pr.addComment("Normally push in draft");
             TestBotRunner.runPeriodicItems(checkBot);
 
@@ -2583,7 +2583,7 @@ class CheckTests {
             localRepo.checkout(editHash);
             localRepo.squash(updatedHash);
             forcePushHash = localRepo.commit("test force-push in draft", "duke", "duke@openjdk.org");
-            localRepo.push(forcePushHash, author.url(), "edit", true);
+            localRepo.push(forcePushHash, author.authenticatedUrl(), "edit", true);
             pr.setLastForcePushTime(ZonedDateTime.now());
             pr.addComment("Force-push in draft");
             TestBotRunner.runPeriodicItems(checkBot);
@@ -2611,7 +2611,7 @@ class CheckTests {
             localRepo.checkout(editHash);
             localRepo.squash(updatedHash);
             forcePushHash = localRepo.commit("test force-push again", "duke", "duke@openjdk.org");
-            localRepo.push(forcePushHash, author.url(), "edit", true);
+            localRepo.push(forcePushHash, author.authenticatedUrl(), "edit", true);
             pr.setLastForcePushTime(ZonedDateTime.now());
             pr.addComment("Force-push again");
             TestBotRunner.runPeriodicItems(checkBot);
@@ -2646,11 +2646,11 @@ class CheckTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             CheckWorkItem checkWorkItem = (CheckWorkItem) checkBot.getPeriodicItems().get(1);
@@ -2698,11 +2698,11 @@ class CheckTests {
             // set the .jcheck/conf without whitespace check
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"), Set.of("author", "reviewers"), "0.1");
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR, add a line with whitespace issue
             var editHash = CheckableRepository.appendAndCommit(localRepo, "An additional line\r\n");
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
@@ -2721,7 +2721,7 @@ class CheckTests {
             writeToCheckConf(checkConf);
             localRepo.add(checkConf);
             var updateHash = localRepo.commit("enable whitespace issue check", "testauthor", "ta@none.none");
-            localRepo.push(updateHash, author.url(), "edit", true);
+            localRepo.push(updateHash, author.authenticatedUrl(), "edit", true);
 
             TestBotRunner.runPeriodicItems(checkBot);
 
@@ -2761,11 +2761,11 @@ class CheckTests {
             // set the .jcheck/conf without whitespace check
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"), Set.of("author", "reviewers"), "0.1");
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR, add a line with whitespace issue
             var editHash = CheckableRepository.appendAndCommit(localRepo, "An additional line\r\n");
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
@@ -2784,7 +2784,7 @@ class CheckTests {
             Files.writeString(checkConf, "\nRandomCharacters", StandardOpenOption.APPEND);
             localRepo.add(checkConf);
             var updateHash = localRepo.commit("make .jcheck/conf invalid", "testauthor", "ta@none.none");
-            localRepo.push(updateHash, author.url(), "edit", true);
+            localRepo.push(updateHash, author.authenticatedUrl(), "edit", true);
 
             TestBotRunner.runPeriodicItems(checkBot);
 
@@ -2795,7 +2795,7 @@ class CheckTests {
             writeToCheckConf(checkConf);
             localRepo.add(checkConf);
             updateHash = localRepo.commit("enable whitespace issue check", "testauthor", "ta@none.none");
-            localRepo.push(updateHash, author.url(), "edit", true);
+            localRepo.push(updateHash, author.authenticatedUrl(), "edit", true);
 
             TestBotRunner.runPeriodicItems(checkBot);
             // pr body should have the integrationBlocker for whitespace and reviewer check

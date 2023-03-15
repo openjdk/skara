@@ -423,7 +423,7 @@ public class TestWorkItem implements WorkItem {
                             return new RuntimeException("Repository in " + localRepoDir + " has vanished");
                     });
                 }
-                fetchHead = localRepo.fetch(repository.url(), pr.headHash().hex(), false);
+                fetchHead = localRepo.fetch(repository.authenticatedUrl(), pr.headHash().hex(), false);
                 localRepo.checkout(fetchHead, true);
                 job = ci.submit(localRepoDir, jobs, jobId);
             } catch (IOException e) {

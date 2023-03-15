@@ -43,11 +43,11 @@ public class HostedRepositoryPoolTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(sourceFolder.path(), source.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, source.url(), "master", true);
+            localRepo.push(masterHash, source.authenticatedUrl(), "master", true);
 
             // Push something else
             var hash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(hash, source.url(), "master");
+            localRepo.push(hash, source.authenticatedUrl(), "master");
 
             var pool = new HostedRepositoryPool(seedFolder.path());
             var clone = pool.checkout(source, hash.hex(), cloneFolder.path());
@@ -66,14 +66,14 @@ public class HostedRepositoryPoolTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(sourceFolder.path(), source.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, source.url(), "master", true);
+            localRepo.push(masterHash, source.authenticatedUrl(), "master", true);
 
             var pool = new HostedRepositoryPool(seedFolder.path());
             var bareClone = pool.materializeBare(source, cloneFolder.path());
 
             // Push something else
             var hash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(hash, source.url(), "master");
+            localRepo.push(hash, source.authenticatedUrl(), "master");
 
             // The commit should not appear from this
             bareClone = pool.materializeBare(source, cloneFolder.path());
@@ -81,7 +81,7 @@ public class HostedRepositoryPoolTests {
             assertEquals(Optional.empty(), bareCommit);
 
             // But should be possible to fetch
-            bareClone.fetchAll(source.url());
+            bareClone.fetchAll(source.authenticatedUrl());
             bareCommit = bareClone.lookup(hash);
             assertEquals(bareCommit.get().hash(), hash);
         }
@@ -98,7 +98,7 @@ public class HostedRepositoryPoolTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(sourceFolder.path(), source.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, source.url(), "master", true);
+            localRepo.push(masterHash, source.authenticatedUrl(), "master", true);
 
             var pool = new HostedRepositoryPool(seedFolder.path());
             var empty = TestableRepository.init(cloneFolder.path(), VCS.GIT);
@@ -119,7 +119,7 @@ public class HostedRepositoryPoolTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(sourceFolder.path(), source.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, source.url(), "master", true);
+            localRepo.push(masterHash, source.authenticatedUrl(), "master", true);
 
             var pool = new HostedRepositoryPool(seedFolder.path());
             var clone = pool.checkout(source, "master", cloneFolder.path());
@@ -130,7 +130,7 @@ public class HostedRepositoryPoolTests {
 
             // Push something else
             var hash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(hash, source.url(), "master");
+            localRepo.push(hash, source.authenticatedUrl(), "master");
 
             updatedClone = pool.checkout(source, "master", cloneFolder.path());
             assertTrue(CheckableRepository.hasBeenEdited(updatedClone));
@@ -148,7 +148,7 @@ public class HostedRepositoryPoolTests {
             // Populate the projects repository
             var localRepo = CheckableRepository.init(sourceFolder.path(), source.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, source.url(), "master", true);
+            localRepo.push(masterHash, source.authenticatedUrl(), "master", true);
 
             var pool = new HostedRepositoryPool(seedFolder.path());
             var clone = pool.checkout(source, "master", cloneFolder.path());
@@ -159,7 +159,7 @@ public class HostedRepositoryPoolTests {
 
             // Push something else
             var hash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(hash, source.url(), "master");
+            localRepo.push(hash, source.authenticatedUrl(), "master");
 
             updatedClone = pool.checkoutAllowStale(source, "master", cloneFolder.path());
             assertFalse(CheckableRepository.hasBeenEdited(updatedClone));

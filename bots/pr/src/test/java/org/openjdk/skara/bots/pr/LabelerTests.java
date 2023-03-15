@@ -60,11 +60,11 @@ class LabelerTests {
             var localRepoFolder = tempFolder.path();
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status - only the rfr label should be set
@@ -103,17 +103,17 @@ class LabelerTests {
             var localRepoFolder = tempFolder.path();
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
 
             var fileA = localRepoFolder.resolve("a.txt");
             Files.writeString(fileA, "Hello");
             localRepo.add(fileA);
             var hashA = localRepo.commit("test1", "test", "test@test");
-            localRepo.push(hashA, author.url(), "edit");
+            localRepo.push(hashA, author.authenticatedUrl(), "edit");
 
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
@@ -147,24 +147,24 @@ class LabelerTests {
             var localRepoFolder = tempFolder.path();
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Add an unrelated file to master
             var fileB = localRepoFolder.resolve("b.txt");
             Files.writeString(fileB, "Hello");
             localRepo.add(fileB);
             var hashB = localRepo.commit("test1", "test", "test@test");
-            localRepo.push(hashB, author.url(), "master");
+            localRepo.push(hashB, author.authenticatedUrl(), "master");
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
 
             var fileA = localRepoFolder.resolve("a.txt");
             Files.writeString(fileA, "Hello");
             localRepo.add(fileA);
             var hashA = localRepo.commit("test1", "test", "test@test");
-            localRepo.push(hashA, author.url(), "edit");
+            localRepo.push(hashA, author.authenticatedUrl(), "edit");
 
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
@@ -198,17 +198,17 @@ class LabelerTests {
             var localRepoFolder = tempFolder.path();
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
 
             var fileA = localRepoFolder.resolve("a.txt");
             Files.writeString(fileA, "Hello");
             localRepo.add(fileA);
             var hashA = localRepo.commit("test1", "test", "test@test");
-            localRepo.push(hashA, author.url(), "edit");
+            localRepo.push(hashA, author.authenticatedUrl(), "edit");
 
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
@@ -246,17 +246,17 @@ class LabelerTests {
             var localRepoFolder = tempFolder.path();
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
 
             var fileA = localRepoFolder.resolve("a.txt");
             Files.writeString(fileA, "Hello");
             localRepo.add(fileA);
             var hashA = localRepo.commit("test1", "test", "test@test");
-            localRepo.push(hashA, author.url(), "edit");
+            localRepo.push(hashA, author.authenticatedUrl(), "edit");
 
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
@@ -293,17 +293,17 @@ class LabelerTests {
             var localRepoFolder = tempFolder.path();
             var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
 
             var fileA = localRepoFolder.resolve("a.txt");
             Files.writeString(fileA, "Hello");
             localRepo.add(fileA);
             var hashA = localRepo.commit("test1", "test", "test@test");
-            localRepo.push(hashA, author.url(), "edit");
+            localRepo.push(hashA, author.authenticatedUrl(), "edit");
 
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 

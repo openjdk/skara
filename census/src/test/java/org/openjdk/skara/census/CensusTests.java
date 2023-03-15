@@ -216,7 +216,7 @@ class CensusTests {
 
             var masterHash = localRepo.commit("Add namespace and contributors", "testauthor", "ta@none.none");
 
-            localRepo.push(masterHash, censusRepo.url(), "censusref", true);
+            localRepo.push(masterHash, censusRepo.authenticatedUrl(), "censusref", true);
 
             var namespace = Census.parseNamespace(censusRepo, "censusref", "aspace");
 

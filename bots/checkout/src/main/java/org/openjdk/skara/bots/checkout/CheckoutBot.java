@@ -32,7 +32,6 @@ import org.openjdk.skara.storage.StorageBuilder;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.nio.file.*;
 import java.nio.charset.StandardCharsets;
 import java.net.URI;
@@ -63,24 +62,6 @@ public class CheckoutBot implements Bot, WorkItem {
         return URLEncoder.encode(uri.toString(), StandardCharsets.UTF_8);
     }
 
-    private URI webURI() {
-        var webURI = from.webUrl().toString();
-        if (!webURI.endsWith(".git")) {
-            webURI += ".git";
-        }
-
-        return URI.create(webURI);
-    }
-
-    private URI uri() {
-        var uri = from.url().toString();
-        if (!uri.endsWith(".git")) {
-            uri += ".git";
-        }
-
-        return URI.create(uri);
-    }
-
     @Override
     public boolean concurrentWith(WorkItem other) {
         if (!(other instanceof CheckoutBot)) {
@@ -103,12 +84,12 @@ public class CheckoutBot implements Bot, WorkItem {
     @Override
     public Collection<WorkItem> run(Path scratch) {
         try {
-            var fromDir = storage.resolve(urlEncode(webURI()));
+            var fromDir = storage.resolve(urlEncode(from.url()));
             Repository fromRepo = null;
             if (!Files.exists(fromDir)) {
                 Files.createDirectories(fromDir);
                 log.info("Cloning Git repo " + from + " to " + fromDir);
-                fromRepo = Repository.clone(uri(), fromDir);
+                fromRepo = Repository.clone(from.authenticatedUrl(), fromDir);
             } else {
                 log.info("Getting existing Git repo repository from " + fromDir);
                 fromRepo = Repository.get(fromDir).orElseThrow(() ->

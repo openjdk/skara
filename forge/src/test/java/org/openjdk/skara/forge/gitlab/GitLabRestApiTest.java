@@ -207,9 +207,9 @@ public class GitLabRestApiTest {
 
         try (var tempDir = new TemporaryDirectory()) {
             var localRepoDir = tempDir.path().resolve("local");
-            var localRepo = GitRepository.clone(gitLabRepo.url(), localRepoDir, false, null);
+            var localRepo = GitRepository.clone(gitLabRepo.authenticatedUrl(), localRepoDir, false, null);
             var head = localRepo.head();
-            localRepo.push(head, gitLabRepo.url(), branchName, true);
+            localRepo.push(head, gitLabRepo.authenticatedUrl(), branchName, true);
 
             gitLabRepo.unprotectBranchPattern(branchName);
             // Don't fail on repeated invocations

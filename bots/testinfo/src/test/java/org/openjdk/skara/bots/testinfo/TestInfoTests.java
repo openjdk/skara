@@ -45,11 +45,11 @@ public class TestInfoTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
                                                      Set.of("issues"), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Add some checks to the repository
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "preedit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "preedit", true);
             var check1 = CheckBuilder.create("ps1", editHash).title("PS1");
             author.createCheck(check1.complete(true).build());
             var check2 = CheckBuilder.create("ps2", editHash).title("PS2");
@@ -60,7 +60,7 @@ public class TestInfoTests {
             author.createCheck(check4.details(URI.create("https://www.example.com")).build());
 
             // Now make a PR
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
@@ -94,16 +94,16 @@ public class TestInfoTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
                                                      Set.of("issues"), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Add a check to the repository
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "preedit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "preedit", true);
             var check1 = CheckBuilder.create("ps1", editHash).title("PS1");
             author.createCheck(check1.complete(true).build());
 
             // Now make an actual PR
-            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
@@ -115,12 +115,12 @@ public class TestInfoTests {
 
             // And a second one
             var editHash2 = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash2, author.url(), "preedit");
+            localRepo.push(editHash2, author.authenticatedUrl(), "preedit");
             var check2 = CheckBuilder.create("ps2", editHash2).title("PS2");
             author.createCheck(check2.complete(false).build());
 
             // Push an update to the PR
-            localRepo.push(editHash2, author.url(), "edit", true);
+            localRepo.push(editHash2, author.authenticatedUrl(), "edit", true);
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);

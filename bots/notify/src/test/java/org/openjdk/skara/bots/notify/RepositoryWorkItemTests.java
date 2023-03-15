@@ -74,7 +74,7 @@ public class RepositoryWorkItemTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
-            localRepo.pushAll(repo.url());
+            localRepo.pushAll(repo.authenticatedUrl());
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -94,7 +94,7 @@ public class RepositoryWorkItemTests {
             // Create an initial tag to start history tracking. The notifier will never notify the first tag
             var masterHash = localRepo.head();
             localRepo.tag(masterHash, "initial-tag", "Tagging initial tag", "testauthor", "ta@none.none");
-            localRepo.push(masterHash, repo.url(), "master", false, true);
+            localRepo.push(masterHash, repo.authenticatedUrl(), "master", false, true);
 
             // Run bot to initialize notification history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -102,7 +102,7 @@ public class RepositoryWorkItemTests {
             // Create a "pr"-branch with a commit in it and tag that commit
             var prBranchHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Change in pr branch");
             localRepo.tag(prBranchHash, "pr-tag", "Tagging change in pr branch", "testauthor", "ta@none.none");
-            localRepo.push(prBranchHash, repo.url(), "pr/4711", false, true);
+            localRepo.push(prBranchHash, repo.authenticatedUrl(), "pr/4711", false, true);
 
             // Run the bot and verify that notifier is not called
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -112,7 +112,7 @@ public class RepositoryWorkItemTests {
             localRepo.checkout(masterHash);
             var masterTaggedHash = CheckableRepository.appendAndCommit(localRepo, "Master line", "Change in master branch");
             localRepo.tag(masterTaggedHash, "master-tag", "Tagging change in master branch", "testauthor", "ta@none.none");
-            localRepo.push(masterTaggedHash, repo.url(), "master", false, true);
+            localRepo.push(masterTaggedHash, repo.authenticatedUrl(), "master", false, true);
 
             // Run the bot and verify that notifier is called for master branch
             TestBotRunner.runPeriodicItems(notifyBot);

@@ -23,20 +23,16 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.HostedCommit;
-import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 
 import java.io.PrintWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.time.format.DateTimeFormatter;
 
 public class TagCommand implements CommandHandler {
     private void showHelp(PrintWriter reply) {
@@ -114,7 +110,7 @@ public class TagCommand implements CommandHandler {
             var email = contributor.username() + "@" + domain;
             var message = "Added tag " + tagName + " for changeset " + commit.hash().abbreviate();
             var tag = localRepo.tag(commit.hash(), tagName, message, contributor.username(), email);
-            localRepo.push(tag, bot.repo().url(), false);
+            localRepo.push(tag, bot.repo().authenticatedUrl(), false);
             reply.println("The tag [" + tag.name() + "](" + bot.repo().webUrl(tag) + ") was successfully created.");
         } catch (IOException e) {
             throw new UncheckedIOException(e);

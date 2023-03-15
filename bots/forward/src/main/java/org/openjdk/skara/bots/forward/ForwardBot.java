@@ -72,7 +72,7 @@ class ForwardBot implements Bot, WorkItem {
             if (!Files.exists(toDir)) {
                 log.info("Cloning " + toHostedRepo.name());
                 Files.createDirectories(toDir);
-                toLocalRepo = Repository.clone(toHostedRepo.url(), toDir, true);
+                toLocalRepo = Repository.clone(toHostedRepo.authenticatedUrl(), toDir, true);
             } else {
                 log.info("Found existing scratch directory for " + toHostedRepo.name());
                 toLocalRepo = Repository.get(toDir).orElseThrow(() -> {
@@ -82,11 +82,11 @@ class ForwardBot implements Bot, WorkItem {
 
             log.info("Fetching " + fromHostedRepo.name() + ":" + fromBranch.name() +
                      " to " + toBranch.name());
-            var fetchHead = toLocalRepo.fetch(fromHostedRepo.url(),
+            var fetchHead = toLocalRepo.fetch(fromHostedRepo.authenticatedUrl(),
                                               fromBranch.name() + ":" + toBranch.name(),
                                               false);
             log.info("Pushing " + toBranch.name() + " to " + toHostedRepo.name());
-            toLocalRepo.push(fetchHead, toHostedRepo.url(), toBranch.name(), false);
+            toLocalRepo.push(fetchHead, toHostedRepo.authenticatedUrl(), toBranch.name(), false);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
