@@ -525,6 +525,21 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
+    public URI commentUrl(Comment comment) {
+        return URIBuilder.base(webUrl()).appendPath("#issuecomment-" + comment.id()).build();
+    }
+
+    @Override
+    public URI reviewCommentUrl(ReviewComment reviewComment) {
+        return URIBuilder.base(webUrl()).appendPath("#discussion_r" + reviewComment.id()).build();
+    }
+
+    @Override
+    public URI reviewUrl(Review review) {
+        return URIBuilder.base(webUrl()).appendPath("#pullrequestreview-" + review.id()).build();
+    }
+
+    @Override
     public boolean isDraft() {
         return json.get("draft").asBoolean();
     }

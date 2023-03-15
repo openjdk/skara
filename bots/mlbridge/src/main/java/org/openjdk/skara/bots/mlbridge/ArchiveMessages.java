@@ -305,6 +305,18 @@ class ArchiveMessages {
         return "PR: " + pr.webUrl();
     }
 
+    static String composeCommentReplyFooter(PullRequest pr, Comment comment) {
+        return "PR Comment: " + pr.commentUrl(comment).toString();
+    }
+
+    static String composeReviewCommentReplyFooter(PullRequest pr, ReviewComment reviewComment) {
+        return "PR Review Comment: " + pr.reviewCommentUrl(reviewComment).toString();
+    }
+
+    static String composeReviewReplyFooter(PullRequest pr, Review review) {
+        return "PR Review: " + pr.reviewUrl(review).toString();
+    }
+
     // When changing this, ensure that the PR pattern in the notifier still matches
     static String composeConversationFooter(PullRequest pr, URI issueProject, String projectPrefix, Repository localRepo, WebrevDescription webrev, Hash base, Hash head) {
         var commits = commits(localRepo, base, head);
@@ -446,7 +458,7 @@ class ArchiveMessages {
                 result.append("\n\n");
             }
         }
-        result.append(composeReplyFooter(pr));
+        result.append(composeReviewReplyFooter(pr, review));
         return result.toString();
     }
 
