@@ -277,7 +277,7 @@ class MailingListBridgeBotTests {
             assertTrue(conversations.get(0).allMessages().get(1).body().contains("hosted.git/pr/1/comment/3"));
 
             // Remove the rfr flag and post another comment
-            pr.addLabel("rfr");
+            pr.removeLabel("rfr");
             pr.addComment("@" + pr.author().username() +" This is another comment");
 
             // Run another archive pass
