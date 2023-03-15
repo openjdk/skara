@@ -167,7 +167,7 @@ public class IntegrateCommand implements CommandHandler {
             return;
         }
 
-        var problem = checkProblem(pr.checks(pr.headHash()), "jcheck", pr);
+        var problem = checkProblem(pr.checks(pr.headHash()), CheckRun.getJcheckName(pr), pr);
         if (problem.isPresent()) {
             reply.print("Your integration request cannot be fulfilled at this time, as ");
             reply.println(problem.get());
@@ -334,7 +334,7 @@ public class IntegrateCommand implements CommandHandler {
                 var repoName = matcher.group(1);
                 var branchName = matcher.group(2);
                 var text = "Creating backport for repo " + repoName + " on branch " + branchName
-                        + "\n/backport " + repoName + " " + branchName + "\n"
+                        + "\n\n/backport " + repoName + " " + branchName + "\n"
                         + PullRequestCommandWorkItem.VALID_BOT_COMMAND_MARKER;
                 if (allComments.stream()
                         .filter(c -> c.author().equals(botUser))

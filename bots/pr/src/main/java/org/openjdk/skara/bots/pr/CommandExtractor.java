@@ -31,11 +31,12 @@ import org.openjdk.skara.host.HostUser;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import static org.openjdk.skara.bots.common.CommandNameEnum.*;
+import static org.openjdk.skara.bots.common.PatternEnum.EXECUTION_COMMAND_PATTERN;
+
 public class CommandExtractor {
-    private static final Pattern COMMAND_PATTERN = Pattern.compile("^\\s*/([A-Za-z]+)(?:\\s+(.*))?");
 
     private static String formatId(String baseId, int subId) {
         if (subId > 0) {
@@ -46,23 +47,23 @@ public class CommandExtractor {
     }
 
     private static final Map<String, CommandHandler> commandHandlers = Map.ofEntries(
-            Map.entry("help", new HelpCommand()),
-            Map.entry("integrate", new IntegrateCommand()),
-            Map.entry("sponsor", new SponsorCommand()),
-            Map.entry("contributor", new ContributorCommand()),
-            Map.entry("summary", new SummaryCommand()),
-            Map.entry("issue", new IssueCommand()),
-            Map.entry("solves", new IssueCommand("solves")),
-            Map.entry("reviewers", new ReviewersCommand()),
-            Map.entry("csr", new CSRCommand()),
-            Map.entry("jep", new JEPCommand()),
-            Map.entry("reviewer", new ReviewerCommand()),
-            Map.entry("label", new LabelCommand()),
-            Map.entry("cc", new LabelCommand("cc")),
-            Map.entry("clean", new CleanCommand()),
-            Map.entry("open", new OpenCommand()),
-            Map.entry("backport", new BackportCommand()),
-            Map.entry("tag", new TagCommand())
+            Map.entry(help.name(), new HelpCommand()),
+            Map.entry(integrate.name(), new IntegrateCommand()),
+            Map.entry(sponsor.name(), new SponsorCommand()),
+            Map.entry(contributor.name(), new ContributorCommand()),
+            Map.entry(summary.name(), new SummaryCommand()),
+            Map.entry(issue.name(), new IssueCommand()),
+            Map.entry(solves.name(), new IssueCommand(solves.name())),
+            Map.entry(reviewers.name(), new ReviewersCommand()),
+            Map.entry(csr.name(), new CSRCommand()),
+            Map.entry(jep.name(), new JEPCommand()),
+            Map.entry(reviewer.name(), new ReviewerCommand()),
+            Map.entry(label.name(), new LabelCommand()),
+            Map.entry(cc.name(), new LabelCommand(cc.name())),
+            Map.entry(clean.name(), new CleanCommand()),
+            Map.entry(open.name(), new OpenCommand()),
+            Map.entry(backport.name(), new BackportCommand()),
+            Map.entry(tag.name(), new TagCommand())
     );
 
     static class HelpCommand implements CommandHandler {
@@ -108,7 +109,7 @@ public class CommandExtractor {
         String multiLineCommand = null;
         int subId = 0;
         for (var line : text.split("\\R")) {
-            var commandMatcher = COMMAND_PATTERN.matcher(line);
+            var commandMatcher = EXECUTION_COMMAND_PATTERN.getPattern().matcher(line);
             if (commandMatcher.matches()) {
                 if (multiLineHandler != null) {
                     ret.add(new CommandInvocation(formatId(baseId, subId++), user, multiLineHandler, multiLineCommand,

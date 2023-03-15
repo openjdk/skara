@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -525,6 +525,21 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
+    public URI commentUrl(Comment comment) {
+        return URIBuilder.base(webUrl()).appendPath("#issuecomment-" + comment.id()).build();
+    }
+
+    @Override
+    public URI reviewCommentUrl(ReviewComment reviewComment) {
+        return URIBuilder.base(webUrl()).appendPath("#discussion_r" + reviewComment.id()).build();
+    }
+
+    @Override
+    public URI reviewUrl(Review review) {
+        return URIBuilder.base(webUrl()).appendPath("#pullrequestreview-" + review.id()).build();
+    }
+
+    @Override
     public boolean isDraft() {
         return json.get("draft").asBoolean();
     }
@@ -704,6 +719,20 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
+    public Optional<ZonedDateTime> lastMarkedAsDraftTime() {
+        var lastMarkedAsDraftTime = request.get("issues/" + json.get("number").toString() + "/timeline")                .execute().stream()
+                .map(JSONValue::asObject)
+                .filter(obj -> obj.contains("event"))
+                .filter(obj -> obj.get("event").asString().equals("convert_to_draft"))
+                .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()))
+                .max(ZonedDateTime::compareTo);
+        if (lastMarkedAsDraftTime.isEmpty() && isDraft()) {
+            return Optional.of(createdAt());
+        }
+        return lastMarkedAsDraftTime;
+    }
+
+    @Override
     public URI diffUrl() {
         return URI.create(webUrl() + ".diff");
     }
@@ -755,7 +784,7 @@ public class GitHubPullRequest implements PullRequest {
                       .map(JSONValue::asObject)
                       .filter(obj -> obj.contains("event"))
                       .filter(obj -> obj.get("event").asString().equals("closed"))
-                      .reduce((a, b) -> b)
+                      .max(Comparator.comparing(o -> ZonedDateTime.parse(o.get("created_at").asString())))
                       .map(e -> host.parseUserObject(e.get("actor")));
     }
 
@@ -775,8 +804,8 @@ public class GitHubPullRequest implements PullRequest {
                 .filter(obj -> obj.contains("event"))
                 .filter(obj -> obj.get("event").asString().equals("head_ref_force_pushed"))
                 .filter(obj -> ZonedDateTime.parse(obj.get("created_at").asString()).isAfter(lastMarkedAsReadyTime(timelineJSON)))
-                .reduce((a, b) -> b)
-                .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()));
+                .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()))
+                .max(Comparator.naturalOrder());
     }
 
     @Override
@@ -806,8 +835,8 @@ public class GitHubPullRequest implements PullRequest {
                 .map(JSONValue::asObject)
                 .filter(obj -> obj.contains("event"))
                 .filter(obj -> obj.get("event").asString().equals("ready_for_review"))
-                .reduce((a, b) -> b)
                 .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()))
+                .max(ZonedDateTime::compareTo)
                 .orElseGet(this::createdAt);
     }
 }

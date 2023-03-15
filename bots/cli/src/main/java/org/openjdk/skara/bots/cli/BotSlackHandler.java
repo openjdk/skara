@@ -46,6 +46,7 @@ class BotSlackHandler extends BotTaskAggregationHandler {
     private int dropCount;
 
     BotSlackHandler(URI webhookUrl, String username, String prefix, Duration minimumSeparation, Map<String, String> links) {
+        super(true);
         webhook = new RestRequest(webhookUrl);
         this.username = username;
         this.prefix = prefix;
@@ -108,28 +109,16 @@ class BotSlackHandler extends BotTaskAggregationHandler {
 
     @Override
     public void publishAggregated(List<LogRecord> task) {
-        var maxLevel = task.stream()
-                           .map(record -> record.getLevel().intValue())
-                           .max(Integer::compareTo)
-                           .orElseThrow();
-
-        if (maxLevel < getLevel().intValue()) {
-            return;
-        }
-
-        var important = task.stream()
-                            .filter(record -> record.getLevel().intValue() >= getLevel().intValue())
+        var message = task.stream()
                             .map(this::formatMessage)
                             .collect(Collectors.joining("\n"));
-        publishToSlack(important);
+        if (!message.isEmpty()) {
+            publishToSlack(message);
+        }
     }
 
     @Override
     public void publishSingle(LogRecord record) {
-        if (record.getLevel().intValue() < getLevel().intValue()) {
-            return;
-        }
-
         publishToSlack(formatMessage(record));
     }
 

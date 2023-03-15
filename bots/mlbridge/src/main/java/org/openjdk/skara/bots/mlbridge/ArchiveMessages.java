@@ -34,21 +34,21 @@ import java.net.URI;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.openjdk.skara.bots.common.PatternEnum.ARCHIVAL_COMMAND_PATTERN;
+import static org.openjdk.skara.bots.common.PatternEnum.COMMENT_PATTERN;
+
 class ArchiveMessages {
-    private static final Pattern COMMENT_PATTERN = Pattern.compile("<!--.*?-->",
-                                                                  Pattern.DOTALL | Pattern.MULTILINE);
-    static final Pattern COMMAND_PATTERN = Pattern.compile("^\\s*/([A-Za-z]+).*$", Pattern.MULTILINE | Pattern.DOTALL);
+
     private static String filterCommentsAndCommands(String body) {
         var parsedBody = PullRequestBody.parse(body);
         body = parsedBody.bodyText();
 
-        var commentMatcher = COMMENT_PATTERN.matcher(body);
+        var commentMatcher = COMMENT_PATTERN.getPattern().matcher(body);
         body = commentMatcher.replaceAll("");
 
-        var commandLineMatcher = COMMAND_PATTERN.matcher(body);
+        var commandLineMatcher = ARCHIVAL_COMMAND_PATTERN.getPattern().matcher(body);
         body = commandLineMatcher.replaceAll("");
 
         body = MarkdownToText.removeFormatting(body);
@@ -305,6 +305,18 @@ class ArchiveMessages {
         return "PR: " + pr.webUrl();
     }
 
+    static String composeCommentReplyFooter(PullRequest pr, Comment comment) {
+        return "PR Comment: " + pr.commentUrl(comment).toString();
+    }
+
+    static String composeReviewCommentReplyFooter(PullRequest pr, ReviewComment reviewComment) {
+        return "PR Review Comment: " + pr.reviewCommentUrl(reviewComment).toString();
+    }
+
+    static String composeReviewReplyFooter(PullRequest pr, Review review) {
+        return "PR Review: " + pr.reviewUrl(review).toString();
+    }
+
     // When changing this, ensure that the PR pattern in the notifier still matches
     static String composeConversationFooter(PullRequest pr, URI issueProject, String projectPrefix, Repository localRepo, WebrevDescription webrev, Hash base, Hash head) {
         var commits = commits(localRepo, base, head);
@@ -315,7 +327,7 @@ class ArchiveMessages {
                 "Commit messages:\n" +
                 formatCommitMessagesBrief(commits, commitsLink).orElse("") + "\n\n" +
                 "Changes: " + pr.changeUrl() + "\n" +
-                " Webrev: " + webrev.uri().toString() + "\n" +
+                (webrev.uri() == null ? "" : " Webrev: " + webrev.uri().toString() + "\n") +
                 issueString +
                 "  Stats: " + stats(localRepo, base, head) + "\n" +
                 "  Patch: " + pr.diffUrl().toString() + "\n" +
@@ -328,18 +340,22 @@ class ArchiveMessages {
         var commitsLink = commitsLink(pr, base, head);
         String webrevLinks;
         if (webrevs.size() > 0) {
-            var containsConflicts = webrevs.stream().anyMatch(w -> w.type().equals(WebrevDescription.Type.MERGE_CONFLICT));
-            var containsMergeDiffs = webrevs.stream().anyMatch(w -> w.type().equals(WebrevDescription.Type.MERGE_TARGET) ||
-                    w.type().equals(WebrevDescription.Type.MERGE_SOURCE));
+            if (webrevs.stream().noneMatch(w -> w.uri() != null)) {
+                webrevLinks = "";
+            } else {
+                var containsConflicts = webrevs.stream().anyMatch(w -> w.type().equals(WebrevDescription.Type.MERGE_CONFLICT));
+                var containsMergeDiffs = webrevs.stream().anyMatch(w -> w.type().equals(WebrevDescription.Type.MERGE_TARGET) ||
+                        w.type().equals(WebrevDescription.Type.MERGE_SOURCE));
 
-            webrevLinks = "The webrev" + (webrevs.size() > 1 ? "s" : "") + " contain" + (webrevs.size() == 1 ? "s" : "") + " " +
-                    (containsConflicts ? "the conflicts with " + pr.targetRef() : "") +
-                    (containsConflicts && containsMergeDiffs ? " and " : "") +
-                    (containsMergeDiffs ? "the adjustments done while merging with regards to each parent branch" : "")
-                    +":\n" +
-                    webrevs.stream()
-                           .map(d -> String.format(" - %s: %s", d.shortLabel(), d.uri()))
-                           .collect(Collectors.joining("\n")) + "\n\n";
+                webrevLinks = "The webrev" + (webrevs.size() > 1 ? "s" : "") + " contain" + (webrevs.size() == 1 ? "s" : "") + " " +
+                        (containsConflicts ? "the conflicts with " + pr.targetRef() : "") +
+                        (containsConflicts && containsMergeDiffs ? " and " : "") +
+                        (containsMergeDiffs ? "the adjustments done while merging with regards to each parent branch" : "")
+                        + ":\n" +
+                        webrevs.stream()
+                                .map(d -> String.format(" - %s: %s", d.shortLabel(), d.uri()))
+                                .collect(Collectors.joining("\n")) + "\n\n";
+            }
         } else {
             webrevLinks = "The merge commit only contains trivial merges, so no merge-specific webrevs have been generated.\n\n";
         }
@@ -355,7 +371,7 @@ class ArchiveMessages {
 
     static String composeRebasedFooter(PullRequest pr, Repository localRepo, WebrevDescription fullWebrev, Hash base, Hash head) {
         return "Changes: " + pr.changeUrl() + "\n" +
-                " Webrev: " + fullWebrev.uri().toString() + "\n" +
+                (fullWebrev.uri() == null ? "" : " Webrev: " + fullWebrev.uri().toString() + "\n") +
                 "  Stats: " + stats(localRepo, base, head) + "\n" +
                 "  Patch: " + pr.diffUrl().toString() + "\n" +
                 "  Fetch: " + fetchCommand(pr) + "\n\n" +
@@ -366,9 +382,9 @@ class ArchiveMessages {
         return "Changes:\n" +
                 "  - all: " + pr.changeUrl() + "\n" +
                 "  - new: " + pr.changeUrl(lastHead) + "\n\n" +
-                "Webrevs:\n" +
-                " - full: " + fullWebrev.uri().toString() + "\n" +
-                " - incr: " + incrementalWebrev.uri().toString() + "\n\n" +
+                (fullWebrev.uri() == null ? "" : "Webrevs:\n") +
+                (fullWebrev.uri() == null ? "" : " - full: " + fullWebrev.uri().toString() + "\n") +
+                (incrementalWebrev.uri() == null ? "" : " - incr: " + incrementalWebrev.uri().toString() + "\n\n") +
                 "  Stats: " + stats(localRepo, lastHead, head) + "\n" +
                 "  Patch: " + pr.diffUrl().toString() + "\n" +
                 "  Fetch: " + fetchCommand(pr) + "\n\n" +
@@ -442,7 +458,7 @@ class ArchiveMessages {
                 result.append("\n\n");
             }
         }
-        result.append(composeReplyFooter(pr));
+        result.append(composeReviewReplyFooter(pr, review));
         return result.toString();
     }
 

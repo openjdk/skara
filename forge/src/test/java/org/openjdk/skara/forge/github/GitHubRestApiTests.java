@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,6 +28,7 @@ import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.test.ManualTestSettings;
@@ -210,5 +211,52 @@ public class GitHubRestApiTests {
                     "Diff for huge file contents, printing first 50 chars of each '"
                     + fileContent.substring(0, 50) + "' '" + returnedContents.get().substring(0, 50) + "'");
         }
+    }
+
+    @Test
+    void testLastMarkedAsDraftTime() {
+        var githubRepoOpt = githubHost.repository("openjdk/playground");
+        assumeTrue(githubRepoOpt.isPresent());
+        var githubRepo = githubRepoOpt.get();
+        var pr = githubRepo.pullRequest("129");
+        var lastMarkedAsDraftTime = pr.lastMarkedAsDraftTime();
+        assertEquals("2023-02-11T11:51:12Z", lastMarkedAsDraftTime.get().toString());
+    }
+
+    @Test
+    void testClosedBy() {
+        var githubRepoOpt = githubHost.repository("openjdk/playground");
+        assumeTrue(githubRepoOpt.isPresent());
+        var githubRepo = githubRepoOpt.get();
+        var pr = githubRepo.pullRequest("96");
+        var user = pr.closedBy();
+        assertEquals("lgxbslgx", user.get().username());
+    }
+
+    @Test
+    void test() {
+        var username = settings.getProperty("github.user");
+        var token = settings.getProperty("github.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(GITHUB_REST_URI).build();
+        var configuration = JSON.object().put("weburl", JSON.object().put("pattern", "^https://github.com/openjdk/(.*)$").put("replacement", "https://git.openjdk.org/$1"));
+        var githubHost = new GitHubForgeFactory().create(uri, credential, configuration);
+
+        var githubRepoOpt = githubHost.repository("openjdk/playground");
+        assumeTrue(githubRepoOpt.isPresent());
+        var githubRepo = githubRepoOpt.get();
+        var pr = githubRepo.pullRequest("129");
+
+        var labelComment = pr.comments().stream()
+                .filter(comment -> comment.body().contains("The following label will be automatically applied to this pull request:"))
+                .findFirst()
+                .get();
+        assertEquals("https://git.openjdk.org/playground/pull/129#issuecomment-1426703897", pr.commentUrl(labelComment).toString());
+
+        var reviewComment = pr.reviewComments().get(0);
+        assertEquals("https://git.openjdk.org/playground/pull/129#discussion_r1108931186", pr.reviewCommentUrl(reviewComment).toString());
+
+        var review = pr.reviews().get(0);
+        assertEquals("https://git.openjdk.org/playground/pull/129#pullrequestreview-1302142525", pr.reviewUrl(review).toString());
     }
 }

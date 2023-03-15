@@ -49,7 +49,6 @@ public class BackportPRCommandTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(integrator.forge().currentUser().id())
-                    .addReviewer(bot.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
             var prBot = PullRequestBot.newBuilder()
                     .repo(bot)

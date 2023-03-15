@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -156,12 +156,28 @@ public interface PullRequest extends Issue {
      */
     URI changeUrl(Hash base);
 
+    URI commentUrl(Comment comment);
+
+    URI reviewCommentUrl(ReviewComment reviewComment);
+
+    URI reviewUrl(Review review);
+
     /**
      * Returns true if the request is in draft mode.
      * @return
      */
     boolean isDraft();
     void makeNotDraft();
+
+    /**
+     * Return the last time the pull request was converted to draft.
+     * If the pull request was created as draft, return the created time of the pull request.
+     * If the pull request was always ready for review and never converted to draft, return empty.
+     * If the restful api doesn't support draft pull request, return empty.
+     * Note: if the pull request was created as draft, but later converted to ready
+     *  and didn't convert to draft again, this method will return empty.
+     */
+    Optional<ZonedDateTime> lastMarkedAsDraftTime();
 
     Optional<ZonedDateTime> labelAddedAt(String label);
 

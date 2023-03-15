@@ -39,7 +39,7 @@ import java.util.function.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static org.openjdk.skara.bots.mlbridge.ArchiveMessages.COMMAND_PATTERN;
+import static org.openjdk.skara.bots.common.PatternEnum.ARCHIVAL_COMMAND_PATTERN;
 
 class ArchiveWorkItem implements WorkItem {
     private final PullRequest pr;
@@ -117,7 +117,7 @@ class ArchiveWorkItem implements WorkItem {
         }
     }
 
-    private boolean ignoreComment(HostUser author, String body) {
+    private boolean ignoreComment(HostUser author, String body, ZonedDateTime createdTime, ZonedDateTime lastDraftTime) {
         if (pr.repository().forge().currentUser().equals(author)) {
             return true;
         }
@@ -125,7 +125,7 @@ class ArchiveWorkItem implements WorkItem {
             return true;
         }
         // Check if this comment only contains command lines
-        var commandLineMatcher = COMMAND_PATTERN.matcher(body);
+        var commandLineMatcher = ARCHIVAL_COMMAND_PATTERN.getPattern().matcher(body);
         if (commandLineMatcher.find()) {
             var filteredBody = commandLineMatcher.replaceAll("");
             if (filteredBody.strip().isEmpty()) {
@@ -138,6 +138,13 @@ class ArchiveWorkItem implements WorkItem {
                 return true;
             }
         }
+        // If the pull request was converted to draft, the comments
+        // after the last converted time should be ignored.
+        if (pr.isDraft()) {
+            if (lastDraftTime != null && lastDraftTime.isBefore(createdTime)) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -146,6 +153,9 @@ class ArchiveWorkItem implements WorkItem {
     private static final String webrevListMarker = "<!-- mlbridge webrev list -->";
 
     private void updateWebrevComment(List<Comment> comments, int index, List<WebrevDescription> webrevs) {
+        if (webrevs.stream().noneMatch(w -> w.uri() != null)) {
+            return;
+        }
         var existing = comments.stream()
                                .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))
                                .filter(comment -> comment.body().contains(webrevCommentMarker))
@@ -335,10 +345,11 @@ class ArchiveWorkItem implements WorkItem {
             var webrevPath = scratchPath.resolve("mlbridge-webrevs");
             var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer(), bot.sendInterval());
             var archiver = new ReviewArchive(pr, bot.emailAddress());
+            var lastDraftTime = pr.lastMarkedAsDraftTime().orElse(null);
 
             // Regular comments
             for (var comment : comments) {
-                if (ignoreComment(comment.author(), comment.body())) {
+                if (ignoreComment(comment.author(), comment.body(), comment.createdAt(), lastDraftTime)) {
                     archiver.addIgnored(comment);
                 } else {
                     archiver.addComment(comment);
@@ -348,7 +359,7 @@ class ArchiveWorkItem implements WorkItem {
             // Review comments
             var reviews = pr.reviews();
             for (var review : reviews) {
-                if (ignoreComment(review.reviewer(), review.body().orElse(""))) {
+                if (ignoreComment(review.reviewer(), review.body().orElse(""), review.createdAt(), lastDraftTime)) {
                     continue;
                 }
                 archiver.addReview(review);
@@ -360,7 +371,7 @@ class ArchiveWorkItem implements WorkItem {
                                    .sorted(Comparator.comparing(ReviewComment::path))
                                    .collect(Collectors.toList());
             for (var reviewComment : reviewComments) {
-                if (ignoreComment(reviewComment.author(), reviewComment.body())) {
+                if (ignoreComment(reviewComment.author(), reviewComment.body(), reviewComment.createdAt(), lastDraftTime)) {
                     continue;
                 }
                 archiver.addReviewComment(reviewComment);

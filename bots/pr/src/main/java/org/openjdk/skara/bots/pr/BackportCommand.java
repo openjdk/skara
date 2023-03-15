@@ -172,7 +172,7 @@ public class BackportCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, HostedCommit commit, LimitedCensusInstance censusInstance,
             Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
-        if (censusInstance.contributor(command.user()).isEmpty()) {
+        if (censusInstance.contributor(command.user()).isEmpty() && !command.user().equals(bot.repo().forge().currentUser())) {
             reply.println(USER_INVALID_WARNING);
             return;
         }

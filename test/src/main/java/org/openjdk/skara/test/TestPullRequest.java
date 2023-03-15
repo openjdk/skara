@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
 package org.openjdk.skara.test;
 
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.Label;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.vcs.Diff;
@@ -207,6 +208,21 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     }
 
     @Override
+    public URI commentUrl(Comment comment) {
+        return URIBuilder.base(webUrl()).appendPath("/comment/" + comment.id()).build();
+    }
+
+    @Override
+    public URI reviewCommentUrl(ReviewComment reviewComment) {
+        return URIBuilder.base(webUrl()).appendPath("/reviewComment/" + reviewComment.id()).build();
+    }
+
+    @Override
+    public URI reviewUrl(Review review) {
+        return URIBuilder.base(webUrl()).appendPath("/review/" + review.id()).build();
+    }
+
+    @Override
     public boolean isDraft() {
         return draft;
     }
@@ -223,6 +239,15 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public void makeNotDraft() {
         store().setDraft(false);
+    }
+
+    public void makeDraft() {
+        store().setDraft(true);
+    }
+
+    @Override
+    public Optional<ZonedDateTime> lastMarkedAsDraftTime() {
+        return Optional.ofNullable(store().lastMarkedAsDraftTime());
     }
 
     @Override
