@@ -3625,6 +3625,36 @@ class MailingListBridgeBotTests {
             assertEquals(5, archiveContainsCount(archiveFolder.path(), "RFR: 1234: This is a pull request"));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "This is a comment before making"));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "This is a comment after making"));
+
+            // Push a new commit before making it as draft.
+            var secondHash = CheckableRepository.appendAndCommit(localRepo, "Second change", "Change msg");
+            localRepo.push(secondHash, author.url(), "edit", true);
+
+            // Make it as draft again.
+            pr.makeDraft();
+
+            // Push a new commit after making it as draft.
+            var thirdHash = CheckableRepository.appendAndCommit(localRepo, "Third change", "Change msg");
+            localRepo.push(thirdHash, author.url(), "edit", true);
+
+            // Run another archive pass.
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive shouldn't contain any new commit.
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(5, archiveContainsCount(archiveFolder.path(), "RFR: 1234: This is a pull request"));
+            assertFalse(archiveContains(archiveFolder.path(), "RFR: 1234: This is a pull request \\[v2\\]"));
+
+            // Make it as not draft again.
+            pr.makeNotDraft();
+
+            // Run another archive pass.
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should now contain all the comments.
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(6, archiveContainsCount(archiveFolder.path(), "RFR: 1234: This is a pull request"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "RFR: 1234: This is a pull request \\[v2\\]"));
         }
     }
 
