@@ -349,7 +349,7 @@ public class GitJCheck {
                 }
             } catch (Exception e) {
                 System.err.println(String.format("error: exception thrown during jcheck: %s", e.getMessage()));
-                if (e.getMessage().equals("java.net.ConnectException")) {
+                if (e.getCause() instanceof ConnectException) {
                     System.err.println("If you are behind a firewall without direct access to the internet, make sure to configure any required proxy server through the https_proxy environment variable and try again");
                 }
                 return 1;
