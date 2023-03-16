@@ -114,7 +114,8 @@ public class MailingListArchiveReaderBot implements Bot {
             pr = foundPr.get();
             resolvedPullRequests.put(first.id(), pr);
         }
-        var bridgeIdPattern = Pattern.compile("^[^.]+\\.[^.]+@" + pr.repository().url().getHost() + "$");
+        var bridgeIdStr = "^[^.]+\\.[^.]+@(?:" + pr.repository().url().getHost() + "|" + pr.repository().authenticatedUrl().getHost() + ")$";
+        var bridgeIdPattern = Pattern.compile(bridgeIdStr);
 
         // Filter out already bridged comments
         var bridgeCandidates = newMessages.stream()
