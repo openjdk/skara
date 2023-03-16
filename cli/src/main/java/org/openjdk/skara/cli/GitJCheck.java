@@ -349,6 +349,9 @@ public class GitJCheck {
                 }
             } catch (Exception e) {
                 System.err.println(String.format("error: exception thrown during jcheck: %s", e.getMessage()));
+                if (e.getMessage().equals("java.net.ConnectException")) {
+                    System.err.println("If you are connected to Oracle's VPN, please set the https_proxy environment variable and try again");
+                }
                 return 1;
             }
         }
