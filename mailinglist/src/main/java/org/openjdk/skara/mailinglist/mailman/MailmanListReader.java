@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,7 +40,13 @@ public class MailmanListReader implements MailingListReader {
     private final boolean useEtag;
     private final List<String> names = new ArrayList<>();
     private final Logger log = Logger.getLogger("org.openjdk.skara.mailinglist");
+
+    // Store the response pages of the last two months, the last third month sometimes, and the 404 response.
     private final ConcurrentMap<URI, HttpResponse<String>> pageCache = new ConcurrentHashMap<>();
+
+    // Store the email lists of most months, excluding the months mentioned in field `pageCache`.
+    private final ConcurrentMap<URI, List<Email>> emailCache = new ConcurrentHashMap<>();
+
     private List<Conversation> cachedConversations = new ArrayList<>();
     private static final HttpClient client = HttpClient.newBuilder()
                                                        .connectTimeout(Duration.ofSeconds(10))
@@ -83,7 +89,7 @@ public class MailmanListReader implements MailingListReader {
         return ret;
     }
 
-    private Optional<HttpResponse<String>> getPage(URI uri) {
+    private Optional<HttpResponse<String>> getPage(URI uri, EmailAddress sender, boolean isLastTwoMonth) {
         var requestBuilder = HttpRequest.newBuilder(uri)
                                         .timeout(Duration.ofSeconds(30))
                                         .GET();
@@ -99,7 +105,11 @@ public class MailmanListReader implements MailingListReader {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             POLLING_COUNTER.labels(String.valueOf(response.statusCode())).inc();
             if (response.statusCode() == 200) {
-                pageCache.put(uri, response);
+                if (isLastTwoMonth) {
+                    pageCache.put(uri, response);
+                } else {
+                    emailCache.put(uri, Mbox.splitMbox(response.body(), sender));
+                }
                 return Optional.of(response);
             } else if (response.statusCode() == 304) {
                 return Optional.of(response);
@@ -120,13 +130,12 @@ public class MailmanListReader implements MailingListReader {
 
     @Override
     public List<Conversation> conversations(Duration maxAge) {
-        // Order pages by most recent first
-        var potentialPages = getMonthRange(maxAge).stream()
-                                                  .sorted(Comparator.reverseOrder())
-                                                  .collect(Collectors.toList());
+        // The pages are ordered by oldest first
+        var potentialPages = getMonthRange(maxAge);
 
         var monthCount = 0;
         var newContent = false;
+        var penultimateMonth = potentialPages.size() - 2;
         var emails = new ArrayList<Email>();
         for (var month : potentialPages) {
             for (var name : names) {
@@ -134,20 +143,38 @@ public class MailmanListReader implements MailingListReader {
                 var sender = EmailAddress.from(name + "@" + mboxUri.getHost());
 
                 // For archives older than the previous month, always use cached results
-                if (monthCount > 1 && pageCache.containsKey(mboxUri)) {
+                if (monthCount < penultimateMonth && emailCache.containsKey(mboxUri)) {
+                    emails.addAll(emailCache.get(mboxUri));
+                } else if (monthCount < penultimateMonth && !emailCache.containsKey(mboxUri) && pageCache.containsKey(mboxUri)) {
                     var cachedResponse = pageCache.get(mboxUri);
-                    if (cachedResponse != null && cachedResponse.statusCode() != 404) {
-                        emails.addAll(0, Mbox.splitMbox(cachedResponse.body(), sender));
+                    if (cachedResponse.statusCode() == 404) {
+                        continue;
                     }
-                } else {
-                    var mboxResponse = getPage(mboxUri);
+                    // The **new** third month from last when entering a new month.
+                    var thirdMonthResponse = pageCache.remove(mboxUri);
+                    var thirdMonthEmails = Mbox.splitMbox(thirdMonthResponse.body(), sender);
+                    emailCache.put(mboxUri, thirdMonthEmails);
+                    emails.addAll(thirdMonthEmails);
+                } else if (monthCount >= penultimateMonth) {
+                    // The last two months always get the newest data.
+                    var mboxResponse = getPage(mboxUri, sender, true);
                     if (mboxResponse.isPresent()) {
                         if (mboxResponse.get().statusCode() == 304) {
-                            emails.addAll(0, Mbox.splitMbox(pageCache.get(mboxUri).body(), sender));
+                            emails.addAll(Mbox.splitMbox(pageCache.get(mboxUri).body(), sender));
                         } else {
-                            emails.addAll(0, Mbox.splitMbox(mboxResponse.get().body(), sender));
+                            emails.addAll(Mbox.splitMbox(mboxResponse.get().body(), sender));
                             newContent = true;
                         }
+                    }
+                } else {
+                    // Not the last two months and the bot is just (re)started.
+                    var mboxResponse = getPage(mboxUri, sender, false);
+                    if (mboxResponse.isPresent()) {
+                        if (mboxResponse.get().statusCode() == 404) {
+                            continue;
+                        }
+                        emails.addAll(emailCache.get(mboxUri));
+                        newContent = true;
                     }
                 }
             }
