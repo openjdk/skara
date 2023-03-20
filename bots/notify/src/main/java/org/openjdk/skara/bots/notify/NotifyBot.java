@@ -83,12 +83,14 @@ public class NotifyBot implements Bot, Emitter {
     @Override
     public List<WorkItem> getPeriodicItems() {
         var ret = new ArrayList<WorkItem>();
+
         if (!wildCardProtected && prListeners.stream()
                 .anyMatch(e -> e instanceof PullRequestBranchNotifier && ((PullRequestBranchNotifier) e).isProtectBranches())) {
             log.info("Protecting branch *");
             repository.protectBranchPattern("*");
             wildCardProtected = true;
         }
+
         if (!prListeners.isEmpty()) {
             // Pull request events
             List<PullRequest> prs = poller.updatedPullRequests();

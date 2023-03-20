@@ -63,6 +63,8 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
         String branch = PreIntegrations.preIntegrateBranch(pr);
         var branchExists = pr.repository().branchHash(branch).isPresent();
         if (protectBranches) {
+            log.info("Removing branch protection for " + branch);
+            pr.repository().unprotectBranchPattern(branch);
             log.info("Removing branch protection for *");
             pr.repository().unprotectBranchPattern("*");
         }
