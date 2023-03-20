@@ -253,6 +253,9 @@ public class GitPrCreate {
             var remoteBranches = repo.branches(remote);
             var candidates = new ArrayList<Branch>();
             for (var b : remoteBranches) {
+                if (b.name().length() <= remote.length()) {
+                    continue;
+                }
                 var withoutRemotePrefix = b.name().substring(remote.length() + 1);
                 if (upstreamBranchNames.contains(withoutRemotePrefix)) {
                     candidates.add(b);
