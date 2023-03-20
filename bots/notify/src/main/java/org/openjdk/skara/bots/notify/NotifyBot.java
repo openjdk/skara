@@ -23,7 +23,6 @@
 package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.bot.*;
-import org.openjdk.skara.bots.notify.prbranch.PullRequestBranchNotifier;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.storage.StorageBuilder;
 
@@ -45,7 +44,7 @@ public class NotifyBot implements Bot, Emitter {
     private final Map<String, Pattern> readyComments;
     private final String integratorId;
     private final PullRequestPoller poller;
-    private Boolean wildCardProtected = false;
+    private Boolean firstTimeCall = true;
 
     NotifyBot(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<UpdatedTag> tagStorageBuilder,
               StorageBuilder<UpdatedBranch> branchStorageBuilder, StorageBuilder<PullRequestState> prStateStorageBuilder,
@@ -84,11 +83,9 @@ public class NotifyBot implements Bot, Emitter {
     public List<WorkItem> getPeriodicItems() {
         var ret = new ArrayList<WorkItem>();
 
-        if (!wildCardProtected && prListeners.stream()
-                .anyMatch(e -> e instanceof PullRequestBranchNotifier && ((PullRequestBranchNotifier) e).isProtectBranches())) {
-            log.info("Protecting branch *");
-            repository.protectBranchPattern("*");
-            wildCardProtected = true;
+        if (firstTimeCall) {
+            prListeners.forEach(listener -> listener.initialize(repository));
+            firstTimeCall = false;
         }
 
         if (!prListeners.isEmpty()) {

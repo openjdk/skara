@@ -63,6 +63,8 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
         String branch = PreIntegrations.preIntegrateBranch(pr);
         var branchExists = pr.repository().branchHash(branch).isPresent();
         if (protectBranches) {
+            // We still need this code because it's possible that we have some pr branch protected,
+            // but it will be fine for us to remove this code later
             log.info("Removing branch protection for " + branch);
             pr.repository().unprotectBranchPattern(branch);
             log.info("Removing branch protection for *");
@@ -74,8 +76,10 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
         }
         log.info("Deleting pull request pre-integration branch " + branch);
         pr.repository().deleteBranch(branch);
-        log.info("Protecting branch * after deleting branch " + branch);
-        pr.repository().protectBranchPattern("*");
+        if (protectBranches) {
+            log.info("Protecting branch * after deleting branch " + branch);
+            pr.repository().protectBranchPattern("*");
+        }
     }
 
     @Override
@@ -141,7 +145,11 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
         }
     }
 
-    public boolean isProtectBranches() {
-        return protectBranches;
+    @Override
+    public void initialize(HostedRepository repository) {
+        if (protectBranches) {
+            log.info("Protecting branch *");
+            repository.protectBranchPattern("*");
+        }
     }
 }
