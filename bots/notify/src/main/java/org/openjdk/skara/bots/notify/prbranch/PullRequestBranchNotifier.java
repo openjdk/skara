@@ -52,10 +52,6 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
             var seedRepo = hostedRepositoryPool.seedRepository(pr.repository(), false);
             seedRepo.fetch(pr.repository().authenticatedUrl(), pr.headHash().hex());
             String branch = PreIntegrations.preIntegrateBranch(pr);
-            if (protectBranches) {
-                log.info("Protecting branch " + branch);
-                pr.repository().protectBranchPattern(branch);
-            }
             log.info("Creating new pull request pre-integration branch " + branch);
             seedRepo.push(pr.headHash(), pr.repository().authenticatedUrl(), branch, true);
         } catch (IOException e) {
@@ -67,8 +63,12 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
         String branch = PreIntegrations.preIntegrateBranch(pr);
         var branchExists = pr.repository().branchHash(branch).isPresent();
         if (protectBranches) {
+            // We still need this code because it's possible that we have some pr branch protected,
+            // but it will be fine for us to remove this code later
             log.info("Removing branch protection for " + branch);
             pr.repository().unprotectBranchPattern(branch);
+            log.info("Removing branch protection for *");
+            pr.repository().unprotectBranchPattern("*");
         }
         if (!branchExists) {
             log.info("Pull request pre-integration branch " + branch + " doesn't exist on remote - ignoring");
@@ -76,6 +76,10 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
         }
         log.info("Deleting pull request pre-integration branch " + branch);
         pr.repository().deleteBranch(branch);
+        if (protectBranches) {
+            log.info("Protecting branch * after deleting branch " + branch);
+            pr.repository().protectBranchPattern("*");
+        }
     }
 
     @Override
@@ -138,6 +142,14 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
     public void onHeadChange(PullRequest pr, Path scratchPath, Hash oldHead) {
         if (pr.state() == Issue.State.OPEN) {
             pushBranch(pr);
+        }
+    }
+
+    @Override
+    public void initialize(HostedRepository repository) {
+        if (protectBranches) {
+            log.info("Protecting branch *");
+            repository.protectBranchPattern("*");
         }
     }
 }

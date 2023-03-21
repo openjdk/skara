@@ -27,7 +27,6 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.storage.StorageBuilder;
 
 import java.nio.file.Path;
-import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -45,6 +44,7 @@ public class NotifyBot implements Bot, Emitter {
     private final Map<String, Pattern> readyComments;
     private final String integratorId;
     private final PullRequestPoller poller;
+    private Boolean firstTimeCall = true;
 
     NotifyBot(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<UpdatedTag> tagStorageBuilder,
               StorageBuilder<UpdatedBranch> branchStorageBuilder, StorageBuilder<PullRequestState> prStateStorageBuilder,
@@ -82,6 +82,11 @@ public class NotifyBot implements Bot, Emitter {
     @Override
     public List<WorkItem> getPeriodicItems() {
         var ret = new ArrayList<WorkItem>();
+
+        if (firstTimeCall) {
+            prListeners.forEach(listener -> listener.initialize(repository));
+            firstTimeCall = false;
+        }
 
         if (!prListeners.isEmpty()) {
             // Pull request events

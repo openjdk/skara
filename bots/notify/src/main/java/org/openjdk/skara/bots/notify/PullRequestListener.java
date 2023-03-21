@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.notify;
 
+import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.openjdk.Issue;
@@ -42,4 +43,7 @@ public interface PullRequestListener {
     default void onStateChange(PullRequest pr, Path scratchPath, org.openjdk.skara.issuetracker.Issue.State oldState) {
     }
     String name();
+
+    default void initialize(HostedRepository repo) {
+    }
 }
