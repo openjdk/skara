@@ -233,7 +233,7 @@ public class BotRunner {
                     item.handleRuntimeException(e);
                 } catch (Error e) {
                     EXCEPTIONS_COUNTER.labels(item.botName(), item.workItemName(), e.getClass().getName()).inc();
-                    log.log(Level.SEVERE, "Error thrown during item execution: " + e.getMessage(), e);
+                    log.log(Level.SEVERE, "Error thrown during item execution: (" + item + "): " + e.getMessage(), e);
                     throw e;
                 } finally {
                     var duration = Duration.between(start, Instant.now());
