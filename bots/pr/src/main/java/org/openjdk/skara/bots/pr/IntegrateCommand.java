@@ -161,7 +161,7 @@ public class IntegrateCommand implements CommandHandler {
             return;
         }
 
-        Optional<Hash> prepushHash = checkForPrePushHash(bot, pr, scratchPath, allComments, "integrate");
+        Optional<Hash> prepushHash = checkForPrePushHash(bot, pr, scratchPath, allComments);
         if (prepushHash.isPresent()) {
             markIntegratedAndClosed(pr, prepushHash.get(), reply, allComments);
             return;
@@ -191,7 +191,7 @@ public class IntegrateCommand implements CommandHandler {
             // Now that we have the integration lock, refresh the PR metadata
             pr = pr.repository().pullRequest(pr.id());
 
-            Repository localRepo = materializeLocalRepo(bot, pr, scratchPath, "integrate");
+            Repository localRepo = materializeLocalRepo(bot, pr, scratchPath);
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
                                                        bot.confOverrideRepository().orElse(null),
                                                        bot.confOverrideName(),
@@ -274,8 +274,8 @@ public class IntegrateCommand implements CommandHandler {
         return false;
     }
 
-    static Repository materializeLocalRepo(PullRequestBot bot, PullRequest pr, Path scratchPath, String subdir) throws IOException {
-        var path = scratchPath.resolve(subdir).resolve(pr.repository().name());
+    static Repository materializeLocalRepo(PullRequestBot bot, PullRequest pr, Path scratchPath) throws IOException {
+        var path = scratchPath.getParent().resolve("repos").resolve(pr.repository().name());
         var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
         return PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
@@ -287,7 +287,7 @@ public class IntegrateCommand implements CommandHandler {
      * and adding the final push comment.
      */
     static Optional<Hash> checkForPrePushHash(PullRequestBot bot, PullRequest pr, Path scratchPath,
-                                              List<Comment> allComments, String subdir) {
+                                              List<Comment> allComments) {
         var botUser = pr.repository().forge().currentUser();
         var prePushHashes = allComments.stream()
                 .filter(c -> c.author().equals(botUser))
@@ -298,7 +298,7 @@ public class IntegrateCommand implements CommandHandler {
                 .collect(Collectors.toList());
         if (!prePushHashes.isEmpty()) {
             try {
-                var localRepo = materializeLocalRepo(bot, pr, scratchPath, subdir);
+                var localRepo = materializeLocalRepo(bot, pr, scratchPath);
                 for (String prePushHash : prePushHashes) {
                     Hash hash = new Hash(prePushHash);
                     if (PullRequestUtils.isAncestorOfTarget(localRepo, hash)) {

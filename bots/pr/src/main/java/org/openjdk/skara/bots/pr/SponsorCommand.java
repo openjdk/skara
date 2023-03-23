@@ -47,7 +47,7 @@ public class SponsorCommand implements CommandHandler {
             return;
         }
 
-        Optional<Hash> prePushHash = IntegrateCommand.checkForPrePushHash(bot, pr, scratchPath, allComments, "sponsor");
+        Optional<Hash> prePushHash = IntegrateCommand.checkForPrePushHash(bot, pr, scratchPath, allComments);
         if (prePushHash.isPresent()) {
             markIntegratedAndClosed(pr, prePushHash.get(), reply, allComments);
             return;
@@ -94,7 +94,7 @@ public class SponsorCommand implements CommandHandler {
             // Now that we have the integration lock, refresh the PR metadata
             pr = pr.repository().pullRequest(pr.id());
 
-            var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchPath, "sponsor");
+            var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchPath);
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
                                                        bot.confOverrideRepository().orElse(null),
                                                        bot.confOverrideName(),

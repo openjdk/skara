@@ -457,7 +457,7 @@ class CheckWorkItem extends PullRequestWorkItem {
 
     private Repository materializeLocalRepo(Path scratchPath, HostedRepositoryPool hostedRepositoryPool) throws IOException {
         if (localRepo == null) {
-            var localRepoPath = scratchPath.resolve("pr").resolve("check").resolve(pr.repository().name());
+            var localRepoPath = scratchPath.resolve("pr").resolve("repos").resolve(pr.repository().name());
             localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, localRepoPath);
         }
         return localRepo;

@@ -146,7 +146,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         }
 
         try {
-            var path = scratchPath.resolve("pr").resolve("labeler").resolve(pr.repository().name());
+            var path = scratchPath.resolve("pr").resolve("repos").resolve(pr.repository().name());
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
             var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
