@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,17 +27,18 @@ import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static org.openjdk.skara.bots.common.CommandNameEnum.sponsor;
+
 public class SponsorCommand implements CommandHandler {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (censusInstance.isCommitter(pr.author())) {
             reply.println("This change does not need sponsoring - the author is allowed to integrate it.");
             return;
@@ -47,7 +48,7 @@ public class SponsorCommand implements CommandHandler {
             return;
         }
 
-        Optional<Hash> prePushHash = IntegrateCommand.checkForPrePushHash(bot, pr, scratchPath, allComments);
+        Optional<Hash> prePushHash = IntegrateCommand.checkForPrePushHash(bot, pr, scratchArea, allComments);
         if (prePushHash.isPresent()) {
             markIntegratedAndClosed(pr, prePushHash.get(), reply, allComments);
             return;
@@ -94,7 +95,7 @@ public class SponsorCommand implements CommandHandler {
             // Now that we have the integration lock, refresh the PR metadata
             pr = pr.repository().pullRequest(pr.id());
 
-            var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchPath);
+            var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchArea);
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
                                                        bot.confOverrideRepository().orElse(null),
                                                        bot.confOverrideName(),
@@ -151,5 +152,10 @@ public class SponsorCommand implements CommandHandler {
     @Override
     public String description() {
         return "performs integration of a PR that is authored by a non-committer";
+    }
+
+    @Override
+    public String name() {
+        return sponsor.name();
     }
 }

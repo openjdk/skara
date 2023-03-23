@@ -27,9 +27,10 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.PrintWriter;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
+
+import static org.openjdk.skara.bots.common.CommandNameEnum.reviewer;
 
 public class ReviewerCommand implements CommandHandler {
     private static final Pattern COMMAND_PATTERN = Pattern.compile("^(credit|remove)\\s+(.+)$");
@@ -67,7 +68,7 @@ public class ReviewerCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!command.user().equals(pr.author())) {
             reply.println("Only the author (@" + pr.author().username() + ") is allowed to issue the `reviewer` command.");
             return;
@@ -133,5 +134,10 @@ public class ReviewerCommand implements CommandHandler {
     @Override
     public String description() {
         return "manage additional reviewers for a PR";
+    }
+
+    @Override
+    public String name() {
+        return reviewer.name();
     }
 }

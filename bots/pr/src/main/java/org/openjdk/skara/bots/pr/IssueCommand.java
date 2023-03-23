@@ -30,13 +30,12 @@ import org.openjdk.skara.json.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.PrintWriter;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.openjdk.skara.issuetracker.jira.JiraProject.SUBCOMPONENT;
-
+import static org.openjdk.skara.bots.common.CommandNameEnum.issue;
 class InvalidIssue extends Exception {
     private String identifier;
     private String reason;
@@ -271,7 +270,7 @@ public class IssueCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!command.user().equals(pr.author())) {
             reply.println("Only the author (@" + pr.author().username() + ") is allowed to issue the `/" + name + "` command.");
             return;
@@ -307,6 +306,11 @@ public class IssueCommand implements CommandHandler {
     @Override
     public String description() {
         return "edit the list of issues that this PR solves";
+    }
+
+    @Override
+    public String name() {
+        return issue.name();
     }
 
     @Override

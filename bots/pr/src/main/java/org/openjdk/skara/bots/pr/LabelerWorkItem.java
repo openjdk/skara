@@ -29,7 +29,6 @@ import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -116,7 +115,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
     }
 
     @Override
-    public Collection<WorkItem> prRun(Path scratchPath) {
+    public Collection<WorkItem> prRun(ScratchArea scratchArea) {
         if (bot.isAutoLabelled(pr)) {
             return List.of();
         }
@@ -146,8 +145,8 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         }
 
         try {
-            var path = scratchPath.resolve("pr").resolve("repos").resolve(pr.repository().name());
-            var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
+            var path = scratchArea.get(pr.repository());
+            var seedPath = bot.seedStorage().orElse(scratchArea.getSeeds());
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
             var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
             var newLabels = getLabels(localRepo);

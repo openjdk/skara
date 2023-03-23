@@ -2658,7 +2658,7 @@ class CheckTests {
             // Update PR body right now
             pr.store().setBody("It's a new Body");
             try (var scratchFolder = new TemporaryDirectory()) {
-                checkWorkItem.prRun(scratchFolder.path());
+                checkWorkItem.prRun(new ScratchArea(scratchFolder.path(), checkBot.name()));
             }
             // PR body should not be updated by Bot
             assertEquals("It's a new Body", pr.store().body());
@@ -2666,7 +2666,7 @@ class CheckTests {
             checkWorkItem = (CheckWorkItem) checkBot.getPeriodicItems().get(1);
             checkWorkItem.pr = author.pullRequest(pr.id());
             try (var scratchFolder = new TemporaryDirectory()) {
-                checkWorkItem.prRun(scratchFolder.path());
+                checkWorkItem.prRun(new ScratchArea(scratchFolder.path(), checkBot.name()));
             }
             // PR body should be updated by Bot
             assertTrue(pr.store().body().contains("It's a new Body"));

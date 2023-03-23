@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,8 +26,9 @@ import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.PrintWriter;
-import java.nio.file.Path;
 import java.util.List;
+
+import static org.openjdk.skara.bots.common.CommandNameEnum.clean;
 
 public class CleanCommand implements CommandHandler {
     private void showHelp(PrintWriter reply) {
@@ -40,12 +41,17 @@ public class CleanCommand implements CommandHandler {
     }
 
     @Override
+    public String name() {
+        return clean.name();
+    }
+
+    @Override
     public boolean allowedInBody() {
         return true;
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply)
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply)
     {
         if (!censusInstance.isCommitter(command.user())) {
             reply.println("Only OpenJDK [Committers](https://openjdk.org/bylaws#committer) can use the `/clean` command");

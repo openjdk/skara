@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,7 +28,6 @@ import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
 import java.util.logging.Level;
@@ -36,6 +35,8 @@ import java.util.stream.Collectors;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+
+import static org.openjdk.skara.bots.common.CommandNameEnum.integrate;
 
 public class IntegrateCommand implements CommandHandler {
     private final static Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
@@ -75,7 +76,7 @@ public class IntegrateCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         // Parse any argument given
         Hash targetHash = null;
         Command commandArg = null;
@@ -161,7 +162,7 @@ public class IntegrateCommand implements CommandHandler {
             return;
         }
 
-        Optional<Hash> prepushHash = checkForPrePushHash(bot, pr, scratchPath, allComments);
+        Optional<Hash> prepushHash = checkForPrePushHash(bot, pr, scratchArea, allComments);
         if (prepushHash.isPresent()) {
             markIntegratedAndClosed(pr, prepushHash.get(), reply, allComments);
             return;
@@ -191,7 +192,7 @@ public class IntegrateCommand implements CommandHandler {
             // Now that we have the integration lock, refresh the PR metadata
             pr = pr.repository().pullRequest(pr.id());
 
-            Repository localRepo = materializeLocalRepo(bot, pr, scratchPath);
+            Repository localRepo = materializeLocalRepo(bot, pr, scratchArea);
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
                                                        bot.confOverrideRepository().orElse(null),
                                                        bot.confOverrideName(),
@@ -274,9 +275,9 @@ public class IntegrateCommand implements CommandHandler {
         return false;
     }
 
-    static Repository materializeLocalRepo(PullRequestBot bot, PullRequest pr, Path scratchPath) throws IOException {
-        var path = scratchPath.getParent().resolve("repos").resolve(pr.repository().name());
-        var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
+    static Repository materializeLocalRepo(PullRequestBot bot, PullRequest pr, ScratchArea scratchArea) throws IOException {
+        var path = scratchArea.get(pr.repository());
+        var seedPath = bot.seedStorage().orElse(scratchArea.getSeeds());
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
         return PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
     }
@@ -286,7 +287,7 @@ public class IntegrateCommand implements CommandHandler {
      * the bot got interrupted after pushing, but before finishing closing the PR
      * and adding the final push comment.
      */
-    static Optional<Hash> checkForPrePushHash(PullRequestBot bot, PullRequest pr, Path scratchPath,
+    static Optional<Hash> checkForPrePushHash(PullRequestBot bot, PullRequest pr, ScratchArea scratchArea,
                                               List<Comment> allComments) {
         var botUser = pr.repository().forge().currentUser();
         var prePushHashes = allComments.stream()
@@ -298,7 +299,7 @@ public class IntegrateCommand implements CommandHandler {
                 .collect(Collectors.toList());
         if (!prePushHashes.isEmpty()) {
             try {
-                var localRepo = materializeLocalRepo(bot, pr, scratchPath);
+                var localRepo = materializeLocalRepo(bot, pr, scratchArea);
                 for (String prePushHash : prePushHashes) {
                     Hash hash = new Hash(prePushHash);
                     if (PullRequestUtils.isAncestorOfTarget(localRepo, hash)) {
@@ -368,6 +369,11 @@ public class IntegrateCommand implements CommandHandler {
     @Override
     public String description() {
         return "performs integration of the changes in the PR";
+    }
+
+    @Override
+    public String name() {
+        return integrate.name();
     }
 
     @Override
