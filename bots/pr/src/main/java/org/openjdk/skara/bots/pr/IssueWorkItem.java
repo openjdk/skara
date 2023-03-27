@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,16 +20,16 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.csr;
+package org.openjdk.skara.bots.pr;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
+
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.PullRequestUtils;
 import org.openjdk.skara.issuetracker.Issue;
@@ -42,7 +42,7 @@ import org.openjdk.skara.jbs.Backports;
  * It should only be triggered when a modified CSR issue has been found.
  */
 class IssueWorkItem implements WorkItem {
-    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.csr");
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     private final CSRIssueBot bot;
     private final Issue csrIssue;
@@ -99,16 +99,14 @@ class IssueWorkItem implements WorkItem {
                 .flatMap(uri -> bot.repositories().stream()
                         .flatMap(r -> r.parsePullRequestUrl(uri.toString()).stream()))
                 .filter(Issue::isOpen)
-                // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
-                // best we can do.
-                .map(pr -> new PullRequestWorkItem(pr.repository(), pr.id(), csrIssue.project(), csrIssue.updatedAt(), errorHandler))
+                .map(pr -> new CheckWorkItem(bot.getPRBot(pr.repository().name()), pr.id(), errorHandler, pr.updatedAt(), true, true))
                 .forEach(ret::add);
         return ret;
     }
 
     @Override
     public String botName() {
-        return CSRBotFactory.NAME;
+        return PullRequestBotFactory.NAME;
     }
 
     @Override

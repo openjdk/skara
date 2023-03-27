@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2023 Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -67,7 +67,41 @@ class PullRequestBotFactoryTest {
                           "census": "census:master",
                           "censuslink": "https://test.test.com",
                           "issues": "TEST",
-                          "csr": false,
+                          "csr": true,
+                          "two-reviewers": [
+                            "rfr"
+                          ],
+                          "24h": [
+                            "24h_test"
+                          ],
+                          "integrators": [
+                            "integrator1",
+                            "integrator2"
+                          ],
+                          "reviewCleanBackport": true
+                        },
+                        "repo5": {
+                          "census": "census:master",
+                          "censuslink": "https://test.test.com",
+                          "issues": "TEST2",
+                          "csr": true,
+                          "two-reviewers": [
+                            "rfr"
+                          ],
+                          "24h": [
+                            "24h_test"
+                          ],
+                          "integrators": [
+                            "integrator1",
+                            "integrator2"
+                          ],
+                          "reviewCleanBackport": true
+                        },
+                        "repo6": {
+                          "census": "census:master",
+                          "censuslink": "https://test.test.com",
+                          "issues": "TEST2",
+                          "csr": true,
                           "two-reviewers": [
                             "rfr"
                           ],
@@ -94,21 +128,24 @@ class PullRequestBotFactoryTest {
                     .addHostedRepository("repo2", new TestHostedRepository(TestHost.createNew(List.of()), "repo2"))
                     .addHostedRepository("repo3", new TestHostedRepository("repo3"))
                     .addHostedRepository("repo4", new TestHostedRepository("repo4"))
+                    .addHostedRepository("repo5", new TestHostedRepository(TestHost.createNew(List.of()), "repo5"))
+                    .addHostedRepository("repo6", new TestHostedRepository(TestHost.createNew(List.of()), "repo6"))
                     .addHostedRepository("fork3", new TestHostedRepository("fork3"))
                     .addHostedRepository("fork4", new TestHostedRepository("fork4"))
                     .addHostedRepository("census", new TestHostedRepository("census"))
-                    .addIssueProject("TEST", new TestIssueProject(null, "TEST"))
+                    .addIssueProject("TEST", new TestIssueProject(TestHost.createNew(List.of()), "TEST"))
+                    .addIssueProject("TEST2", new TestIssueProject(TestHost.createNew(List.of()), "TEST2"))
                     .storagePath(tempFolder.path().resolve("storage"))
                     .build();
 
             var bots = testBotFactory.createBots(PullRequestBotFactory.NAME, jsonConfig);
-            //A pullRequestBot for every configured repository
-            assertEquals(1, bots.size());
+            //A pullRequestBot for every configured repository and A CSRIssueBot for every configured issue project
+            assertEquals(5, bots.size());
 
             var pullRequestBot1 = (PullRequestBot) bots.get(0);
-            assertEquals("PullRequestBot@repo2", pullRequestBot1.toString());
+            assertEquals("PullRequestBot@repo6", pullRequestBot1.toString());
             assertEquals("used to run tests", pullRequestBot1.externalPullRequestCommands().get("test"));
-            assertEquals("TEST", pullRequestBot1.issueProject().name());
+            assertEquals("TEST2", pullRequestBot1.issueProject().name());
             assertEquals("census", pullRequestBot1.censusRepo().name());
             assertEquals("master", pullRequestBot1.censusRef());
             assertEquals("{test=used to run tests}", pullRequestBot1.externalPullRequestCommands().toString());
@@ -122,6 +159,18 @@ class PullRequestBotFactoryTest {
             assertTrue(integrators.contains("integrator1"));
             assertTrue(integrators.contains("integrator2"));
             assertTrue(pullRequestBot1.reviewCleanBackport());
+
+            var csrIssueBot1 = (CSRIssueBot) bots.get(3);
+            assertEquals(2, csrIssueBot1.repositories().size());
+            assertNotNull(csrIssueBot1.getPRBot("repo2"));
+            assertNotNull(csrIssueBot1.getPRBot("repo5"));
+            assertNotNull(csrIssueBot1.getPRBot("repo6"));
+
+            var csrIssueBot2 = (CSRIssueBot) bots.get(4);
+            assertEquals(1, csrIssueBot2.repositories().size());
+            assertNotNull(csrIssueBot2.getPRBot("repo2"));
+            assertNotNull(csrIssueBot2.getPRBot("repo5"));
+            assertNotNull(csrIssueBot2.getPRBot("repo6"));
         }
     }
 }

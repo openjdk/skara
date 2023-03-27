@@ -1173,6 +1173,9 @@ class CheckRun {
                 additionalProgresses = botSpecificProgresses(csrIssueTrackerIssues, version);
             }
 
+            // Check the status of csr issues and determine whether to add or remove csr label here
+            updateCSRLabel(issues);
+
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             var readyForReview = updateReadyForReview(visitor, additionalErrors);
 
@@ -1280,4 +1283,123 @@ class CheckRun {
                                 .anyMatch(patch -> (patch.source().path().isPresent() && patch.source().path().get().toString().equals(filename))
                                         || ((patch.target().path().isPresent() && patch.target().path().get().toString().equals(filename))))));
     }
+
+    void updateCSRLabel(List<Issue> issues) {
+        if (issues.isEmpty()) {
+            log.info("No issue found for " + describe(pr));
+            return;
+        }
+
+        var versionOpt = BotUtils.getVersion(pr);
+        if (versionOpt.isEmpty()) {
+            log.info("No fix version found in `.jcheck/conf` for " + describe(pr));
+            return;
+        }
+        boolean notExistingUnresolvedCSR = true;
+        boolean existingCSR = false;
+        boolean existingApprovedCSR = false;
+
+        var project = workItem.bot.issueProject();
+        if (project == null) {
+            log.info("No issue project found for " + describe(pr));
+            return;
+        }
+
+        for (var issue : issues) {
+            var jbsIssueOpt = project.issue(issue.shortId());
+            if (jbsIssueOpt.isEmpty()) {
+                // An issue could not be found, so the csr label cannot be removed
+                notExistingUnresolvedCSR = false;
+                var issueId = issue.project().isEmpty() ? (project.name() + "-" + issue.id()) : issue.id();
+                log.info(issueId + " for " + describe(pr) + " not found");
+                continue;
+            }
+
+            var csrOptional = Backports.findCsr(jbsIssueOpt.get(), versionOpt.get());
+            if (csrOptional.isEmpty()) {
+                log.info("No CSR found for issue " + jbsIssueOpt.get().id() + " for " + describe(pr) + " with fixVersion " + versionOpt.get().raw());
+                continue;
+            }
+            var csr = csrOptional.get();
+            existingCSR = true;
+
+            log.info("Found CSR " + csr.id() + " for issue " + jbsIssueOpt.get().id() + " for " + describe(pr));
+
+            var resolution = csr.properties().get("resolution");
+            if (resolution == null || resolution.isNull()) {
+                notExistingUnresolvedCSR = false;
+                if (!pr.labelNames().contains(CSR_LABEL)) {
+                    log.info("CSR issue resolution is null for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
+                    newLabels.add(CSR_LABEL);
+                } else {
+                    log.info("CSR issue resolution is null for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
+                }
+                continue;
+            }
+
+            var name = resolution.get("name");
+            if (name == null || name.isNull()) {
+                notExistingUnresolvedCSR = false;
+                if (!pr.labelNames().contains(CSR_LABEL)) {
+                    log.info("CSR issue resolution name is null for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
+                    newLabels.add(CSR_LABEL);
+                } else {
+                    log.info("CSR issue resolution name is null for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
+                }
+                continue;
+            }
+
+            if (csr.state() != org.openjdk.skara.issuetracker.Issue.State.CLOSED) {
+                notExistingUnresolvedCSR = false;
+                if (!pr.labelNames().contains(CSR_LABEL)) {
+                    log.info("CSR issue state is not closed for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
+                    newLabels.add(CSR_LABEL);
+                } else {
+                    log.info("CSR issue state is not closed for csr issue" + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
+                }
+                continue;
+            }
+
+            if (!name.asString().equals("Approved")) {
+                if (name.asString().equals("Withdrawn")) {
+                    // This condition is necessary to prevent the bot from adding the CSR label again.
+                    // And the bot can't remove the CSR label automatically here.
+                    // Because the PR author with the role of Committer may withdraw a CSR that
+                    // a Reviewer had requested and integrate it without satisfying that requirement.
+                    log.info("CSR closed and withdrawn for csr issue " + csr.id() + " for " + describe(pr));
+                } else if (!pr.labelNames().contains(CSR_LABEL)) {
+                    notExistingUnresolvedCSR = false;
+                    log.info("CSR issue resolution is not 'Approved' for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
+                    newLabels.add(CSR_LABEL);
+                } else {
+                    notExistingUnresolvedCSR = false;
+                    log.info("CSR issue resolution is not 'Approved' for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
+                }
+            } else {
+                existingApprovedCSR = true;
+            }
+        }
+        if (notExistingUnresolvedCSR && existingCSR && (!isCSRNeeded(pr.comments()) || existingApprovedCSR) && pr.labelNames().contains(CSR_LABEL)) {
+            log.info("All CSR issues closed and approved for " + describe(pr) + ", removing CSR label");
+            newLabels.remove(CSR_LABEL);
+        }
+    }
+
+    private boolean isCSRNeeded(List<Comment> comments) {
+        for (int i = comments.size() - 1; i >= 0; i--) {
+            var comment = comments.get(i);
+            if (comment.body().contains(CSR_NEEDED_MARKER)) {
+                return true;
+            }
+            if (comment.body().contains(CSR_UNNEEDED_MARKER)) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private String describe(PullRequest pr) {
+        return pr.repository().name() + "#" + pr.id();
+    }
+
 }

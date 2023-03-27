@@ -211,7 +211,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         if (!pr.labelNames().contains("integrated") || pr.findIntegratedCommitHash().isEmpty()) {
             processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments, false);
             // Run another check to reflect potential changes from commands
-            return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
+            return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt, false, false));
         } else {
             processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments, true);
             return List.of();

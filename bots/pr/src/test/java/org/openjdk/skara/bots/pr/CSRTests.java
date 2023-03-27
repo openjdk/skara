@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -449,10 +449,10 @@ class CSRTests {
             prAsReviewer.addComment("/csr");
             TestBotRunner.runPeriodicItems(prBot);
 
-            // The bot should reply with a message that the PR will not be integrated until the CSR is approved
-            assertLastCommentContains(pr, "this pull request will not be integrated until the [CSR]");
-            assertLastCommentContains(pr, "for issue ");
-            assertLastCommentContains(pr, "has been approved.");
+            // The bot should reply with a message that there is already an approved
+            // Now CheckWorkItem is responsible for updating CSR label, so before 'csr' is handled, csr label is added to this pr
+            assertLastCommentContains(pr, "an approved [CSR](https://wiki.openjdk.org/display/csr/Main) request is already required for this pull request.");
+            assertLastCommentContains(pr, "<!-- csr: 'needed' -->");
             // The PR body should contain the progress about CSR request
             assertTrue(pr.store().body().contains("- [ ] " + generateCSRProgressMessage(csr)));
 
@@ -523,10 +523,10 @@ class CSRTests {
             prAsReviewer.addComment("/csr");
             TestBotRunner.runPeriodicItems(prBot);
 
-            // The bot should reply with a message that the PR will not be integrated until the CSR is approved
-            assertLastCommentContains(pr, "this pull request will not be integrated until the [CSR]");
-            assertLastCommentContains(pr, "for issue ");
-            assertLastCommentContains(pr, "has been approved.");
+            // The bot should reply with a message that there is already an approved
+            // Now CheckWorkItem is responsible for updating CSR label, so before 'csr' is handled, csr label is added to this pr
+            assertLastCommentContains(pr, "an approved [CSR](https://wiki.openjdk.org/display/csr/Main) request is already required for this pull request.");
+            assertLastCommentContains(pr, "<!-- csr: 'needed' -->");
             // The PR body should contain the progress about CSR request
             assertTrue(pr.store().body().contains("- [ ] " + generateCSRProgressMessage(csr)));
 
@@ -918,9 +918,8 @@ class CSRTests {
             TestBotRunner.runPeriodicItems(bot);
             assertTrue(pr.store().body().contains("- [ ] " + generateCSRProgressMessage(backportCsr)));
             assertTrue(pr.store().labelNames().contains("csr"));
-            assertLastCommentContains(pr, "this pull request will not be integrated until the [CSR]");
-            assertLastCommentContains(pr, "for issue ");
-            assertLastCommentContains(pr, "has been approved.");
+            assertLastCommentContains(pr, "an approved [CSR](https://wiki.openjdk.org/display/csr/Main) request is already required for this pull request.");
+            assertLastCommentContains(pr, "<!-- csr: 'needed' -->");
             // Set the backport CSR to have multiple fix versions, excluded 11.
             backportCsr.setProperty("fixVersions", JSON.array().add("17").add("8"));
             // Use `/csr unneeded` to revert the change.
