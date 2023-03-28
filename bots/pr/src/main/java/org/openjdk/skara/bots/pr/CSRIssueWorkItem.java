@@ -99,7 +99,7 @@ class CSRIssueWorkItem implements WorkItem {
                 .flatMap(uri -> bot.repositories().stream()
                         .flatMap(r -> r.parsePullRequestUrl(uri.toString()).stream()))
                 .filter(Issue::isOpen)
-                .filter(pr -> bot.getPRBot(pr.repository().namespace()).enableCsr())
+                .filter(pr -> bot.getPRBot(pr.repository().name()).enableCsr())
                 // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
                 // best we can do.
                 .map(pr -> new CheckWorkItem(bot.getPRBot(pr.repository().name()), pr.id(), errorHandler, csrIssue.updatedAt(), true, true))

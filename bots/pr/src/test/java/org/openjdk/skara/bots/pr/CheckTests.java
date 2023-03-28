@@ -1972,7 +1972,8 @@ class CheckTests {
                     .addCommitter(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
             var prBot = PullRequestBot.newBuilder().repo(botRepo)
-                    .censusRepo(censusBuilder.build()).issueProject(issueProject).build();
+                    .censusRepo(censusBuilder.build()).issueProject(issueProject)
+                    .enableCsr(true).build();
             var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of("test", prBot));
 
             // Run issue bot once to initialize lastUpdatedAt
