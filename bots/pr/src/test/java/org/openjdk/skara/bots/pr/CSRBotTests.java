@@ -486,10 +486,6 @@ class CSRBotTests {
         }
     }
 
-    private String generateCSRProgressMessage(Issue issue) {
-        return "Change requires CSR request [" + issue.id() + "](" + issue.webUrl() + ") to be approved";
-    }
-
     @Test
     void testPRWithMultipleIssues(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
