@@ -50,7 +50,7 @@ public class CSRIssueBot implements Bot {
         this.issueProject = issueProject;
         this.repositories = repositories;
         this.pullRequestBotMap = pullRequestBotMap;
-        // The CSRPullRequestBot will initially evaluate all active PRs so there
+        // The PullRequestBot will initially evaluate all active PRs so there
         // is no need to look at any issues older than the start time of the bot
         // here. A padding of 10 minutes for the initial query should cover any
         // potential time difference between local and remote, as well as timing

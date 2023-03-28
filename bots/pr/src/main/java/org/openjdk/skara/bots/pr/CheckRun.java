@@ -140,26 +140,29 @@ class CheckRun {
     }
 
     /**
-     * Get the csr issues. Note: this `Issue` is the issue in module `issuetracker`.
+     * Get the csr issue map, key is the main issue and value is the csr issue.
+     * Note: The type of  csr issue is the issue in module `issuetracker`.
      */
-    private List<org.openjdk.skara.issuetracker.Issue> getCsrIssueTrackerIssues(List<Issue> issues, JdkVersion version) {
+    private Map<Issue, org.openjdk.skara.issuetracker.Issue> getCsrIssueTrackerIssues(List<Issue> issues, JdkVersion version) {
         var issueProject = issueProject();
+        var csrIssueMap = new HashMap<Issue, org.openjdk.skara.issuetracker.Issue>();
         if (issueProject == null) {
-            return List.of();
+            return Map.of();
         }
         if (version == null) {
-            return List.of();
+            return Map.of();
         }
-        var csrIssues = new ArrayList<org.openjdk.skara.issuetracker.Issue>();
         for (var issue : issues) {
             var jbsIssueOpt = issueProject.issue(issue.shortId());
             if (jbsIssueOpt.isEmpty()) {
                 continue;
             }
-            Backports.findCsr(jbsIssueOpt.get(), version)
-                    .ifPresent(csrIssues::add);
+            var csrOptional = Backports.findCsr(jbsIssueOpt.get(), version);
+            if (csrOptional.isPresent()) {
+                csrIssueMap.put(issue, csrOptional.get());
+            }
         }
-        return csrIssues;
+        return csrIssueMap;
     }
 
     /**
@@ -1168,13 +1171,14 @@ class CheckRun {
             }
             // issues without CSR issues and JEP issues
             var issues = issues();
-            var csrIssueTrackerIssues = getCsrIssueTrackerIssues(issues, version);
+            var csrIssueTrackerIssueMap = getCsrIssueTrackerIssues(issues, version);
+            var csrIssueTrackerIssues = csrIssueTrackerIssueMap.values().stream().toList();
             if (needUpdateAdditionalProgresses) {
                 additionalProgresses = botSpecificProgresses(csrIssueTrackerIssues, version);
             }
 
             // Check the status of csr issues and determine whether to add or remove csr label here
-            updateCSRLabel(issues);
+            updateCSRLabel(issues, version, csrIssueTrackerIssueMap);
 
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             var readyForReview = updateReadyForReview(visitor, additionalErrors);
@@ -1284,14 +1288,12 @@ class CheckRun {
                                         || ((patch.target().path().isPresent() && patch.target().path().get().toString().equals(filename))))));
     }
 
-    void updateCSRLabel(List<Issue> issues) {
+    private void updateCSRLabel(List<Issue> issues, JdkVersion version, Map<Issue, org.openjdk.skara.issuetracker.Issue> csrIssueTrackerIssueMap) {
         if (issues.isEmpty()) {
-            log.info("No issue found for " + describe(pr));
             return;
         }
 
-        var versionOpt = BotUtils.getVersion(pr);
-        if (versionOpt.isEmpty()) {
+        if (version == null) {
             log.info("No fix version found in `.jcheck/conf` for " + describe(pr));
             return;
         }
@@ -1315,12 +1317,11 @@ class CheckRun {
                 continue;
             }
 
-            var csrOptional = Backports.findCsr(jbsIssueOpt.get(), versionOpt.get());
-            if (csrOptional.isEmpty()) {
-                log.info("No CSR found for issue " + jbsIssueOpt.get().id() + " for " + describe(pr) + " with fixVersion " + versionOpt.get().raw());
+            var csr = csrIssueTrackerIssueMap.get(issue);
+            if (csr == null) {
+                log.info("No CSR found for issue " + jbsIssueOpt.get().id() + " for " + describe(pr) + " with fixVersion " + version.raw());
                 continue;
             }
-            var csr = csrOptional.get();
             existingCSR = true;
 
             log.info("Found CSR " + csr.id() + " for issue " + jbsIssueOpt.get().id() + " for " + describe(pr));

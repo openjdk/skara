@@ -99,7 +99,9 @@ class IssueWorkItem implements WorkItem {
                 .flatMap(uri -> bot.repositories().stream()
                         .flatMap(r -> r.parsePullRequestUrl(uri.toString()).stream()))
                 .filter(Issue::isOpen)
-                .map(pr -> new CheckWorkItem(bot.getPRBot(pr.repository().name()), pr.id(), errorHandler, pr.updatedAt(), true, true))
+                // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
+                // best we can do.
+                .map(pr -> new CheckWorkItem(bot.getPRBot(pr.repository().name()), pr.id(), errorHandler, csrIssue.updatedAt(), true, true))
                 .forEach(ret::add);
         return ret;
     }
