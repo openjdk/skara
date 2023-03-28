@@ -74,7 +74,7 @@ public class CSRIssueBot implements Bot {
     public List<WorkItem> getPeriodicItems() {
         var issues = poller.updatedIssues();
         var items = issues.stream()
-                .map(i -> (WorkItem) new IssueWorkItem(this, i, e -> poller.retryIssue(i)))
+                .map(i -> (WorkItem) new CSRIssueWorkItem(this, i, e -> poller.retryIssue(i)))
                 .toList();
         poller.lastBatchHandled();
         return items;

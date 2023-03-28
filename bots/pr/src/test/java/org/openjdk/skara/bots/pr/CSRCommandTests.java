@@ -39,7 +39,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
-class CSRTests {
+class CSRCommandTests {
     @Test
     void simple(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);

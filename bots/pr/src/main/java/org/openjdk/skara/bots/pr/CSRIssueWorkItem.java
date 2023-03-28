@@ -41,14 +41,14 @@ import org.openjdk.skara.jbs.Backports;
  * every pull request found in the Backport hierarchy associated with a CSR issue.
  * It should only be triggered when a modified CSR issue has been found.
  */
-class IssueWorkItem implements WorkItem {
+class CSRIssueWorkItem implements WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     private final CSRIssueBot bot;
     private final Issue csrIssue;
     private final Consumer<RuntimeException> errorHandler;
 
-    public IssueWorkItem(CSRIssueBot bot, Issue csrIssue, Consumer<RuntimeException> errorHandler) {
+    public CSRIssueWorkItem(CSRIssueBot bot, Issue csrIssue, Consumer<RuntimeException> errorHandler) {
         this.bot = bot;
         this.csrIssue = csrIssue;
         this.errorHandler = errorHandler;
@@ -65,7 +65,7 @@ class IssueWorkItem implements WorkItem {
      */
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof IssueWorkItem otherItem)) {
+        if (!(other instanceof CSRIssueWorkItem otherItem)) {
             return true;
         }
 

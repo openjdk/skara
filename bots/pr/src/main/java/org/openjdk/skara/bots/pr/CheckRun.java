@@ -141,7 +141,7 @@ class CheckRun {
 
     /**
      * Get the csr issue map, key is the main issue and value is the csr issue.
-     * Note: The type of  csr issue is the issue in module `issuetracker`.
+     * Note: The type of csr issue is 'org.openjdk.skara.issuetracker.Issue'.
      */
     private Map<Issue, org.openjdk.skara.issuetracker.Issue> getCsrIssueTrackerIssues(List<Issue> issues, JdkVersion version) {
         var issueProject = issueProject();
@@ -158,9 +158,7 @@ class CheckRun {
                 continue;
             }
             var csrOptional = Backports.findCsr(jbsIssueOpt.get(), version);
-            if (csrOptional.isPresent()) {
-                csrIssueMap.put(issue, csrOptional.get());
-            }
+            csrOptional.ifPresent(csr -> csrIssueMap.put(issue, csr));
         }
         return csrIssueMap;
     }
@@ -1301,18 +1299,18 @@ class CheckRun {
         boolean existingCSR = false;
         boolean existingApprovedCSR = false;
 
-        var project = workItem.bot.issueProject();
-        if (project == null) {
+        var issueProject = issueProject();
+        if (issueProject == null) {
             log.info("No issue project found for " + describe(pr));
             return;
         }
 
         for (var issue : issues) {
-            var jbsIssueOpt = project.issue(issue.shortId());
+            var jbsIssueOpt = issueProject.issue(issue.shortId());
             if (jbsIssueOpt.isEmpty()) {
                 // An issue could not be found, so the csr label cannot be removed
                 notExistingUnresolvedCSR = false;
-                var issueId = issue.project().isEmpty() ? (project.name() + "-" + issue.id()) : issue.id();
+                var issueId = issue.project().isEmpty() ? (issueProject.name() + "-" + issue.id()) : issue.id();
                 log.info(issueId + " for " + describe(pr) + " not found");
                 continue;
             }

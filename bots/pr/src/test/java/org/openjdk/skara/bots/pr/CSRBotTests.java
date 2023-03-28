@@ -62,7 +62,7 @@ class CSRBotTests {
             // Run issue bot once to initialize lastUpdatedAt
             TestBotRunner.runPeriodicItems(csrIssueBot);
 
-            var csr = issueProject.createIssue("This is an approved CSR", List.of(), Map.of());
+            var csr = issueProject.createIssue("This is a CSR", List.of(), Map.of());
             csr.setState(Issue.State.OPEN);
             csr.setProperty("issuetype", JSON.of("CSR"));
             issue.addLink(Link.create(csr, "csr for").build());
@@ -92,6 +92,7 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(csrIssueBot);
             // The bot should have removed the CSR label
             assertFalse(pr.store().labelNames().contains("csr"));
+            assertTrue(pr.store().body().contains("- [x] Change requires CSR request"));
         }
     }
 
