@@ -48,7 +48,7 @@ abstract class PullRequestWorkItem implements WorkItem {
      * of the bot through logging.This is the best estimated value, which is the last
      * updatedAt value when the bot finds the PR or CSR Issue. This value is propagated
      * through chains of WorkItems, as the complete chain is considered to have
-     * been triggered by the same PR update or CSR Issue update.
+     * been triggered by the same trigger.
      */
     final ZonedDateTime triggerUpdatedAt;
     PullRequest pr;
