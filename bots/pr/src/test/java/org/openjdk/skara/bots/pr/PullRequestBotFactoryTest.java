@@ -162,15 +162,12 @@ class PullRequestBotFactoryTest {
 
             var csrIssueBot1 = (CSRIssueBot) bots.get(3);
             assertEquals(2, csrIssueBot1.repositories().size());
-            assertNotNull(csrIssueBot1.getPRBot("repo2"));
             assertNotNull(csrIssueBot1.getPRBot("repo5"));
             assertNotNull(csrIssueBot1.getPRBot("repo6"));
 
             var csrIssueBot2 = (CSRIssueBot) bots.get(4);
             assertEquals(1, csrIssueBot2.repositories().size());
             assertNotNull(csrIssueBot2.getPRBot("repo2"));
-            assertNotNull(csrIssueBot2.getPRBot("repo5"));
-            assertNotNull(csrIssueBot2.getPRBot("repo6"));
         }
     }
 }
