@@ -581,8 +581,27 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public void pushAll(URI uri) throws IOException {
-        try (var p = capture("git", "push", "--mirror", uri.toString())) {
+    public void pushAll(URI uri, boolean force) throws IOException {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("git", "push", "--mirror"));
+        if (force) {
+            cmd.add("--force");
+        }
+        cmd.add(uri.toString());
+        try (var p = capture(cmd)) {
+            await(p);
+        }
+    }
+
+    @Override
+    public void pushTags(URI uri, boolean force) throws IOException {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("git", "push", "--tags"));
+        if (force) {
+            cmd.add("--force");
+        }
+        cmd.add(uri.toString());
+        try (var p = capture(cmd)) {
             await(p);
         }
     }

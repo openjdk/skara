@@ -57,7 +57,14 @@ public interface Repository extends ReadOnlyRepository {
     }
     void fetchAllRemotes(boolean includeTags) throws IOException;
     void fetchRemote(String remote) throws IOException;
-    void pushAll(URI uri) throws IOException;
+    void pushAll(URI uri, boolean force) throws IOException;
+    default void pushAll(URI uri) throws IOException {
+        pushAll(uri, false);
+    }
+    void pushTags(URI uri, boolean force) throws IOException;
+    default void pushTags(URI uri) throws IOException {
+        pushTags(uri, false);
+    }
     default void push(Hash hash, URI uri, String ref, boolean force) throws IOException {
         push(hash, uri, ref, force, false);
     }

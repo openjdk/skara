@@ -75,13 +75,11 @@ class MirrorBotFactoryTest {
 
             MirrorBot mirrorBot1 = (MirrorBot) bots.get(0);
             assertEquals("MirrorBot@from1->to1 (master)", mirrorBot1.toString());
-            assertFalse(mirrorBot1.isShouldMirrorEverything());
             assertFalse(mirrorBot1.isIncludeTags());
             assertEquals("master", mirrorBot1.getBranchPatterns().get(0).toString());
 
             MirrorBot mirrorBot2 = (MirrorBot) bots.get(1);
             assertEquals("MirrorBot@from2->to2 (master,dev,test)", mirrorBot2.toString());
-            assertFalse(mirrorBot2.isShouldMirrorEverything());
             assertFalse(mirrorBot2.isIncludeTags());
             assertEquals("master", mirrorBot2.getBranchPatterns().get(0).toString());
             assertEquals("dev", mirrorBot2.getBranchPatterns().get(1).toString());
@@ -89,7 +87,6 @@ class MirrorBotFactoryTest {
 
             MirrorBot mirrorBot3 = (MirrorBot) bots.get(2);
             assertEquals("MirrorBot@from3->to3", mirrorBot3.toString());
-            assertTrue(mirrorBot3.isShouldMirrorEverything());
             assertTrue(mirrorBot3.isIncludeTags());
             assertEquals(0, mirrorBot3.getBranchPatterns().size());
         }

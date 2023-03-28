@@ -47,21 +47,21 @@ class MirrorBot implements Bot, WorkItem {
     private final HostedRepository from;
     private final HostedRepository to;
     private final List<Pattern> branchPatterns;
-    private final boolean shouldMirrorEverything;
     private final boolean includeTags;
+    private final boolean onlyTags;
 
     MirrorBot(Path storage, HostedRepository from, HostedRepository to) {
-        this(storage, from, to, List.of(), true);
+        this(storage, from, to, List.of(), true, false);
     }
 
     MirrorBot(Path storage, HostedRepository from, HostedRepository to, List<Pattern> branchPatterns,
-              boolean includeTags) {
+              boolean includeTags, boolean onlyTags) {
         this.storage = storage;
         this.from = from;
         this.to = to;
         this.branchPatterns = branchPatterns;
-        this.shouldMirrorEverything = branchPatterns.isEmpty();
         this.includeTags = includeTags;
+        this.onlyTags = onlyTags;
     }
 
     @Override
@@ -103,16 +103,20 @@ class MirrorBot implements Bot, WorkItem {
             }
 
             log.info("Pulling " + from.name());
-            repo.fetchAll(from.authenticatedUrl(), includeTags);
-            if (shouldMirrorEverything) {
-                log.info("Pushing to " + to.name());
-                repo.pushAll(to.authenticatedUrl());
+            repo.fetchAll(from.authenticatedUrl(), includeTags || onlyTags);
+            if (onlyTags) {
+                log.info("Pushing tags to " + to.name());
+                repo.pushTags(to.authenticatedUrl(), true);
+            } else if (branchPatterns.isEmpty() && includeTags) {
+                log.info("Pushing tags and branches to " + to.name());
+                repo.pushAll(to.authenticatedUrl(), true);
             } else {
-                var branches = repo.branches();
-                for (var branch : branches) {
+                for (var branch : repo.branches()) {
                     if (branchPatterns.stream().anyMatch(p -> p.matcher(branch.name()).matches())) {
                         var hash = repo.resolve(branch);
                         if (hash.isPresent()) {
+                            log.info("Pushing branch " + branch.name() + " to " + to.name() + " " +
+                                     (includeTags ? "including" : "excluding") + " tags");
                             repo.push(hash.get(), to.authenticatedUrl(), branch.name(), true, includeTags);
                         } else {
                             log.severe("Branch " + branch + " not found in repo " + repo);
@@ -162,9 +166,5 @@ class MirrorBot implements Bot, WorkItem {
 
     public boolean isIncludeTags() {
         return includeTags;
-    }
-
-    public boolean isShouldMirrorEverything() {
-        return shouldMirrorEverything;
     }
 }
