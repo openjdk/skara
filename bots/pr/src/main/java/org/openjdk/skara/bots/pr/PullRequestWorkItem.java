@@ -45,7 +45,7 @@ abstract class PullRequestWorkItem implements WorkItem {
     /**
      * The updatedAt timestamp of the external entity that triggered this WorkItem,
      * which would be either a PR or a CSR Issue. Used for tracking reaction legacy
-     * of the bot through logging.This is the best estimated value, which is the last
+     * of the bot through logging. This is the best estimated value, which is the last
      * updatedAt value when the bot finds the PR or CSR Issue. This value is propagated
      * through chains of WorkItems, as the complete chain is considered to have
      * been triggered by the same trigger.
