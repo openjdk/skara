@@ -109,7 +109,7 @@ class CSRIssueWorkItem implements WorkItem {
 
     @Override
     public String botName() {
-        return PullRequestBotFactory.NAME;
+        return "CSRIssueBot";
     }
 
     @Override

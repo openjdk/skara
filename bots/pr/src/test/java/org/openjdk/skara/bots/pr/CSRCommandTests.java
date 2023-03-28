@@ -450,7 +450,7 @@ class CSRCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a message that there is already an approved CSR request
-            // Now CheckWorkItem is responsible for updating CSR label, so before '/csr' is handled, csr label is added to this pr
+            // Before '/csr' is handled, csr label is added to this pr
             assertLastCommentContains(pr, "an approved [CSR](https://wiki.openjdk.org/display/csr/Main) request is already required for this pull request.");
             assertLastCommentContains(pr, "<!-- csr: 'needed' -->");
             // The PR body should contain the progress about CSR request
@@ -524,7 +524,7 @@ class CSRCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a message that there is already an approved CSR request
-            // Now CheckWorkItem is responsible for updating CSR label, so before '/csr' is handled, csr label is added to this pr
+            // Before '/csr' is handled, csr label is added to this pr
             assertLastCommentContains(pr, "an approved [CSR](https://wiki.openjdk.org/display/csr/Main) request is already required for this pull request.");
             assertLastCommentContains(pr, "<!-- csr: 'needed' -->");
             // The PR body should contain the progress about CSR request

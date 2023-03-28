@@ -55,11 +55,11 @@ abstract class PullRequestWorkItem implements WorkItem {
     private List<Comment> comments;
 
     PullRequestWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler,
-            ZonedDateTime prUpdatedAt, boolean needsReadyCheck) {
+            ZonedDateTime triggerUpdatedAt, boolean needsReadyCheck) {
         this.bot = bot;
         this.prId = prId;
         this.errorHandler = errorHandler;
-        this.triggerUpdatedAt = prUpdatedAt;
+        this.triggerUpdatedAt = triggerUpdatedAt;
         this.needsReadyCheck = needsReadyCheck;
     }
 
