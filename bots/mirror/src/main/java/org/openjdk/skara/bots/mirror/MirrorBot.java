@@ -137,6 +137,13 @@ class MirrorBot implements Bot, WorkItem {
             var branchPatterns = this.branchPatterns.stream().map(Pattern::toString).collect(Collectors.toList());
             name += " (" + String.join(",", branchPatterns) + ")";
         }
+        if (onlyTags) {
+            name += " [tags only]";
+        } else if (includeTags) {
+            name += " [tags included]";
+        } else {
+            name += " [tags excluded]";
+        }
         return name;
     }
 
@@ -166,5 +173,9 @@ class MirrorBot implements Bot, WorkItem {
 
     public boolean isIncludeTags() {
         return includeTags;
+    }
+
+    public boolean isOnlyTags() {
+        return onlyTags;
     }
 }
