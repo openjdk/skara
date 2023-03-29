@@ -32,6 +32,7 @@ public class PullRequestConstants {
     public static final String CSR_NEEDED_MARKER = "<!-- csr: 'needed' -->";
     public static final String CSR_UNNEEDED_MARKER = "<!-- csr: 'unneeded' -->";
     public static final String JEP_MARKER = "<!-- jep: '%s' '%s' '%s' -->"; // <!-- jep: 'JEP-ID' 'ISSUE-ID' 'ISSUE-TITLE' -->
+    public static final String WEBREV_COMMENT_MARKER = "<!-- mlbridge webrev comment -->";
 
     // LABELS
     public static final String CSR_LABEL = "csr";

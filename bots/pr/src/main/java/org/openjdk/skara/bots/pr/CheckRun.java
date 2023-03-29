@@ -725,7 +725,18 @@ class CheckRun {
         progressBody.append(makeCollapsible("Using Skara CLI tools", reviewUsingSkaraHelp()));
         progressBody.append(makeCollapsible("Using diff file", reviewUsingDiffsHelp()));
 
+        progressBody.append("\n\n### Webrev\n");
+        progressBody.append(getWebrevCommentLink());
         return progressBody.toString();
+    }
+
+    private String getWebrevCommentLink() {
+        var webrevComment = comments.stream()
+                .filter(comment -> comment.author().username().equals("mlbridge[bot]"))
+                .filter(comment -> comment.body().contains(WEBREV_COMMENT_MARKER))
+                .findFirst();
+        return webrevComment.map(comment -> "[Link to Webrev Comment](" + pr.commentUrl(comment).toString() + ")")
+                .orElse("Webrev comment has not been available now.");
     }
 
     private static String makeCollapsible(String summary, String content) {
