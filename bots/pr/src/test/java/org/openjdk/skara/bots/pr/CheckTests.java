@@ -38,6 +38,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.openjdk.skara.bots.common.PullRequestConstants.WEBREV_COMMENT_MARKER;
 import static org.openjdk.skara.bots.pr.CheckWorkItem.FORCE_PUSH_MARKER;
 import static org.openjdk.skara.bots.pr.CheckWorkItem.FORCE_PUSH_SUGGESTION;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
