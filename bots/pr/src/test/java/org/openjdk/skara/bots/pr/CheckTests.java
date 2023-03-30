@@ -2821,6 +2821,7 @@ class CheckTests {
                     .censusRepo(censusBuilder.build())
                     .censusLink("https://census.com/{{contributor}}-profile")
                     .seedStorage(seedFolder)
+                    .mlbridgeBotName("mlbridge[bot]")
                     .build();
 
             // Populate the projects repository

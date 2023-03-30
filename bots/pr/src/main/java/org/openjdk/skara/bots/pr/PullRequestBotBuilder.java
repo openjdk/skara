@@ -57,6 +57,8 @@ public class PullRequestBotBuilder {
     private Set<Integer> excludeCommitCommentsFrom = Set.of();
     private boolean reviewCleanBackport = false;
 
+    private String mlbridgeBotName;
+
     PullRequestBotBuilder() {
     }
 
@@ -185,6 +187,12 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder mlbridgeBotName(String mlbridgeBotName) {
+        this.mlbridgeBotName = mlbridgeBotName;
+        return this;
+    }
+
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration,
                                   externalPullRequestCommands, externalCommitCommands,
@@ -192,6 +200,6 @@ public class PullRequestBotBuilder {
                                   readyComments, issueProject, ignoreStaleReviews,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
                                   confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom,
-                                  enableCsr, enableJep, reviewCleanBackport);
+                                  enableCsr, enableJep, reviewCleanBackport, mlbridgeBotName);
     }
 }

@@ -97,10 +97,10 @@ class CheckWorkItem extends PullRequestWorkItem {
                                         .filter(line -> METADATA_COMMENTS_PATTERN.matcher(line).find())
                                         .collect(Collectors.joining());
             commentString = commentString + comments.stream()
-                    .filter(comment -> comment.author().username().equals("mlbridge[bot]"))
+                    .filter(comment -> comment.author().username().equals(bot.mlbridgeBotName()))
                     .flatMap(comment -> comment.body().lines())
                     .filter(line -> line.equals(WEBREV_COMMENT_MARKER))
-                    .collect(Collectors.joining());
+                    .findFirst().orElse("");
 
             var labelString = labels.stream()
                                     .sorted()

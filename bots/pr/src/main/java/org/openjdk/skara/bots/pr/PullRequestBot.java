@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -65,6 +65,7 @@ class PullRequestBot implements Bot {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private final PullRequestPoller poller;
     private final boolean reviewCleanBackport;
+    private final String mlbridgeBotName;
 
     private Instant lastFullUpdate;
 
@@ -77,7 +78,7 @@ class PullRequestBot implements Bot {
                    Path seedStorage, HostedRepository confOverrideRepo, String confOverrideName,
                    String confOverrideRef, String censusLink, Map<String, HostedRepository> forks,
                    Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr, boolean enableJep,
-                   boolean reviewCleanBackport) {
+                   boolean reviewCleanBackport, String mlbridgeBotName) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -103,6 +104,8 @@ class PullRequestBot implements Bot {
         this.enableCsr = enableCsr;
         this.enableJep = enableJep;
         this.reviewCleanBackport = reviewCleanBackport;
+        this.mlbridgeBotName = mlbridgeBotName;
+
         autoLabelled = new HashSet<>();
         poller = new PullRequestPoller(repo, true);
 
@@ -266,6 +269,10 @@ class PullRequestBot implements Bot {
 
     public boolean reviewCleanBackport() {
         return reviewCleanBackport;
+    }
+
+    public String mlbridgeBotName() {
+        return mlbridgeBotName;
     }
 
     public Set<String> integrators() {
