@@ -82,7 +82,7 @@ public class CSRIssueBot implements Bot {
 
     @Override
     public String name() {
-        return PullRequestBotFactory.NAME;
+        return PullRequestBotFactory.NAME + "-csr";
     }
 
     List<HostedRepository> repositories() {
