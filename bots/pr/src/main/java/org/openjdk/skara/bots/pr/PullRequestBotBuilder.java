@@ -192,7 +192,6 @@ public class PullRequestBotBuilder {
         return this;
     }
 
-
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration,
                                   externalPullRequestCommands, externalCommitCommands,
