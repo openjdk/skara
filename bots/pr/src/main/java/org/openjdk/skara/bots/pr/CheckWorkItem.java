@@ -60,9 +60,18 @@ class CheckWorkItem extends PullRequestWorkItem {
             See [OpenJDK Developers’ Guide](https://openjdk.org/guide/#working-with-pull-requests) for more information.
             """;
 
-    CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime prUpdatedAt,
-            boolean needsReadyCheck) {
-        super(bot, prId, errorHandler, prUpdatedAt, needsReadyCheck);
+    private final boolean forceUpdate;
+
+    CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
+                  boolean needsReadyCheck, boolean forceUpdate) {
+        super(bot, prId, errorHandler, triggerUpdatedAt, needsReadyCheck);
+        this.forceUpdate = forceUpdate;
+    }
+
+    CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
+                  boolean needsReadyCheck) {
+        super(bot, prId, errorHandler, triggerUpdatedAt, needsReadyCheck);
+        this.forceUpdate = false;
     }
 
     private String encodeReviewer(HostUser reviewer, CensusInstance censusInstance) {
@@ -280,12 +289,12 @@ class CheckWorkItem extends PullRequestWorkItem {
         // Filter out the active reviews
         var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews, pr.targetRef());
         // Determine if the current state of the PR has already been checked
-        if (!currentCheckValid(census, comments, activeReviews, labels)) {
+        if (forceUpdate || !currentCheckValid(census, comments, activeReviews, labels)) {
             if (labels.contains("integrated")) {
                 log.info("Skipping check of integrated PR");
                 // We still need to make sure any commands get run or are able to finish a
                 // previously interrupted run
-                return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
+                return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
             }
 
             var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());
@@ -349,7 +358,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     comment.add(text);
                     pr.addComment(String.join("\n", comment));
                     pr.addLabel("backport");
-                    return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
+                    return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
                 } else {
                     var botUser = pr.repository().forge().currentUser();
                     var text = "<!-- backport error -->\n" +
@@ -389,14 +398,14 @@ class CheckWorkItem extends PullRequestWorkItem {
                 var comment = pr.addComment(text);
                 pr.addLabel("backport");
                 logLatency("Time from PR updated to backport comment posted ", comment.createdAt(), log);
-                return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
+                return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
             }
 
             // If the title needs updating, we run the check again
             if (updateTitle()) {
                 var updatedPr = bot.repo().pullRequest(prId);
                 logLatency("Time from PR updated to title corrected ", updatedPr.updatedAt(), log);
-                return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
+                return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
             }
 
             // Check force push
@@ -444,7 +453,7 @@ class CheckWorkItem extends PullRequestWorkItem {
             log.log(Level.INFO, "Time from labels added to /integrate posted " + latency, latency);
         }
 
-        return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
+        return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
     }
 
     /**

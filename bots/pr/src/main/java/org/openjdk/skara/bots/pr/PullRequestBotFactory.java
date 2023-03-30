@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.json.*;
 
 import java.util.*;
@@ -42,6 +42,9 @@ public class PullRequestBotFactory implements BotFactory {
     public List<Bot> create(BotConfiguration configuration) {
         var ret = new ArrayList<Bot>();
         var specific = configuration.specific();
+        var issueProjects = new HashMap<String, IssueProject>();
+        var repositories = new HashMap<IssueProject, List<HostedRepository>>();
+        var pullRequestBotMap = new HashMap<String, PullRequestBot>();
 
         var externalPullRequestCommands = new HashMap<String, String>();
         if (specific.contains("external") && specific.get("external").contains("pr")) {
@@ -111,8 +114,9 @@ public class PullRequestBotFactory implements BotFactory {
         for (var repo : specific.get("repositories").fields()) {
             var censusRepo = configuration.repository(repo.value().get("census").asString());
             var censusRef = configuration.repositoryRef(repo.value().get("census").asString());
+            var repository = configuration.repository(repo.name());
             var botBuilder = PullRequestBot.newBuilder()
-                                           .repo(configuration.repository(repo.name()))
+                                           .repo(repository)
                                            .censusRepo(censusRepo)
                                            .censusRef(censusRef)
                                            .blockingCheckLabels(blockers)
@@ -147,7 +151,17 @@ public class PullRequestBotFactory implements BotFactory {
                 botBuilder.twentyFourHoursLabels(labels);
             }
             if (repo.value().contains("issues")) {
-                botBuilder.issueProject(configuration.issueProject(repo.value().get("issues").asString()));
+                var issueString = repo.value().get("issues").asString();
+                botBuilder.issueProject(configuration.issueProject(issueString));
+                var issueProject = issueProjects.get(issueString);
+                if (issueProject == null) {
+                    issueProject = configuration.issueProject(issueString);
+                    issueProjects.put(issueString, issueProject);
+                }
+                if (!repositories.containsKey(issueProject)) {
+                    repositories.put(issueProject, new ArrayList<>());
+                }
+                repositories.get(issueProject).add(repository);
             }
             if (repo.value().contains("ignorestale")) {
                 botBuilder.ignoreStaleReviews(repo.value().get("ignorestale").asBoolean());
@@ -181,8 +195,13 @@ public class PullRequestBotFactory implements BotFactory {
             if (repo.value().contains("reviewCleanBackport")) {
                 botBuilder.reviewCleanBackport(repo.value().get("reviewCleanBackport").asBoolean());
             }
+            var prBot = botBuilder.build();
+            pullRequestBotMap.put(repository.name(), prBot);
+            ret.add(prBot);
+        }
 
-            ret.add(botBuilder.build());
+        for (IssueProject issueProject : issueProjects.values()) {
+            ret.add(new CSRIssueBot(issueProject, repositories.get(issueProject), pullRequestBotMap));
         }
 
         return ret;
