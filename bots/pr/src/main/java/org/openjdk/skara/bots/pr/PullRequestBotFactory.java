@@ -76,6 +76,11 @@ public class PullRequestBotFactory implements BotFactory {
             }
         }
 
+        var mlbridgeBotName = "";
+        if (specific.contains("mlbridge")) {
+            mlbridgeBotName = specific.get("mlbridge").asString();
+        }
+
         var excludeCommitCommentsFrom = new HashSet<Integer>();
         if (specific.contains("exclude-commit-comments-from")) {
             specific.get("exclude-commit-comments-from")
@@ -121,7 +126,8 @@ public class PullRequestBotFactory implements BotFactory {
                                            .externalCommitCommands(externalCommitCommands)
                                            .seedStorage(configuration.storageFolder().resolve("seeds"))
                                            .excludeCommitCommentsFrom(excludeCommitCommentsFrom)
-                                           .forks(forks);
+                                           .forks(forks)
+                                           .mlbridgeBotName(mlbridgeBotName);
 
             if (repo.value().contains("labels")) {
                 var labelGroup = repo.value().get("labels").asString();

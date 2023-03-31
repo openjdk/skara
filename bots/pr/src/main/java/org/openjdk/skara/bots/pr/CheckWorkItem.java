@@ -43,6 +43,8 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.openjdk.skara.bots.common.PullRequestConstants.WEBREV_COMMENT_MARKER;
+
 class CheckWorkItem extends PullRequestWorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     static final Pattern ISSUE_ID_PATTERN = Pattern.compile("^(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)"
@@ -103,6 +105,12 @@ class CheckWorkItem extends PullRequestWorkItem {
                                         .flatMap(comment -> comment.body().lines())
                                         .filter(line -> METADATA_COMMENTS_PATTERN.matcher(line).find())
                                         .collect(Collectors.joining());
+            commentString = commentString + comments.stream()
+                    .filter(comment -> comment.author().username().equals(bot.mlbridgeBotName()))
+                    .flatMap(comment -> comment.body().lines())
+                    .filter(line -> line.equals(WEBREV_COMMENT_MARKER))
+                    .findFirst().orElse("");
+
             var labelString = labels.stream()
                                     .sorted()
                                     .collect(Collectors.joining());

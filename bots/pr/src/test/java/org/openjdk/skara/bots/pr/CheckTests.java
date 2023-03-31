@@ -38,6 +38,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.openjdk.skara.bots.common.PullRequestConstants.WEBREV_COMMENT_MARKER;
 import static org.openjdk.skara.bots.pr.CheckWorkItem.FORCE_PUSH_MARKER;
 import static org.openjdk.skara.bots.pr.CheckWorkItem.FORCE_PUSH_SUGGESTION;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
@@ -2791,6 +2792,52 @@ class CheckTests {
             // pr body should have the integrationBlocker for whitespace and reviewer check
             assertTrue(pr.store().body().contains("Whitespace errors (failed with the updated jcheck configuration)"));
             assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with the updated jcheck configuration)"));
+        }
+    }
+
+    @Test
+    void testWebrevLinkinPRBody(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            reviewer.forge().currentUser().changeUserName("mlbridge[bot]");
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .mlbridgeBotName("mlbridge[bot]")
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(prBot);
+
+            var reviewPr = reviewer.pullRequest(pr.id());
+            reviewPr.addComment("comment1");
+
+            // This one should not trigger update
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // Add Webrev comment
+            reviewPr.addComment(WEBREV_COMMENT_MARKER + "\n" + "00:Full(1afrv2f)");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().body().contains("Link to Webrev Comment"));
         }
     }
 }

@@ -118,7 +118,8 @@ class PullRequestBotFactoryTest {
                       "forks": {
                         "repo3": "fork3",
                         "repo4": "fork4",
-                      }
+                      },
+                      "mlbridge": "mlbridge[bot]"
                     }
                     """;
             var jsonConfig = JWCC.parse(jsonString).asObject();
@@ -159,6 +160,7 @@ class PullRequestBotFactoryTest {
             assertTrue(integrators.contains("integrator1"));
             assertTrue(integrators.contains("integrator2"));
             assertTrue(pullRequestBot1.reviewCleanBackport());
+            assertEquals("mlbridge[bot]", pullRequestBot1.mlbridgeBotName());
 
             var csrIssueBot1 = (CSRIssueBot) bots.get(3);
             assertEquals(2, csrIssueBot1.repositories().size());

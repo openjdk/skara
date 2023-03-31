@@ -40,6 +40,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static org.openjdk.skara.bots.common.PatternEnum.ARCHIVAL_COMMAND_PATTERN;
+import static org.openjdk.skara.bots.common.PullRequestConstants.WEBREV_COMMENT_MARKER;
 
 class ArchiveWorkItem implements WorkItem {
     private final PullRequest pr;
@@ -148,7 +149,6 @@ class ArchiveWorkItem implements WorkItem {
         return false;
     }
 
-    private static final String webrevCommentMarker = "<!-- mlbridge webrev comment -->";
     private static final String webrevHeaderMarker = "<!-- mlbridge webrev header -->";
     private static final String webrevListMarker = "<!-- mlbridge webrev list -->";
 
@@ -158,12 +158,12 @@ class ArchiveWorkItem implements WorkItem {
         }
         var existing = comments.stream()
                                .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))
-                               .filter(comment -> comment.body().contains(webrevCommentMarker))
+                               .filter(comment -> comment.body().contains(WEBREV_COMMENT_MARKER))
                                .findAny();
         var webrevDescriptions = webrevs.stream()
                                         .map(d -> String.format("[%s](%s)", d.label(), d.uri()))
                                         .collect(Collectors.joining(" - "));
-        var comment = webrevCommentMarker + "\n";
+        var comment = WEBREV_COMMENT_MARKER + "\n";
         comment += webrevHeaderMarker + "\n";
         comment += "### Webrevs" + "\n";
         comment += webrevListMarker + "\n";
