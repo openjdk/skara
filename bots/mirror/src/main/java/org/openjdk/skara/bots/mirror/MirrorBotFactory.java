@@ -83,8 +83,8 @@ public class MirrorBotFactory implements BotFactory {
             var onlyTags = false;
             if (repo.contains("tags")) {
                 var tags = repo.get("tags").asString().toLowerCase().strip();
-                if (!Set.of("include", "only", "exclude").contains(tags)) {
-                    throw new IllegalStateException("\"tags\" field can only have values \"include\", \"only\" or \"exclude\"");
+                if (!Set.of("include", "only").contains(tags)) {
+                    throw new IllegalStateException("\"tags\" field can only have value \"include\" or \"only\"");
                 }
                 onlyTags = tags.equals("only");
                 includeTags = tags.equals("include");

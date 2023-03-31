@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.mirror;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.json.JWCC;
@@ -90,7 +91,7 @@ class MirrorBotFactoryTest {
             assertEquals("test", mirrorBot2.getBranchPatterns().get(2).toString());
 
             MirrorBot mirrorBot3 = (MirrorBot) bots.get(2);
-            assertEquals("MirrorBot@from3->to3 [tags included]", mirrorBot3.toString());
+            assertEquals("MirrorBot@from3->to3 (*) [tags included]", mirrorBot3.toString());
             assertTrue(mirrorBot3.isIncludeTags());
             assertFalse(mirrorBot3.isOnlyTags());
             assertEquals(0, mirrorBot3.getBranchPatterns().size());
@@ -179,34 +180,6 @@ class MirrorBotFactoryTest {
     }
 
     @Test
-    public void testPassesWithBranchesAndTagsExplicitlyExcluded() {
-        try (var tempFolder = new TemporaryDirectory()) {
-            String jsonString = """
-                    {
-                      "repositories": [
-                        {
-                          "from": "from1",
-                          "to": "to1",
-                          "branches": "master",
-                          "tags": "exclude"
-                        }
-                      ]
-                    }
-                    """;
-            var jsonConfig = JWCC.parse(jsonString).asObject();
-
-            var testBotFactory = TestBotFactory.newBuilder()
-                    .addHostedRepository("from1", new TestHostedRepository("from1"))
-                    .addHostedRepository("to1", new TestHostedRepository("to1"))
-                    .storagePath(tempFolder.path().resolve("storage"))
-                    .build();
-
-            var bots = testBotFactory.createBots(MirrorBotFactory.NAME, jsonConfig);
-            assertEquals(1, bots.size());
-        }
-    }
-
-    @Test
     public void testCreateWithTags() {
         try (var tempFolder = new TemporaryDirectory()) {
             String jsonString = """
@@ -225,12 +198,16 @@ class MirrorBotFactoryTest {
                         {
                           "from": "from3",
                           "to": "to3",
-                          "tags": "only"
                         },
                         {
                           "from": "from4",
                           "to": "to4",
-                          "tags": "exclude"
+                          "tags": "only"
+                        },
+                        {
+                          "from": "from5",
+                          "to": "to5",
+                          "branches": ["master", "dev"]
                         },
                       ]
                     }
@@ -242,37 +219,49 @@ class MirrorBotFactoryTest {
                     .addHostedRepository("from2", new TestHostedRepository("from2"))
                     .addHostedRepository("from3", new TestHostedRepository("from3"))
                     .addHostedRepository("from4", new TestHostedRepository("from4"))
+                    .addHostedRepository("from5", new TestHostedRepository("from5"))
                     .addHostedRepository("to1", new TestHostedRepository("to1"))
                     .addHostedRepository("to2", new TestHostedRepository("to2"))
                     .addHostedRepository("to3", new TestHostedRepository("to3"))
                     .addHostedRepository("to4", new TestHostedRepository("to4"))
+                    .addHostedRepository("to5", new TestHostedRepository("to5"))
                     .storagePath(tempFolder.path().resolve("storage"))
                     .build();
 
             var bots = testBotFactory.createBots(MirrorBotFactory.NAME, jsonConfig);
-            assertEquals(4, bots.size());
+            assertEquals(5, bots.size());
 
             MirrorBot mirrorBot1 = (MirrorBot) bots.get(0);
             assertEquals("MirrorBot@from1->to1 (master) [tags excluded]", mirrorBot1.toString());
             assertFalse(mirrorBot1.isIncludeTags());
-            assertEquals("master", mirrorBot1.getBranchPatterns().get(0).toString());
+            assertFalse(mirrorBot1.isOnlyTags());
+            assertEquals(List.of("master"),
+                         mirrorBot1.getBranchPatterns().stream().map(Pattern::toString).toList());
 
             MirrorBot mirrorBot2 = (MirrorBot) bots.get(1);
-            assertEquals("MirrorBot@from2->to2 [tags included]", mirrorBot2.toString());
+            assertEquals("MirrorBot@from2->to2 (*) [tags included]", mirrorBot2.toString());
             assertTrue(mirrorBot2.isIncludeTags());
+            assertFalse(mirrorBot2.isOnlyTags());
             assertEquals(List.of(), mirrorBot2.getBranchPatterns());
 
             MirrorBot mirrorBot3 = (MirrorBot) bots.get(2);
-            assertEquals("MirrorBot@from3->to3 [tags only]", mirrorBot3.toString());
+            assertEquals("MirrorBot@from3->to3 (*) [tags included]", mirrorBot3.toString());
             assertTrue(mirrorBot3.isIncludeTags());
-            assertTrue(mirrorBot3.isOnlyTags());
-            assertEquals(0, mirrorBot3.getBranchPatterns().size());
+            assertFalse(mirrorBot3.isOnlyTags());
+            assertEquals(List.of(), mirrorBot3.getBranchPatterns());
 
             MirrorBot mirrorBot4 = (MirrorBot) bots.get(3);
-            assertEquals("MirrorBot@from4->to4 [tags excluded]", mirrorBot4.toString());
-            assertFalse(mirrorBot4.isIncludeTags());
-            assertFalse(mirrorBot4.isOnlyTags());
-            assertEquals(0, mirrorBot3.getBranchPatterns().size());
+            assertEquals("MirrorBot@from4->to4 () [tags only]", mirrorBot4.toString());
+            assertTrue(mirrorBot4.isIncludeTags());
+            assertTrue(mirrorBot4.isOnlyTags());
+            assertEquals(List.of(), mirrorBot4.getBranchPatterns());
+
+            MirrorBot mirrorBot5 = (MirrorBot) bots.get(4);
+            assertEquals("MirrorBot@from5->to5 (master,dev) [tags excluded]", mirrorBot5.toString());
+            assertFalse(mirrorBot5.isIncludeTags());
+            assertFalse(mirrorBot5.isOnlyTags());
+            assertEquals(List.of("master", "dev"),
+                         mirrorBot5.getBranchPatterns().stream().map(Pattern::toString).toList());
         }
     }
 }

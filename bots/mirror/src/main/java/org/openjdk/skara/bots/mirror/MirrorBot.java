@@ -133,7 +133,13 @@ class MirrorBot implements Bot, WorkItem {
     @Override
     public String toString() {
         var name = "MirrorBot@" + from.name() + "->" + to.name();
-        if (!branchPatterns.isEmpty()) {
+        if (branchPatterns.isEmpty()) {
+            if (onlyTags) {
+                name += " ()";
+            } else {
+                name += " (*)";
+            }
+        } else {
             var branchPatterns = this.branchPatterns.stream().map(Pattern::toString).collect(Collectors.toList());
             name += " (" + String.join(",", branchPatterns) + ")";
         }
