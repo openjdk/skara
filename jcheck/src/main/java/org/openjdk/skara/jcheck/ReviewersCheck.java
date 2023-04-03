@@ -67,7 +67,7 @@ public class ReviewersCheck extends CommitCheck {
 
     @Override
     Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf, Census census) {
-        if (commit.isMerge() || utils.addsHgTag(commit)) {
+        if ((commit.isMerge() && !conf.checks().reviewers().shouldCheckMerge()) || utils.addsHgTag(commit)) {
             return iterator();
         }
 

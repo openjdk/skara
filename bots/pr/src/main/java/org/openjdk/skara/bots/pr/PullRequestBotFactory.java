@@ -116,7 +116,7 @@ public class PullRequestBotFactory implements BotFactory {
             var censusRef = configuration.repositoryRef(repo.value().get("census").asString());
             var repository = configuration.repository(repo.name());
             var botBuilder = PullRequestBot.newBuilder()
-                                           .repo(repository)
+                                           .repo(configuration.repository(repo.name()))
                                            .censusRepo(censusRepo)
                                            .censusRef(censusRef)
                                            .blockingCheckLabels(blockers)
@@ -195,6 +195,10 @@ public class PullRequestBotFactory implements BotFactory {
             if (repo.value().contains("reviewCleanBackport")) {
                 botBuilder.reviewCleanBackport(repo.value().get("reviewCleanBackport").asBoolean());
             }
+            if (repo.value().contains("reviewMerge")) {
+                botBuilder.reviewMerge(repo.value().get("reviewMerge").asBoolean());
+            }
+
             var prBot = botBuilder.build();
             pullRequestBotMap.put(repository.name(), prBot);
             ret.add(prBot);

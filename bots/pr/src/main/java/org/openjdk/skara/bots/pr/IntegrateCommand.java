@@ -221,8 +221,7 @@ public class IntegrateCommand implements CommandHandler {
             }
             var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(),
                     censusInstance.configuration().census().domain(), committerId, original);
-
-            if (runJcheck(pr, censusInstance, allComments, reply, localRepo, checkablePr, localHash)) {
+            if (runJcheck(pr, censusInstance, allComments, reply, localRepo, checkablePr, localHash, bot.reviewMerge())) {
                 return;
             }
 
@@ -259,9 +258,9 @@ public class IntegrateCommand implements CommandHandler {
      * Runs the checks adding to the reply message and returns true if any of them failed
      */
     static boolean runJcheck(PullRequest pr, CensusInstance censusInstance, List<Comment> allComments, PrintWriter reply,
-                      Repository localRepo, CheckablePullRequest checkablePr, Hash localHash) throws IOException {
+                      Repository localRepo, CheckablePullRequest checkablePr, Hash localHash, boolean reviewMerge) throws IOException {
         var issues = checkablePr.createVisitor();
-        var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments);
+        var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments, reviewMerge);
         checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration, checkablePr.targetHash());
         if (!issues.messages().isEmpty()) {
             reply.print("Your integration request cannot be fulfilled at this time, as ");

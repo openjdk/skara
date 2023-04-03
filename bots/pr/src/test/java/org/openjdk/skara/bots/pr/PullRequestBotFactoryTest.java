@@ -112,7 +112,8 @@ class PullRequestBotFactoryTest {
                             "integrator1",
                             "integrator2"
                           ],
-                          "reviewCleanBackport": true
+                          "reviewCleanBackport": true,
+                          "reviewMerge": true,
                         }
                       },
                       "forks": {
@@ -160,6 +161,7 @@ class PullRequestBotFactoryTest {
             assertTrue(integrators.contains("integrator1"));
             assertTrue(integrators.contains("integrator2"));
             assertTrue(pullRequestBot1.reviewCleanBackport());
+            assertTrue(pullRequestBot1.reviewMerge());
             assertEquals("mlbridge[bot]", pullRequestBot1.mlbridgeBotName());
 
             var csrIssueBot1 = (CSRIssueBot) bots.get(3);
