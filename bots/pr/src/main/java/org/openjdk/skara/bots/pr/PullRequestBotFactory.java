@@ -116,7 +116,7 @@ public class PullRequestBotFactory implements BotFactory {
             var censusRef = configuration.repositoryRef(repo.value().get("census").asString());
             var repository = configuration.repository(repo.name());
             var botBuilder = PullRequestBot.newBuilder()
-                                           .repo(configuration.repository(repo.name()))
+                                           .repo(repository)
                                            .censusRepo(censusRepo)
                                            .censusRef(censusRef)
                                            .blockingCheckLabels(blockers)

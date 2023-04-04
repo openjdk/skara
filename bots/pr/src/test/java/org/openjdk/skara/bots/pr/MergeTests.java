@@ -214,6 +214,9 @@ class MergeTests {
             assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
             assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
+            assertTrue(String.join("", headCommit.message())
+                            .matches(".*Reviewed-by: integrationreviewer2$"),
+                    String.join("", headCommit.message()));
         }
     }
 
