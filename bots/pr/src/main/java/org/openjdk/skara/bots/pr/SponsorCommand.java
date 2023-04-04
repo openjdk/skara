@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -123,7 +123,7 @@ public class SponsorCommand implements CommandHandler {
             var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(),
                     command.user().id(), original);
 
-            if (IntegrateCommand.runJcheck(pr, censusInstance, allComments, reply, localRepo, checkablePr, localHash)) {
+            if (IntegrateCommand.runJcheck(pr, censusInstance, allComments, reply, localRepo, checkablePr, localHash, bot.reviewMerge())) {
                 return;
             }
 

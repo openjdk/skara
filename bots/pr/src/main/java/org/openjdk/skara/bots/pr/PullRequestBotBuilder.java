@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -56,8 +56,8 @@ public class PullRequestBotBuilder {
     private Set<String> integrators = Set.of();
     private Set<Integer> excludeCommitCommentsFrom = Set.of();
     private boolean reviewCleanBackport = false;
-
     private String mlbridgeBotName;
+    private boolean reviewMerge = false;
 
     PullRequestBotBuilder() {
     }
@@ -192,6 +192,11 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder reviewMerge(boolean reviewMerge) {
+        this.reviewMerge = reviewMerge;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration,
                                   externalPullRequestCommands, externalCommitCommands,
@@ -199,6 +204,6 @@ public class PullRequestBotBuilder {
                                   readyComments, issueProject, ignoreStaleReviews,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
                                   confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom,
-                                  enableCsr, enableJep, reviewCleanBackport, mlbridgeBotName);
+                                  enableCsr, enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge);
     }
 }

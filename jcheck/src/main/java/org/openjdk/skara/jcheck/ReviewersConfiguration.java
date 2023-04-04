@@ -29,7 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 public class ReviewersConfiguration {
-    static final ReviewersConfiguration DEFAULT = new ReviewersConfiguration(0, 1, 0, 0, 0, List.of("duke"), false);
+    static final ReviewersConfiguration DEFAULT = new ReviewersConfiguration(0, 1, 0, 0, 0, List.of("duke"), false, false);
     public static final String BYLAWS_URL = "https://openjdk.org/bylaws";
 
     private final int lead;
@@ -40,8 +40,10 @@ public class ReviewersConfiguration {
     private final List<String> ignore;
     private final boolean shouldCheckBackports;
     private String reviewRequirements;
+    private boolean shouldCheckMerge;
 
-    ReviewersConfiguration(int lead, int reviewers, int committers, int authors, int contributors, List<String> ignore, boolean shouldCheckBackports) {
+    ReviewersConfiguration(int lead, int reviewers, int committers, int authors, int contributors, List<String> ignore,
+                           boolean shouldCheckBackports, boolean shouldCheckMerge) {
         this.lead = lead;
         this.reviewers = reviewers;
         this.committers = committers;
@@ -49,6 +51,7 @@ public class ReviewersConfiguration {
         this.contributors = contributors;
         this.ignore = ignore;
         this.shouldCheckBackports = shouldCheckBackports;
+        this.shouldCheckMerge = shouldCheckMerge;
     }
 
     public int lead() {
@@ -77,6 +80,10 @@ public class ReviewersConfiguration {
 
     public boolean shouldCheckBackports() {
         return shouldCheckBackports;
+    }
+
+    public boolean shouldCheckMerge(){
+        return shouldCheckMerge;
     }
 
     public String getReviewRequirements() {
@@ -153,7 +160,8 @@ public class ReviewersConfiguration {
 
         var ignore = s.get("ignore", DEFAULT.ignore());
         var shouldCheckBackports = s.get("backports", "ignore").equals("check");
+        var shouldCheckMerge = s.get("merge", "ignore").equals("check");
 
-        return new ReviewersConfiguration(lead, reviewers, committers, authors, contributors, ignore, shouldCheckBackports);
+        return new ReviewersConfiguration(lead, reviewers, committers, authors, contributors, ignore, shouldCheckBackports, shouldCheckMerge);
     }
 }
