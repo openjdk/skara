@@ -31,6 +31,7 @@ import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jbs.Backports;
 import org.openjdk.skara.jbs.JdkVersion;
+import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
@@ -1176,10 +1177,18 @@ class CheckRun {
                 needUpdateAdditionalProgresses = true;
             }
 
+            var confFile = localRepo.show(Path.of(".jcheck/conf"), localHash);
             JdkVersion version = null;
-            if (sourceBranchJCheckConfValid) {
-                version = BotUtils.getVersion(pr).orElse(null);
+            if (confFile.isPresent() && sourceBranchJCheckConfValid) {
+                String confFileContent = new String(confFile.get());
+                var configuration = JCheckConfiguration.parse(confFileContent.lines().toList());
+                var versionString = configuration.general().version().orElse(null);
+
+                if (versionString != null && !"".equals(versionString)) {
+                    version = JdkVersion.parse(versionString).orElse(null);
+                }
             }
+
             // issues without CSR issues and JEP issues
             var issues = issues();
             var csrIssueTrackerIssueMap = getCsrIssueTrackerIssues(issues, version);

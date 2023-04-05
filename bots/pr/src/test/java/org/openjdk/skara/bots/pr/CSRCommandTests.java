@@ -147,9 +147,8 @@ class CSRCommandTests {
             prAsReviewer.addComment("/csr");
             TestBotRunner.runPeriodicItems(prBot);
 
-            // The bot should reply with a message that the CSR is already aproved
-            assertLastCommentContains(pr, "the issue for this pull request");
-            assertLastCommentContains(pr, "already has an approved CSR request");
+            // The bot should reply with a message that the CSR is already approved
+            assertLastCommentContains(pr, "This pull request already associated with these approved CSRs:");
             assertFalse(pr.store().labelNames().contains("csr"));
             // The PR body should contain the progress about CSR request
             assertTrue(pr.store().body().contains("- [x] " + generateCSRProgressMessage(csr)));
@@ -420,7 +419,6 @@ class CSRCommandTests {
             var bot = credentials.getHostedRepository();
             var issues = credentials.getIssueProject();
             var issue = issues.createIssue("This is an issue", List.of(), Map.of());
-
             var csr = issues.createIssue("This is an approved CSR", List.of(), Map.of("resolution",
                                                                                       JSON.object().put("name", "Unresolved")));
             csr.setProperty("issuetype", JSON.of("CSR"));
@@ -461,9 +459,7 @@ class CSRCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a message which directs the user to withdraw the csr firstly.
-            assertLastCommentContains(pr, "The CSR requirement cannot be removed as there is already a CSR associated with the issue [" +
-                    issue.id() + "](" + issue.webUrl() + "). Please withdraw the CSR ["
-                    + csr.id() + "](" + csr.webUrl() + ") and then use the command `/csr unneeded` again.");
+            assertLastCommentContains(pr, "The CSR requirement cannot be removed as CSR issues already exist.");
             assertLastCommentContains(pr, "and then use the command `/csr unneeded` again.");
             assertTrue(pr.store().labelNames().contains("csr"));
             // The PR body should contain the progress about CSR request
@@ -535,9 +531,7 @@ class CSRCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a message which directs the user to withdraw the csr firstly.
-            assertLastCommentContains(pr, "The CSR requirement cannot be removed as there is already a CSR associated with the issue [" +
-                    issue.id() + "](" + issue.webUrl() + "). Please withdraw the CSR ["
-                    + csr.id() + "](" + csr.webUrl() + ") and then use the command `/csr unneeded` again.");
+            assertLastCommentContains(pr, "The CSR requirement cannot be removed as CSR issues already exist.");
             assertLastCommentContains(pr, "and then use the command `/csr unneeded` again.");
             assertTrue(pr.store().labelNames().contains("csr"));
             // The PR body should contain the progress about CSR request
@@ -761,7 +755,7 @@ class CSRCommandTests {
             assertLastCommentContains(pr, "has indicated that a " +
                     "[compatibility and specification](https://wiki.openjdk.org/display/csr/Main) (CSR) request " +
                     "is needed for this pull request.");
-            assertLastCommentContains(pr, "please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request for issue");
+            assertLastCommentContains(pr, "please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request for any issue this pr solves");
             assertLastCommentContains(pr, "with the correct fix version");
             assertLastCommentContains(pr, "This pull request cannot be integrated until the CSR request is approved.");
             // Use `/csr unneeded` to revert the change.
@@ -790,7 +784,7 @@ class CSRCommandTests {
             assertLastCommentContains(pr, "has indicated that a " +
                     "[compatibility and specification](https://wiki.openjdk.org/display/csr/Main) (CSR) request " +
                     "is needed for this pull request.");
-            assertLastCommentContains(pr, "please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request for issue");
+            assertLastCommentContains(pr, "please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request for any issue this pr solves");
             assertLastCommentContains(pr, "with the correct fix version");
             assertLastCommentContains(pr, "This pull request cannot be integrated until the CSR request is approved.");
             // Use `/csr unneeded` to revert the change.
@@ -819,7 +813,7 @@ class CSRCommandTests {
             assertLastCommentContains(pr, "has indicated that a " +
                     "[compatibility and specification](https://wiki.openjdk.org/display/csr/Main) (CSR) request " +
                     "is needed for this pull request.");
-            assertLastCommentContains(pr, "please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request for issue");
+            assertLastCommentContains(pr, "please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request for any issue this pr solves");
             assertLastCommentContains(pr, "with the correct fix version");
             assertLastCommentContains(pr, "This pull request cannot be integrated until the CSR request is approved.");
             // Use `/csr unneeded` to revert the change.
@@ -837,16 +831,13 @@ class CSRCommandTests {
             TestBotRunner.runPeriodicItems(bot);
             assertTrue(pr.store().body().contains("- [x] " + generateCSRProgressMessage(csr)));
             assertFalse(pr.store().labelNames().contains("csr"));
-            assertLastCommentContains(pr, "the issue for this pull request");
-            assertLastCommentContains(pr, "already has an approved CSR request");
+            assertLastCommentContains(pr, "This pull request already associated with these approved CSRs:");
             // Use `/csr unneeded`.
             pr.addComment("/csr unneeded");
             TestBotRunner.runPeriodicItems(bot);
             assertTrue(pr.store().body().contains("- [x] " + generateCSRProgressMessage(csr)));
             assertFalse(pr.store().labelNames().contains("csr"));
-            assertLastCommentContains(pr, "The CSR requirement cannot be removed as there is already a CSR associated with the issue [" +
-                    issue.id() + "](" + issue.webUrl() + "). Please withdraw the CSR ["
-                    + csr.id() + "](" + csr.webUrl() + ")");
+            assertLastCommentContains(pr, "The CSR requirement cannot be removed as CSR issues already exist.");
             assertLastCommentContains(pr, "and then use the command `/csr unneeded` again");
 
             // Revert the fix versions of the primary CSR to 18.
@@ -865,7 +856,7 @@ class CSRCommandTests {
             assertLastCommentContains(pr, "has indicated that a " +
                     "[compatibility and specification](https://wiki.openjdk.org/display/csr/Main) (CSR) request " +
                     "is needed for this pull request.");
-            assertLastCommentContains(pr, "please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request for issue");
+            assertLastCommentContains(pr, "please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request for any issue this pr solves");
             assertLastCommentContains(pr, "with the correct fix version");
             assertLastCommentContains(pr, "This pull request cannot be integrated until the CSR request is approved.");
             // Use `/csr unneeded` to revert the change.
@@ -887,17 +878,13 @@ class CSRCommandTests {
             TestBotRunner.runPeriodicItems(bot);
             assertTrue(pr.store().body().contains("- [ ] " + generateCSRProgressMessage(backportCsr)));
             assertTrue(pr.store().labelNames().contains("csr"));
-            assertLastCommentContains(pr, "this pull request will not be integrated until the [CSR]");
-            assertLastCommentContains(pr, "for issue ");
-            assertLastCommentContains(pr, "has been approved.");
+            assertLastCommentContains(pr, "an approved [CSR](https://wiki.openjdk.org/display/csr/Main) request is already required for this pull request.");
             // Use `/csr unneeded` to revert the change.
             pr.addComment("/csr unneeded");
             TestBotRunner.runPeriodicItems(bot);
             assertTrue(pr.store().body().contains("- [ ] " + generateCSRProgressMessage(backportCsr)));
             assertTrue(pr.store().labelNames().contains("csr"));
-            assertLastCommentContains(pr, "The CSR requirement cannot be removed as there is already a CSR associated with the issue [" +
-                            issue.id() + "](" + issue.webUrl() + "). Please withdraw the CSR ["
-                            + backportCsr.id() + "](" + backportCsr.webUrl() + ")");
+            assertLastCommentContains(pr, "The CSR requirement cannot be removed as CSR issues already exist.");
             assertLastCommentContains(pr, "and then use the command `/csr unneeded` again.");
 
             // Now we have a primary issue, a primary CSR, a backport issue, a backport CSR.
@@ -938,7 +925,7 @@ class CSRCommandTests {
             assertLastCommentContains(pr, "has indicated that a " +
                     "[compatibility and specification](https://wiki.openjdk.org/display/csr/Main) (CSR) request " +
                     "is needed for this pull request.");
-            assertLastCommentContains(pr, "please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request for issue");
+            assertLastCommentContains(pr, "please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request for any issue this pr solves");
             assertLastCommentContains(pr, "with the correct fix version");
             assertLastCommentContains(pr, "This pull request cannot be integrated until the CSR request is approved.");
         }
@@ -1012,9 +999,7 @@ class CSRCommandTests {
             prAsReviewer.addComment("/csr unneeded");
             TestBotRunner.runPeriodicItems(prBot);
             assertTrue(pr.store().labelNames().contains("csr"));
-            assertLastCommentContains(pr, "The CSR requirement cannot be removed as there is already a CSR associated with the issue [" +
-                    issue2.id() + "](" + issue2.webUrl() + "). Please withdraw the CSR ["
-                    + csr2.id() + "](" + csr2.webUrl() + ")");
+            assertLastCommentContains(pr, "The CSR requirement cannot be removed as CSR issues already exist.");
 
             // Withdraw the csr linked with issue2
             csr2.setState(Issue.State.CLOSED);

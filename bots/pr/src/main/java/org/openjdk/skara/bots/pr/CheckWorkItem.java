@@ -110,7 +110,10 @@ class CheckWorkItem extends PullRequestWorkItem {
                     .flatMap(comment -> comment.body().lines())
                     .filter(line -> line.equals(WEBREV_COMMENT_MARKER))
                     .findFirst().orElse("");
-
+            commentString = commentString + comments.stream()
+                    .flatMap(comment -> comment.body().lines())
+                    .filter(line -> line.startsWith("/csr"))
+                    .collect(Collectors.joining());
             var labelString = labels.stream()
                                     .sorted()
                                     .collect(Collectors.joining());
