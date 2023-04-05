@@ -110,6 +110,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     .flatMap(comment -> comment.body().lines())
                     .filter(line -> line.equals(WEBREV_COMMENT_MARKER))
                     .findFirst().orElse("");
+
             var labelString = labels.stream()
                                     .sorted()
                                     .collect(Collectors.joining());

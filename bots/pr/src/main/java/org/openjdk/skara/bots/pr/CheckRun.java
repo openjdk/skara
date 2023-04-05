@@ -1187,7 +1187,6 @@ class CheckRun {
                     version = JdkVersion.parse(versionString).orElse(null);
                 }
             }
-
             // issues without CSR issues and JEP issues
             var issues = issues();
             var csrIssueTrackerIssueMap = getCsrIssueTrackerIssues(issues, version);
