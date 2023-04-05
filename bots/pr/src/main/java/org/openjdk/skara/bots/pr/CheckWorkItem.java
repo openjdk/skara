@@ -290,6 +290,20 @@ class CheckWorkItem extends PullRequestWorkItem {
         var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews, pr.targetRef());
         // Determine if the current state of the PR has already been checked
         if (forceUpdate || !currentCheckValid(census, comments, activeReviews, labels)) {
+            var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());
+            var backportIssueMatcher = BACKPORT_ISSUE_TITLE_PATTERN.matcher(pr.title());
+
+            var backportDisabledText = "<!-- backport error -->\n" +
+                    ":warning: @" + pr.author().username() + " backport PR is not allowed in this repository. Please close this pr." +
+                    "If it was unintentional, please modify the title of the PR.";
+
+            if (!bot.enableBackport() && (backportHashMatcher.matches() || backportIssueMatcher.matches())) {
+                addErrorComment(backportDisabledText, comments);
+                return List.of();
+            }
+
+            removeErrorComment(backportDisabledText, comments);
+
             if (labels.contains("integrated")) {
                 log.info("Skipping check of integrated PR");
                 // We still need to make sure any commands get run or are able to finish a
@@ -297,7 +311,6 @@ class CheckWorkItem extends PullRequestWorkItem {
                 return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
             }
 
-            var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());
             if (backportHashMatcher.matches()) {
                 var hash = new Hash(backportHashMatcher.group(1));
                 try {
@@ -370,7 +383,6 @@ class CheckWorkItem extends PullRequestWorkItem {
             }
 
             // Check for a title of the form Backport <issueid>
-            var backportIssueMatcher = BACKPORT_ISSUE_TITLE_PATTERN.matcher(pr.title());
             if (backportIssueMatcher.matches()) {
                 var prefix = getMatchGroup(backportIssueMatcher, "prefix");
                 var id = getMatchGroup(backportIssueMatcher, "id");
@@ -468,6 +480,15 @@ class CheckWorkItem extends PullRequestWorkItem {
             var comment = pr.addComment(text);
             logLatency("Time from PR updated to check error posted ", comment.createdAt(), log);
         }
+    }
+
+    private void removeErrorComment(String text, List<Comment> comments) {
+        var botUser = pr.repository().forge().currentUser();
+        var oldComment = comments.stream()
+                .filter(c -> c.author().equals(botUser))
+                .filter(c -> c.body().equals(text))
+                .findFirst();
+        oldComment.ifPresent(comment -> pr.removeComment(comment));
     }
 
     // Lazily initiated

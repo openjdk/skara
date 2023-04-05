@@ -185,6 +185,9 @@ public class PullRequestBotFactory implements BotFactory {
             if (repo.value().contains("jep")) {
                 botBuilder.enableJep(repo.value().get("jep").asBoolean());
             }
+            if(repo.value().contains("backport")){
+                botBuilder.enableBackport(repo.value().get("backport").asBoolean());
+            }
             if (repo.value().contains("integrators")) {
                 var integrators = repo.value().get("integrators")
                         .stream()
