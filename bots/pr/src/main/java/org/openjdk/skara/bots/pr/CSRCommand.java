@@ -56,8 +56,8 @@ public class CSRCommand implements CommandHandler {
     }
 
     private static void linkReply(PullRequest pr, PrintWriter writer) {
-        writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request for any issue this pr solves" +
-                " with the correct fix version. This pull request cannot be integrated until the CSR request is approved.");
+        writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request, with the correct fix version, for at least one of the issues associated with this pull request." +
+                " This pull request cannot be integrated until all the CSR request are approved.");
     }
 
     private static void csrUnneededReply(PullRequest pr, PrintWriter writer) {
