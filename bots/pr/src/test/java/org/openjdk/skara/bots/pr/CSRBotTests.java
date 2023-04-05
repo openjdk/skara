@@ -438,6 +438,8 @@ class CSRBotTests {
             // remove the csr label with /csr command
             var reviewerPr = reviewer.pullRequest(pr.id());
             reviewerPr.addComment("/csr unneeded");
+            // Run csrIssueBot to update pr body
+            TestBotRunner.runPeriodicItems(csrIssueBot);
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().labelNames().contains("csr"));
 
@@ -476,6 +478,8 @@ class CSRBotTests {
             // Set the backport CSR to have multiple fix versions, excluded 11.
             backportCsr.setProperty("fixVersions", JSON.array().add("17").add("8"));
             reviewerPr.addComment("/csr unneeded");
+            // Run csrIssueBot to update the pr body
+            TestBotRunner.runPeriodicItems(csrIssueBot);
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().labelNames().contains("csr"));
 

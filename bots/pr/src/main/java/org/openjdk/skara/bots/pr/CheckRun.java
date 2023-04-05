@@ -1177,11 +1177,10 @@ class CheckRun {
                 needUpdateAdditionalProgresses = true;
             }
 
-            var confFile = localRepo.show(Path.of(".jcheck/conf"), localHash);
+            var confFile = localRepo.lines(Path.of(".jcheck/conf"), localHash);
             JdkVersion version = null;
             if (confFile.isPresent() && sourceBranchJCheckConfValid) {
-                String confFileContent = new String(confFile.get());
-                var configuration = JCheckConfiguration.parse(confFileContent.lines().toList());
+                var configuration = JCheckConfiguration.parse(confFile.get());
                 var versionString = configuration.general().version().orElse(null);
 
                 if (versionString != null && !"".equals(versionString)) {

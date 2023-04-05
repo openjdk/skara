@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.*;
 
@@ -55,9 +56,14 @@ public class CSRCommand implements CommandHandler {
                       "an issue in JBS, please update the title of this pull request to just the issue ID.");
     }
 
-    private static void linkReply(PullRequest pr, PrintWriter writer) {
+    private static void multipleIssueLinkReply(PullRequest pr, PrintWriter writer) {
         writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request, with the correct fix version, for at least one of the issues associated with this pull request." +
                 " This pull request cannot be integrated until all the CSR request are approved.");
+    }
+
+    private static void singleIssueLinkReply(PullRequest pr, PrintWriter writer) {
+        writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request, with the correct fix version, for the issue associated with this pull request." +
+                " This pull request cannot be integrated until the CSR request is approved.");
     }
 
     private static void csrUnneededReply(PullRequest pr, PrintWriter writer) {
@@ -101,12 +107,11 @@ public class CSRCommand implements CommandHandler {
                     .filter(Matcher::matches)
                     .toList();
 
-            var csrLinks = new StringBuilder();
-            for (Matcher csr : csrs) {
-                csrLinks.append("[").append(csr.group(1)).append("](").append(csr.group(2)).append(")").append(" ");
-            }
-
             if (!csrs.isEmpty()) {
+                var csrLinks = new StringBuilder();
+                for (Matcher csr : csrs) {
+                    csrLinks.append("[").append(csr.group(1)).append("](").append(csr.group(2)).append(")").append(" ");
+                }
                 reply.println("The CSR requirement cannot be removed as CSR issues already exist. Please withdraw " + csrLinks +
                         "and then use the command `/csr unneeded` again.");
                 reply.println(CSR_NEEDED_MARKER);
@@ -149,16 +154,21 @@ public class CSRCommand implements CommandHandler {
                 .filter(Matcher::matches)
                 .toList();
 
-        var csrLinks = new StringBuilder();
-        for (Matcher resolvedCSR : resolvedCSRs) {
-            csrLinks.append("[").append(resolvedCSR.group(1)).append("](").append(resolvedCSR.group(2)).append(")").append(" ");
-        }
         if (!resolvedCSRs.isEmpty()) {
+            var csrLinks = new StringBuilder();
+            for (Matcher resolvedCSR : resolvedCSRs) {
+                csrLinks.append("[").append(resolvedCSR.group(1)).append("](").append(resolvedCSR.group(2)).append(")").append(" ");
+            }
             reply.println("This pull request already associated with these approved CSRs: " + csrLinks);
             reply.println(CSR_NEEDED_MARKER);
         } else {
             csrReply(reply);
-            linkReply(pr, reply);
+            var issues = SolvesTracker.currentSolved(pr.repository().forge().currentUser(), pr.comments());
+            if (issues.isEmpty()) {
+                singleIssueLinkReply(pr, reply);
+            } else {
+                multipleIssueLinkReply(pr, reply);
+            }
             pr.addLabel(CSR_LABEL);
         }
     }
