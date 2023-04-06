@@ -22,21 +22,22 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.bots.common.BotUtils;
 import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.jbs.Backports;
-import org.openjdk.skara.json.JSON;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
 public class CSRCommand implements CommandHandler {
+
+    private static final Pattern CSR_PROGRESS_PATTERN = Pattern.compile("- \\[[ x]?\\] Change requires CSR request \\[(.*?)\\]\\((.*?)\\) to be approved");
+    private static final Pattern RESOLVED_CSR_PROGRESS_PATTERN = Pattern.compile("- \\[x\\] Change requires CSR request \\[(.*?)\\]\\((.*?)\\) to be approved");
 
     private static void showHelp(PrintWriter writer) {
         writer.println("usage: `/csr [needed|unneeded]`, requires that the issue the pull request refers to links to an approved [CSR](https://wiki.openjdk.org/display/csr/Main) request.");
@@ -52,10 +53,16 @@ public class CSRCommand implements CommandHandler {
     private static void jbsReply(PullRequest pr, PrintWriter writer) {
         writer.println("@" + pr.author().username() + " this pull request must refer to an issue in " +
                       "[JBS](https://bugs.openjdk.org) to be able to link it to a [CSR](https://wiki.openjdk.org/display/csr/Main) request. To refer this pull request to " +
-                      "an issue in JBS, please use the `/issue` command in a comment in this pull request.");
+                      "an issue in JBS, please update the title of this pull request to just the issue ID.");
     }
 
-    private static void linkReply(PullRequest pr, Issue issue, PrintWriter writer) {
+    private static void multipleIssueReply(PullRequest pr, PrintWriter writer) {
+        writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request, " +
+                "with the correct fix version, for at least one of the issues associated with this pull request." +
+                " This pull request cannot be integrated until all the CSR request are approved.");
+    }
+
+    private static void singleIssueLinkReply(PullRequest pr, Issue issue, PrintWriter writer) {
         writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request for issue " +
                 "[" + issue.id() + "](" + issue.webUrl() + ") with the correct fix version. " +
                 "This pull request cannot be integrated until the CSR request is approved.");
@@ -96,50 +103,19 @@ public class CSRCommand implements CommandHandler {
                 return;
             }
 
-            var issueProject = bot.issueProject();
-            var mainIssue = org.openjdk.skara.vcs.openjdk.Issue.fromStringRelaxed(pr.title());
-            if (issueProject == null || mainIssue.isEmpty()) {
-                csrUnneededReply(pr, reply);
-                return;
-            }
+            var csrs = pr.body()
+                    .lines()
+                    .map(CSR_PROGRESS_PATTERN::matcher)
+                    .filter(Matcher::matches)
+                    .toList();
 
-            // All the issues this pr solves
-            var issues = new ArrayList<org.openjdk.skara.vcs.openjdk.Issue>();
-            issues.add(mainIssue.get());
-            issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), pr.comments()));
-
-            var containsOpenCsrIssue = false;
-            for (var issue : issues) {
-                var jbsIssueOpt = issueProject.issue(issue.shortId());
-                if (jbsIssueOpt.isEmpty()) {
-                    continue;
+            if (!csrs.isEmpty()) {
+                var csrLinks = new StringBuilder();
+                for (Matcher csr : csrs) {
+                    csrLinks.append("[").append(csr.group(1)).append("](").append(csr.group(2)).append(")").append(" ");
                 }
-                var jbsIssue = jbsIssueOpt.get();
-
-                var versionOpt = BotUtils.getVersion(pr);
-                if (versionOpt.isEmpty()) {
-                    break;
-                }
-
-                var csrOptional = Backports.findCsr(jbsIssue, versionOpt.get());
-                if (csrOptional.isEmpty()) {
-                    continue;
-                }
-                var csrIssue = csrOptional.get();
-
-                var resolution = csrIssue.properties().get("resolution");
-                if (resolution == null || resolution.isNull()
-                        || resolution.get("name") == null || resolution.get("name").isNull()
-                        || csrIssue.state() != Issue.State.CLOSED
-                        || !resolution.get("name").asString().equals("Withdrawn")) {
-                    // The issue has a non-withdrawn csr issue, the bot should direct the user to withdraw the csr firstly.
-                    reply.println("The CSR requirement cannot be removed as there is already a CSR associated with the issue [" +
-                            jbsIssue.id() + "](" + jbsIssue.webUrl() + "). Please withdraw the CSR [" + csrIssue.id() +
-                            "](" + csrIssue.webUrl() + ") and then use the command `/csr unneeded` again.");
-                    containsOpenCsrIssue = true;
-                }
-            }
-            if (containsOpenCsrIssue) {
+                reply.println("The CSR requirement cannot be removed as CSR issues already exist. Please withdraw " + csrLinks +
+                        "and then use the command `/csr unneeded` again.");
                 reply.println(CSR_NEEDED_MARKER);
             } else {
                 // All the issues associated with this pr either don't have csr issue or the csr issue has already been withdrawn,
@@ -174,69 +150,27 @@ public class CSRCommand implements CommandHandler {
             return;
         }
 
-        // All the issues this pr solves
-        var issues = new ArrayList<org.openjdk.skara.vcs.openjdk.Issue>();
-        issues.add(mainIssue.get());
-        issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), pr.comments()));
+        var resolvedCSRs = pr.body()
+                .lines()
+                .map(RESOLVED_CSR_PROGRESS_PATTERN::matcher)
+                .filter(Matcher::matches)
+                .toList();
 
-        var approvedCsrIssues = 0;
-        var openCsrIssues = 0;
-        var withdrawnCsrIssues = 0;
-        var csrIssues = 0;
-
-        for (var issue : issues) {
-            var jbsIssueOpt = issueProject.issue(issue.shortId());
-            if (jbsIssueOpt.isEmpty()) {
-                continue;
+        if (!resolvedCSRs.isEmpty()) {
+            var csrLinks = new StringBuilder();
+            for (Matcher resolvedCSR : resolvedCSRs) {
+                csrLinks.append("[").append(resolvedCSR.group(1)).append("](").append(resolvedCSR.group(2)).append(")").append(" ");
             }
-            var jbsIssue = jbsIssueOpt.get();
-            var versionOpt = BotUtils.getVersion(pr);
-            if (versionOpt.isEmpty()) {
-                break;
-            }
-
-            var csrOptional = Backports.findCsr(jbsIssueOpt.get(), versionOpt.get());
-            if (csrOptional.isEmpty()) {
-                continue;
-            }
-            // Found a csr issue for one of the issues associated with this pr
-            var csr = csrOptional.get();
-            csrIssues++;
-
-            var resolutionName = "Unresolved";
-            var resolution = csr.properties().getOrDefault("resolution", JSON.of());
-            if (resolution.isObject() && resolution.asObject().contains("name")) {
-                var nameField = resolution.get("name");
-                if (nameField.isString()) {
-                    resolutionName = resolution.get("name").asString();
-                }
-            }
-            if (csr.state() == Issue.State.CLOSED && resolutionName.equals("Approved")) {
-                reply.println("the issue for this pull request, [" + jbsIssue.id() + "](" + jbsIssue.webUrl() + "), already has " +
-                        "an approved CSR request: [" + csr.id() + "](" + csr.webUrl() + ")");
-                approvedCsrIssues++;
-            } else if (csr.state() == Issue.State.CLOSED && resolutionName.equals("Withdrawn")) {
-                withdrawnCsrIssues++;
-            } else {
-                reply.println("this pull request will not be integrated until the [CSR](https://wiki.openjdk.org/display/csr/Main) " +
-                        "request " + "[" + csr.id() + "](" + csr.webUrl() + ")" + " for issue " +
-                        "[" + jbsIssue.id() + "](" + jbsIssue.webUrl() + ") has been approved.");
-                openCsrIssues++;
-            }
-        }
-        // All the issues associated with pr either don't have csr issue or the csr issue has already been withdrawn
-        if (csrIssues == withdrawnCsrIssues) {
+            reply.println("This pull request already associated with these approved CSRs: " + csrLinks);
+            reply.println(CSR_NEEDED_MARKER);
+        } else {
             csrReply(reply);
-            if (issues.size() == 1) {
-                linkReply(pr, jbsMainIssueOpt.get(), reply);
+            var issues = SolvesTracker.currentSolved(pr.repository().forge().currentUser(), pr.comments());
+            if (issues.isEmpty()) {
+                singleIssueLinkReply(pr, jbsMainIssueOpt.get(), reply);
+            } else {
+                multipleIssueReply(pr, reply);
             }
-            pr.addLabel(CSR_LABEL);
-        } else if (csrIssues == approvedCsrIssues) {
-            // All the csr issues are approved
-            reply.println(CSR_NEEDED_MARKER);
-        } else if (openCsrIssues > 0) {
-            // At least one csr issue open
-            reply.println(CSR_NEEDED_MARKER);
             pr.addLabel(CSR_LABEL);
         }
     }
