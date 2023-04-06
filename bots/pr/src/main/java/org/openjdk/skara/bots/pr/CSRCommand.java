@@ -56,7 +56,7 @@ public class CSRCommand implements CommandHandler {
                       "an issue in JBS, please update the title of this pull request to just the issue ID.");
     }
 
-    private static void multipleIssueLinkReply(PullRequest pr, PrintWriter writer) {
+    private static void multipleIssueReply(PullRequest pr, PrintWriter writer) {
         writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request, with the correct fix version, for at least one of the issues associated with this pull request." +
                 " This pull request cannot be integrated until all the CSR request are approved.");
     }
