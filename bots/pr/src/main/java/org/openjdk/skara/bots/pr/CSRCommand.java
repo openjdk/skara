@@ -57,13 +57,15 @@ public class CSRCommand implements CommandHandler {
     }
 
     private static void multipleIssueReply(PullRequest pr, PrintWriter writer) {
-        writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request, with the correct fix version, for at least one of the issues associated with this pull request." +
+        writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request, " +
+                "with the correct fix version, for at least one of the issues associated with this pull request." +
                 " This pull request cannot be integrated until all the CSR request are approved.");
     }
 
-    private static void singleIssueLinkReply(PullRequest pr, PrintWriter writer) {
-        writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request, with the correct fix version, for the issue associated with this pull request." +
-                " This pull request cannot be integrated until the CSR request is approved.");
+    private static void singleIssueLinkReply(PullRequest pr, Issue issue, PrintWriter writer) {
+        writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request for issue " +
+                "[" + issue.id() + "](" + issue.webUrl() + ") with the correct fix version. " +
+                "This pull request cannot be integrated until the CSR request is approved.");
     }
 
     private static void csrUnneededReply(PullRequest pr, PrintWriter writer) {
@@ -165,9 +167,9 @@ public class CSRCommand implements CommandHandler {
             csrReply(reply);
             var issues = SolvesTracker.currentSolved(pr.repository().forge().currentUser(), pr.comments());
             if (issues.isEmpty()) {
-                singleIssueLinkReply(pr, reply);
+                singleIssueLinkReply(pr, jbsMainIssueOpt.get(), reply);
             } else {
-                multipleIssueLinkReply(pr, reply);
+                multipleIssueReply(pr, reply);
             }
             pr.addLabel(CSR_LABEL);
         }
