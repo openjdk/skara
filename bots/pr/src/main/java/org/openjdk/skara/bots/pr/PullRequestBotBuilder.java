@@ -58,6 +58,8 @@ public class PullRequestBotBuilder {
     private boolean reviewCleanBackport = false;
     private String mlbridgeBotName;
     private boolean reviewMerge = false;
+    private boolean processPR = true;
+    private boolean processCommit = true;
 
     PullRequestBotBuilder() {
     }
@@ -197,6 +199,16 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder processPR(boolean processPR) {
+        this.processPR = processPR;
+        return this;
+    }
+
+    public PullRequestBotBuilder processCommit(boolean processCommit) {
+        this.processCommit = processCommit;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration,
                                   externalPullRequestCommands, externalCommitCommands,
@@ -204,6 +216,7 @@ public class PullRequestBotBuilder {
                                   readyComments, issueProject, ignoreStaleReviews,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
                                   confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom,
-                                  enableCsr, enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge);
+                                  enableCsr, enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge,
+                                  processPR, processCommit);
     }
 }
