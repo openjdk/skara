@@ -95,7 +95,8 @@ class PullRequestBotFactoryTest {
                             "integrator1",
                             "integrator2"
                           ],
-                          "reviewCleanBackport": true
+                          "reviewCleanBackport": true,
+                          "processCommit": false
                         },
                         "repo6": {
                           "census": "census:master",
@@ -114,6 +115,7 @@ class PullRequestBotFactoryTest {
                           ],
                           "reviewCleanBackport": true,
                           "reviewMerge": true,
+                          "processPR": false
                         }
                       },
                       "forks": {

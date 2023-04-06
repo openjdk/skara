@@ -198,6 +198,12 @@ public class PullRequestBotFactory implements BotFactory {
             if (repo.value().contains("reviewMerge")) {
                 botBuilder.reviewMerge(repo.value().get("reviewMerge").asBoolean());
             }
+            if (repo.value().contains("processPR")) {
+                botBuilder.processPR(repo.value().get("processPR").asBoolean());
+            }
+            if (repo.value().contains("processCommit")) {
+                botBuilder.processCommit(repo.value().get("processCommit").asBoolean());
+            }
 
             var prBot = botBuilder.build();
             pullRequestBotMap.put(repository.name(), prBot);
