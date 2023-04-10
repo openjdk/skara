@@ -2840,4 +2840,52 @@ class CheckTests {
             assertTrue(pr.store().body().contains("Link to Webrev Comment"));
         }
     }
+
+    @Test
+    void mergeDisabled(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .enableMerge(false)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge dev");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(prBot);
+
+            var comment = pr.store().comments().get(pr.store().comments().size() - 1);
+            assertEquals(1, pr.store().comments().size());
+            assertTrue(comment.body().contains("merge PR is not allowed in this repository"));
+
+            pr.setTitle("Merge test:dev");
+            TestBotRunner.runPeriodicItems(prBot);
+            comment = pr.store().comments().get(pr.store().comments().size() - 1);
+            assertEquals(1, pr.store().comments().size());
+            assertTrue(comment.body().contains("merge PR is not allowed in this repository"));
+
+            pr.setTitle("SKARA-123");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertEquals(0, pr.store().comments().size());
+        }
+    }
 }

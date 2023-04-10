@@ -68,6 +68,7 @@ class PullRequestBotFactoryTest {
                           "censuslink": "https://test.test.com",
                           "issues": "TEST",
                           "csr": true,
+                          "merge": false,
                           "two-reviewers": [
                             "rfr"
                           ],
@@ -85,6 +86,7 @@ class PullRequestBotFactoryTest {
                           "censuslink": "https://test.test.com",
                           "issues": "TEST2",
                           "csr": true,
+                          "merge": true,
                           "two-reviewers": [
                             "rfr"
                           ],
@@ -165,6 +167,15 @@ class PullRequestBotFactoryTest {
             assertTrue(pullRequestBot1.reviewCleanBackport());
             assertTrue(pullRequestBot1.reviewMerge());
             assertEquals("mlbridge[bot]", pullRequestBot1.mlbridgeBotName());
+            assertTrue(pullRequestBot1.enableMerge());
+
+            var pullRequestBot2 = (PullRequestBot) bots.get(1);
+            assertEquals("PullRequestBot@repo5", pullRequestBot2.toString());
+            assertTrue(pullRequestBot2.enableMerge());
+
+            var pullRequestBot3 = (PullRequestBot) bots.get(2);
+            assertEquals("PullRequestBot@repo2", pullRequestBot3.toString());
+            assertFalse(pullRequestBot3.enableMerge());
 
             var csrIssueBot1 = (CSRIssueBot) bots.get(3);
             assertEquals(2, csrIssueBot1.repositories().size());

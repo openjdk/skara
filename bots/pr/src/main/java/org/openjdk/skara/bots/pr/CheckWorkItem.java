@@ -251,6 +251,17 @@ class CheckWorkItem extends PullRequestWorkItem {
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
         CensusInstance census;
         var comments = prComments();
+
+        // If merge pr is not allowed, reply warning to the user and return
+        var mergeDisabledText = "<!-- merge error -->\n" +
+                ":warning: @" + pr.author().username() + " merge PR is not allowed in this repository, please close this pr." +
+                " If it was unintentional, please modify the title of this PR.";
+        if (!bot.enableMerge() && PullRequestUtils.isMerge(pr)) {
+            addErrorComment(mergeDisabledText, comments);
+            return List.of();
+        }
+        removeErrorComment(mergeDisabledText, comments);
+
         try {
             census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
                     bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
@@ -468,6 +479,15 @@ class CheckWorkItem extends PullRequestWorkItem {
             var comment = pr.addComment(text);
             logLatency("Time from PR updated to check error posted ", comment.createdAt(), log);
         }
+    }
+
+    private void removeErrorComment(String text, List<Comment> comments) {
+        var botUser = pr.repository().forge().currentUser();
+        var existing = comments.stream()
+                .filter(c -> c.author().equals(botUser))
+                .filter(c -> c.body().equals(text))
+                .findFirst();
+        existing.ifPresent(comment -> pr.removeComment(comment));
     }
 
     // Lazily initiated
