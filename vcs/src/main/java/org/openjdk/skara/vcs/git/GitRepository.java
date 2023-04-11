@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1725,6 +1725,14 @@ public class GitRepository implements Repository {
         } catch (Throwable t) {
             stop(p);
             throw t;
+        }
+    }
+
+    @Override
+    public Optional<String> commitMessageBody(Hash hash) {
+        try (var p = capture("git", "show", "--pretty=format:%b", hash.hex())) {
+            var res = p.await();
+            return res.status() == 0 ? Optional.of(String.join("", res.stdout())) : Optional.empty();
         }
     }
 }

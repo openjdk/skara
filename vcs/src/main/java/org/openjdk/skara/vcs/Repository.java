@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -182,6 +182,8 @@ public interface Repository extends ReadOnlyRepository {
     default void updateSubmodule(Submodule s) throws IOException {
         updateSubmodule(s.path());
     }
+
+    Optional<String> commitMessageBody(Hash hash);
 
     default void push(Hash hash, URI uri, String ref) throws IOException {
         push(hash, uri, ref, false);
