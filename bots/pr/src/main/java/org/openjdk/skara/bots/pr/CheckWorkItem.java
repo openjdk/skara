@@ -254,7 +254,7 @@ class CheckWorkItem extends PullRequestWorkItem {
 
         // If merge pr is not allowed, reply warning to the user and return
         var mergeDisabledText = "<!-- merge error -->\n" +
-                ":warning: @" + pr.author().username() + " merge PR is not allowed in this repository, please close this pr." +
+                ":warning: @" + pr.author().username() + " Merge-style pull requests are not allowed in this repository." +
                 " If it was unintentional, please modify the title of this PR.";
         if (!bot.enableMerge() && PullRequestUtils.isMerge(pr)) {
             addErrorComment(mergeDisabledText, comments);
