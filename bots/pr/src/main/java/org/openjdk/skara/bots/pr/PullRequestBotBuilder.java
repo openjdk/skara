@@ -60,6 +60,7 @@ public class PullRequestBotBuilder {
     private boolean reviewMerge = false;
     private boolean processPR = true;
     private boolean processCommit = true;
+    private boolean enableMerge = true;
 
     PullRequestBotBuilder() {
     }
@@ -209,6 +210,11 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder enableMerge(boolean enableMerge) {
+        this.enableMerge = enableMerge;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration,
                                   externalPullRequestCommands, externalCommitCommands,
@@ -217,6 +223,6 @@ public class PullRequestBotBuilder {
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
                                   confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom,
                                   enableCsr, enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge,
-                                  processPR, processCommit);
+                                  processPR, processCommit, enableMerge);
     }
 }
