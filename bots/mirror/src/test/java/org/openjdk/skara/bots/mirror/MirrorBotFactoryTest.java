@@ -153,33 +153,6 @@ class MirrorBotFactoryTest {
     }
 
     @Test
-    public void testThrowsWithBranchesAndTagsIncluded() {
-        try (var tempFolder = new TemporaryDirectory()) {
-            String jsonString = """
-                    {
-                      "repositories": [
-                        {
-                          "from": "from1",
-                          "to": "to1",
-                          "branches": "master",
-                          "tags": "include"
-                        }
-                      ]
-                    }
-                    """;
-            var jsonConfig = JWCC.parse(jsonString).asObject();
-
-            var testBotFactory = TestBotFactory.newBuilder()
-                    .addHostedRepository("from1", new TestHostedRepository("from1"))
-                    .addHostedRepository("to1", new TestHostedRepository("to1"))
-                    .storagePath(tempFolder.path().resolve("storage"))
-                    .build();
-
-            assertThrows(IllegalStateException.class, () -> testBotFactory.createBots(MirrorBotFactory.NAME, jsonConfig));
-        }
-    }
-
-    @Test
     public void testCreateWithTags() {
         try (var tempFolder = new TemporaryDirectory()) {
             String jsonString = """
@@ -209,6 +182,12 @@ class MirrorBotFactoryTest {
                           "to": "to5",
                           "branches": ["master", "dev"]
                         },
+                        {
+                          "from": "from6",
+                          "to": "to6",
+                          "branches": ["master", "dev"],
+                          "tags": "include"
+                        },
                       ]
                     }
                     """;
@@ -220,16 +199,18 @@ class MirrorBotFactoryTest {
                     .addHostedRepository("from3", new TestHostedRepository("from3"))
                     .addHostedRepository("from4", new TestHostedRepository("from4"))
                     .addHostedRepository("from5", new TestHostedRepository("from5"))
+                    .addHostedRepository("from6", new TestHostedRepository("from6"))
                     .addHostedRepository("to1", new TestHostedRepository("to1"))
                     .addHostedRepository("to2", new TestHostedRepository("to2"))
                     .addHostedRepository("to3", new TestHostedRepository("to3"))
                     .addHostedRepository("to4", new TestHostedRepository("to4"))
                     .addHostedRepository("to5", new TestHostedRepository("to5"))
+                    .addHostedRepository("to6", new TestHostedRepository("to6"))
                     .storagePath(tempFolder.path().resolve("storage"))
                     .build();
 
             var bots = testBotFactory.createBots(MirrorBotFactory.NAME, jsonConfig);
-            assertEquals(5, bots.size());
+            assertEquals(6, bots.size());
 
             MirrorBot mirrorBot1 = (MirrorBot) bots.get(0);
             assertEquals("MirrorBot@from1->to1 (master) [tags excluded]", mirrorBot1.toString());
@@ -262,6 +243,13 @@ class MirrorBotFactoryTest {
             assertFalse(mirrorBot5.isOnlyTags());
             assertEquals(List.of("master", "dev"),
                          mirrorBot5.getBranchPatterns().stream().map(Pattern::toString).toList());
+
+            MirrorBot mirrorBot6 = (MirrorBot) bots.get(5);
+            assertEquals("MirrorBot@from6->to6 (master,dev) [tags included]", mirrorBot6.toString());
+            assertTrue(mirrorBot6.isIncludeTags());
+            assertFalse(mirrorBot6.isOnlyTags());
+            assertEquals(List.of("master", "dev"),
+                         mirrorBot6.getBranchPatterns().stream().map(Pattern::toString).toList());
         }
     }
 }

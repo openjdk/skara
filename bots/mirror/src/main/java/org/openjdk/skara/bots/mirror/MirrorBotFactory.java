@@ -96,9 +96,6 @@ public class MirrorBotFactory implements BotFactory {
             if (onlyTags && !branchPatterns.isEmpty()) {
                 throw new IllegalStateException("Branches cannot be mirrored when only tags are mirrored");
             }
-            if (includeTags && !branchPatterns.isEmpty()) {
-                throw new IllegalStateException("Cannot include tags with only selected branches (tags are *not* per branch)");
-            }
 
             log.info("Setting up mirroring from " + fromRepo.name() + "to " + toRepo.name());
             bots.add(new MirrorBot(storage, fromRepo, toRepo, branchPatterns, includeTags, onlyTags));
