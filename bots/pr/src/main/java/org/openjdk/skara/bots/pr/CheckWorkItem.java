@@ -252,16 +252,6 @@ class CheckWorkItem extends PullRequestWorkItem {
         CensusInstance census;
         var comments = prComments();
 
-        // If merge pr is not allowed, reply warning to the user and return
-        var mergeDisabledText = "<!-- merge error -->\n" +
-                ":warning: @" + pr.author().username() + " Merge-style pull requests are not allowed in this repository." +
-                " If it was unintentional, please modify the title of this PR.";
-        if (!bot.enableMerge() && PullRequestUtils.isMerge(pr)) {
-            addErrorComment(mergeDisabledText, comments);
-            return List.of();
-        }
-        removeErrorComment(mergeDisabledText, comments);
-
         try {
             census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
                     bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
@@ -301,6 +291,15 @@ class CheckWorkItem extends PullRequestWorkItem {
         var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews, pr.targetRef());
         // Determine if the current state of the PR has already been checked
         if (forceUpdate || !currentCheckValid(census, comments, activeReviews, labels)) {
+            // If merge pr is not allowed, reply warning to the user and return
+            if (!bot.enableMerge() && PullRequestUtils.isMerge(pr)) {
+                var mergeDisabledText = "<!-- merge error -->\n" +
+                        ":warning: @" + pr.author().username() + " Merge-style pull requests are not allowed in this repository." +
+                        " If it was unintentional, please modify the title of this PR.";
+                addErrorComment(mergeDisabledText, comments);
+                return List.of();
+            }
+
             if (labels.contains("integrated")) {
                 log.info("Skipping check of integrated PR");
                 // We still need to make sure any commands get run or are able to finish a
@@ -479,15 +478,6 @@ class CheckWorkItem extends PullRequestWorkItem {
             var comment = pr.addComment(text);
             logLatency("Time from PR updated to check error posted ", comment.createdAt(), log);
         }
-    }
-
-    private void removeErrorComment(String text, List<Comment> comments) {
-        var botUser = pr.repository().forge().currentUser();
-        var existing = comments.stream()
-                .filter(c -> c.author().equals(botUser))
-                .filter(c -> c.body().equals(text))
-                .findFirst();
-        existing.ifPresent(comment -> pr.removeComment(comment));
     }
 
     // Lazily initiated
