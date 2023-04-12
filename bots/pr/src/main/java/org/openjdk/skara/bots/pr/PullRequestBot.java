@@ -304,7 +304,7 @@ class PullRequestBot implements Bot {
         return enableMerge;
     }
 
-    public boolean enableBackport(){
+    public boolean enableBackport() {
         return enableBackport;
     }
 

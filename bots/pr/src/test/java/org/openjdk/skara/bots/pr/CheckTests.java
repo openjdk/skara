@@ -2923,17 +2923,17 @@ class CheckTests {
 
             var comment = pr.store().comments().get(pr.store().comments().size() - 1);
             assertEquals(1, pr.store().comments().size());
-            assertTrue(comment.body().contains("backport PR is not allowed in this repository"));
+            assertTrue(comment.body().contains("backports are not allowed in this repository"));
 
             pr.setTitle("Backport 123");
             TestBotRunner.runPeriodicItems(prBot);
             comment = pr.store().comments().get(pr.store().comments().size() - 1);
             assertEquals(1, pr.store().comments().size());
-            assertTrue(comment.body().contains("backport PR is not allowed in this repository"));
+            assertTrue(comment.body().contains("backports are not allowed in this repository"));
 
             pr.setTitle("SKARA-123");
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(0, pr.store().comments().size());
+            assertEquals(1, pr.store().comments().size());
         }
     }
 }

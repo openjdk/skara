@@ -293,11 +293,11 @@ class CheckWorkItem extends PullRequestWorkItem {
             var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());
             var backportIssueMatcher = BACKPORT_ISSUE_TITLE_PATTERN.matcher(pr.title());
 
-            var backportDisabledText = "<!-- backport error -->\n" +
-                    ":warning: @" + pr.author().username() + " backports are not allowed in this repository." +
-                    " If it was unintentional, please modify the title of this pull request.";
-
+            // If backport pr is not allowed, reply warning to the user and return
             if (!bot.enableBackport() && (backportHashMatcher.matches() || backportIssueMatcher.matches())) {
+                var backportDisabledText = "<!-- backport error -->\n" +
+                        ":warning: @" + pr.author().username() + " backports are not allowed in this repository." +
+                        " If it was unintentional, please modify the title of this pull request.";
                 addErrorComment(backportDisabledText, comments);
                 return List.of();
             }
