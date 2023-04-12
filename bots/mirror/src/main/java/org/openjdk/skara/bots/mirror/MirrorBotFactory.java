@@ -79,10 +79,26 @@ public class MirrorBotFactory implements BotFactory {
                 branchPatterns = List.of();
             }
 
-            var includeTags = branchPatterns.isEmpty() || (repo.contains("tags") && repo.get("tags").asBoolean());
+            var includeTags = branchPatterns.isEmpty();
+            var onlyTags = false;
+            if (repo.contains("tags")) {
+                var tags = repo.get("tags").asString().toLowerCase().strip();
+                if (!Set.of("include", "only").contains(tags)) {
+                    throw new IllegalStateException("\"tags\" field can only have value \"include\" or \"only\"");
+                }
+                onlyTags = tags.equals("only");
+                includeTags = tags.equals("include");
+            }
+            if (onlyTags) {
+                // Tags are by definition included when only tags are mirrored
+                includeTags = true;
+            }
+            if (onlyTags && !branchPatterns.isEmpty()) {
+                throw new IllegalStateException("Branches cannot be mirrored when only tags are mirrored");
+            }
 
             log.info("Setting up mirroring from " + fromRepo.name() + "to " + toRepo.name());
-            bots.add(new MirrorBot(storage, fromRepo, toRepo, branchPatterns, includeTags));
+            bots.add(new MirrorBot(storage, fromRepo, toRepo, branchPatterns, includeTags, onlyTags));
         }
         return bots;
     }

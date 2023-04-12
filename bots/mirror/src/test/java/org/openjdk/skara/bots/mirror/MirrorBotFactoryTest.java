@@ -22,6 +22,9 @@
  */
 package org.openjdk.skara.bots.mirror;
 
+import java.util.List;
+import java.util.regex.Pattern;
+
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.json.JWCC;
 import org.openjdk.skara.test.TemporaryDirectory;
@@ -74,24 +77,179 @@ class MirrorBotFactoryTest {
             assertEquals(3, bots.size());
 
             MirrorBot mirrorBot1 = (MirrorBot) bots.get(0);
-            assertEquals("MirrorBot@from1->to1 (master)", mirrorBot1.toString());
-            assertFalse(mirrorBot1.isShouldMirrorEverything());
+            assertEquals("MirrorBot@from1->to1 (master) [tags excluded]", mirrorBot1.toString());
             assertFalse(mirrorBot1.isIncludeTags());
+            assertFalse(mirrorBot1.isOnlyTags());
             assertEquals("master", mirrorBot1.getBranchPatterns().get(0).toString());
 
             MirrorBot mirrorBot2 = (MirrorBot) bots.get(1);
-            assertEquals("MirrorBot@from2->to2 (master,dev,test)", mirrorBot2.toString());
-            assertFalse(mirrorBot2.isShouldMirrorEverything());
+            assertEquals("MirrorBot@from2->to2 (master,dev,test) [tags excluded]", mirrorBot2.toString());
             assertFalse(mirrorBot2.isIncludeTags());
+            assertFalse(mirrorBot2.isOnlyTags());
             assertEquals("master", mirrorBot2.getBranchPatterns().get(0).toString());
             assertEquals("dev", mirrorBot2.getBranchPatterns().get(1).toString());
             assertEquals("test", mirrorBot2.getBranchPatterns().get(2).toString());
 
             MirrorBot mirrorBot3 = (MirrorBot) bots.get(2);
-            assertEquals("MirrorBot@from3->to3", mirrorBot3.toString());
-            assertTrue(mirrorBot3.isShouldMirrorEverything());
+            assertEquals("MirrorBot@from3->to3 (*) [tags included]", mirrorBot3.toString());
             assertTrue(mirrorBot3.isIncludeTags());
+            assertFalse(mirrorBot3.isOnlyTags());
             assertEquals(0, mirrorBot3.getBranchPatterns().size());
+        }
+    }
+
+    @Test
+    public void testThrowsWithUnsupportedTagsValue() {
+        try (var tempFolder = new TemporaryDirectory()) {
+            String jsonString = """
+                    {
+                      "repositories": [
+                        {
+                          "from": "from1",
+                          "to": "to1",
+                          "branches": "master",
+                          "tags": "foo"
+                        }
+                      ]
+                    }
+                    """;
+            var jsonConfig = JWCC.parse(jsonString).asObject();
+
+            var testBotFactory = TestBotFactory.newBuilder()
+                    .addHostedRepository("from1", new TestHostedRepository("from1"))
+                    .addHostedRepository("to1", new TestHostedRepository("to1"))
+                    .storagePath(tempFolder.path().resolve("storage"))
+                    .build();
+
+            assertThrows(IllegalStateException.class, () -> testBotFactory.createBots(MirrorBotFactory.NAME, jsonConfig));
+        }
+    }
+
+    @Test
+    public void testThrowsWithBranchesAndTagsOnly() {
+        try (var tempFolder = new TemporaryDirectory()) {
+            String jsonString = """
+                    {
+                      "repositories": [
+                        {
+                          "from": "from1",
+                          "to": "to1",
+                          "branches": "master",
+                          "tags": "only"
+                        }
+                      ]
+                    }
+                    """;
+            var jsonConfig = JWCC.parse(jsonString).asObject();
+
+            var testBotFactory = TestBotFactory.newBuilder()
+                    .addHostedRepository("from1", new TestHostedRepository("from1"))
+                    .addHostedRepository("to1", new TestHostedRepository("to1"))
+                    .storagePath(tempFolder.path().resolve("storage"))
+                    .build();
+
+            assertThrows(IllegalStateException.class, () -> testBotFactory.createBots(MirrorBotFactory.NAME, jsonConfig));
+        }
+    }
+
+    @Test
+    public void testCreateWithTags() {
+        try (var tempFolder = new TemporaryDirectory()) {
+            String jsonString = """
+                    {
+                      "repositories": [
+                        {
+                          "from": "from1",
+                          "to": "to1",
+                          "branches": "master"
+                        },
+                        {
+                          "from": "from2",
+                          "to": "to2",
+                          "tags": "include"
+                        },
+                        {
+                          "from": "from3",
+                          "to": "to3",
+                        },
+                        {
+                          "from": "from4",
+                          "to": "to4",
+                          "tags": "only"
+                        },
+                        {
+                          "from": "from5",
+                          "to": "to5",
+                          "branches": ["master", "dev"]
+                        },
+                        {
+                          "from": "from6",
+                          "to": "to6",
+                          "branches": ["master", "dev"],
+                          "tags": "include"
+                        },
+                      ]
+                    }
+                    """;
+            var jsonConfig = JWCC.parse(jsonString).asObject();
+
+            var testBotFactory = TestBotFactory.newBuilder()
+                    .addHostedRepository("from1", new TestHostedRepository("from1"))
+                    .addHostedRepository("from2", new TestHostedRepository("from2"))
+                    .addHostedRepository("from3", new TestHostedRepository("from3"))
+                    .addHostedRepository("from4", new TestHostedRepository("from4"))
+                    .addHostedRepository("from5", new TestHostedRepository("from5"))
+                    .addHostedRepository("from6", new TestHostedRepository("from6"))
+                    .addHostedRepository("to1", new TestHostedRepository("to1"))
+                    .addHostedRepository("to2", new TestHostedRepository("to2"))
+                    .addHostedRepository("to3", new TestHostedRepository("to3"))
+                    .addHostedRepository("to4", new TestHostedRepository("to4"))
+                    .addHostedRepository("to5", new TestHostedRepository("to5"))
+                    .addHostedRepository("to6", new TestHostedRepository("to6"))
+                    .storagePath(tempFolder.path().resolve("storage"))
+                    .build();
+
+            var bots = testBotFactory.createBots(MirrorBotFactory.NAME, jsonConfig);
+            assertEquals(6, bots.size());
+
+            MirrorBot mirrorBot1 = (MirrorBot) bots.get(0);
+            assertEquals("MirrorBot@from1->to1 (master) [tags excluded]", mirrorBot1.toString());
+            assertFalse(mirrorBot1.isIncludeTags());
+            assertFalse(mirrorBot1.isOnlyTags());
+            assertEquals(List.of("master"),
+                         mirrorBot1.getBranchPatterns().stream().map(Pattern::toString).toList());
+
+            MirrorBot mirrorBot2 = (MirrorBot) bots.get(1);
+            assertEquals("MirrorBot@from2->to2 (*) [tags included]", mirrorBot2.toString());
+            assertTrue(mirrorBot2.isIncludeTags());
+            assertFalse(mirrorBot2.isOnlyTags());
+            assertEquals(List.of(), mirrorBot2.getBranchPatterns());
+
+            MirrorBot mirrorBot3 = (MirrorBot) bots.get(2);
+            assertEquals("MirrorBot@from3->to3 (*) [tags included]", mirrorBot3.toString());
+            assertTrue(mirrorBot3.isIncludeTags());
+            assertFalse(mirrorBot3.isOnlyTags());
+            assertEquals(List.of(), mirrorBot3.getBranchPatterns());
+
+            MirrorBot mirrorBot4 = (MirrorBot) bots.get(3);
+            assertEquals("MirrorBot@from4->to4 () [tags only]", mirrorBot4.toString());
+            assertTrue(mirrorBot4.isIncludeTags());
+            assertTrue(mirrorBot4.isOnlyTags());
+            assertEquals(List.of(), mirrorBot4.getBranchPatterns());
+
+            MirrorBot mirrorBot5 = (MirrorBot) bots.get(4);
+            assertEquals("MirrorBot@from5->to5 (master,dev) [tags excluded]", mirrorBot5.toString());
+            assertFalse(mirrorBot5.isIncludeTags());
+            assertFalse(mirrorBot5.isOnlyTags());
+            assertEquals(List.of("master", "dev"),
+                         mirrorBot5.getBranchPatterns().stream().map(Pattern::toString).toList());
+
+            MirrorBot mirrorBot6 = (MirrorBot) bots.get(5);
+            assertEquals("MirrorBot@from6->to6 (master,dev) [tags included]", mirrorBot6.toString());
+            assertTrue(mirrorBot6.isIncludeTags());
+            assertFalse(mirrorBot6.isOnlyTags());
+            assertEquals(List.of("master", "dev"),
+                         mirrorBot6.getBranchPatterns().stream().map(Pattern::toString).toList());
         }
     }
 }
