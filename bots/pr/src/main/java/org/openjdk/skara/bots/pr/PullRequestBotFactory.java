@@ -185,6 +185,9 @@ public class PullRequestBotFactory implements BotFactory {
             if (repo.value().contains("jep")) {
                 botBuilder.enableJep(repo.value().get("jep").asBoolean());
             }
+            if (repo.value().contains("merge")) {
+                botBuilder.enableMerge(repo.value().get("merge").asBoolean());
+            }
             if(repo.value().contains("backport")){
                 botBuilder.enableBackport(repo.value().get("backport").asBoolean());
             }
@@ -200,6 +203,12 @@ public class PullRequestBotFactory implements BotFactory {
             }
             if (repo.value().contains("reviewMerge")) {
                 botBuilder.reviewMerge(repo.value().get("reviewMerge").asBoolean());
+            }
+            if (repo.value().contains("processPR")) {
+                botBuilder.processPR(repo.value().get("processPR").asBoolean());
+            }
+            if (repo.value().contains("processCommit")) {
+                botBuilder.processCommit(repo.value().get("processCommit").asBoolean());
             }
 
             var prBot = botBuilder.build();

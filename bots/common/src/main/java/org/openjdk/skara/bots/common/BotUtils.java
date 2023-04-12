@@ -22,12 +22,6 @@
  */
 package org.openjdk.skara.bots.common;
 
-import java.util.Optional;
-
-import org.openjdk.skara.forge.PullRequest;
-import org.openjdk.skara.jbs.JdkVersion;
-import org.openjdk.skara.jcheck.JCheckConfiguration;
-
 /**
  * This class contains utility methods used by more than one bot. These methods
  * can't reasonably be located in the various libraries as they combine
@@ -35,24 +29,6 @@ import org.openjdk.skara.jcheck.JCheckConfiguration;
  * it should be encouraged to split it up into more cohesive units.
  */
 public class BotUtils {
-
-    /**
-     * Gets jcheck configured fix version from a pull request. This only works for
-     * repositories where the fix version is configured in .jcheck/conf.
-     */
-    public static Optional<JdkVersion> getVersion(PullRequest pr) {
-        var confFile = pr.repository().fileContents(".jcheck/conf", pr.headHash().hex())
-                .orElse(pr.repository().fileContents(".jcheck/conf", pr.targetRef()).orElse(null));
-        if (confFile == null) {
-            return Optional.empty();
-        }
-        var configuration = JCheckConfiguration.parse(confFile.lines().toList());
-        var version = configuration.general().version().orElse(null);
-        if (version == null || "".equals(version)) {
-            return Optional.empty();
-        }
-        return JdkVersion.parse(version);
-    }
 
     public static String escape(String s) {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");

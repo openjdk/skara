@@ -216,7 +216,7 @@ class MirrorBotTests {
             assertEquals(0, toLocalRepo.tags().size());
 
             var storage = temp.path().resolve("storage");
-            var bot = new MirrorBot(storage, fromHostedRepo, toHostedRepo, List.of(Pattern.compile("master")), true);
+            var bot = new MirrorBot(storage, fromHostedRepo, toHostedRepo, List.of(Pattern.compile("master")), true, false);
             TestBotRunner.runPeriodicItems(bot);
 
             toCommits = toLocalRepo.commits().asList();
@@ -284,7 +284,7 @@ class MirrorBotTests {
             assertEquals(0, toLocalRepo.tags().size());
 
             var storage = temp.path().resolve("storage");
-            var bot = new MirrorBot(storage, fromHostedRepo, toHostedRepo, List.of(Pattern.compile("master")), false);
+            var bot = new MirrorBot(storage, fromHostedRepo, toHostedRepo, List.of(Pattern.compile("master")), false, false);
             TestBotRunner.runPeriodicItems(bot);
 
             toCommits = toLocalRepo.commits().asList();
@@ -393,7 +393,7 @@ class MirrorBotTests {
             assertEquals(0, toCommits.size());
 
             var storage = temp.path().resolve("storage");
-            var bot = new MirrorBot(storage, fromHostedRepo, toHostedRepo, List.of(Pattern.compile("master")), false);
+            var bot = new MirrorBot(storage, fromHostedRepo, toHostedRepo, List.of(Pattern.compile("master")), false, false);
             TestBotRunner.runPeriodicItems(bot);
 
             toCommits = toLocalRepo.commits().asList();
@@ -441,7 +441,7 @@ class MirrorBotTests {
             assertEquals(0, toCommits.size());
 
             var storage = temp.path().resolve("storage");
-            var bot = new MirrorBot(storage, fromHostedRepo, toHostedRepo, List.of(Pattern.compile("f.*")), false);
+            var bot = new MirrorBot(storage, fromHostedRepo, toHostedRepo, List.of(Pattern.compile("f.*")), false, false);
             TestBotRunner.runPeriodicItems(bot);
 
             toCommits = toLocalRepo.commits().asList();
@@ -489,6 +489,83 @@ class MirrorBotTests {
             toCommits = toLocalRepo.commits().asList();
             assertEquals(1, toCommits.size());
             assertEquals(newHash, toCommits.get(0).hash());
+        }
+    }
+
+    /**
+     * Tests mirroring only tags
+     */
+    @Test
+    void mirrorOnlyTags(TestInfo testInfo) throws IOException {
+        try (var temp = new TemporaryDirectory()) {
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
+
+            var fromDir = temp.path().resolve("from.git");
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
+            var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
+
+            var toDir = temp.path().resolve("to.git");
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
+            var gitConfig = toDir.resolve(".git").resolve("config");
+            Files.write(gitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+                    StandardOpenOption.APPEND);
+            var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
+
+            var newFile = fromDir.resolve("this-file-cannot-exist.txt");
+            Files.writeString(newFile, "Hello world\n");
+            fromLocalRepo.add(newFile);
+            var newHash = fromLocalRepo.commit("An additional commit", "duke", "duke@openjdk.org");
+            var fromCommits = fromLocalRepo.commits().asList();
+            assertEquals(1, fromCommits.size());
+            assertEquals(newHash, fromCommits.get(0).hash());
+
+            fromLocalRepo.tag(newHash, "first", "add first tag", "duke", "duk@openjdk.org");
+            fromLocalRepo.tag(newHash, "second", "add second tag", "duke", "duk@openjdk.org");
+
+            var toCommits = toLocalRepo.commits().asList();
+            assertEquals(0, toCommits.size());
+            assertEquals(0, toLocalRepo.tags().size());
+            assertEquals(0, toLocalRepo.branches().size());
+
+            var storage = temp.path().resolve("storage");
+            var bot = new MirrorBot(storage, fromHostedRepo, toHostedRepo, List.of(), true, true);
+            TestBotRunner.runPeriodicItems(bot);
+
+            toCommits = toLocalRepo.commits().asList();
+            assertEquals(1, toCommits.size());
+            assertEquals(newHash, toCommits.get(0).hash());
+            var toTags = toLocalRepo.tags();
+            assertEquals(2, toTags.size());
+            assertTrue(toTags.contains(new Tag("first")));
+            assertTrue(toTags.contains(new Tag("second")));
+            assertEquals(0, toLocalRepo.branches().size());
+
+            // Add another tag and go again
+            fromLocalRepo.tag(newHash, "third", "add third tag", "duke", "duk@openjdk.org");
+
+            TestBotRunner.runPeriodicItems(bot);
+            toTags = toLocalRepo.tags();
+            assertEquals(3, toTags.size());
+            assertTrue(toTags.contains(new Tag("first")));
+            assertTrue(toTags.contains(new Tag("second")));
+            assertTrue(toTags.contains(new Tag("third")));
+            assertEquals(0, toLocalRepo.branches().size());
+            toCommits = toLocalRepo.commits().asList();
+            assertEquals(1, toCommits.size());
+
+            // Change a tag and go again
+            Files.writeString(newFile, "Hello world again\n", StandardOpenOption.APPEND);
+            fromLocalRepo.add(newFile);
+            var secondHash = fromLocalRepo.commit("An additional commit", "duke", "duke@openjdk.org");
+            var firstTag = fromLocalRepo.tag(secondHash, "first", "add first tag again", "duke", "duk@openjdk.org", null, true);
+
+            TestBotRunner.runPeriodicItems(bot);
+            assertEquals(0, toLocalRepo.branches().size());
+            toCommits = toLocalRepo.commits().asList();
+            assertEquals(2, toCommits.size());
+            toTags = toLocalRepo.tags();
+            assertEquals(3, toTags.size());
+            assertEquals(fromLocalRepo.annotate(firstTag), toLocalRepo.annotate(firstTag), "First tag not correctly mirrored");
         }
     }
 }

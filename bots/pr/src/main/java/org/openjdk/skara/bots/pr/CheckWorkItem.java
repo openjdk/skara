@@ -302,7 +302,14 @@ class CheckWorkItem extends PullRequestWorkItem {
                 return List.of();
             }
 
-            removeErrorComment(backportDisabledText, comments);
+            // If merge pr is not allowed, reply warning to the user and return
+            if (!bot.enableMerge() && PullRequestUtils.isMerge(pr)) {
+                var mergeDisabledText = "<!-- merge error -->\n" +
+                        ":warning: @" + pr.author().username() + " Merge-style pull requests are not allowed in this repository." +
+                        " If it was unintentional, please modify the title of this PR.";
+                addErrorComment(mergeDisabledText, comments);
+                return List.of();
+            }
 
             if (labels.contains("integrated")) {
                 log.info("Skipping check of integrated PR");
@@ -480,15 +487,6 @@ class CheckWorkItem extends PullRequestWorkItem {
             var comment = pr.addComment(text);
             logLatency("Time from PR updated to check error posted ", comment.createdAt(), log);
         }
-    }
-
-    private void removeErrorComment(String text, List<Comment> comments) {
-        var botUser = pr.repository().forge().currentUser();
-        var oldComment = comments.stream()
-                .filter(c -> c.author().equals(botUser))
-                .filter(c -> c.body().equals(text))
-                .findFirst();
-        oldComment.ifPresent(comment -> pr.removeComment(comment));
     }
 
     // Lazily initiated

@@ -438,6 +438,8 @@ class CSRBotTests {
             // remove the csr label with /csr command
             var reviewerPr = reviewer.pullRequest(pr.id());
             reviewerPr.addComment("/csr unneeded");
+            // Run csrIssueBot to update pr body
+            TestBotRunner.runPeriodicItems(csrIssueBot);
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().labelNames().contains("csr"));
 
@@ -476,6 +478,8 @@ class CSRBotTests {
             // Set the backport CSR to have multiple fix versions, excluded 11.
             backportCsr.setProperty("fixVersions", JSON.array().add("17").add("8"));
             reviewerPr.addComment("/csr unneeded");
+            // Run csrIssueBot to update the pr body
+            TestBotRunner.runPeriodicItems(csrIssueBot);
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().labelNames().contains("csr"));
 
@@ -583,6 +587,67 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(csrIssueBot);
             // PR should not contain csr label
             assertFalse(pr.store().labelNames().contains("csr"));
+        }
+    }
+
+    @Test
+    void testFindCSRWithVersionInMergedBranch(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot));
+
+            // Run issue bot once to initialize lastUpdatedAt
+            TestBotRunner.runPeriodicItems(csrIssueBot);
+
+            var csr = issueProject.createIssue("This is a CSR", List.of(), Map.of());
+            csr.setState(Issue.State.OPEN);
+            csr.setProperty("issuetype", JSON.of("CSR"));
+            csr.setProperty("fixVersions", JSON.array().add("17"));
+            issue.addLink(Link.create(csr, "csr for").build());
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
+            PullRequestUtils.postPullRequestLinkComment(issue, pr);
+
+            // Change .jcheck/conf in targetBranch
+            localRepo.checkout(masterHash);
+            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            var newConf = defaultConf.replace("version=0.1", "version=17");
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            localRepo.add(localRepo.root().resolve(".jcheck/conf"));
+            var confHash = localRepo.commit("Set version as 17", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, author.authenticatedUrl(), "master", true);
+
+            // The bot will be able to find the csr although fixVersion in source branch is 0.1
+            TestBotRunner.runPeriodicItems(csrIssueBot);
+            assertTrue(pr.store().labelNames().contains("csr"));
+
+            reviewer.pullRequest(pr.id()).addComment("/csr unneeded");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            assertTrue(pr.store().comments().get(pr.store().comments().size() - 1).body()
+                    .contains("@user2 The CSR requirement cannot be removed as CSR issues already exist. " +
+                            "Please withdraw [TEST-2](http://localhost/project/testTEST-2) and then use the command `/csr unneeded` again."));
         }
     }
 }

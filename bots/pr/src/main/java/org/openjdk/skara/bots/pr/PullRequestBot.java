@@ -66,6 +66,9 @@ class PullRequestBot implements Bot {
     private final boolean reviewCleanBackport;
     private final String mlbridgeBotName;
     private final boolean reviewMerge;
+    private final boolean processPR;
+    private final boolean processCommit;
+    private final boolean enableMerge;
     private final boolean enableBackport;
 
     private Instant lastFullUpdate;
@@ -79,7 +82,8 @@ class PullRequestBot implements Bot {
                    Path seedStorage, HostedRepository confOverrideRepo, String confOverrideName,
                    String confOverrideRef, String censusLink, Map<String, HostedRepository> forks,
                    Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr, boolean enableJep,
-                   boolean reviewCleanBackport, String mlbridgeBotName, boolean reviewMerge, boolean enableBackport) {
+                   boolean reviewCleanBackport, String mlbridgeBotName, boolean reviewMerge, boolean processPR, boolean processCommit,
+                   boolean enableMerge, boolean enableBackport) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -107,6 +111,9 @@ class PullRequestBot implements Bot {
         this.reviewCleanBackport = reviewCleanBackport;
         this.mlbridgeBotName = mlbridgeBotName;
         this.reviewMerge = reviewMerge;
+        this.processPR = processPR;
+        this.processCommit = processCommit;
+        this.enableMerge = enableMerge;
         this.enableBackport = enableBackport;
 
         autoLabelled = new HashSet<>();
@@ -125,9 +132,8 @@ class PullRequestBot implements Bot {
         poller.retryPullRequest(pr, expiresAt);
     }
 
-    private List<WorkItem> getWorkItems(List<PullRequest> pullRequests) {
+    private List<WorkItem> getPullRequestWorkItems(List<PullRequest> pullRequests) {
         var ret = new ArrayList<WorkItem>();
-        ret.add(new CommitCommentsWorkItem(this, remoteRepo, excludeCommitCommentsFrom));
 
         for (var pr : pullRequests) {
             if (pr.state() == Issue.State.OPEN) {
@@ -143,9 +149,15 @@ class PullRequestBot implements Bot {
 
     @Override
     public List<WorkItem> getPeriodicItems() {
-        List<PullRequest> prs = poller.updatedPullRequests();
-        List<WorkItem> workItems = getWorkItems(prs);
-        poller.lastBatchHandled();
+        var workItems = new ArrayList<WorkItem>();
+        if (processCommit) {
+            workItems.add(new CommitCommentsWorkItem(this, remoteRepo, excludeCommitCommentsFrom));
+        }
+        if (processPR) {
+            List<PullRequest> prs = poller.updatedPullRequests();
+            workItems.addAll(getPullRequestWorkItems(prs));
+            poller.lastBatchHandled();
+        }
         return workItems;
     }
 
@@ -155,8 +167,14 @@ class PullRequestBot implements Bot {
         if (webHook.isEmpty()) {
             return new ArrayList<>();
         }
-
-        return getWorkItems(webHook.get().updatedPullRequests());
+        var workItems = new ArrayList<WorkItem>();
+        if (processCommit) {
+            workItems.add(new CommitCommentsWorkItem(this, remoteRepo, excludeCommitCommentsFrom));
+        }
+        if (processPR) {
+            workItems.addAll(getPullRequestWorkItems(webHook.get().updatedPullRequests()));
+        }
+        return workItems;
     }
 
     HostedRepository repo() {
@@ -280,6 +298,10 @@ class PullRequestBot implements Bot {
 
     public boolean reviewMerge(){
         return reviewMerge;
+    }
+
+    public boolean enableMerge() {
+        return enableMerge;
     }
 
     public boolean enableBackport(){

@@ -58,6 +58,9 @@ public class PullRequestBotBuilder {
     private boolean reviewCleanBackport = false;
     private String mlbridgeBotName;
     private boolean reviewMerge = false;
+    private boolean processPR = true;
+    private boolean processCommit = true;
+    private boolean enableMerge = true;
     private boolean enableBackport = true;
 
     PullRequestBotBuilder() {
@@ -198,6 +201,21 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder processPR(boolean processPR) {
+        this.processPR = processPR;
+        return this;
+    }
+
+    public PullRequestBotBuilder processCommit(boolean processCommit) {
+        this.processCommit = processCommit;
+        return this;
+    }
+
+    public PullRequestBotBuilder enableMerge(boolean enableMerge) {
+        this.enableMerge = enableMerge;
+        return this;
+    }
+
     public PullRequestBotBuilder enableBackport(boolean enableBackport) {
         this.enableBackport = enableBackport;
         return this;
@@ -210,6 +228,7 @@ public class PullRequestBotBuilder {
                                   readyComments, issueProject, ignoreStaleReviews,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
                                   confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom,
-                                  enableCsr, enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge, enableBackport);
+                                  enableCsr, enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge,
+                                  processPR, processCommit, enableMerge, enableBackport);
     }
 }

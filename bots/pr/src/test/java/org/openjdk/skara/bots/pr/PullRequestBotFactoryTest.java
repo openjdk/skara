@@ -69,6 +69,7 @@ class PullRequestBotFactoryTest {
                           "issues": "TEST",
                           "csr": true,
                           "backport": false,
+                          "merge": false,
                           "two-reviewers": [
                             "rfr"
                           ],
@@ -87,6 +88,7 @@ class PullRequestBotFactoryTest {
                           "issues": "TEST2",
                           "csr": true,
                           "backport": true,
+                          "merge": true,
                           "two-reviewers": [
                             "rfr"
                           ],
@@ -97,7 +99,8 @@ class PullRequestBotFactoryTest {
                             "integrator1",
                             "integrator2"
                           ],
-                          "reviewCleanBackport": true
+                          "reviewCleanBackport": true,
+                          "processCommit": false
                         },
                         "repo6": {
                           "census": "census:master",
@@ -116,6 +119,7 @@ class PullRequestBotFactoryTest {
                           ],
                           "reviewCleanBackport": true,
                           "reviewMerge": true,
+                          "processPR": false
                         }
                       },
                       "forks": {
@@ -165,14 +169,17 @@ class PullRequestBotFactoryTest {
             assertTrue(pullRequestBot1.reviewCleanBackport());
             assertTrue(pullRequestBot1.reviewMerge());
             assertEquals("mlbridge[bot]", pullRequestBot1.mlbridgeBotName());
+            assertTrue(pullRequestBot1.enableMerge());
             assertTrue(pullRequestBot1.enableBackport());
 
             var pullRequestBot2 = (PullRequestBot) bots.get(1);
             assertEquals("PullRequestBot@repo5", pullRequestBot2.toString());
+            assertTrue(pullRequestBot2.enableMerge());
             assertTrue(pullRequestBot2.enableBackport());
 
             var pullRequestBot3 = (PullRequestBot) bots.get(2);
             assertEquals("PullRequestBot@repo2", pullRequestBot3.toString());
+            assertFalse(pullRequestBot3.enableMerge());
             assertFalse(pullRequestBot3.enableBackport());
 
             var csrIssueBot1 = (CSRIssueBot) bots.get(3);

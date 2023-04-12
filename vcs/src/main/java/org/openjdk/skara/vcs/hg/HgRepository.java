@@ -552,10 +552,21 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public void pushAll(URI uri) throws IOException {
-        try (var p = capture("hg", "push", "--new-branch", uri.toString())) {
+    public void pushAll(URI uri, boolean force) throws IOException {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("hg", "push", "--new-branch"));
+        if (force) {
+            cmd.add("--force");
+        }
+        cmd.add(uri.toString());
+        try (var p = capture(cmd)) {
             await(p);
         }
+    }
+
+    @Override
+    public void pushTags(URI uri, boolean force) throws IOException {
+        throw new RuntimeException("Cannot push only tags with Mercurial");
     }
 
     @Override
