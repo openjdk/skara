@@ -294,8 +294,8 @@ class CheckWorkItem extends PullRequestWorkItem {
             var backportIssueMatcher = BACKPORT_ISSUE_TITLE_PATTERN.matcher(pr.title());
 
             var backportDisabledText = "<!-- backport error -->\n" +
-                    ":warning: @" + pr.author().username() + " backport PR is not allowed in this repository, please close this pr." +
-                    " If it was unintentional, please modify the title of this PR.";
+                    ":warning: @" + pr.author().username() + " backports are not allowed in this repository." +
+                    " If it was unintentional, please modify the title of this pull request.";
 
             if (!bot.enableBackport() && (backportHashMatcher.matches() || backportIssueMatcher.matches())) {
                 addErrorComment(backportDisabledText, comments);
