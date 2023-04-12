@@ -444,20 +444,7 @@ class CheckRun {
     }
 
     private void updateMergeClean(Commit commit) {
-        boolean isClean = !commit.isMerge();
-        if (!isClean) {
-            isClean = true;
-            var commitMessageBody = localRepo.commitMessageBody(commit.hash());
-            if (commitMessageBody.isPresent()) {
-                var lines = commitMessageBody.get();
-                for (int i = 0; i < lines.size() - 1; i++) {
-                    if (lines.get(i).startsWith("diff") && lines.get(i + 1).startsWith("index")) {
-                        isClean = false;
-                        break;
-                    }
-                }
-            }
-        }
+        boolean isClean = !commit.isMerge() || localRepo.isEmptyCommit(commit.hash());
         if (isClean) {
             newLabels.add("clean");
         } else {

@@ -1729,10 +1729,19 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Optional<List<String>> commitMessageBody(Hash hash) {
+    public boolean isEmptyCommit(Hash hash) {
         try (var p = capture("git", "show", "--pretty=format:%b", hash.hex())) {
             var res = p.await();
-            return res.status() == 0 ? Optional.of(res.stdout()) : Optional.empty();
+            if (res.status() != 0) {
+                return false;
+            }
+            var lines = res.stdout();
+            for (int i = 0; i < lines.size() - 1; i++) {
+                if (lines.get(i).startsWith("diff") && lines.get(i + 1).startsWith("index")) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }

@@ -1525,7 +1525,7 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public Optional<List<String>> commitMessageBody(Hash hash) {
+    public boolean isEmptyCommit(Hash hash) {
         throw new UnsupportedOperationException();
     }
 }
