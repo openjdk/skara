@@ -183,6 +183,10 @@ public interface Repository extends ReadOnlyRepository {
         updateSubmodule(s.path());
     }
 
+    /**
+     * Check whether this commit is empty.
+     * For a merge commit, it will be considered as empty if it has no merge resolutions.
+     */
     boolean isEmptyCommit(Hash hash);
 
     default void push(Hash hash, URI uri, String ref) throws IOException {
