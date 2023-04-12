@@ -251,6 +251,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
         CensusInstance census;
         var comments = prComments();
+
         try {
             census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
                     bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
