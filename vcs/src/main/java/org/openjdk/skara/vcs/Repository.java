@@ -183,7 +183,7 @@ public interface Repository extends ReadOnlyRepository {
         updateSubmodule(s.path());
     }
 
-    Optional<String> commitMessageBody(Hash hash);
+    Optional<List<String>> commitMessageBody(Hash hash);
 
     default void push(Hash hash, URI uri, String ref) throws IOException {
         push(hash, uri, ref, false);

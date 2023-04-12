@@ -1729,10 +1729,10 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Optional<String> commitMessageBody(Hash hash) {
+    public Optional<List<String>> commitMessageBody(Hash hash) {
         try (var p = capture("git", "show", "--pretty=format:%b", hash.hex())) {
             var res = p.await();
-            return res.status() == 0 ? Optional.of(String.join("", res.stdout())) : Optional.empty();
+            return res.status() == 0 ? Optional.of(res.stdout()) : Optional.empty();
         }
     }
 }

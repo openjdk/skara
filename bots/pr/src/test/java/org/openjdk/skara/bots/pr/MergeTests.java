@@ -1645,10 +1645,10 @@ class MergeTests {
             var newAppendable = "11111\n" + defaultAppendable;
             Files.writeString(localRepo.root().resolve("appendable.txt"), newAppendable, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve("appendable.txt"));
-            localRepo.commit("xxx", "xxx", "xxx@gmail.com");
+            localRepo.commit("updated", "test", "test@test.com");
 
             localRepo.merge(otherHash2);
-            var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
+            var mergeHash = localRepo.commit("Merge commit\n\n This is Body", "some", "some@one");
 
             localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other_/-1.2");
@@ -1686,7 +1686,7 @@ class MergeTests {
 
             localRepo.checkout(masterHash);
             localRepo.merge(featureHash, Repository.FastForward.DISABLE);
-            var mergeHash = localRepo.commit("merged", "xxx", "xxx@gmail.com");
+            var mergeHash = localRepo.commit("merged\n\n This is Body", "xxx", "xxx@gmail.com");
             localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other_/-1.2");
 

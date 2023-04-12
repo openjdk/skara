@@ -1525,7 +1525,7 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public Optional<String> commitMessageBody(Hash hash) {
+    public Optional<List<String>> commitMessageBody(Hash hash) {
         throw new UnsupportedOperationException();
     }
 }
