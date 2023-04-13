@@ -443,6 +443,15 @@ class CheckRun {
         return isClean || isCleanLabelManuallyAdded;
     }
 
+    private void updateMergeClean(Commit commit) {
+        boolean isClean = !commit.isMerge() || localRepo.isEmptyCommit(commit.hash());
+        if (isClean) {
+            newLabels.add("clean");
+        } else {
+            newLabels.remove("clean");
+        }
+    }
+
     private Optional<HostedCommit> backportedFrom() {
         var hash = checkablePullRequest.findOriginalBackportHash();
         if (hash == null) {
@@ -1125,6 +1134,10 @@ class CheckRun {
                 commitHash = mergedHash.get();
             } else {
                 rebasePossible = false;
+            }
+
+            if (rebasePossible && PullRequestUtils.isMerge(pr)) {
+                localRepo.lookup(pr.headHash()).ifPresent(this::updateMergeClean);
             }
 
             var original = backportedFrom();
