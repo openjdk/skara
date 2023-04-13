@@ -1749,7 +1749,7 @@ public class GitRepository implements Repository {
 
     @Override
     public boolean isEmptyCommit(Hash hash) {
-        try (var p = capture("git", "show", "--diff-merges=dense-combined", "--pretty=format:%b", hash.hex())) {
+        try (var p = capture("git", "show", "--cc", "--pretty=format:%b", hash.hex())) {
             var res = p.await();
             if (res.status() != 0) {
                 return false;
