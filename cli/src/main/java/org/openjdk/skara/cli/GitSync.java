@@ -75,10 +75,10 @@ public class GitSync {
     }
 
     private String getOption(String name) throws IOException {
-        if (arguments.contains(name)) {
-            return arguments.get(name).asString();
+        var arg = ForgeUtils.getOption(name, arguments);
+        if (arg != null) {
+            return arg;
         }
-
         var lines = repo.config("sync." + name);
         return lines.size() == 1 ? lines.get(0) : null;
     }
@@ -330,29 +330,18 @@ public class GitSync {
         System.out.println("Will sync changes from " + sourceURI + " to " + targetURI);
 
         var branches = new HashSet<String>();
-        if (arguments.contains("branches")) {
-            var requested = arguments.get("branches").asString().split(",");
+        var branchesArg = getOption("branches");
+        if (branchesArg != null) {
+            var requested = branchesArg.split(",");
             for (var branch : requested) {
                 branches.add(branch.trim());
-            }
-        } else {
-            var lines = repo.config("sync.branches");
-            if (lines.size() == 1) {
-                var requested = lines.get(0).split(",");
-                for (var branch : requested) {
-                    branches.add(branch.trim());
-                }
             }
         }
 
         var ignore = Pattern.compile("pr/.*");
-        if (arguments.contains("ignore")) {
-            ignore = Pattern.compile(arguments.get("ignore").asString());
-        } else {
-            var lines = repo.config("sync.ignore");
-            if (lines.size() == 1) {
-                ignore = Pattern.compile(lines.get(0));
-            }
+        var ignoreArg = getOption("ignore");
+        if (ignoreArg != null) {
+            ignore = Pattern.compile(ignoreArg);
         }
 
         var remoteBranches = repo.remoteBranches(sourceName);
