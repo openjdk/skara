@@ -79,7 +79,11 @@ class PullRequestBotFactoryTest {
                             "integrator1",
                             "integrator2"
                           ],
-                          "reviewCleanBackport": true
+                          "reviewCleanBackport": true,
+                          "mergeSources": [
+                            "openjdk/playground",
+                            "openjdk/skara",
+                          ]
                         },
                         "repo5": {
                           "census": "census:master",
@@ -176,6 +180,8 @@ class PullRequestBotFactoryTest {
             var pullRequestBot3 = (PullRequestBot) bots.get(2);
             assertEquals("PullRequestBot@repo2", pullRequestBot3.toString());
             assertFalse(pullRequestBot3.enableMerge());
+            assertTrue(pullRequestBot3.mergeSources().contains("openjdk/skara"));
+            assertTrue(pullRequestBot3.mergeSources().contains("openjdk/playground"));
 
             var csrIssueBot1 = (CSRIssueBot) bots.get(3);
             assertEquals(2, csrIssueBot1.repositories().size());

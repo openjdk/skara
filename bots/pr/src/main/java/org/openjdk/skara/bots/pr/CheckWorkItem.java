@@ -316,7 +316,9 @@ class CheckWorkItem extends PullRequestWorkItem {
                         if (!mergeSources.isEmpty() && !mergeSources.contains(repoName) && !pr.repository().name().equals(repoName)) {
                             var mergeSourceInvalidText = "<!-- merge error -->\n" +
                                     ":warning: @" + pr.author().username() + " " + repoName +
-                                    " can not be source repo for Merge-style pull requests in this repository.";
+                                    " can not be source repo for Merge-style pull requests in this repository.\n" +
+                                    "List of valid source repositories: \n" +
+                                    String.join(", ", bot.mergeSources().stream().sorted().toList()) + ".";
                             addErrorComment(mergeSourceInvalidText, comments);
                             return List.of();
                         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1710,7 +1710,7 @@ class MergeTests {
             var mergeBot = PullRequestBot.newBuilder()
                     .repo(author)
                     .censusRepo(censusBuilder.build())
-                    .mergeSources(Set.of("openjdk/playground"))
+                    .mergeSources(Set.of("openjdk/playground", "openjdk/skara"))
                     .build();
 
             // Populate the projects repository
@@ -1727,7 +1727,7 @@ class MergeTests {
             TestBotRunner.runPeriodicItems(mergeBot);
             var comment = pr.store().comments().get(pr.store().comments().size() - 1);
             assertEquals(1, pr.store().comments().size());
-            assertTrue(comment.body().contains("can not be source repo for Merge-style pull requests in this repository. "));
+            assertTrue(comment.body().contains("can not be source repo for Merge-style pull requests in this repository."));
         }
     }
 }
