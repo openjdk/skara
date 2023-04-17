@@ -61,6 +61,7 @@ public class PullRequestBotBuilder {
     private boolean processPR = true;
     private boolean processCommit = true;
     private boolean enableMerge = true;
+    private Set<String> mergeSources = Set.of();
 
     PullRequestBotBuilder() {
     }
@@ -215,6 +216,11 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder mergeSources(Set<String> mergeSources) {
+        this.mergeSources = mergeSources;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration,
                                   externalPullRequestCommands, externalCommitCommands,
@@ -223,6 +229,6 @@ public class PullRequestBotBuilder {
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
                                   confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom,
                                   enableCsr, enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge,
-                                  processPR, processCommit, enableMerge);
+                                  processPR, processCommit, enableMerge, mergeSources);
     }
 }

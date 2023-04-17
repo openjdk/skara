@@ -1697,4 +1697,37 @@ class MergeTests {
             assertTrue(pr.store().labelNames().contains("clean"));
         }
     }
+
+
+    @Test
+    void mergeSourceInvalid(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository("openjdk/jdk");
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .mergeSources(Set.of("openjdk/playground"))
+                    .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge openjdk/test:other_/-1.2");
+
+            // Let the bot check the status
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var comment = pr.store().comments().get(pr.store().comments().size() - 1);
+            assertEquals(1, pr.store().comments().size());
+            assertTrue(comment.body().contains("can not be source repo for Merge-style pull requests in this repository. "));
+        }
+    }
 }

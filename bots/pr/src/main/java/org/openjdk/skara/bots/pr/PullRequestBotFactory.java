@@ -208,6 +208,13 @@ public class PullRequestBotFactory implements BotFactory {
                 botBuilder.processCommit(repo.value().get("processCommit").asBoolean());
             }
 
+            if (repo.value().contains("mergeSources")) {
+                var mergeSources = repo.value().get("mergeSources").stream()
+                        .map(JSONValue::asString)
+                        .collect(Collectors.toSet());
+                botBuilder.mergeSources(mergeSources);
+            }
+
             var prBot = botBuilder.build();
             pullRequestBotMap.put(repository.name(), prBot);
             ret.add(prBot);

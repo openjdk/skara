@@ -45,7 +45,7 @@ public class PullRequestUtils {
                                 committer.name(), committer.email(), ZonedDateTime.now(), List.of(targetHash(localRepo)), localRepo.tree(finalHead));
     }
 
-    private final static Pattern mergeSourcePattern = Pattern.compile("^Merge ([-/.\\w:+]+)$");
+    public final static Pattern mergeSourcePattern = Pattern.compile("^Merge ([-/.\\w:+]+)$");
     private final static Pattern hashSourcePattern = Pattern.compile("[0-9a-fA-F]{6,40}");
 
     private static Optional<Hash> fetchRef(Repository localRepo, URI uri, String ref) {

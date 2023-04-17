@@ -44,6 +44,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.openjdk.skara.bots.common.PullRequestConstants.WEBREV_COMMENT_MARKER;
+import static org.openjdk.skara.forge.PullRequestUtils.mergeSourcePattern;
 
 class CheckWorkItem extends PullRequestWorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
@@ -298,6 +299,29 @@ class CheckWorkItem extends PullRequestWorkItem {
                         " If it was unintentional, please modify the title of this PR.";
                 addErrorComment(mergeDisabledText, comments);
                 return List.of();
+            }
+
+            // If source repo of Merge-style pr is not allowed, reply warning to the user and return
+            if (PullRequestUtils.isMerge(pr)) {
+                var sourceMatcher = mergeSourcePattern.matcher(pr.title());
+                if (sourceMatcher.matches()) {
+                    var source = sourceMatcher.group(1);
+                    if (source.contains(":")) {
+                        var repoName = source.split(":", 2)[0];
+                        if (!repoName.contains("/")) {
+                            repoName = Path.of(pr.repository().name()).resolveSibling(repoName).toString();
+                        }
+                        // Check repo name
+                        var mergeSources = bot.mergeSources();
+                        if (!mergeSources.isEmpty() && !mergeSources.contains(repoName) && !pr.repository().name().equals(repoName)) {
+                            var mergeSourceInvalidText = "<!-- merge error -->\n" +
+                                    ":warning: @" + pr.author().username() + " " + repoName +
+                                    " can not be source repo for Merge-style pull requests in this repository.";
+                            addErrorComment(mergeSourceInvalidText, comments);
+                            return List.of();
+                        }
+                    }
+                }
             }
 
             if (labels.contains("integrated")) {
