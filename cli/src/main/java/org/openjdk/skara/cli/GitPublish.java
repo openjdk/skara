@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -119,8 +119,9 @@ public class GitPublish {
     }
 
     private static String getOption(String name, Arguments arguments, ReadOnlyRepository repo) throws IOException {
-        if (arguments.contains(name)) {
-            return arguments.get(name).asString();
+        var arg = ForgeUtils.getOption(name, arguments);
+        if (arg != null) {
+            return arg;
         }
 
         var lines = repo.config("publish." + name);

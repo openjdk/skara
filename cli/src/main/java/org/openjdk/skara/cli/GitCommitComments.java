@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,15 +23,12 @@
 package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
-import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.version.Version;
 
 import java.io.*;
 import java.net.URI;
-import java.nio.file.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Supplier;
@@ -60,11 +57,7 @@ public class GitCommitComments {
     }
 
     private static String getOption(String name, Arguments arguments) {
-        if (arguments.contains(name)) {
-            return arguments.get(name).asString();
-        }
-
-        return gitConfig("cc." + name);
+        return ForgeUtils.getOption(name, "cc", null, arguments);
     }
 
     private static boolean getSwitch(String name, String subsection, Arguments arguments) {
