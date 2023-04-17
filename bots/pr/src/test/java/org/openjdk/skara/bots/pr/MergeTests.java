@@ -1698,7 +1698,6 @@ class MergeTests {
         }
     }
 
-
     @Test
     void mergeSourceInvalid(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
