@@ -1726,7 +1726,7 @@ class MergeTests {
             TestBotRunner.runPeriodicItems(mergeBot);
             var comment = pr.store().comments().get(pr.store().comments().size() - 1);
             assertEquals(1, pr.store().comments().size());
-            assertTrue(comment.body().contains("can not be source repo for Merge-style pull requests in this repository."));
+            assertTrue(comment.body().contains("can not be source repo for merge-style pull requests in this repository."));
         }
     }
 }
