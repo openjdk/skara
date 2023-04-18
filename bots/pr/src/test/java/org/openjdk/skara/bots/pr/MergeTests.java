@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1695,6 +1695,38 @@ class MergeTests {
 
             // There is a merge commit at HEAD and the merge commit is not empty
             assertTrue(pr.store().labelNames().contains("clean"));
+        }
+    }
+
+    @Test
+    void mergeSourceInvalid(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository("openjdk/jdk");
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .mergeSources(Set.of("openjdk/playground", "openjdk/skara"))
+                    .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge openjdk/test:other_/-1.2");
+
+            // Let the bot check the status
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var comment = pr.store().comments().get(pr.store().comments().size() - 1);
+            assertEquals(1, pr.store().comments().size());
+            assertTrue(comment.body().contains("can not be source repo for merge-style pull requests in this repository."));
         }
     }
 }
