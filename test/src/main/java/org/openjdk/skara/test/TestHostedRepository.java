@@ -435,10 +435,10 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public int deleteDeployKeys(Duration duration) {
+    public int deleteDeployKeys(Duration age) {
         var expiredKeys = deployKeys.entrySet()
                 .stream()
-                .filter(entry -> entry.getValue().isBefore(ZonedDateTime.now().minusSeconds(duration.toSeconds())))
+                .filter(entry -> entry.getValue().isBefore(ZonedDateTime.now().minus(age)))
                 .toList();
         for (var key : expiredKeys) {
             deployKeys.remove(key.getKey());

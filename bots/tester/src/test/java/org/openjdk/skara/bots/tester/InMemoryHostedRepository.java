@@ -271,7 +271,7 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public int deleteDeployKeys(Duration duration) {
+    public int deleteDeployKeys(Duration age) {
         return 0;
     }
 }

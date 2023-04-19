@@ -830,11 +830,11 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public int deleteDeployKeys(Duration duration) {
+    public int deleteDeployKeys(Duration age) {
         var expiredKeys = request.get("deploy_keys").execute()
                 .stream()
                 .filter(key -> ZonedDateTime.parse(key.get("created_at").asString())
-                        .isBefore(ZonedDateTime.now().minusSeconds(duration.toSeconds())))
+                        .isBefore(ZonedDateTime.now().minus(age)))
                 .toList();
         for (var key : expiredKeys) {
             request.delete("deploy_keys/" + key.get("id"))
