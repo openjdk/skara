@@ -259,4 +259,12 @@ public class GitHubRestApiTests {
         var review = pr.reviews().get(0);
         assertEquals("https://git.openjdk.org/playground/pull/129#pullrequestreview-1302142525", pr.reviewUrl(review).toString());
     }
+
+    @Test
+    void testDeleteDeployKey() {
+        var githubRepoOpt = githubHost.repository("zhaosongzs/Test");
+        assumeTrue(githubRepoOpt.isPresent());
+        var githubRepo = githubRepoOpt.get();
+        githubRepo.deleteDeployKeys(24);
+    }
 }
