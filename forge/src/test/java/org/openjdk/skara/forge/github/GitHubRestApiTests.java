@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge.github;
 
+import java.time.Duration;
 import java.util.Properties;
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.Forge;
@@ -265,6 +266,6 @@ public class GitHubRestApiTests {
         var githubRepoOpt = githubHost.repository("zhaosongzs/Test");
         assumeTrue(githubRepoOpt.isPresent());
         var githubRepo = githubRepoOpt.get();
-        githubRepo.deleteDeployKeys(24);
+        githubRepo.deleteDeployKeys(Duration.ofHours(24));
     }
 }

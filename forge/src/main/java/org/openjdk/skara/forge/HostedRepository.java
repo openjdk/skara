@@ -211,8 +211,7 @@ public interface HostedRepository {
 
     /**
      * Delete deploy keys which are older than 'age' in this repository
-     * The unit of age is hour
      * The return value is the count of deleted keys
      */
-    int deleteDeployKeys(int age);
+    int deleteDeployKeys(Duration duration);
 }

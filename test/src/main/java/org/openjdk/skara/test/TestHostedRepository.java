@@ -35,6 +35,7 @@ import org.openjdk.skara.vcs.*;
 import java.io.*;
 import java.net.*;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -434,10 +435,10 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public int deleteDeployKeys(int age) {
+    public int deleteDeployKeys(Duration duration) {
         var expiredKeys = deployKeys.entrySet()
                 .stream()
-                .filter(entry -> entry.getValue().isBefore(ZonedDateTime.now().minusHours(age)))
+                .filter(entry -> entry.getValue().isBefore(ZonedDateTime.now().minusSeconds(duration.toSeconds())))
                 .toList();
         for (var key : expiredKeys) {
             deployKeys.remove(key.getKey());

@@ -29,6 +29,7 @@ import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
 import java.net.URI;
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.*;
 
@@ -270,7 +271,7 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public int deleteDeployKeys(int age) {
+    public int deleteDeployKeys(Duration duration) {
         return 0;
     }
 }

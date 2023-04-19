@@ -33,6 +33,7 @@ import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import org.openjdk.skara.vcs.git.GitRepository;
@@ -287,6 +288,6 @@ public class GitLabRestApiTest {
         var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
 
-        gitLabRepo.deleteDeployKeys(24);
+        gitLabRepo.deleteDeployKeys(Duration.ofHours(24));
     }
 }

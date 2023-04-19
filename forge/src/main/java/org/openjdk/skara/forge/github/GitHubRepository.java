@@ -24,6 +24,7 @@ package org.openjdk.skara.forge.github;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.regex.Matcher;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
@@ -729,10 +730,11 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public int deleteDeployKeys(int age) {
+    public int deleteDeployKeys(Duration duration) {
         var expired = request.get("keys").execute()
                 .stream()
-                .filter(key -> ZonedDateTime.parse(key.get("created_at").asString()).isBefore(ZonedDateTime.now().minusHours(age)))
+                .filter(key -> ZonedDateTime.parse(key.get("created_at").asString())
+                        .isBefore(ZonedDateTime.now().minusSeconds(duration.toSeconds())))
                 .toList();
         for (var key : expired) {
             request.delete("keys/" + key.get("id")).execute();
