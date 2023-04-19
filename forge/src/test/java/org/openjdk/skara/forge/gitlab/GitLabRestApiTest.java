@@ -38,7 +38,6 @@ import java.util.Set;
 import org.openjdk.skara.vcs.git.GitRepository;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * To be able to run the tests, you need to remove or comment out the @Disabled annotation first.
