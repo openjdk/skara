@@ -150,18 +150,10 @@ public class PullRequestBotFactory implements BotFactory {
                                          .collect(Collectors.toSet());
                 botBuilder.twentyFourHoursLabels(labels);
             }
+            var issueString = "";
             if (repo.value().contains("issues")) {
-                var issueString = repo.value().get("issues").asString();
+                issueString = repo.value().get("issues").asString();
                 botBuilder.issueProject(configuration.issueProject(issueString));
-                var issueProject = issueProjects.get(issueString);
-                if (issueProject == null) {
-                    issueProject = configuration.issueProject(issueString);
-                    issueProjects.put(issueString, issueProject);
-                }
-                if (!repositories.containsKey(issueProject)) {
-                    repositories.put(issueProject, new ArrayList<>());
-                }
-                repositories.get(issueProject).add(repository);
             }
             if (repo.value().contains("ignorestale")) {
                 botBuilder.ignoreStaleReviews(repo.value().get("ignorestale").asBoolean());
@@ -180,7 +172,19 @@ public class PullRequestBotFactory implements BotFactory {
                 botBuilder.censusLink(repo.value().get("censuslink").asString());
             }
             if (repo.value().contains("csr")) {
-                botBuilder.enableCsr(repo.value().get("csr").asBoolean());
+                var enableCsr = repo.value().get("csr").asBoolean();
+                botBuilder.enableCsr(enableCsr);
+                if (enableCsr && !issueString.equals("")) {
+                    var issueProject = issueProjects.get(issueString);
+                    if (issueProject == null) {
+                        issueProject = configuration.issueProject(issueString);
+                        issueProjects.put(issueString, issueProject);
+                    }
+                    if (!repositories.containsKey(issueProject)) {
+                        repositories.put(issueProject, new ArrayList<>());
+                    }
+                    repositories.get(issueProject).add(repository);
+                }
             }
             if (repo.value().contains("jep")) {
                 botBuilder.enableJep(repo.value().get("jep").asBoolean());
