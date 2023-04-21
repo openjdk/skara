@@ -33,6 +33,7 @@ import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import org.openjdk.skara.vcs.git.GitRepository;
@@ -275,5 +276,18 @@ public class GitLabRestApiTest {
 
         var review = gitLabMergeRequest.reviews().get(0);
         assertEquals(settings.getProperty("review_html_url"), gitLabMergeRequest.reviewUrl(review).toString());
+    }
+
+    @Test
+    void testDeleteDeployKey() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var username = settings.getProperty("gitlab.user");
+        var token = settings.getProperty("gitlab.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
+
+        gitLabRepo.deleteDeployKeys(Duration.ofHours(24));
     }
 }

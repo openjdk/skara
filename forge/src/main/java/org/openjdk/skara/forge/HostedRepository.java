@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -208,4 +208,10 @@ public interface HostedRepository {
     default boolean isSame(HostedRepository other) {
         return name().equals(other.name()) && forge().name().equals(other.forge().name());
     }
+
+    /**
+     * Delete deploy keys which are older than 'age' in this repository
+     * The return value is the count of deleted keys
+     */
+    int deleteDeployKeys(Duration age);
 }

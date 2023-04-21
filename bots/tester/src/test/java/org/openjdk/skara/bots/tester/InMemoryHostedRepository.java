@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,7 @@ import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
 import java.net.URI;
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.*;
 
@@ -267,5 +268,10 @@ class InMemoryHostedRepository implements HostedRepository {
 
     @Override
     public void deleteLabel(Label label) {
+    }
+
+    @Override
+    public int deleteDeployKeys(Duration age) {
+        return 0;
     }
 }
