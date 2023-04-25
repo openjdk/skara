@@ -843,4 +843,14 @@ public class GitLabRepository implements HostedRepository {
         }
         return expiredKeys.size();
     }
+
+    @Override
+    public List<String> getExpiredDeployKeys(Duration age) {
+        return request.get("deploy_keys").execute()
+                .stream()
+                .filter(key -> ZonedDateTime.parse(key.get("created_at").asString())
+                        .isBefore(ZonedDateTime.now().minus(age)))
+                .map(key -> key.get("title").asString())
+                .toList();
+    }
 }

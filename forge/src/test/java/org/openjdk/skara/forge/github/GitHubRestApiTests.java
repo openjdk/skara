@@ -268,4 +268,14 @@ public class GitHubRestApiTests {
         var githubRepo = githubRepoOpt.get();
         githubRepo.deleteDeployKeys(Duration.ofHours(24));
     }
+
+    @Test
+    void testGetExpiredDeployKeys() {
+        var githubRepoOpt = githubHost.repository("zhaosongzs/Test");
+        assumeTrue(githubRepoOpt.isPresent());
+        var githubRepo = githubRepoOpt.get();
+        var expiredDeployKeys = githubRepo.getExpiredDeployKeys(Duration.ofMinutes(5));
+        assertTrue(expiredDeployKeys.contains("Test1"));
+        assertTrue(expiredDeployKeys.contains("Test2"));
+    }
 }

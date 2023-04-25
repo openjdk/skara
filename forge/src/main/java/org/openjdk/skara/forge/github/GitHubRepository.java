@@ -741,4 +741,40 @@ public class GitHubRepository implements HostedRepository {
         }
         return expired.size();
     }
+
+    @Override
+    public List<String> getExpiredDeployKeys(Duration age) {
+        var parts = name().split("/");
+        var owner = parts[0];
+        var name = parts[1];
+
+        var query = String.join("\n", List.of(
+                "{",
+                "  repository(owner: \"" + owner + "\", name: \"" + name + "\") {",
+                "    deployKeys(first: 100) {",
+                "      edges {",
+                "       node{",
+                "           id",
+                "           title",
+                "           createdAt",
+                "           }",
+                "      }",
+                "    }",
+                "  }",
+                "}"
+        ));
+
+        var data = gitHubHost.graphQL()
+                .post()
+                .body(JSON.object().put("query", query))
+                // This is a single point graphql query so shouldn't need to be limited to once a second
+                .skipLimiter(true)
+                .execute()
+                .get("data");
+        return data.get("repository").get("deployKeys").get("edges").stream()
+                .filter(key -> ZonedDateTime.parse(key.get("node").get("createdAt").asString())
+                        .isBefore(ZonedDateTime.now().minus(age)))
+                .map(key -> key.get("node").get("title").asString())
+                .toList();
+    }
 }

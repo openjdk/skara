@@ -51,7 +51,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     private List<Label> labels = new ArrayList<>();
     private final Set<Check> checks = new HashSet<>();
     private final Set<String> protectedBranchPatterns = new HashSet<>();
-    private Map<Integer, ZonedDateTime> deployKeys = new HashMap<>();
+    private Map<String, ZonedDateTime> deployKeys = new HashMap<>();
 
     public TestHostedRepository(TestHost host, String projectName, Repository localRepository) {
         super(host, projectName);
@@ -446,11 +446,20 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         return expiredKeys.size();
     }
 
-    public void addDeployKeys(int id, ZonedDateTime createTime) {
-        deployKeys.put(id, createTime);
+    @Override
+    public List<String> getExpiredDeployKeys(Duration age) {
+        return deployKeys.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().isBefore(ZonedDateTime.now().minus(age)))
+                .map(Map.Entry::getKey)
+                .toList();
     }
 
-    public Map<Integer, ZonedDateTime> deployKeys() {
+    public void addDeployKeys(String title, ZonedDateTime createTime) {
+        deployKeys.put(title, createTime);
+    }
+
+    public Map<String, ZonedDateTime> deployKeys() {
         return deployKeys;
     }
 }

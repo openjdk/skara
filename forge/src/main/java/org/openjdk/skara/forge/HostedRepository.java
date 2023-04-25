@@ -214,4 +214,9 @@ public interface HostedRepository {
      * The return value is the count of deleted keys
      */
     int deleteDeployKeys(Duration age);
+
+    /**
+     * Return the titles of expired deploy keys which are older than 'age' in this repository
+     */
+    List<String> getExpiredDeployKeys(Duration age);
 }
