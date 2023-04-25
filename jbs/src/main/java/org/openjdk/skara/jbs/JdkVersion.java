@@ -39,7 +39,7 @@ public class JdkVersion implements Comparable<JdkVersion> {
     private final static Pattern prefixVersionPattern = Pattern.compile("([a-z]+[1-9][0-9]?)(u([0-9]{1,3}))?$");
 
     // Match a version string symbolizing some future, but yet undefined, update of a major version
-    private final static Pattern futureUpdatePattern = Pattern.compile("((openjdk|jfx)?[1-9][0-9]*u)(-([a-z0-9]+))?$");
+    private final static Pattern futureUpdatePattern = Pattern.compile("(([a-z])*[1-9][0-9]*u)(-([a-z0-9]+))?$");
 
     private final static Pattern prefixPattern = Pattern.compile("([a-z]+)([0-9.]+)$");
 

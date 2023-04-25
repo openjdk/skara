@@ -143,7 +143,6 @@ public class JdkVersionTests {
     void nonConforming() {
         assertEquals(Optional.empty(), JdkVersion.parse("bla"));
         assertEquals(Optional.empty(), JdkVersion.parse(""));
-        assertEquals(Optional.empty(), JdkVersion.parse("foobar7u"));
     }
 
     @Test
