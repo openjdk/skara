@@ -88,7 +88,7 @@ public class JdkVersion implements Comparable<JdkVersion> {
                 raw = raw.substring(0, optionalStart);
             }
             String prefix = null;
-            if ("cpu".equals(optional)) {
+            if ("cpu".equals(optional) && raw.matches("[a-z]+")) {
                 // Special case of *-cpu. This symbolic version has no set numbers
                 finalComponents.add(raw);
             } else {
