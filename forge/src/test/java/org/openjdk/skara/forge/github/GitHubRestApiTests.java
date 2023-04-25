@@ -270,7 +270,7 @@ public class GitHubRestApiTests {
     }
 
     @Test
-    void testGetExpiredDeployKeys() {
+    void testDeployKeyTitles() {
         var githubRepoOpt = githubHost.repository("zhaosongzs/Test");
         assumeTrue(githubRepoOpt.isPresent());
         var githubRepo = githubRepoOpt.get();

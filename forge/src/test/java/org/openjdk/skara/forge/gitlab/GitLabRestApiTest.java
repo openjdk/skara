@@ -292,7 +292,7 @@ public class GitLabRestApiTest {
     }
 
     @Test
-    void testGetExpiredDeployKeys() throws IOException {
+    void testDeployKeyTitles() throws IOException {
         var settings = ManualTestSettings.loadManualTestSettings();
         var username = settings.getProperty("gitlab.user");
         var token = settings.getProperty("gitlab.pat");
