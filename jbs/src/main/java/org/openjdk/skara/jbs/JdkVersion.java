@@ -39,7 +39,7 @@ public class JdkVersion implements Comparable<JdkVersion> {
     private final static Pattern prefixVersionPattern = Pattern.compile("([a-z]+[1-9][0-9]?)(u([0-9]{1,3}))?$");
 
     // Match a version string symbolizing some future, but yet undefined, update of a major version
-    private final static Pattern futureUpdatePattern = Pattern.compile("((openjdk)?[1-9][0-9]*u)(-([a-z0-9]+))?$");
+    private final static Pattern futureUpdatePattern = Pattern.compile("((openjdk|jfx)?[1-9][0-9]*u)(-([a-z0-9]+))?$");
 
     private final static Pattern prefixPattern = Pattern.compile("([a-z]+)([0-9.]+)$");
 
@@ -88,9 +88,9 @@ public class JdkVersion implements Comparable<JdkVersion> {
                 raw = raw.substring(0, optionalStart);
             }
             String prefix = null;
-            if ("jdk".equals(raw) && "cpu".equals(optional)) {
-                // Special case of jdk-cpu. This symbolic version has no set numbers
-                finalComponents.add("jdk");
+            if ("cpu".equals(optional)) {
+                // Special case of *-cpu. This symbolic version has no set numbers
+                finalComponents.add(raw);
             } else {
                 var prefixMatcher = prefixPattern.matcher(raw);
                 if (prefixMatcher.matches()) {

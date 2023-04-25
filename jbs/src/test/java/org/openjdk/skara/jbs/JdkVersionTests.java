@@ -85,6 +85,9 @@ public class JdkVersionTests {
         assertEquals(List.of("16u"), jdk16uCpu.components());
         assertEquals("cpu", jdk16uCpu.opt().orElseThrow());
         assertEquals(List.of("openjdk7u"), from("openjdk7u").components());
+        var jfx20uCpu = from("jfx20u-cpu");
+        assertEquals(List.of("jfx20u"), jfx20uCpu.components());
+        assertEquals("cpu", jfx20uCpu.opt().orElseThrow());
     }
 
     @Test
@@ -92,6 +95,13 @@ public class JdkVersionTests {
         var jdkCpu = from("jdk-cpu");
         assertEquals(List.of("jdk"), jdkCpu.components());
         assertEquals("cpu", jdkCpu.opt().orElseThrow());
+    }
+
+    @Test
+    void jfxCpu() {
+        var jfxCpu = from("jfx-cpu");
+        assertEquals(List.of("jfx"), jfxCpu.components());
+        assertEquals("cpu", jfxCpu.opt().orElseThrow());
     }
 
     @Test
