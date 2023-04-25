@@ -447,7 +447,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public List<String> getExpiredDeployKeys(Duration age) {
+    public List<String> deployKeyTitles(Duration age) {
         return deployKeys.entrySet()
                 .stream()
                 .filter(entry -> entry.getValue().isBefore(ZonedDateTime.now().minus(age)))

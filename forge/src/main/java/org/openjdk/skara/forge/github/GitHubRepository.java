@@ -743,7 +743,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public List<String> getExpiredDeployKeys(Duration age) {
+    public List<String> deployKeyTitles(Duration age) {
         var parts = name().split("/");
         var owner = parts[0];
         var name = parts[1];

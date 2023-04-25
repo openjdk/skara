@@ -845,7 +845,7 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public List<String> getExpiredDeployKeys(Duration age) {
+    public List<String> deployKeyTitles(Duration age) {
         return request.get("deploy_keys").execute()
                 .stream()
                 .filter(key -> ZonedDateTime.parse(key.get("created_at").asString())

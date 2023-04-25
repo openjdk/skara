@@ -301,7 +301,7 @@ public class GitLabRestApiTest {
         var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
 
-        var expiredDeployKeys = gitLabRepo.getExpiredDeployKeys(Duration.ofMinutes(5));
+        var expiredDeployKeys = gitLabRepo.deployKeyTitles(Duration.ofMinutes(5));
         assertTrue(expiredDeployKeys.contains("test1"));
     }
 }

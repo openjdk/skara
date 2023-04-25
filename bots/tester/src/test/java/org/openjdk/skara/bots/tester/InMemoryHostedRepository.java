@@ -276,7 +276,7 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public List<String> getExpiredDeployKeys(Duration age) {
+    public List<String> deployKeyTitles(Duration age) {
         return List.of();
     }
 }

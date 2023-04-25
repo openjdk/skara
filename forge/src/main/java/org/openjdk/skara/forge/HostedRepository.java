@@ -218,5 +218,5 @@ public interface HostedRepository {
     /**
      * Return the titles of expired deploy keys which are older than 'age' in this repository
      */
-    List<String> getExpiredDeployKeys(Duration age);
+    List<String> deployKeyTitles(Duration age);
 }
