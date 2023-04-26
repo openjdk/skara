@@ -1156,7 +1156,7 @@ class CheckRun {
                             checkablePullRequest.executeChecks(hash, censusInstance, visitor, List.of(), hash);
                             mergeJCheckMessage.addAll(visitor.messages().stream()
                                     .map(StringBuilder::new)
-                                    .map(e -> e.append(" (failed when running jcheck with commit " + hash.hex() + ")"))
+                                    .map(e -> e.append(" (in commit " + hash.hex() + ")"))
                                     .map(StringBuilder::toString)
                                     .toList());
                         } catch (Exception e) {
