@@ -211,6 +211,9 @@ public class PullRequestBotFactory implements BotFactory {
             if (repo.value().contains("processCommit")) {
                 botBuilder.processCommit(repo.value().get("processCommit").asBoolean());
             }
+            if (repo.value().contains("jcheckMerge")) {
+                botBuilder.jcheckMerge(repo.value().get("jcheckMerge").asBoolean());
+            }
 
             if (repo.value().contains("mergeSources")) {
                 var mergeSources = repo.value().get("mergeSources").stream()

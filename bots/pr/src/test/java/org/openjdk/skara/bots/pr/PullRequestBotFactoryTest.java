@@ -121,7 +121,8 @@ class PullRequestBotFactoryTest {
                           ],
                           "reviewCleanBackport": true,
                           "reviewMerge": true,
-                          "processPR": false
+                          "processPR": false,
+                          "jcheckMerge": true
                         },
                         "repo7": {
                           "census": "census:master",
@@ -139,7 +140,8 @@ class PullRequestBotFactoryTest {
                           ],
                           "reviewCleanBackport": true,
                           "reviewMerge": true,
-                          "processPR": false
+                          "processPR": false,
+                          "jcheckMerge": false
                         }
                       },
                       "forks": {
@@ -193,19 +195,23 @@ class PullRequestBotFactoryTest {
             assertTrue(pullRequestBot0.reviewMerge());
             assertEquals("mlbridge[bot]", pullRequestBot0.mlbridgeBotName());
             assertTrue(pullRequestBot0.enableMerge());
+            assertTrue(pullRequestBot0.jcheckMerge());
 
             var pullRequestBot1 = (PullRequestBot) bots.get(1);
             assertEquals("PullRequestBot@repo7", pullRequestBot1.toString());
+            assertFalse(pullRequestBot1.jcheckMerge());
 
             var pullRequestBot2 = (PullRequestBot) bots.get(2);
             assertEquals("PullRequestBot@repo5", pullRequestBot2.toString());
             assertTrue(pullRequestBot2.enableMerge());
+            assertFalse(pullRequestBot2.jcheckMerge());
 
             var pullRequestBot3 = (PullRequestBot) bots.get(3);
             assertEquals("PullRequestBot@repo2", pullRequestBot3.toString());
             assertFalse(pullRequestBot3.enableMerge());
             assertTrue(pullRequestBot3.mergeSources().contains("openjdk/skara"));
             assertTrue(pullRequestBot3.mergeSources().contains("openjdk/playground"));
+            assertFalse(pullRequestBot3.jcheckMerge());
 
             var csrIssueBot1 = (CSRIssueBot) bots.get(4);
             assertEquals(1, csrIssueBot1.repositories().size());

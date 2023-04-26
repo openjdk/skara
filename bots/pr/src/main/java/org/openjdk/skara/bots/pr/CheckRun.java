@@ -1136,8 +1136,36 @@ class CheckRun {
                 rebasePossible = false;
             }
 
-            if (rebasePossible && PullRequestUtils.isMerge(pr)) {
-                localRepo.lookup(pr.headHash()).ifPresent(this::updateMergeClean);
+            List<String> mergeJCheckMessage = new ArrayList<>();
+
+            if (PullRequestUtils.isMerge(pr)) {
+                if (rebasePossible) {
+                    localRepo.lookup(pr.headHash()).ifPresent(this::updateMergeClean);
+                }
+
+                // JCheck all commits in "Merge PR"
+                if (workItem.bot.jcheckMerge()) {
+                    var commits = localRepo.commitMetadata(localRepo.mergeBase(PullRequestUtils.targetHash(localRepo), pr.headHash()), commitHash);
+                    var commitHashes = commits.stream()
+                            .map(CommitMetadata::hash)
+                            .collect(Collectors.toSet());
+                    commitHashes.remove(pr.headHash());
+                    for (Hash hash : commitHashes) {
+                        try {
+                            PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(hash);
+                            checkablePullRequest.executeChecks(hash, censusInstance, visitor, List.of(), hash);
+                            mergeJCheckMessage.addAll(visitor.messages().stream()
+                                    .map(StringBuilder::new)
+                                    .map(e -> e.append(" (failed when running jcheck with commit " + hash.hex() + ")"))
+                                    .map(StringBuilder::toString)
+                                    .toList());
+                        } catch (Exception e) {
+                            var message = e.getMessage() + " (exception thrown when running jcheck with commit " + hash.hex() + ")";
+                            log.warning(message);
+                            mergeJCheckMessage.add(message);
+                        }
+                    }
+                }
             }
 
             var original = backportedFrom();
@@ -1158,7 +1186,7 @@ class CheckRun {
                 additionalErrors = List.of(e.getMessage());
                 localHash = baseHash;
             }
-            PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor();
+            PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(checkablePullRequest.targetHash());
             boolean needUpdateAdditionalProgresses = false;
             boolean sourceBranchJCheckConfValid = true;
             if (localHash.equals(baseHash)) {
@@ -1175,7 +1203,7 @@ class CheckRun {
                 // Don't need to run the second round if confOverride is set.
                 if (workItem.bot.confOverrideRepository().isEmpty() && isFileUpdated(".jcheck/conf", localHash)) {
                     try {
-                        PullRequestCheckIssueVisitor visitor2 = checkablePullRequest.createVisitorUsingHeadHash();
+                        PullRequestCheckIssueVisitor visitor2 = checkablePullRequest.createVisitor(pr.headHash());
                         log.info("Run jcheck again with the updated configuration");
                         checkablePullRequest.executeChecks(localHash, censusInstance, visitor2, additionalConfiguration, pr.headHash());
                         secondJCheckMessage.addAll(visitor2.messages().stream()
@@ -1220,6 +1248,7 @@ class CheckRun {
 
             var integrationBlockers = botSpecificIntegrationBlockers(issues);
             integrationBlockers.addAll(secondJCheckMessage);
+            integrationBlockers.addAll(mergeJCheckMessage);
 
             var reviewersCommandIssued = ReviewersTracker.additionalRequiredReviewers(pr.repository().forge().currentUser(), comments).isPresent();
 
