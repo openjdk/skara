@@ -35,10 +35,16 @@ public class ScratchArea {
         this.botName = botName;
     }
 
+    /**
+     *  Return a global repository path for this repository
+     */
     public Path get(HostedRepository repo) {
         return root.resolve(botName).resolve("repos").resolve(repo.name());
     }
 
+    /**
+     *  Return a path suitable for this command
+     */
     public Path get(CommandHandler commandHandler) {
         return root.resolve(botName).resolve("command").resolve(commandHandler.name());
     }
