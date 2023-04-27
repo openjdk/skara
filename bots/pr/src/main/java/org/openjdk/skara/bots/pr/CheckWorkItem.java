@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import java.nio.file.Path;
 import java.util.logging.Level;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.bots.common.SolvesTracker;
@@ -35,6 +34,7 @@ import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.security.*;
 import java.time.*;
 import java.util.*;
