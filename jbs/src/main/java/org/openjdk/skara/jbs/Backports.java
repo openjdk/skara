@@ -128,7 +128,8 @@ public class Backports {
      * the fixVersionList has an <N>-pool-<opt> entry.
      */
     private static boolean matchOptPoolVersion(Issue issue, JdkVersion fixVersion) {
-        var majorVersion = fixVersion.feature();
+        // Remove any trailing 'u' from the feature version as that isn't used in *-pool versions
+        var majorVersion = fixVersion.feature().replaceFirst("u$", "");
         if (fixVersion.opt().isPresent()) {
             var poolSuffix = "-pool-" + fixVersion.opt().get();
             var poolVersion = JdkVersion.parse(majorVersion + poolSuffix);
@@ -149,7 +150,8 @@ public class Backports {
      * <N>-pool entry.
      */
     private static boolean matchPoolVersion(Issue issue, JdkVersion fixVersion) {
-        var majorVersion = fixVersion.feature();
+        // Remove any trailing 'u' from the feature version as that isn't used in *-pool versions
+        var majorVersion = fixVersion.feature().replaceFirst("u$", "");
         var poolVersion = JdkVersion.parse(majorVersion + "-pool");
         // fixVersion may be something that doesn't parse into a valid pool version
         if (poolVersion.isPresent()) {

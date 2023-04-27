@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -57,7 +57,14 @@ public interface Repository extends ReadOnlyRepository {
     }
     void fetchAllRemotes(boolean includeTags) throws IOException;
     void fetchRemote(String remote) throws IOException;
-    void pushAll(URI uri) throws IOException;
+    void pushAll(URI uri, boolean force) throws IOException;
+    default void pushAll(URI uri) throws IOException {
+        pushAll(uri, false);
+    }
+    void pushTags(URI uri, boolean force) throws IOException;
+    default void pushTags(URI uri) throws IOException {
+        pushTags(uri, false);
+    }
     default void push(Hash hash, URI uri, String ref, boolean force) throws IOException {
         push(hash, uri, ref, force, false);
     }
@@ -182,6 +189,12 @@ public interface Repository extends ReadOnlyRepository {
     default void updateSubmodule(Submodule s) throws IOException {
         updateSubmodule(s.path());
     }
+
+    /**
+     * Check whether this commit is empty.
+     * For a merge commit, it will be considered as empty if it has no merge resolutions.
+     */
+    boolean isEmptyCommit(Hash hash);
 
     default void push(Hash hash, URI uri, String ref) throws IOException {
         push(hash, uri, ref, false);

@@ -43,23 +43,23 @@ abstract class PullRequestWorkItem implements WorkItem {
     final String prId;
     private final boolean needsReadyCheck;
     /**
-     * The updatedAt timestamp of the PR that triggered this WorkItem at the
-     * time it was triggered. Used for tracking reaction latency of the bot
-     * through logging. This is the best estimated value, which is the last
-     * updatedAt value when the bot finds the PR. This value is propagated
+     * The updatedAt timestamp of the external entity that triggered this WorkItem,
+     * which would be either a PR or a CSR Issue. Used for tracking reaction latency
+     * of the bot through logging. This is the best estimated value, which is the last
+     * updatedAt value when the bot finds the PR or CSR Issue. This value is propagated
      * through chains of WorkItems, as the complete chain is considered to have
-     * been triggered by the same PR update.
+     * been triggered by the same trigger.
      */
-    final ZonedDateTime prUpdatedAt;
+    final ZonedDateTime triggerUpdatedAt;
     PullRequest pr;
     private List<Comment> comments;
 
     PullRequestWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler,
-            ZonedDateTime prUpdatedAt, boolean needsReadyCheck) {
+            ZonedDateTime triggerUpdatedAt, boolean needsReadyCheck) {
         this.bot = bot;
         this.prId = prId;
         this.errorHandler = errorHandler;
-        this.prUpdatedAt = prUpdatedAt;
+        this.triggerUpdatedAt = triggerUpdatedAt;
         this.needsReadyCheck = needsReadyCheck;
     }
 
@@ -156,7 +156,7 @@ abstract class PullRequestWorkItem implements WorkItem {
      * @param log The logger to log to
      */
     protected void logLatency(String message, ZonedDateTime endTime, Logger log) {
-        var latency = Duration.between(prUpdatedAt, endTime);
+        var latency = Duration.between(triggerUpdatedAt, endTime);
         log.log(Level.INFO, message + latency, latency);
     }
 }

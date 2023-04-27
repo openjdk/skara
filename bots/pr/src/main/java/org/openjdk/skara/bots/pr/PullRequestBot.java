@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,7 +32,6 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.time.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.*;
 import java.util.regex.Pattern;
 
@@ -65,6 +64,12 @@ class PullRequestBot implements Bot {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private final PullRequestPoller poller;
     private final boolean reviewCleanBackport;
+    private final String mlbridgeBotName;
+    private final boolean reviewMerge;
+    private final boolean processPR;
+    private final boolean processCommit;
+    private final boolean enableMerge;
+    private final Set<String> mergeSources;
 
     private Instant lastFullUpdate;
 
@@ -77,7 +82,8 @@ class PullRequestBot implements Bot {
                    Path seedStorage, HostedRepository confOverrideRepo, String confOverrideName,
                    String confOverrideRef, String censusLink, Map<String, HostedRepository> forks,
                    Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr, boolean enableJep,
-                   boolean reviewCleanBackport) {
+                   boolean reviewCleanBackport, String mlbridgeBotName, boolean reviewMerge, boolean processPR, boolean processCommit,
+                   boolean enableMerge, Set<String> mergeSources) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -103,6 +109,13 @@ class PullRequestBot implements Bot {
         this.enableCsr = enableCsr;
         this.enableJep = enableJep;
         this.reviewCleanBackport = reviewCleanBackport;
+        this.mlbridgeBotName = mlbridgeBotName;
+        this.reviewMerge = reviewMerge;
+        this.processPR = processPR;
+        this.processCommit = processCommit;
+        this.enableMerge = enableMerge;
+        this.mergeSources = mergeSources;
+
         autoLabelled = new HashSet<>();
         poller = new PullRequestPoller(repo, true);
 
@@ -119,9 +132,8 @@ class PullRequestBot implements Bot {
         poller.retryPullRequest(pr, expiresAt);
     }
 
-    private List<WorkItem> getWorkItems(List<PullRequest> pullRequests) {
+    private List<WorkItem> getPullRequestWorkItems(List<PullRequest> pullRequests) {
         var ret = new ArrayList<WorkItem>();
-        ret.add(new CommitCommentsWorkItem(this, remoteRepo, excludeCommitCommentsFrom));
 
         for (var pr : pullRequests) {
             if (pr.state() == Issue.State.OPEN) {
@@ -137,9 +149,15 @@ class PullRequestBot implements Bot {
 
     @Override
     public List<WorkItem> getPeriodicItems() {
-        List<PullRequest> prs = poller.updatedPullRequests();
-        List<WorkItem> workItems = getWorkItems(prs);
-        poller.lastBatchHandled();
+        var workItems = new ArrayList<WorkItem>();
+        if (processCommit) {
+            workItems.add(new CommitCommentsWorkItem(this, remoteRepo, excludeCommitCommentsFrom));
+        }
+        if (processPR) {
+            List<PullRequest> prs = poller.updatedPullRequests();
+            workItems.addAll(getPullRequestWorkItems(prs));
+            poller.lastBatchHandled();
+        }
         return workItems;
     }
 
@@ -149,8 +167,14 @@ class PullRequestBot implements Bot {
         if (webHook.isEmpty()) {
             return new ArrayList<>();
         }
-
-        return getWorkItems(webHook.get().updatedPullRequests());
+        var workItems = new ArrayList<WorkItem>();
+        if (processCommit) {
+            workItems.add(new CommitCommentsWorkItem(this, remoteRepo, excludeCommitCommentsFrom));
+        }
+        if (processPR) {
+            workItems.addAll(getPullRequestWorkItems(webHook.get().updatedPullRequests()));
+        }
+        return workItems;
     }
 
     HostedRepository repo() {
@@ -266,6 +290,22 @@ class PullRequestBot implements Bot {
 
     public boolean reviewCleanBackport() {
         return reviewCleanBackport;
+    }
+
+    public String mlbridgeBotName() {
+        return mlbridgeBotName;
+    }
+
+    public boolean reviewMerge(){
+        return reviewMerge;
+    }
+
+    public boolean enableMerge() {
+        return enableMerge;
+    }
+
+    public Set<String> mergeSources() {
+        return mergeSources;
     }
 
     public Set<String> integrators() {

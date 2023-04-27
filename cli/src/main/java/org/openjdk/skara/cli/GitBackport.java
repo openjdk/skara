@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,8 +24,6 @@ package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.forge.*;
-import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.version.Version;
 import org.openjdk.skara.proxy.HttpProxy;
@@ -34,16 +32,14 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.file.*;
 import java.util.*;
-import java.util.function.Supplier;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 public class GitBackport {
     private static String getOption(String name, Arguments arguments, ReadOnlyRepository repo) throws IOException {
-        if (arguments.contains(name)) {
-            return arguments.get(name).asString();
+        var arg = ForgeUtils.getOption(name, arguments);
+        if (arg != null) {
+            return arg;
         }
-
         var lines = repo.config("backport." + name);
         return lines.size() == 1 ? lines.get(0) : null;
     }

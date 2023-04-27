@@ -163,4 +163,8 @@ public class HostUser {
                 ", fullName='" + fullName + '\'' +
                 '}';
     }
+
+    public void changeUserName(String username) {
+        this.username = username;
+    }
 }

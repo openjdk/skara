@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@ package org.openjdk.skara.forge.github;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.regex.Matcher;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
@@ -726,5 +727,18 @@ public class GitHubRepository implements HostedRepository {
     public void deleteLabel(Label label) {
         request.delete("labels/" + label.name())
                 .execute();
+    }
+
+    @Override
+    public int deleteDeployKeys(Duration age) {
+        var expired = request.get("keys").execute()
+                .stream()
+                .filter(key -> ZonedDateTime.parse(key.get("created_at").asString())
+                        .isBefore(ZonedDateTime.now().minus(age)))
+                .toList();
+        for (var key : expired) {
+            request.delete("keys/" + key.get("id")).execute();
+        }
+        return expired.size();
     }
 }

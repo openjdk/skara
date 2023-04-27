@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -71,16 +71,7 @@ public class GitFork {
     }
 
     private String getOption(String name) {
-        if (arguments.contains(name)) {
-            return arguments.get(name).asString();
-        }
-
-        var subsectionSpecific = gitConfig("fork." + sourceArg + "." + name);
-        if (subsectionSpecific != null) {
-            return subsectionSpecific;
-        }
-
-        return gitConfig("fork." + name);
+        return ForgeUtils.getOption(name, "fork", sourceArg, arguments);
     }
 
     private boolean getSwitch(String name) {

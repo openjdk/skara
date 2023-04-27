@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.json.*;
 
 import java.util.*;
@@ -42,6 +42,9 @@ public class PullRequestBotFactory implements BotFactory {
     public List<Bot> create(BotConfiguration configuration) {
         var ret = new ArrayList<Bot>();
         var specific = configuration.specific();
+        var issueProjects = new HashMap<String, IssueProject>();
+        var repositories = new HashMap<IssueProject, List<HostedRepository>>();
+        var pullRequestBotMap = new HashMap<String, PullRequestBot>();
 
         var externalPullRequestCommands = new HashMap<String, String>();
         if (specific.contains("external") && specific.get("external").contains("pr")) {
@@ -71,6 +74,11 @@ public class PullRequestBotFactory implements BotFactory {
                 var upstream = configuration.repository(fork.name());
                 forks.put(upstream.name(), repo);
             }
+        }
+
+        var mlbridgeBotName = "";
+        if (specific.contains("mlbridge")) {
+            mlbridgeBotName = specific.get("mlbridge").asString();
         }
 
         var excludeCommitCommentsFrom = new HashSet<Integer>();
@@ -106,8 +114,9 @@ public class PullRequestBotFactory implements BotFactory {
         for (var repo : specific.get("repositories").fields()) {
             var censusRepo = configuration.repository(repo.value().get("census").asString());
             var censusRef = configuration.repositoryRef(repo.value().get("census").asString());
+            var repository = configuration.repository(repo.name());
             var botBuilder = PullRequestBot.newBuilder()
-                                           .repo(configuration.repository(repo.name()))
+                                           .repo(repository)
                                            .censusRepo(censusRepo)
                                            .censusRef(censusRef)
                                            .blockingCheckLabels(blockers)
@@ -117,7 +126,8 @@ public class PullRequestBotFactory implements BotFactory {
                                            .externalCommitCommands(externalCommitCommands)
                                            .seedStorage(configuration.storageFolder().resolve("seeds"))
                                            .excludeCommitCommentsFrom(excludeCommitCommentsFrom)
-                                           .forks(forks);
+                                           .forks(forks)
+                                           .mlbridgeBotName(mlbridgeBotName);
 
             if (repo.value().contains("labels")) {
                 var labelGroup = repo.value().get("labels").asString();
@@ -140,8 +150,10 @@ public class PullRequestBotFactory implements BotFactory {
                                          .collect(Collectors.toSet());
                 botBuilder.twentyFourHoursLabels(labels);
             }
+            var issueString = "";
             if (repo.value().contains("issues")) {
-                botBuilder.issueProject(configuration.issueProject(repo.value().get("issues").asString()));
+                issueString = repo.value().get("issues").asString();
+                botBuilder.issueProject(configuration.issueProject(issueString));
             }
             if (repo.value().contains("ignorestale")) {
                 botBuilder.ignoreStaleReviews(repo.value().get("ignorestale").asBoolean());
@@ -160,10 +172,25 @@ public class PullRequestBotFactory implements BotFactory {
                 botBuilder.censusLink(repo.value().get("censuslink").asString());
             }
             if (repo.value().contains("csr")) {
-                botBuilder.enableCsr(repo.value().get("csr").asBoolean());
+                var enableCsr = repo.value().get("csr").asBoolean();
+                botBuilder.enableCsr(enableCsr);
+                if (enableCsr && !issueString.equals("")) {
+                    var issueProject = issueProjects.get(issueString);
+                    if (issueProject == null) {
+                        issueProject = configuration.issueProject(issueString);
+                        issueProjects.put(issueString, issueProject);
+                    }
+                    if (!repositories.containsKey(issueProject)) {
+                        repositories.put(issueProject, new ArrayList<>());
+                    }
+                    repositories.get(issueProject).add(repository);
+                }
             }
             if (repo.value().contains("jep")) {
                 botBuilder.enableJep(repo.value().get("jep").asBoolean());
+            }
+            if (repo.value().contains("merge")) {
+                botBuilder.enableMerge(repo.value().get("merge").asBoolean());
             }
             if (repo.value().contains("integrators")) {
                 var integrators = repo.value().get("integrators")
@@ -175,8 +202,30 @@ public class PullRequestBotFactory implements BotFactory {
             if (repo.value().contains("reviewCleanBackport")) {
                 botBuilder.reviewCleanBackport(repo.value().get("reviewCleanBackport").asBoolean());
             }
+            if (repo.value().contains("reviewMerge")) {
+                botBuilder.reviewMerge(repo.value().get("reviewMerge").asBoolean());
+            }
+            if (repo.value().contains("processPR")) {
+                botBuilder.processPR(repo.value().get("processPR").asBoolean());
+            }
+            if (repo.value().contains("processCommit")) {
+                botBuilder.processCommit(repo.value().get("processCommit").asBoolean());
+            }
 
-            ret.add(botBuilder.build());
+            if (repo.value().contains("mergeSources")) {
+                var mergeSources = repo.value().get("mergeSources").stream()
+                        .map(JSONValue::asString)
+                        .collect(Collectors.toSet());
+                botBuilder.mergeSources(mergeSources);
+            }
+
+            var prBot = botBuilder.build();
+            pullRequestBotMap.put(repository.name(), prBot);
+            ret.add(prBot);
+        }
+
+        for (IssueProject issueProject : issueProjects.values()) {
+            ret.add(new CSRIssueBot(issueProject, repositories.get(issueProject), pullRequestBotMap));
         }
 
         return ret;

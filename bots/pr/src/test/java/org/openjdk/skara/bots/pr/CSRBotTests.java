@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,62 +20,79 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.csr;
+package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.bots.common.BotUtils;
-import org.openjdk.skara.bots.common.SolvesTracker;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.openjdk.skara.forge.PullRequestUtils;
-import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.issuetracker.Issue;
-import org.openjdk.skara.test.*;
+import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.json.JSON;
-
-import org.junit.jupiter.api.*;
+import org.openjdk.skara.test.CheckableRepository;
+import org.openjdk.skara.test.HostCredentials;
+import org.openjdk.skara.test.TemporaryDirectory;
+import org.openjdk.skara.test.TestBotRunner;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
 class CSRBotTests {
     @Test
     void removeLabelForApprovedCSR(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
-            var repo = credentials.getHostedRepository();
-            var issues = credentials.getIssueProject();
-            var issue = issues.createIssue("This is an issue", List.of(), Map.of());
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
 
-            var csr = issues.createIssue("This is an approved CSR", List.of(), Map.of());
-            csr.setState(Issue.State.CLOSED);
-            csr.setProperty("resolution", JSON.object().put("name", "Approved"));
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot));
+
+            // Run issue bot once to initialize lastUpdatedAt
+            TestBotRunner.runPeriodicItems(csrIssueBot);
+
+            var csr = issueProject.createIssue("This is a CSR", List.of(), Map.of());
+            csr.setState(Issue.State.OPEN);
+            csr.setProperty("issuetype", JSON.of("CSR"));
             issue.addLink(Link.create(csr, "csr for").build());
-
-            var bot = new CSRPullRequestBot(repo, issues);
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
-            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
-            var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
+            PullRequestUtils.postPullRequestLinkComment(issue, pr);
 
-            // Add CSR label
-            pr.addLabel("csr");
+            // Use CSRIssueBot to add CSR label
+            TestBotRunner.runPeriodicItems(csrIssueBot);
+            assertTrue(pr.store().labelNames().contains("csr"));
+
+            // Approve CSR issue
+            csr.setState(Issue.State.CLOSED);
+            csr.setProperty("resolution", JSON.object().put("name", "Approved"));
 
             // Run bot
-            TestBotRunner.runPeriodicItems(bot);
-
+            TestBotRunner.runPeriodicItems(csrIssueBot);
             // The bot should have removed the CSR label
             assertFalse(pr.store().labelNames().contains("csr"));
+            assertTrue(pr.store().body().contains("- [x] Change requires CSR request"));
         }
     }
 
@@ -83,28 +100,36 @@ class CSRBotTests {
     void keepLabelForNoIssue(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
-            var repo = credentials.getHostedRepository();
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
             var issues = credentials.getIssueProject();
-            var bot = new CSRPullRequestBot(repo, issues);
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
-            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
-            var pr = credentials.createPullRequest(repo, "master", "edit", "This is an issue");
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is an issue");
 
-            // Add CSR label
-            pr.addLabel("csr");
+            // Use csr command to add csr label
+            var reviewPr = reviewer.pullRequest(pr.id());
+            reviewPr.addComment("/csr");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().labelNames().contains("csr"));
 
             // Run bot
-            TestBotRunner.runPeriodicItems(bot);
-
+            TestBotRunner.runPeriodicItems(prBot);
             // The bot should have kept the CSR label
             assertTrue(pr.store().labelNames().contains("csr"));
         }
@@ -114,27 +139,36 @@ class CSRBotTests {
     void keepLabelForNoJBS(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
-            var repo = credentials.getHostedRepository();
-            var issues = credentials.getIssueProject();
-            var bot = new CSRPullRequestBot(repo, issues);
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
-            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
-            var pr = credentials.createPullRequest(repo, "master", "edit", "123: This is an issue");
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "123: This is an issue");
 
-            // Add CSR label
-            pr.addLabel("csr");
+            // Use csr command to add csr label
+            var reviewPr = reviewer.pullRequest(pr.id());
+            reviewPr.addComment("/csr");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().labelNames().contains("csr"));
 
             // Run bot
-            TestBotRunner.runPeriodicItems(bot);
+            TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should have kept the CSR label
             assertTrue(pr.store().labelNames().contains("csr"));
@@ -145,37 +179,42 @@ class CSRBotTests {
     void keepLabelForNotApprovedCSR(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
-            var repo = credentials.getHostedRepository();
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
             var issues = credentials.getIssueProject();
             var issue = issues.createIssue("This is an issue", List.of(), Map.of());
 
             var csr = issues.createIssue("This is an approved CSR", List.of(), Map.of("resolution",
-                                                                                      JSON.object().put("name", "Unresolved")));
+                    JSON.object().put("name", "Unresolved")));
             csr.setState(Issue.State.OPEN);
             issue.addLink(Link.create(csr, "csr for").build());
 
-            var bot = new CSRPullRequestBot(repo, issues);
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
-            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
-            var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
 
             // Run bot
-            TestBotRunner.runPeriodicItems(bot);
+            TestBotRunner.runPeriodicItems(prBot);
 
             // The bot added the csr label automatically
             assertTrue(pr.store().labelNames().contains("csr"));
 
             // Run bot
-            TestBotRunner.runPeriodicItems(bot);
+            TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should have kept the CSR label
             assertTrue(pr.store().labelNames().contains("csr"));
@@ -186,7 +225,9 @@ class CSRBotTests {
     void handleCSRWithNullResolution(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
-            var repo = credentials.getHostedRepository();
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
             var issues = credentials.getIssueProject();
             var issue = issues.createIssue("This is an issue", List.of(), Map.of());
 
@@ -194,28 +235,31 @@ class CSRBotTests {
             csr.setState(Issue.State.OPEN);
             issue.addLink(Link.create(csr, "csr for").build());
 
-            var bot = new CSRPullRequestBot(repo, issues);
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
-            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
-            var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
 
             // Run bot
-            TestBotRunner.runPeriodicItems(bot);
+            TestBotRunner.runPeriodicItems(prBot);
 
             // The bot added the csr label automatically
             assertTrue(pr.store().labelNames().contains("csr"));
 
             // Run bot, should *not* throw NPE
-            TestBotRunner.runPeriodicItems(bot);
+            TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should have kept the CSR label
             assertTrue(pr.store().labelNames().contains("csr"));
@@ -226,37 +270,42 @@ class CSRBotTests {
     void handleCSRWithNullName(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
-            var repo = credentials.getHostedRepository();
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
             var issues = credentials.getIssueProject();
             var issue = issues.createIssue("This is an issue", List.of(), Map.of());
 
             var csr = issues.createIssue("This is an CSR with null resolution", List.of(),
-                                         Map.of("resolution", JSON.object().put("name", JSON.of())));
+                    Map.of("resolution", JSON.object().put("name", JSON.of())));
             csr.setState(Issue.State.OPEN);
             issue.addLink(Link.create(csr, "csr for").build());
 
-            var bot = new CSRPullRequestBot(repo, issues);
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
-            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
-            var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
 
             // Run bot
-            TestBotRunner.runPeriodicItems(bot);
+            TestBotRunner.runPeriodicItems(prBot);
 
             // The bot added the csr label automatically
             assertTrue(pr.store().labelNames().contains("csr"));
 
             // Run bot, should *not* throw NPE
-            TestBotRunner.runPeriodicItems(bot);
+            TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should have kept the CSR label
             assertTrue(pr.store().labelNames().contains("csr"));
@@ -267,10 +316,17 @@ class CSRBotTests {
     void testBackportCsr(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
-            var repo = credentials.getHostedRepository();
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
             var issueProject = credentials.getIssueProject();
-            var csrPullRequestBot = new CSRPullRequestBot(repo, issueProject);
-            var csrIssueBot = new CSRIssueBot(issueProject, List.of(repo));
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject).censusRepo(censusBuilder.build()).enableCsr(true).build();
+
+            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot));
 
             // Run issue bot once to initialize lastUpdatedAt
             TestBotRunner.runPeriodicItems(csrIssueBot);
@@ -288,9 +344,9 @@ class CSRBotTests {
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
-            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Push a commit to the jdk18 branch
             var jdk18Branch = localRepo.branch(masterHash, "jdk18");
@@ -301,7 +357,7 @@ class CSRBotTests {
             var issueNumber = issue.id().split("-")[1];
             var commitMessage = issueNumber + ": This is the primary issue\n\nReviewed-by: integrationreviewer2";
             var commitHash = localRepo.commit(commitMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
-            localRepo.push(commitHash, repo.authenticatedUrl(), "jdk18", true);
+            localRepo.push(commitHash, author.authenticatedUrl(), "jdk18", true);
 
             // "backport" the commit to the master branch
             localRepo.checkout(localRepo.defaultBranch());
@@ -311,9 +367,12 @@ class CSRBotTests {
             Files.writeString(newFile2, "a_new_file");
             localRepo.add(newFile2);
             var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
-            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
-            var pr = credentials.createPullRequest(repo, "master", "edit", issueNumber + ": This is the primary issue");
-            pr.addLabel("backport");
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + commitHash.hex());
+
+            // run bot to add backport label
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().labelNames().contains("backport"));
             // Add the notification link to the PR in the issue. This is needed for the CSRIssueBot to
             // be able to trigger on CSR issue updates
             PullRequestUtils.postPullRequestLinkComment(issue, pr);
@@ -324,10 +383,10 @@ class CSRBotTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             var confHash = localRepo.commit("Set version as null", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.authenticatedUrl(), "edit", true);
+            localRepo.push(confHash, author.authenticatedUrl(), "edit", true);
             assertFalse(pr.store().labelNames().contains("csr"));
             // Run bot. The bot won't get a CSR.
-            TestBotRunner.runPeriodicItems(csrPullRequestBot);
+            TestBotRunner.runPeriodicItems(prBot);
             // The bot shouldn't add the `csr` label.
             assertFalse(pr.store().labelNames().contains("csr"));
 
@@ -337,9 +396,9 @@ class CSRBotTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as a wrong value", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.authenticatedUrl(), "edit", true);
+            localRepo.push(confHash, author.authenticatedUrl(), "edit", true);
             // Run bot. The bot won't get a CSR.
-            TestBotRunner.runPeriodicItems(csrPullRequestBot);
+            TestBotRunner.runPeriodicItems(prBot);
             // The bot shouldn't add the `csr` label.
             assertFalse(pr.store().labelNames().contains("csr"));
 
@@ -352,9 +411,9 @@ class CSRBotTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 17", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.authenticatedUrl(), "edit", true);
+            localRepo.push(confHash, author.authenticatedUrl(), "edit", true);
             // Run bot. The primary CSR doesn't have the fix version `17`, so the bot won't get a CSR.
-            TestBotRunner.runPeriodicItems(csrPullRequestBot);
+            TestBotRunner.runPeriodicItems(prBot);
             // The bot shouldn't add the `csr` label.
             assertFalse(pr.store().labelNames().contains("csr"));
 
@@ -375,9 +434,17 @@ class CSRBotTests {
             backportIssue.setState(Issue.State.OPEN);
             issue.addLink(Link.create(backportIssue, "backported by").build());
             assertTrue(pr.store().labelNames().contains("csr"));
-            pr.removeLabel("csr");
+
+            // remove the csr label with /csr command
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addComment("/csr unneeded");
+            // Run csrIssueBot to update pr body
+            TestBotRunner.runPeriodicItems(csrIssueBot);
+            TestBotRunner.runPeriodicItems(prBot);
+            assertFalse(pr.store().labelNames().contains("csr"));
+
             // Run bot. The bot can find a backport issue but can't find a backport CSR.
-            TestBotRunner.runPeriodicItems(csrPullRequestBot);
+            TestBotRunner.runPeriodicItems(prBot);
             // The bot shouldn't add the `csr` label.
             assertFalse(pr.store().labelNames().contains("csr"));
 
@@ -401,156 +468,25 @@ class CSRBotTests {
             Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 11", "duke", "duke@openjdk.org");
-            localRepo.push(confHash, repo.authenticatedUrl(), "edit", true);
+            localRepo.push(confHash, author.authenticatedUrl(), "edit", true);
             pr.removeLabel("csr");
             // Run bot.
-            TestBotRunner.runPeriodicItems(csrPullRequestBot);
+            TestBotRunner.runPeriodicItems(prBot);
             // The bot should have added the CSR label
             assertTrue(pr.store().labelNames().contains("csr"));
 
             // Set the backport CSR to have multiple fix versions, excluded 11.
             backportCsr.setProperty("fixVersions", JSON.array().add("17").add("8"));
-            pr.removeLabel("csr");
+            reviewerPr.addComment("/csr unneeded");
+            // Run csrIssueBot to update the pr body
+            TestBotRunner.runPeriodicItems(csrIssueBot);
+            TestBotRunner.runPeriodicItems(prBot);
+            assertFalse(pr.store().labelNames().contains("csr"));
+
             // Run bot.
-            TestBotRunner.runPeriodicItems(csrPullRequestBot);
+            TestBotRunner.runPeriodicItems(prBot);
             // The bot shouldn't add the `csr` label.
             assertFalse(pr.store().labelNames().contains("csr"));
-        }
-    }
-
-    private String generateCSRProgressMessage(org.openjdk.skara.issuetracker.Issue issue) {
-        return "Change requires CSR request [" + issue.id() + "](" + issue.webUrl() + ") to be approved";
-    }
-
-    @Test
-    void testCsrUpdateMarker(TestInfo testInfo) throws IOException {
-        try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory()) {
-            var repo = credentials.getHostedRepository();
-            var issueProject = credentials.getIssueProject();
-            var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
-            issue.setProperty("issuetype", JSON.of("Bug"));
-            var csrPullRequestBot = new CSRPullRequestBot(repo, issueProject);
-            var csrIssueBot = new CSRIssueBot(issueProject, List.of(repo));
-
-            // Run issue bot once to initialize lastUpdatedAt
-            TestBotRunner.runPeriodicItems(csrIssueBot);
-
-            // Populate the projects repository
-            var localRepoFolder = tempFolder.path().resolve("localrepo");
-            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
-            var masterHash = localRepo.resolve("master").orElseThrow();
-            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
-
-            // Make a change with a corresponding PR
-            var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
-            var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
-            // Add the notification link to the PR in the issue. This is needed for the CSRIssueBot to
-            // be able to trigger on CSR issue updates
-            PullRequestUtils.postPullRequestLinkComment(issue, pr);
-            // Run bot
-            TestBotRunner.runPeriodicItems(csrPullRequestBot);
-            // The bot shouldn't add the csr update marker
-            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
-
-            // Add the csr issue.
-            var csr = issueProject.createIssue("This is an CSR <1>", List.of(), Map.of());
-            csr.setProperty("issuetype", JSON.of("CSR"));
-            csr.setState(Issue.State.OPEN);
-            issue.addLink(Link.create(csr, "csr for").build());
-            // Run just the pull request bot
-            TestBotRunner.runPeriodicItems(csrPullRequestBot);
-            // Nothing should have happened
-            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
-            // Run csr issue bot to trigger updates on the CSR issue
-            TestBotRunner.runPeriodicItems(csrIssueBot);
-            // The bot should not add the csr update marker
-            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
-
-            // Add csr issue and progress to the PR body
-            pr.setBody("PR body\n" + PROGRESS_MARKER + csr.id() + csr.webUrl().toString() + BotUtils.escape(csr.title()) + " (**CSR**)"
-                    + "- [ ] " + generateCSRProgressMessage(csr));
-            // Run bot
-            TestBotRunner.runPeriodicItems(csrPullRequestBot);
-            // The bot shouldn't add the csr update marker
-            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
-
-            // Set csr status to closed and approved.
-            csr.setState(Issue.State.CLOSED);
-            csr.setProperty("resolution", JSON.object().put("name", "Approved"));
-            // un csr issue bot to trigger updates on the CSR issue
-            TestBotRunner.runPeriodicItems(csrIssueBot);
-            // The bot should add the csr update marker
-            assertTrue(pr.store().body().contains(CSR_UPDATE_MARKER));
-
-            // Add csr issue and selected progress to the PR body
-            pr.setBody("PR body\n" + PROGRESS_MARKER + csr.id() + csr.webUrl().toString() + BotUtils.escape(csr.title()) + " (**CSR**)"
-                    + "- [x] " + generateCSRProgressMessage(csr));
-            // Run bot
-            TestBotRunner.runPeriodicItems(csrPullRequestBot);
-            // The bot shouldn't add the csr update marker
-            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
-
-            // Add csr update marker to the pull request body manually.
-            pr.setBody("PR body\n" + PROGRESS_MARKER + csr.id() + csr.webUrl().toString() + BotUtils.escape(csr.title()) + " (**CSR**)"
-                    + "- [ ] " + generateCSRProgressMessage(csr));
-            // Run bot
-            TestBotRunner.runPeriodicItems(csrPullRequestBot);
-            // The bot shouldn't add the csr update marker again. The PR should have only one csr update marker.
-            assertTrue(pr.store().body().contains(CSR_UPDATE_MARKER));
-            assertEquals(pr.store().body().indexOf(CSR_UPDATE_MARKER), pr.store().body().lastIndexOf(CSR_UPDATE_MARKER));
-        }
-    }
-
-    @Test
-    void testCsrUpdateMarkerWithWithdrawnCSRIssue(TestInfo testInfo) throws IOException {
-        try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory()) {
-            var repo = credentials.getHostedRepository();
-            var issueProject = credentials.getIssueProject();
-            var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
-            issue.setProperty("issuetype", JSON.of("Bug"));
-            var csrPullRequestBot = new CSRPullRequestBot(repo, issueProject);
-            var csrIssueBot = new CSRIssueBot(issueProject, List.of(repo));
-
-            // Run issue bot once to initialize lastUpdatedAt
-            TestBotRunner.runPeriodicItems(csrIssueBot);
-
-            // Populate the projects repository
-            var localRepoFolder = tempFolder.path().resolve("localrepo");
-            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
-            var masterHash = localRepo.resolve("master").orElseThrow();
-            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
-
-            // Make a change with a corresponding PR
-            var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
-            var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
-            // Add the notification link to the PR in the issue. This is needed for the CSRIssueBot to
-            // be able to trigger on CSR issue updates
-            PullRequestUtils.postPullRequestLinkComment(issue, pr);
-            // Run bot
-            TestBotRunner.runPeriodicItems(csrPullRequestBot);
-            // The bot shouldn't add the csr update marker
-            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
-
-            // Add a withdrawn csr issue.
-            var csr = issueProject.createIssue("This is an CSR", List.of(), Map.of());
-            csr.setProperty("issuetype", JSON.of("CSR"));
-            csr.setState(Issue.State.CLOSED);
-            csr.setProperty("resolution", JSON.object().put("name", "Withdrawn"));
-            issue.addLink(Link.create(csr, "csr for").build());
-            // Run just the pull request bot
-            TestBotRunner.runPeriodicItems(csrPullRequestBot);
-            // Nothing should have happened
-            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
-            // Run csr issue bot to trigger updates on the CSR issue
-            TestBotRunner.runPeriodicItems(csrIssueBot);
-            // The bot should not add the csr update marker
-            assertFalse(pr.store().body().contains(CSR_UPDATE_MARKER));
         }
     }
 
@@ -558,39 +494,47 @@ class CSRBotTests {
     void testPRWithMultipleIssues(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
-            var repo = credentials.getHostedRepository();
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
             var issueProject = credentials.getIssueProject();
             var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
             issue.setProperty("issuetype", JSON.of("Bug"));
-            var csrPullRequestBot = new CSRPullRequestBot(repo, issueProject);
-            var csrIssueBot = new CSRIssueBot(issueProject, List.of(repo));
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
+            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot));
             // Run issue bot once to initialize lastUpdatedAt
             TestBotRunner.runPeriodicItems(csrIssueBot);
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
-            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, repo.authenticatedUrl(), "edit", true);
-            var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
-            pr.setBody("PR body\n" + PROGRESS_MARKER);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
             // Add the notification link to the PR in the issue. This is needed for the CSRIssueBot to
             // be able to trigger on CSR issue updates
             PullRequestUtils.postPullRequestLinkComment(issue, pr);
             // Run bot
-            TestBotRunner.runPeriodicItems(csrPullRequestBot);
+            TestBotRunner.runPeriodicItems(prBot);
 
             // Add another issue to this pr
             var issue2 = issueProject.createIssue("This is an issue 2", List.of(), Map.of());
             issue2.setProperty("issuetype", JSON.of("Bug"));
-            pr.addComment(SolvesTracker.setSolvesMarker(new org.openjdk.skara.vcs.openjdk.Issue(issue2.id(), issue2.title())));
             PullRequestUtils.postPullRequestLinkComment(issue2, pr);
+
+            // Add issue2 to this pr
+            pr.addComment("/issue " + issue2.id());
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().comments().get(pr.store().comments().size() - 1).body().contains("solves: '2'"));
 
             // Add a csr to issue2
             var csr2 = issueProject.createIssue("This is an CSR for issue2", List.of(), Map.of());
@@ -601,18 +545,23 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(csrIssueBot);
             // PR should contain csr label
             assertTrue(pr.store().labelNames().contains("csr"));
+            assertTrue(pr.store().body().contains("This is an CSR for issue2"));
 
             // Add another issue to this pr
             var issue3 = issueProject.createIssue("This is an issue 3", List.of(), Map.of());
             issue3.setProperty("issuetype", JSON.of("Bug"));
-            pr.addComment(SolvesTracker.setSolvesMarker(new org.openjdk.skara.vcs.openjdk.Issue(issue3.id(), issue3.title())));
             PullRequestUtils.postPullRequestLinkComment(issue3, pr);
+
+            // Add issue3 to this pr
+            pr.addComment("/issue " + issue3.id());
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().comments().get(pr.store().comments().size() - 1).body().contains("solves: '4'"));
 
             // Withdrawn the csr for issue2
             csr2.setState(Issue.State.CLOSED);
             csr2.setProperty("resolution", JSON.object().put("name", "Withdrawn"));
             TestBotRunner.runPeriodicItems(csrIssueBot);
-            assertTrue(pr.store().body().contains(CSR_UPDATE_MARKER));
+            assertTrue(pr.store().body().contains("This is an CSR for issue2 (**CSR**) (Withdrawn)"));
             // PR should not contain csr label
             assertFalse(pr.store().labelNames().contains("csr"));
 
@@ -638,6 +587,67 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(csrIssueBot);
             // PR should not contain csr label
             assertFalse(pr.store().labelNames().contains("csr"));
+        }
+    }
+
+    @Test
+    void testFindCSRWithVersionInMergedBranch(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot));
+
+            // Run issue bot once to initialize lastUpdatedAt
+            TestBotRunner.runPeriodicItems(csrIssueBot);
+
+            var csr = issueProject.createIssue("This is a CSR", List.of(), Map.of());
+            csr.setState(Issue.State.OPEN);
+            csr.setProperty("issuetype", JSON.of("CSR"));
+            csr.setProperty("fixVersions", JSON.array().add("17"));
+            issue.addLink(Link.create(csr, "csr for").build());
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
+            PullRequestUtils.postPullRequestLinkComment(issue, pr);
+
+            // Change .jcheck/conf in targetBranch
+            localRepo.checkout(masterHash);
+            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            var newConf = defaultConf.replace("version=0.1", "version=17");
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            localRepo.add(localRepo.root().resolve(".jcheck/conf"));
+            var confHash = localRepo.commit("Set version as 17", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, author.authenticatedUrl(), "master", true);
+
+            // The bot will be able to find the csr although fixVersion in source branch is 0.1
+            TestBotRunner.runPeriodicItems(csrIssueBot);
+            assertTrue(pr.store().labelNames().contains("csr"));
+
+            reviewer.pullRequest(pr.id()).addComment("/csr unneeded");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            assertTrue(pr.store().comments().get(pr.store().comments().size() - 1).body()
+                    .contains("@user2 The CSR requirement cannot be removed as CSR issues already exist. " +
+                            "Please withdraw [TEST-2](http://localhost/project/testTEST-2) and then use the command `/csr unneeded` again."));
         }
     }
 }

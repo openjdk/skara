@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -50,6 +50,7 @@ public class CommitCommandTests {
                                     .censusRepo(censusBuilder.build())
                                     .censusLink("https://census.com/{{contributor}}-profile")
                                     .seedStorage(seedFolder)
+                                    .processPR(false)
                                     .build();
 
             // Populate the projects repository
@@ -82,6 +83,16 @@ public class CommitCommandTests {
 
             replies = author.commitComments(editHash);
             CommitCommandAsserts.assertLastCommentContains(replies, "Unknown command `hello` - for a list of valid commands use `/help`.");
+
+            editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // The command would not be processed
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addComment("/help");
+            TestBotRunner.runPeriodicItems(bot);
+            PullRequestAsserts.assertLastCommentContains(pr, "/help");
         }
     }
 
@@ -262,6 +273,103 @@ public class CommitCommandTests {
             var replies = author.commitComments(masterHash);
             CommitCommandAsserts.assertLastCommentContains(replies, "There is no `.jcheck/conf` present at revision");
             CommitCommandAsserts.assertLastCommentContains(replies, "cannot process command");
+        }
+    }
+
+    @Test
+    void disableProcessCommit(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var bot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .processCommit(false)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change directly on master
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "master");
+
+            // Add a help command
+            author.addCommitComment(editHash, "/help");
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The command should not be processed
+            var replies = author.commitComments(editHash);
+            CommitCommandAsserts.assertLastCommentContains(replies, "/help");
+
+            editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // The pr command would be processed
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addComment("/help");
+            TestBotRunner.runPeriodicItems(bot);
+            PullRequestAsserts.assertLastCommentContains(pr, "Available commands:");
+        }
+    }
+
+    @Test
+    void disableProcessCommitAndProcessPR(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var bot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .processCommit(false)
+                    .processPR(false)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change directly on master
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "master");
+
+            // Add a help command
+            author.addCommitComment(editHash, "/help");
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The command should not be processed
+            var replies = author.commitComments(editHash);
+            CommitCommandAsserts.assertLastCommentContains(replies, "/help");
+
+            editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // The pr command would not be processed
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addComment("/help");
+            TestBotRunner.runPeriodicItems(bot);
+            PullRequestAsserts.assertLastCommentContains(pr, "/help");
         }
     }
 }

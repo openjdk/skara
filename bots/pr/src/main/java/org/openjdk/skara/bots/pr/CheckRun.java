@@ -31,6 +31,7 @@ import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jbs.Backports;
 import org.openjdk.skara.jbs.JdkVersion;
+import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
@@ -72,12 +73,14 @@ class CheckRun {
     private static final Set<String> PRIMARY_TYPES = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final Set<String> newLabels;
     private final boolean reviewCleanBackport;
+    private final boolean reviewMerge;
 
     private Duration expiresIn;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
-                     CensusInstance censusInstance, boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport) throws IOException {
+                     CensusInstance censusInstance, boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport,
+                     boolean reviewMerge) throws IOException {
         this.workItem = workItem;
         this.pr = pr;
         this.localRepo = localRepo;
@@ -90,6 +93,7 @@ class CheckRun {
         this.ignoreStaleReviews = ignoreStaleReviews;
         this.integrators = integrators;
         this.reviewCleanBackport = reviewCleanBackport;
+        this.reviewMerge = reviewMerge;
 
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
         checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews,
@@ -100,9 +104,9 @@ class CheckRun {
 
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                         List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance,
-                        boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport) throws IOException {
+                        boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport, boolean reviewMerge) throws IOException {
         var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance,
-                ignoreStaleReviews, integrators, reviewCleanBackport);
+                ignoreStaleReviews, integrators, reviewCleanBackport, reviewMerge);
         run.checkStatus();
         if (run.expiresIn != null) {
             return Optional.of(Instant.now().plus(run.expiresIn));
@@ -140,26 +144,27 @@ class CheckRun {
     }
 
     /**
-     * Get the csr issues. Note: this `Issue` is the issue in module `issuetracker`.
+     * Get the csr issue map, key is the main issue and value is the csr issue.
+     * Note: The type of csr issue is 'org.openjdk.skara.issuetracker.Issue'.
      */
-    private List<org.openjdk.skara.issuetracker.Issue> getCsrIssueTrackerIssues(List<Issue> issues, JdkVersion version) {
+    private Map<Issue, org.openjdk.skara.issuetracker.Issue> getCsrIssueTrackerIssues(List<Issue> issues, JdkVersion version) {
         var issueProject = issueProject();
+        var csrIssueMap = new HashMap<Issue, org.openjdk.skara.issuetracker.Issue>();
         if (issueProject == null) {
-            return List.of();
+            return Map.of();
         }
         if (version == null) {
-            return List.of();
+            return Map.of();
         }
-        var csrIssues = new ArrayList<org.openjdk.skara.issuetracker.Issue>();
         for (var issue : issues) {
             var jbsIssueOpt = issueProject.issue(issue.shortId());
             if (jbsIssueOpt.isEmpty()) {
                 continue;
             }
-            Backports.findCsr(jbsIssueOpt.get(), version)
-                    .ifPresent(csrIssues::add);
+            var csrOptional = Backports.findCsr(jbsIssueOpt.get(), version);
+            csrOptional.ifPresent(csr -> csrIssueMap.put(issue, csr));
         }
-        return csrIssues;
+        return csrIssueMap;
     }
 
     /**
@@ -436,6 +441,15 @@ class CheckRun {
         }
 
         return isClean || isCleanLabelManuallyAdded;
+    }
+
+    private void updateMergeClean(Commit commit) {
+        boolean isClean = !commit.isMerge() || localRepo.isEmptyCommit(commit.hash());
+        if (isClean) {
+            newLabels.add("clean");
+        } else {
+            newLabels.remove("clean");
+        }
     }
 
     private Optional<HostedCommit> backportedFrom() {
@@ -725,7 +739,20 @@ class CheckRun {
         progressBody.append(makeCollapsible("Using Skara CLI tools", reviewUsingSkaraHelp()));
         progressBody.append(makeCollapsible("Using diff file", reviewUsingDiffsHelp()));
 
+        var webrevCommentLink = getWebrevCommentLink();
+        if (webrevCommentLink.isPresent()) {
+            progressBody.append("\n\n### Webrev\n");
+            progressBody.append(webrevCommentLink.get());
+        }
         return progressBody.toString();
+    }
+
+    private Optional<String> getWebrevCommentLink() {
+        var webrevComment = comments.stream()
+                .filter(comment -> comment.author().username().equals(workItem.bot.mlbridgeBotName()))
+                .filter(comment -> comment.body().contains(WEBREV_COMMENT_MARKER))
+                .findFirst();
+        return webrevComment.map(comment -> "[Link to Webrev Comment](" + pr.commentUrl(comment).toString() + ")");
     }
 
     private static String makeCollapsible(String summary, String content) {
@@ -1109,6 +1136,10 @@ class CheckRun {
                 rebasePossible = false;
             }
 
+            if (rebasePossible && PullRequestUtils.isMerge(pr)) {
+                localRepo.lookup(pr.headHash()).ifPresent(this::updateMergeClean);
+            }
+
             var original = backportedFrom();
             var isCleanBackport = false;
             if (original.isPresent()) {
@@ -1138,7 +1169,8 @@ class CheckRun {
                 additionalErrors = List.of("This PR only contains changes already present in the target");
             } else {
                 // Determine current status
-                var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), comments);
+                var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash,
+                        pr.repository().forge().currentUser(), comments, reviewMerge);
                 checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration, checkablePullRequest.targetHash());
                 // Don't need to run the second round if confOverride is set.
                 if (workItem.bot.confOverrideRepository().isEmpty() && isFileUpdated(".jcheck/conf", localHash)) {
@@ -1162,16 +1194,26 @@ class CheckRun {
                 needUpdateAdditionalProgresses = true;
             }
 
+            var confFile = localRepo.lines(Path.of(".jcheck/conf"), localHash);
             JdkVersion version = null;
-            if (sourceBranchJCheckConfValid) {
-                version = BotUtils.getVersion(pr).orElse(null);
+            if (confFile.isPresent() && sourceBranchJCheckConfValid) {
+                var configuration = JCheckConfiguration.parse(confFile.get());
+                var versionString = configuration.general().version().orElse(null);
+
+                if (versionString != null && !"".equals(versionString)) {
+                    version = JdkVersion.parse(versionString).orElse(null);
+                }
             }
             // issues without CSR issues and JEP issues
             var issues = issues();
-            var csrIssueTrackerIssues = getCsrIssueTrackerIssues(issues, version);
+            var csrIssueTrackerIssueMap = getCsrIssueTrackerIssues(issues, version);
+            var csrIssueTrackerIssues = csrIssueTrackerIssueMap.values().stream().toList();
             if (needUpdateAdditionalProgresses) {
                 additionalProgresses = botSpecificProgresses(csrIssueTrackerIssues, version);
             }
+
+            // Check the status of csr issues and determine whether to add or remove csr label here
+            updateCSRLabel(issues, version, csrIssueTrackerIssueMap);
 
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             var readyForReview = updateReadyForReview(visitor, additionalErrors);
@@ -1180,6 +1222,7 @@ class CheckRun {
             integrationBlockers.addAll(secondJCheckMessage);
 
             var reviewersCommandIssued = ReviewersTracker.additionalRequiredReviewers(pr.repository().forge().currentUser(), comments).isPresent();
+
             var reviewNeeded = !isCleanBackport || reviewCleanBackport || reviewersCommandIssued;
 
             // Calculate and update the status message if needed
@@ -1280,4 +1323,120 @@ class CheckRun {
                                 .anyMatch(patch -> (patch.source().path().isPresent() && patch.source().path().get().toString().equals(filename))
                                         || ((patch.target().path().isPresent() && patch.target().path().get().toString().equals(filename))))));
     }
+
+    private void updateCSRLabel(List<Issue> issues, JdkVersion version, Map<Issue, org.openjdk.skara.issuetracker.Issue> csrIssueTrackerIssueMap) {
+        if (issues.isEmpty()) {
+            return;
+        }
+
+        if (version == null) {
+            log.info("No fix version found in `.jcheck/conf` for " + describe(pr));
+            return;
+        }
+        boolean notExistingUnresolvedCSR = true;
+        boolean existingCSR = false;
+        boolean existingApprovedCSR = false;
+
+        var issueProject = issueProject();
+        if (issueProject == null) {
+            log.info("No issue project found for " + describe(pr));
+            return;
+        }
+
+        for (var issue : issues) {
+            var jbsIssueOpt = issueProject.issue(issue.shortId());
+            if (jbsIssueOpt.isEmpty()) {
+                // An issue could not be found, so the csr label cannot be removed
+                notExistingUnresolvedCSR = false;
+                var issueId = issue.project().isEmpty() ? (issueProject.name() + "-" + issue.id()) : issue.id();
+                log.info(issueId + " for " + describe(pr) + " not found");
+                continue;
+            }
+
+            var csr = csrIssueTrackerIssueMap.get(issue);
+            if (csr == null) {
+                log.info("No CSR found for issue " + jbsIssueOpt.get().id() + " for " + describe(pr) + " with fixVersion " + version.raw());
+                continue;
+            }
+            existingCSR = true;
+
+            log.info("Found CSR " + csr.id() + " for issue " + jbsIssueOpt.get().id() + " for " + describe(pr));
+
+            var resolution = csr.properties().get("resolution");
+            if (resolution == null || resolution.isNull()) {
+                notExistingUnresolvedCSR = false;
+                if (!pr.labelNames().contains(CSR_LABEL)) {
+                    log.info("CSR issue resolution is null for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
+                    newLabels.add(CSR_LABEL);
+                } else {
+                    log.info("CSR issue resolution is null for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
+                }
+                continue;
+            }
+
+            var name = resolution.get("name");
+            if (name == null || name.isNull()) {
+                notExistingUnresolvedCSR = false;
+                if (!pr.labelNames().contains(CSR_LABEL)) {
+                    log.info("CSR issue resolution name is null for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
+                    newLabels.add(CSR_LABEL);
+                } else {
+                    log.info("CSR issue resolution name is null for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
+                }
+                continue;
+            }
+
+            if (csr.state() != org.openjdk.skara.issuetracker.Issue.State.CLOSED) {
+                notExistingUnresolvedCSR = false;
+                if (!pr.labelNames().contains(CSR_LABEL)) {
+                    log.info("CSR issue state is not closed for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
+                    newLabels.add(CSR_LABEL);
+                } else {
+                    log.info("CSR issue state is not closed for csr issue" + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
+                }
+                continue;
+            }
+
+            if (!name.asString().equals("Approved")) {
+                if (name.asString().equals("Withdrawn")) {
+                    // This condition is necessary to prevent the bot from adding the CSR label again.
+                    // And the bot can't remove the CSR label automatically here.
+                    // Because the PR author with the role of Committer may withdraw a CSR that
+                    // a Reviewer had requested and integrate it without satisfying that requirement.
+                    log.info("CSR closed and withdrawn for csr issue " + csr.id() + " for " + describe(pr));
+                } else if (!pr.labelNames().contains(CSR_LABEL)) {
+                    notExistingUnresolvedCSR = false;
+                    log.info("CSR issue resolution is not 'Approved' for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
+                    newLabels.add(CSR_LABEL);
+                } else {
+                    notExistingUnresolvedCSR = false;
+                    log.info("CSR issue resolution is not 'Approved' for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
+                }
+            } else {
+                existingApprovedCSR = true;
+            }
+        }
+        if (notExistingUnresolvedCSR && existingCSR && (!isCSRNeeded(pr.comments()) || existingApprovedCSR) && pr.labelNames().contains(CSR_LABEL)) {
+            log.info("All CSR issues closed and approved for " + describe(pr) + ", removing CSR label");
+            newLabels.remove(CSR_LABEL);
+        }
+    }
+
+    private boolean isCSRNeeded(List<Comment> comments) {
+        for (int i = comments.size() - 1; i >= 0; i--) {
+            var comment = comments.get(i);
+            if (comment.body().contains(CSR_NEEDED_MARKER)) {
+                return true;
+            }
+            if (comment.body().contains(CSR_UNNEEDED_MARKER)) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private String describe(PullRequest pr) {
+        return pr.repository().name() + "#" + pr.id();
+    }
+
 }

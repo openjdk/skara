@@ -28,10 +28,10 @@ import java.util.regex.Pattern;
 public class PullRequestConstants {
     // MARKERS
     public static final String PROGRESS_MARKER = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
-    public static final String CSR_UPDATE_MARKER = "<!-- csr: 'update' -->";
     public static final String CSR_NEEDED_MARKER = "<!-- csr: 'needed' -->";
     public static final String CSR_UNNEEDED_MARKER = "<!-- csr: 'unneeded' -->";
     public static final String JEP_MARKER = "<!-- jep: '%s' '%s' '%s' -->"; // <!-- jep: 'JEP-ID' 'ISSUE-ID' 'ISSUE-TITLE' -->
+    public static final String WEBREV_COMMENT_MARKER = "<!-- mlbridge webrev comment -->";
 
     // LABELS
     public static final String CSR_LABEL = "csr";

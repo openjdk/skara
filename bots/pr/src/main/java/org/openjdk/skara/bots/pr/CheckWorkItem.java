@@ -42,6 +42,9 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.openjdk.skara.bots.common.PullRequestConstants.WEBREV_COMMENT_MARKER;
+import static org.openjdk.skara.forge.PullRequestUtils.mergeSourcePattern;
+
 class CheckWorkItem extends PullRequestWorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     static final Pattern ISSUE_ID_PATTERN = Pattern.compile("^(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)"
@@ -57,9 +60,18 @@ class CheckWorkItem extends PullRequestWorkItem {
             See [OpenJDK Developers’ Guide](https://openjdk.org/guide/#working-with-pull-requests) for more information.
             """;
 
-    CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime prUpdatedAt,
-            boolean needsReadyCheck) {
-        super(bot, prId, errorHandler, prUpdatedAt, needsReadyCheck);
+    private final boolean forceUpdate;
+
+    CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
+                  boolean needsReadyCheck, boolean forceUpdate) {
+        super(bot, prId, errorHandler, triggerUpdatedAt, needsReadyCheck);
+        this.forceUpdate = forceUpdate;
+    }
+
+    CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
+                  boolean needsReadyCheck) {
+        super(bot, prId, errorHandler, triggerUpdatedAt, needsReadyCheck);
+        this.forceUpdate = false;
     }
 
     private String encodeReviewer(HostUser reviewer, CensusInstance censusInstance) {
@@ -93,6 +105,12 @@ class CheckWorkItem extends PullRequestWorkItem {
                                         .flatMap(comment -> comment.body().lines())
                                         .filter(line -> METADATA_COMMENTS_PATTERN.matcher(line).find())
                                         .collect(Collectors.joining());
+            commentString = commentString + comments.stream()
+                    .filter(comment -> comment.author().username().equals(bot.mlbridgeBotName()))
+                    .flatMap(comment -> comment.body().lines())
+                    .filter(line -> line.equals(WEBREV_COMMENT_MARKER))
+                    .findFirst().orElse("");
+
             var labelString = labels.stream()
                                     .sorted()
                                     .collect(Collectors.joining());
@@ -233,6 +251,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
         CensusInstance census;
         var comments = prComments();
+
         try {
             census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchArea.getCensus(), pr,
                     bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
@@ -271,12 +290,46 @@ class CheckWorkItem extends PullRequestWorkItem {
         // Filter out the active reviews
         var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews, pr.targetRef());
         // Determine if the current state of the PR has already been checked
-        if (!currentCheckValid(census, comments, activeReviews, labels)) {
+        if (forceUpdate || !currentCheckValid(census, comments, activeReviews, labels)) {
+            // If merge pr is not allowed, reply warning to the user and return
+            if (!bot.enableMerge() && PullRequestUtils.isMerge(pr)) {
+                var mergeDisabledText = "<!-- merge error -->\n" +
+                        ":warning: @" + pr.author().username() + " Merge-style pull requests are not allowed in this repository." +
+                        " If it was unintentional, please modify the title of this PR.";
+                addErrorComment(mergeDisabledText, comments);
+                return List.of();
+            }
+
+            // If source repo of Merge-style pr is not allowed, reply warning to the user and return
+            if (PullRequestUtils.isMerge(pr)) {
+                var sourceMatcher = mergeSourcePattern.matcher(pr.title());
+                if (sourceMatcher.matches()) {
+                    var source = sourceMatcher.group(1);
+                    if (source.contains(":")) {
+                        var repoName = source.split(":", 2)[0];
+                        if (!repoName.contains("/")) {
+                            repoName = Path.of(pr.repository().name()).resolveSibling(repoName).toString();
+                        }
+                        // Check repo name
+                        var mergeSources = bot.mergeSources();
+                        if (!mergeSources.isEmpty() && !mergeSources.contains(repoName) && !pr.repository().name().equals(repoName)) {
+                            var mergeSourceInvalidText = "<!-- merge error -->\n" +
+                                    ":warning: @" + pr.author().username() + " " + repoName +
+                                    " can not be source repo for merge-style pull requests in this repository.\n" +
+                                    "List of valid source repositories: \n" +
+                                    String.join(", ", bot.mergeSources().stream().sorted().toList()) + ".";
+                            addErrorComment(mergeSourceInvalidText, comments);
+                            return List.of();
+                        }
+                    }
+                }
+            }
+
             if (labels.contains("integrated")) {
                 log.info("Skipping check of integrated PR");
                 // We still need to make sure any commands get run or are able to finish a
                 // previously interrupted run
-                return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
+                return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
             }
 
             var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());
@@ -340,7 +393,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     comment.add(text);
                     pr.addComment(String.join("\n", comment));
                     pr.addLabel("backport");
-                    return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
+                    return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
                 } else {
                     var botUser = pr.repository().forge().currentUser();
                     var text = "<!-- backport error -->\n" +
@@ -380,14 +433,14 @@ class CheckWorkItem extends PullRequestWorkItem {
                 var comment = pr.addComment(text);
                 pr.addLabel("backport");
                 logLatency("Time from PR updated to backport comment posted ", comment.createdAt(), log);
-                return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
+                return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
             }
 
             // If the title needs updating, we run the check again
             if (updateTitle()) {
                 var updatedPr = bot.repo().pullRequest(prId);
                 logLatency("Time from PR updated to title corrected ", updatedPr.updatedAt(), log);
-                return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
+                return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
             }
 
             // Check force push
@@ -408,7 +461,8 @@ class CheckWorkItem extends PullRequestWorkItem {
                 Repository localRepo = materializeLocalRepo(scratchArea, hostedRepositoryPool);
 
                 var expiresAt = CheckRun.execute(this, pr, localRepo, comments, allReviews,
-                        activeReviews, labels, census, bot.ignoreStaleReviews(), bot.integrators(), bot.reviewCleanBackport());
+                        activeReviews, labels, census, bot.ignoreStaleReviews(), bot.integrators(), bot.reviewCleanBackport(),
+                        bot.reviewMerge());
                 if (log.isLoggable(Level.INFO)) {
                     // Log latency from the original updatedAt of the PR when this WorkItem
                     // was triggered to when it was just updated by the CheckRun.execute above.
@@ -435,7 +489,7 @@ class CheckWorkItem extends PullRequestWorkItem {
             log.log(Level.INFO, "Time from labels added to /integrate posted " + latency, latency);
         }
 
-        return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, prUpdatedAt, false));
+        return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
     }
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,8 +23,7 @@
 package org.openjdk.skara.cli.pr;
 
 import org.openjdk.skara.args.*;
-import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.cli.ForgeUtils;
 
 import static org.openjdk.skara.cli.pr.Utils.*;
 
@@ -74,11 +73,11 @@ public class GitPrContributor {
         var pr = getPullRequest(uri, repo, host, id);
 
         if (arguments.contains("add")) {
-            var username = arguments.get("add").asString();
+            var username = ForgeUtils.getOption("add", arguments);
             var comment = pr.addComment("/contributor add" + " " + username);
             showReply(awaitReplyTo(pr, comment));
         } else if (arguments.contains("remove")) {
-            var username = arguments.get("remove").asString();
+            var username = ForgeUtils.getOption("remove", arguments);
             var comment = pr.addComment("/contributor remove" + " " + username);
             showReply(awaitReplyTo(pr, comment));
         } else {

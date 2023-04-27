@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -827,5 +827,20 @@ public class GitLabRepository implements HostedRepository {
     public void deleteLabel(Label label) {
         request.delete("labels/" + label.name())
                 .execute();
+    }
+
+    @Override
+    public int deleteDeployKeys(Duration age) {
+        var expiredKeys = request.get("deploy_keys").execute()
+                .stream()
+                .filter(key -> ZonedDateTime.parse(key.get("created_at").asString())
+                        .isBefore(ZonedDateTime.now().minus(age)))
+                .toList();
+        for (var key : expiredKeys) {
+            request.delete("deploy_keys/" + key.get("id"))
+                    .header("Content-Type", "application/json")
+                    .execute();
+        }
+        return expiredKeys.size();
     }
 }

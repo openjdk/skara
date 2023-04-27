@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -56,6 +56,12 @@ public class PullRequestBotBuilder {
     private Set<String> integrators = Set.of();
     private Set<Integer> excludeCommitCommentsFrom = Set.of();
     private boolean reviewCleanBackport = false;
+    private String mlbridgeBotName;
+    private boolean reviewMerge = false;
+    private boolean processPR = true;
+    private boolean processCommit = true;
+    private boolean enableMerge = true;
+    private Set<String> mergeSources = Set.of();
 
     PullRequestBotBuilder() {
     }
@@ -185,6 +191,36 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder mlbridgeBotName(String mlbridgeBotName) {
+        this.mlbridgeBotName = mlbridgeBotName;
+        return this;
+    }
+
+    public PullRequestBotBuilder reviewMerge(boolean reviewMerge) {
+        this.reviewMerge = reviewMerge;
+        return this;
+    }
+
+    public PullRequestBotBuilder processPR(boolean processPR) {
+        this.processPR = processPR;
+        return this;
+    }
+
+    public PullRequestBotBuilder processCommit(boolean processCommit) {
+        this.processCommit = processCommit;
+        return this;
+    }
+
+    public PullRequestBotBuilder enableMerge(boolean enableMerge) {
+        this.enableMerge = enableMerge;
+        return this;
+    }
+
+    public PullRequestBotBuilder mergeSources(Set<String> mergeSources) {
+        this.mergeSources = mergeSources;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration,
                                   externalPullRequestCommands, externalCommitCommands,
@@ -192,6 +228,7 @@ public class PullRequestBotBuilder {
                                   readyComments, issueProject, ignoreStaleReviews,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
                                   confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom,
-                                  enableCsr, enableJep, reviewCleanBackport);
+                                  enableCsr, enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge,
+                                  processPR, processCommit, enableMerge, mergeSources);
     }
 }

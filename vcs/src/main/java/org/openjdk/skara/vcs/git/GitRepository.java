@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -581,8 +581,27 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public void pushAll(URI uri) throws IOException {
-        try (var p = capture("git", "push", "--mirror", uri.toString())) {
+    public void pushAll(URI uri, boolean force) throws IOException {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("git", "push", "--mirror"));
+        if (force) {
+            cmd.add("--force");
+        }
+        cmd.add(uri.toString());
+        try (var p = capture(cmd)) {
+            await(p);
+        }
+    }
+
+    @Override
+    public void pushTags(URI uri, boolean force) throws IOException {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("git", "push", "--tags"));
+        if (force) {
+            cmd.add("--force");
+        }
+        cmd.add(uri.toString());
+        try (var p = capture(cmd)) {
             await(p);
         }
     }
@@ -1725,6 +1744,23 @@ public class GitRepository implements Repository {
         } catch (Throwable t) {
             stop(p);
             throw t;
+        }
+    }
+
+    @Override
+    public boolean isEmptyCommit(Hash hash) {
+        try (var p = capture("git", "show", "--cc", "--pretty=format:%b", hash.hex())) {
+            var res = p.await();
+            if (res.status() != 0) {
+                return false;
+            }
+            var lines = res.stdout();
+            for (int i = 0; i < lines.size() - 1; i++) {
+                if (lines.get(i).startsWith("diff") && lines.get(i + 1).startsWith("index")) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }

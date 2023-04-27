@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -2039,6 +2039,80 @@ public class IssueNotifierTests {
             // There should be no link
             var links = updatedIssue.links();
             assertEquals(0, links.size());
+        }
+    }
+
+    @Test
+    void testIssueBackportWithTag(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.authenticatedUrl());
+
+            var storageFolder = tempFolder.path().resolve("storage");
+            var issueProject = credentials.getIssueProject();
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object().put(".*aster", "12.0.2")).put("buildname", "team");
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+
+            // Initialize history
+            var current = localRepo.resolve("master").orElseThrow();
+            localRepo.tag(current, "jdk-12.0.2+9", "First tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"),
+                    Map.of("issuetype", JSON.of("Enhancement"),
+                            SUBCOMPONENT, JSON.of("java.io"),
+                            RESOLVED_IN_BUILD, JSON.of("b07")
+                    ));
+            var level = issue.properties().get("security");
+            issue.setProperty("fixVersions", JSON.array().add("13.0.1"));
+            issue.setProperty("priority", JSON.of("1"));
+            issue.addLabel("test");
+            issue.addLabel("temporary");
+
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
+
+            // Tag it
+            localRepo.tag(editHash, "jdk-12.0.2+110", "Second tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Same RepositoryWorkItem handles both tag and the commit
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The fixVersion should not have been updated
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals(Set.of("13.0.1"), fixVersions(updatedIssue));
+            assertEquals(OPEN, updatedIssue.state());
+            assertEquals(List.of(), updatedIssue.assignees());
+
+            // There should be a link
+            var links = updatedIssue.links();
+            assertEquals(1, links.size());
+            var link = links.get(0);
+            var backport = link.issue().orElseThrow();
+
+            // The backport issue should have a correct fixVersion and assignee
+            assertEquals(Set.of("12.0.2"), fixVersions(backport));
+            assertEquals(RESOLVED, backport.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), backport.assignees());
+
+            // Custom properties should also propagate
+            assertEquals("1", backport.properties().get("priority").asString());
+            assertEquals("java.io", backport.properties().get(SUBCOMPONENT).asString());
+
+            // Labels should not
+            assertEquals(0, backport.labelNames().size());
+
+            // Resolved in Build should be updated
+            assertEquals("b110", backport.properties().get(RESOLVED_IN_BUILD).asString());
         }
     }
 }

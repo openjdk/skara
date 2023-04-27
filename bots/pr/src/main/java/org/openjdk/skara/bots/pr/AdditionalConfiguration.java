@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,18 +31,23 @@ import java.io.IOException;
 import java.util.*;
 
 public class AdditionalConfiguration {
-    static List<String> get(ReadOnlyRepository repository, Hash hash, HostUser botUser, List<Comment> comments) throws IOException {
+    static List<String> get(ReadOnlyRepository repository, Hash hash, HostUser botUser, List<Comment> comments, boolean reviewMerge) throws IOException {
         var ret = new ArrayList<String>();
         var additionalReviewers = ReviewersTracker.additionalRequiredReviewers(botUser, comments);
-        if (additionalReviewers.isEmpty()) {
+        if (additionalReviewers.isEmpty() && !reviewMerge) {
             return ret;
         }
 
         var currentConfiguration = JCheckConfiguration.from(repository, hash).orElseThrow();
+        if (additionalReviewers.isEmpty()) {
+            additionalReviewers = Optional.of(new ReviewersTracker.AdditionalRequiredReviewers(0, ""));
+        }
         var updatedLimits = ReviewersTracker.updatedRoleLimits(currentConfiguration, additionalReviewers.get().number(), additionalReviewers.get().role());
-
         ret.add("[checks \"reviewers\"]");
         updatedLimits.forEach((role, count) -> ret.add(role + "=" + count));
+        if (reviewMerge) {
+            ret.add("merge=check");
+        }
         return ret;
     }
 }

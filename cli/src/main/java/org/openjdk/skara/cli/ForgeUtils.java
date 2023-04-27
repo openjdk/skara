@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -77,7 +77,7 @@ public class ForgeUtils {
 
     public static String getOption(String name, String command, String subsection, Arguments arguments) {
         if (arguments.contains(name)) {
-            return arguments.get(name).asString();
+            return getArgument(name, arguments);
         }
 
         if (subsection != null && !subsection.isEmpty()) {
@@ -88,6 +88,31 @@ public class ForgeUtils {
         }
 
         return gitConfig(command + "." + name);
+    }
+
+    // Returning null means that this option is not displayed in the command.
+    // If this option is not followed by an argument, the program will exit and report an error.
+    public static String getOption(String name, Arguments arguments) {
+        if (arguments.contains(name)) {
+            return getArgument(name, arguments);
+        }
+        return null;
+    }
+
+    public static String getOption(String name, Arguments arguments, String defaultVal) {
+        if (arguments.contains(name)) {
+            return getArgument(name, arguments);
+        }
+        return defaultVal;
+    }
+
+    private static String getArgument(String name, Arguments arguments) {
+        var arg = arguments.get(name);
+        if (!arg.isPresent()) {
+            System.err.printf("error: a non-empty value is needed for '%s'%n", name);
+            System.exit(1);
+        }
+        return arg.asString();
     }
 
     public static boolean getSwitch(String name, String command, String subsection, Arguments arguments) {

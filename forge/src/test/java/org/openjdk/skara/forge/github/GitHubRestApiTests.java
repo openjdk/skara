@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge.github;
 
+import java.time.Duration;
 import java.util.Properties;
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.Forge;
@@ -258,5 +259,13 @@ public class GitHubRestApiTests {
 
         var review = pr.reviews().get(0);
         assertEquals("https://git.openjdk.org/playground/pull/129#pullrequestreview-1302142525", pr.reviewUrl(review).toString());
+    }
+
+    @Test
+    void testDeleteDeployKey() {
+        var githubRepoOpt = githubHost.repository("zhaosongzs/Test");
+        assumeTrue(githubRepoOpt.isPresent());
+        var githubRepo = githubRepoOpt.get();
+        githubRepo.deleteDeployKeys(Duration.ofHours(24));
     }
 }

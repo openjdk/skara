@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,8 +23,7 @@
 package org.openjdk.skara.cli.pr;
 
 import org.openjdk.skara.args.*;
-import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.cli.ForgeUtils;
 
 import static org.openjdk.skara.cli.pr.Utils.*;
 
@@ -88,11 +87,11 @@ public class GitPrIssue {
         var pr = getPullRequest(uri, repo, host, id);
 
         if (arguments.contains("add")) {
-            var issueId = arguments.get("add").asString();
+            var issueId = ForgeUtils.getOption("add", arguments);
             var comment = pr.addComment("/issue add" + " " + issueId);
             showReply(awaitReplyTo(pr, comment));
         } else if (arguments.contains("remove")) {
-            var issueId = arguments.get("remove").asString();
+            var issueId = ForgeUtils.getOption("remove", arguments);
             var comment = pr.addComment("/issue remove" + " " + issueId);
             showReply(awaitReplyTo(pr, comment));
         } else if (arguments.contains("create")) {
@@ -100,8 +99,8 @@ public class GitPrIssue {
                 System.err.println("error: no component specified, use --component");
                 System.exit(1);
             }
-            var component = arguments.get("component").asString();
-            var prio = arguments.get("priority").orString("4");
+            var component = ForgeUtils.getOption("component", arguments);
+            var prio = ForgeUtils.getOption("priority", arguments, "4");
             if (!List.of("1", "2", "3", "4", "5").contains(prio)) {
                 System.err.println("error: unsupported priority: " + prio);
                 System.err.println("       Supported priorities are: 1,2,3,4,5");
