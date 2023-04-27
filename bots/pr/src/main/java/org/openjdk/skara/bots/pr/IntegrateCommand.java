@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -259,7 +259,7 @@ public class IntegrateCommand implements CommandHandler {
      */
     static boolean runJcheck(PullRequest pr, CensusInstance censusInstance, List<Comment> allComments, PrintWriter reply,
                       Repository localRepo, CheckablePullRequest checkablePr, Hash localHash, boolean reviewMerge) throws IOException {
-        var issues = checkablePr.createVisitor();
+        var issues = checkablePr.createVisitor(checkablePr.targetHash());
         var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments, reviewMerge);
         checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration, checkablePr.targetHash());
         if (!issues.messages().isEmpty()) {

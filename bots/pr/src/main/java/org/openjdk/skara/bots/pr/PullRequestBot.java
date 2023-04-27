@@ -69,6 +69,7 @@ class PullRequestBot implements Bot {
     private final boolean processPR;
     private final boolean processCommit;
     private final boolean enableMerge;
+    private final boolean jcheckMerge;
     private final Set<String> mergeSources;
 
     private Instant lastFullUpdate;
@@ -83,7 +84,7 @@ class PullRequestBot implements Bot {
                    String confOverrideRef, String censusLink, Map<String, HostedRepository> forks,
                    Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr, boolean enableJep,
                    boolean reviewCleanBackport, String mlbridgeBotName, boolean reviewMerge, boolean processPR, boolean processCommit,
-                   boolean enableMerge, Set<String> mergeSources) {
+                   boolean enableMerge, Set<String> mergeSources, boolean jcheckMerge) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -115,6 +116,7 @@ class PullRequestBot implements Bot {
         this.processCommit = processCommit;
         this.enableMerge = enableMerge;
         this.mergeSources = mergeSources;
+        this.jcheckMerge = jcheckMerge;
 
         autoLabelled = new HashSet<>();
         poller = new PullRequestPoller(repo, true);
@@ -302,6 +304,10 @@ class PullRequestBot implements Bot {
 
     public boolean enableMerge() {
         return enableMerge;
+    }
+
+    public boolean jcheckMerge() {
+        return jcheckMerge;
     }
 
     public Set<String> mergeSources() {
