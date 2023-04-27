@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import java.nio.file.Path;
 import java.util.logging.Level;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.bots.common.SolvesTracker;
