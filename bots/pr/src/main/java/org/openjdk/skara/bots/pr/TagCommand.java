@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,9 +30,10 @@ import org.openjdk.skara.jcheck.JCheckConfiguration;
 import java.io.PrintWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static org.openjdk.skara.bots.common.CommandNameEnum.tag;
 
 public class TagCommand implements CommandHandler {
     private void showHelp(PrintWriter reply) {
@@ -42,6 +43,11 @@ public class TagCommand implements CommandHandler {
     @Override
     public String description() {
         return "create a tag";
+    }
+
+    @Override
+    public String name() {
+        return tag.name();
     }
 
     @Override
@@ -56,7 +62,7 @@ public class TagCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequestBot bot, HostedCommit commit, LimitedCensusInstance censusInstance,
-            Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+            ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         try {
             if (!bot.integrators().contains(command.user().username())) {
                 reply.println("Only integrators for this repository are allowed to use the `/tag` command.");
@@ -83,8 +89,8 @@ public class TagCommand implements CommandHandler {
             }
             var tagName = parts[0];
 
-            var localRepoDir = scratchPath.resolve("tag-command")
-                                          .resolve(bot.repo().name());
+            var localRepoDir = scratchArea.get(this)
+                    .resolve(bot.repo().name());
             var localRepo = bot.hostedRepositoryPool()
                                .orElseThrow(() -> new IllegalStateException("Missing repository pool for PR bot"))
                                .materialize(bot.repo(), localRepoDir);

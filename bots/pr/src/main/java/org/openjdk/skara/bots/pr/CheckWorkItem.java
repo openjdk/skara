@@ -247,14 +247,14 @@ class CheckWorkItem extends PullRequestWorkItem {
     }
 
     @Override
-    public Collection<WorkItem> prRun(Path scratchPath) {
-        var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
+    public Collection<WorkItem> prRun(ScratchArea scratchArea) {
+        var seedPath = bot.seedStorage().orElse(scratchArea.getSeeds());
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
         CensusInstance census;
         var comments = prComments();
 
         try {
-            census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
+            census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchArea.getCensus(), pr,
                     bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
         } catch (MissingJCheckConfException e) {
             if (bot.confOverrideRepository().isEmpty()) {
@@ -337,7 +337,7 @@ class CheckWorkItem extends PullRequestWorkItem {
             if (backportHashMatcher.matches()) {
                 var hash = new Hash(backportHashMatcher.group(1));
                 try {
-                    var localRepo = materializeLocalRepo(scratchPath, hostedRepositoryPool);
+                    var localRepo = materializeLocalRepo(scratchArea, hostedRepositoryPool);
                     if (localRepo.isAncestor(hash, pr.headHash())) {
                         var text = "<!-- backport error -->\n" +
                                 ":warning: @" + pr.author().username() + " the given backport hash `" + hash.hex() +
@@ -459,7 +459,7 @@ class CheckWorkItem extends PullRequestWorkItem {
             }
 
             try {
-                Repository localRepo = materializeLocalRepo(scratchPath, hostedRepositoryPool);
+                Repository localRepo = materializeLocalRepo(scratchArea, hostedRepositoryPool);
 
                 var expiresAt = CheckRun.execute(this, pr, localRepo, comments, allReviews,
                         activeReviews, labels, census, bot.ignoreStaleReviews(), bot.integrators(), bot.reviewCleanBackport(),
@@ -509,9 +509,9 @@ class CheckWorkItem extends PullRequestWorkItem {
     // Lazily initiated
     private Repository localRepo;
 
-    private Repository materializeLocalRepo(Path scratchPath, HostedRepositoryPool hostedRepositoryPool) throws IOException {
+    private Repository materializeLocalRepo(ScratchArea scratchArea, HostedRepositoryPool hostedRepositoryPool) throws IOException {
         if (localRepo == null) {
-            var localRepoPath = scratchPath.resolve("pr").resolve("check").resolve(pr.repository().name());
+            var localRepoPath = scratchArea.get(pr.repository());
             localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, localRepoPath);
         }
         return localRepo;

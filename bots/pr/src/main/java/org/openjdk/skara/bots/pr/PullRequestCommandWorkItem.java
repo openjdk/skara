@@ -30,7 +30,6 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.*;
 
 import java.io.*;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
@@ -51,13 +50,18 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
 
     private static class InvalidBodyCommandHandler implements CommandHandler {
         @Override
-        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
             reply.println("The command `" + command.name() + "` cannot be used in the pull request body. Please use it in a new comment.");
         }
 
         @Override
         public String description() {
             return "";
+        }
+
+        @Override
+        public String name() {
+            return "invalidCommand";
         }
     }
 
@@ -113,7 +117,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         return pr.repository().name() + "#" + prId;
     }
 
-    private void processCommand(PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments,
+    private void processCommand(PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments,
                                 boolean isCommit) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
@@ -130,7 +134,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
                     var hash = pr.findIntegratedCommitHash();
                     if (hash.isPresent()) {
                         var commit = pr.repository().commit(hash.get()).orElseThrow();
-                        handler.get().handle(bot, commit, censusInstance, scratchPath, command, allComments, printer);
+                        handler.get().handle(bot, commit, censusInstance, scratchArea, command, allComments, printer);
                     } else {
                         // FIXME the argument `isCommit` is true here, which means the PR already has the `integrated` label
                         //  and has the integrated commit hash, so this branch would never be run.
@@ -151,7 +155,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
                     }
                     var labelsToAdd = new ArrayList<String>();
                     var labelsToRemove = new ArrayList<String>();
-                    handler.get().handle(bot, pr, censusInstance, scratchPath, command, allComments, printer, labelsToAdd, labelsToRemove);
+                    handler.get().handle(bot, pr, censusInstance, scratchArea, command, allComments, printer, labelsToAdd, labelsToRemove);
                     var newComment = pr.addComment(writer.toString());
                     var latency = Duration.between(command.createdAt(), newComment.createdAt());
                     log.log(Level.INFO, "Time from command '" + command.name() + "' to reply " + latency, latency);
@@ -175,7 +179,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     }
 
     @Override
-    public Collection<WorkItem> prRun(Path scratchPath) {
+    public Collection<WorkItem> prRun(ScratchArea scratchArea) {
         log.info("Looking for PR commands");
 
         var comments = getAllComments();
@@ -192,12 +196,12 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
             }
         }
 
-        var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
+        var seedPath = bot.seedStorage().orElse(scratchArea.getSeeds());
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
 
         CensusInstance census;
         try {
-            census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
+            census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchArea.getCensus(), pr,
                     bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
         } catch (InvalidJCheckConfException | MissingJCheckConfException e) {
             throw new RuntimeException(e);
@@ -209,11 +213,11 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         // If marked as integrated but there is no commit comment, any integrate command needs
         // to run again to correct the state of the PR.
         if (!pr.labelNames().contains("integrated") || pr.findIntegratedCommitHash().isEmpty()) {
-            processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments, false);
+            processCommand(pr, census, scratchArea, command, comments, false);
             // Run another check to reflect potential changes from commands
             return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
         } else {
-            processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments, true);
+            processCommand(pr, census, scratchArea, command, comments, true);
             return List.of();
         }
     }

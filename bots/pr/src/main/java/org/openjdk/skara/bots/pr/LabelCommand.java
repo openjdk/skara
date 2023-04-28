@@ -26,10 +26,11 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.*;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static org.openjdk.skara.bots.common.CommandNameEnum.label;
 
 public class LabelCommand implements CommandHandler {
     private final String commandName;
@@ -55,7 +56,7 @@ public class LabelCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!command.user().equals(pr.author()) && (!censusInstance.isCommitter(command.user()))) {
             reply.println("Only the PR author and project [Committers](https://openjdk.org/bylaws#committer) are allowed to modify labels on a PR.");
             return;
@@ -172,6 +173,11 @@ public class LabelCommand implements CommandHandler {
     @Override
     public String description() {
         return "add or remove an additional classification label";
+    }
+
+    @Override
+    public String name() {
+        return label.name();
     }
 
     @Override

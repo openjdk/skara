@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,15 +26,16 @@ import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.PrintWriter;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.openjdk.skara.bots.common.CommandNameEnum.summary;
+
 public class SummaryCommand implements CommandHandler {
     private static final Pattern INVALID_SUMMARY_PATTERN = Pattern.compile("(^(Co-authored-by:)(.*))|(^(Reviewed-by:)(.*))|(^(Backport-of:)(.*))|(^[0-9]+:(.*))");
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!command.user().equals(pr.author())) {
             reply.println("Only the author (@" + pr.author().username() + ") is allowed to issue the `/summary` command.");
             return;
@@ -80,6 +81,11 @@ public class SummaryCommand implements CommandHandler {
     @Override
     public String description() {
         return "updates the summary in the commit message";
+    }
+
+    @Override
+    public String name() {
+        return summary.name();
     }
 
     @Override
