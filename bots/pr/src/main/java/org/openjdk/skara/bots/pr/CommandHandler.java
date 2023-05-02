@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,22 +27,23 @@ import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.PrintWriter;
-import java.nio.file.Path;
 import java.util.List;
 
 interface CommandHandler {
     String description();
 
-    default void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath,
+    String name();
+
+    default void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea,
                         CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
     }
 
-    default void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
+    default void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command,
                         List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
-        handle(bot, pr, censusInstance, scratchPath, command, allComments, reply);
+        handle(bot, pr, censusInstance, scratchArea, command, allComments, reply);
     }
 
-    default void handle(PullRequestBot bot, HostedCommit commit, LimitedCensusInstance censusInstance, Path scratchPath,
+    default void handle(PullRequestBot bot, HostedCommit commit, LimitedCensusInstance censusInstance, ScratchArea scratchArea,
             CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
     }
 

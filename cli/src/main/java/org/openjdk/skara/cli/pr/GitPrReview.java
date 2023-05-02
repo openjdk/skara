@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
 package org.openjdk.skara.cli.pr;
 
 import org.openjdk.skara.args.*;
+import org.openjdk.skara.cli.ForgeUtils;
 import org.openjdk.skara.forge.Review;
 
 import static org.openjdk.skara.cli.pr.Utils.*;
@@ -82,10 +83,8 @@ public class GitPrReview {
         var id = pullRequestIdArgument(repo, arguments);
         var pr = getPullRequest(uri, repo, host, id);
 
-        var message = arguments.contains("message") ?
-            arguments.get("message").asString() :
-            null;
-        var type = arguments.get("type").asString();
+        var message = ForgeUtils.getOption("message", arguments);
+        var type = ForgeUtils.getOption("type", arguments);
         checkType(type, parser);
         if ("approve".equals(type)) {
             pr.addReview(Review.Verdict.APPROVED, message);

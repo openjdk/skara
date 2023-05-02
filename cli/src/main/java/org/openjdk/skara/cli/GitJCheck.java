@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -65,11 +65,7 @@ public class GitJCheck {
     }
 
     static String getOption(String name, Arguments arguments) {
-        if (arguments.contains(name)) {
-            return arguments.get(name).asString();
-        }
-
-        return gitConfig("jcheck." + name);
+        return ForgeUtils.getOption(name, "jcheck", null, arguments);
     }
 
     static boolean getSwitch(String name, Arguments arguments) {
@@ -283,11 +279,7 @@ public class GitJCheck {
         JCheckConfiguration overridingConfig = null;
         // Using jcheck configuration in a specified rev
         if (confRev) {
-            var rev = arguments.get("conf-rev").asString();
-            if (rev == null || rev.startsWith("--")) {
-                System.err.println(String.format("error: must enter rev after --conf-rev"));
-                return 1;
-            }
+            var rev = ForgeUtils.getOption("conf-rev", arguments);
             var confCommitHash = repo.resolve(rev);
             if (confCommitHash.isEmpty()) {
                 System.err.println(String.format("error: rev %s is invalid!", rev));
@@ -316,7 +308,7 @@ public class GitJCheck {
         }
         // Using pointed file as jcheck configuration or jcheck configuration in current working tree
         else if (confFile || confWorkingTree || workingTree) {
-            var fileName = confFile ? arguments.get("conf-file").asString() : ".jcheck/conf";
+            var fileName = ForgeUtils.getOption("conf-file", arguments, ".jcheck/conf");
             try {
                 var content = Files.readAllBytes(Path.of(fileName));
                 var lines = new String(content, StandardCharsets.UTF_8).lines().toList();

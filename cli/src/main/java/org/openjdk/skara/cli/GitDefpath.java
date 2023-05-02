@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,10 +23,8 @@
 package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
-import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.webrev.*;
 import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.version.Version;
 
@@ -218,7 +216,7 @@ public class GitDefpath {
         }
 
         var isMercurial = arguments.contains("mercurial");
-        var remote = arguments.contains("remote") ? arguments.get("remote").asString() : null;
+        var remote = ForgeUtils.getOption("remote", arguments);
         if (remote == null) {
             var lines = repo.config("defpath.remote");
             if (lines.size() == 1) {
@@ -237,7 +235,7 @@ public class GitDefpath {
             die("error: peers cannot be specified together with -d flag");
         }
 
-        var fallback = arguments.contains("secondary") ? arguments.get("secondary").asString() : null;
+        var fallback = ForgeUtils.getOption("secondary", arguments);
         if (fallback == null) {
             var lines = repo.config("defpath.secondary");
             if (lines.size() == 1) {

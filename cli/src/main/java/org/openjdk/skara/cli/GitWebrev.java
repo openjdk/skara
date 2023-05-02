@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -278,7 +278,11 @@ public class GitWebrev {
             System.exit(1);
         }
 
-        var rev = arguments.contains("rev") ? resolve(repo, arguments.get("rev").asString()) : null;
+        Hash rev = null;
+        var revArg = ForgeUtils.getOption("rev", arguments);
+        if (revArg != null) {
+            rev = resolve(repo, revArg);
+        }
         if (rev == null && !(arguments.contains("base") && arguments.contains("head"))) {
             if (isMercurial) {
                 resolve(repo, noOutgoing ? "tip" : "min(outgoing())^");
@@ -332,10 +336,18 @@ public class GitWebrev {
             }
         }
 
-        var base = arguments.contains("base") ? resolve(repo, arguments.get("base").asString()) : rev;
-        var head = arguments.contains("head") ? resolve(repo, arguments.get("head").asString()) : null;
+        var base = rev;
+        var baseArg = ForgeUtils.getOption("base", arguments);
+        if (baseArg != null) {
+            base = resolve(repo, baseArg);
+        }
+        Hash head = null;
+        var headArg = ForgeUtils.getOption("head", arguments);
+        if (headArg != null) {
+            head = resolve(repo, headArg);
+        }
 
-        var issue = arguments.contains("cr") ? arguments.get("cr").asString() : null;
+        String issue = ForgeUtils.getOption("cr", arguments);
         if (issue != null) {
             if (issue.startsWith("http")) {
                 var uri = URI.create(issue);
@@ -367,8 +379,7 @@ public class GitWebrev {
         }
         var output = Path.of(out);
 
-        var title = arguments.contains("title") ?
-            arguments.get("title").asString() : null;
+        String title = ForgeUtils.getOption("title", arguments);
         if (title == null && issue != null) {
             try {
                 var uri = new URI(issue);

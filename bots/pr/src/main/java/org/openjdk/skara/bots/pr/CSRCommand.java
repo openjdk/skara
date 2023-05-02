@@ -27,11 +27,11 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.*;
 
 import java.io.PrintWriter;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.openjdk.skara.bots.common.CommandNameEnum.csr;
 import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
 public class CSRCommand implements CommandHandler {
@@ -78,7 +78,7 @@ public class CSRCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!bot.enableCsr()) {
             reply.println("This repository has not been configured to use the `csr` command.");
             return;
@@ -178,6 +178,11 @@ public class CSRCommand implements CommandHandler {
     @Override
     public String description() {
         return "require a compatibility and specification request (CSR) for this pull request";
+    }
+
+    @Override
+    public String name() {
+        return csr.name();
     }
 
     @Override

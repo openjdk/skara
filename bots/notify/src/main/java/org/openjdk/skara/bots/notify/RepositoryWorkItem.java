@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -358,10 +358,6 @@ public class RepositoryWorkItem implements WorkItem {
             var history = UpdateHistory.create(tagStorageBuilder, historyPath.resolve("tags"), branchStorageBuilder, historyPath.resolve("branches"));
             var errors = new ArrayList<Throwable>();
 
-            for (var listener : listeners) {
-                errors.addAll(handleTags(localRepo, history, listener, notifierScratchPath.resolve(listener.name())));
-            }
-
             boolean hasBranchHistory = !history.isEmpty();
             for (var ref : knownRefs) {
                 if (!hasBranchHistory) {
@@ -384,6 +380,11 @@ public class RepositoryWorkItem implements WorkItem {
                 }
                 errors.addAll(handleRef(localRepo, history, ref, knownRefs, scratchPath));
             }
+
+            for (var listener : listeners) {
+                errors.addAll(handleTags(localRepo, history, listener, notifierScratchPath.resolve(listener.name())));
+            }
+
             if (!errors.isEmpty()) {
                 errors.forEach(error -> log.log(Level.WARNING, error.getMessage(), error));
                 throw new RuntimeException("Errors detected when processing repository notifications", errors.get(0));

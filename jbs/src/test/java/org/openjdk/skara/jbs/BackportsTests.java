@@ -175,6 +175,17 @@ public class BackportsTests {
             backport.setProperty("fixVersions", JSON.array().add("openjfx17-pool"));
             assertEquals(backport.id(), Backports.findIssue(issue, JdkVersion.parse("openjfx17.0.1").orElseThrow()).orElseThrow().id());
 
+            // This may not be desired behavior, but this tests illustrates the current behavior
+            // to avoid confusion.
+            backport.setProperty("fixVersions", JSON.array().add("17-pool"));
+            assertEquals(backport.id(), Backports.findIssue(issue, JdkVersion.parse("openjfx17.0.1").orElseThrow()).orElseThrow().id());
+
+            backport.setProperty("fixVersions", JSON.array().add("20-pool"));
+            assertEquals(backport.id(), Backports.findIssue(issue, JdkVersion.parse("20u-cpu").orElseThrow()).orElseThrow().id());
+
+            backport.setProperty("fixVersions", JSON.array().add("jfx20-pool"));
+            assertEquals(backport.id(), Backports.findIssue(issue, JdkVersion.parse("jfx20u-cpu").orElseThrow()).orElseThrow().id());
+
             backportFoo.setProperty("fixVersions", JSON.array().add("8-pool-foo"));
             assertEquals(backportFoo.id(), Backports.findIssue(issue, JdkVersion.parse("8u333-foo").orElseThrow()).orElseThrow().id());
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,6 +35,7 @@ import org.openjdk.skara.vcs.*;
 import java.io.*;
 import java.net.*;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -50,6 +51,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     private List<Label> labels = new ArrayList<>();
     private final Set<Check> checks = new HashSet<>();
     private final Set<String> protectedBranchPatterns = new HashSet<>();
+    private Map<Integer, ZonedDateTime> deployKeys = new HashMap<>();
 
     public TestHostedRepository(TestHost host, String projectName, Repository localRepository) {
         super(host, projectName);
@@ -430,5 +432,25 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     public void deleteLabel(Label label) {
         var existingLabel = labels.stream().filter(l -> l.name().equals(label.name())).findAny();
         existingLabel.ifPresent(value -> labels.remove(value));
+    }
+
+    @Override
+    public int deleteDeployKeys(Duration age) {
+        var expiredKeys = deployKeys.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().isBefore(ZonedDateTime.now().minus(age)))
+                .toList();
+        for (var key : expiredKeys) {
+            deployKeys.remove(key.getKey());
+        }
+        return expiredKeys.size();
+    }
+
+    public void addDeployKeys(int id, ZonedDateTime createTime) {
+        deployKeys.put(id, createTime);
+    }
+
+    public Map<Integer, ZonedDateTime> deployKeys() {
+        return deployKeys;
     }
 }

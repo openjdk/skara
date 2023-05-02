@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
 package org.openjdk.skara.cli.pr;
 
 import org.openjdk.skara.args.*;
+import org.openjdk.skara.cli.ForgeUtils;
 
 import static org.openjdk.skara.cli.pr.Utils.*;
 
@@ -91,7 +92,7 @@ public class GitPrTest {
         } else if (arguments.contains("cancel")) {
             command += " cancel";
         } else if (arguments.contains("job")) {
-            command += arguments.get("job").asString();
+            command += ForgeUtils.getOption("job", arguments);
         }
         var testComment = pr.addComment(command);
 
