@@ -292,6 +292,18 @@ class CheckWorkItem extends PullRequestWorkItem {
         var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews, pr.targetRef());
         // Determine if the current state of the PR has already been checked
         if (forceUpdate || !currentCheckValid(census, comments, activeReviews, labels)) {
+            var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());
+            var backportIssueMatcher = BACKPORT_ISSUE_TITLE_PATTERN.matcher(pr.title());
+
+            // If backport pr is not allowed, reply warning to the user and return
+            if (!bot.enableBackport() && (backportHashMatcher.matches() || backportIssueMatcher.matches())) {
+                var backportDisabledText = "<!-- backport error -->\n" +
+                        ":warning: @" + pr.author().username() + " backports are not allowed in this repository." +
+                        " If it was unintentional, please modify the title of this pull request.";
+                addErrorComment(backportDisabledText, comments);
+                return List.of();
+            }
+
             // If merge pr is not allowed, reply warning to the user and return
             if (!bot.enableMerge() && PullRequestUtils.isMerge(pr)) {
                 var mergeDisabledText = "<!-- merge error -->\n" +
@@ -333,7 +345,6 @@ class CheckWorkItem extends PullRequestWorkItem {
                 return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
             }
 
-            var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());
             if (backportHashMatcher.matches()) {
                 var hash = new Hash(backportHashMatcher.group(1));
                 try {
@@ -406,7 +417,6 @@ class CheckWorkItem extends PullRequestWorkItem {
             }
 
             // Check for a title of the form Backport <issueid>
-            var backportIssueMatcher = BACKPORT_ISSUE_TITLE_PATTERN.matcher(pr.title());
             if (backportIssueMatcher.matches()) {
                 var prefix = getMatchGroup(backportIssueMatcher, "prefix");
                 var id = getMatchGroup(backportIssueMatcher, "id");

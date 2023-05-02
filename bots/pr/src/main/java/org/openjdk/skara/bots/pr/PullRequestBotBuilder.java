@@ -63,6 +63,7 @@ public class PullRequestBotBuilder {
     private boolean enableMerge = true;
     private boolean jcheckMerge = false;
     private Set<String> mergeSources = Set.of();
+    private boolean enableBackport = true;
 
     PullRequestBotBuilder() {
     }
@@ -227,6 +228,11 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder enableBackport(boolean enableBackport) {
+        this.enableBackport = enableBackport;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration,
                                   externalPullRequestCommands, externalCommitCommands,
@@ -235,6 +241,6 @@ public class PullRequestBotBuilder {
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
                                   confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom,
                                   enableCsr, enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge,
-                                  processPR, processCommit, enableMerge, mergeSources, jcheckMerge);
+                                  processPR, processCommit, enableMerge, mergeSources, jcheckMerge, enableBackport);
     }
 }

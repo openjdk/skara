@@ -68,6 +68,7 @@ class PullRequestBotFactoryTest {
                           "censuslink": "https://test.test.com",
                           "issues": "TEST",
                           "csr": true,
+                          "backport": false,
                           "merge": false,
                           "two-reviewers": [
                             "rfr"
@@ -90,6 +91,7 @@ class PullRequestBotFactoryTest {
                           "censuslink": "https://test.test.com",
                           "issues": "TEST2",
                           "csr": true,
+                          "backport": true,
                           "merge": true,
                           "two-reviewers": [
                             "rfr"
@@ -196,6 +198,7 @@ class PullRequestBotFactoryTest {
             assertEquals("mlbridge[bot]", pullRequestBot0.mlbridgeBotName());
             assertTrue(pullRequestBot0.enableMerge());
             assertTrue(pullRequestBot0.jcheckMerge());
+            assertTrue(pullRequestBot0.enableBackport());
 
             var pullRequestBot1 = (PullRequestBot) bots.get(1);
             assertEquals("PullRequestBot@repo7", pullRequestBot1.toString());
@@ -205,6 +208,7 @@ class PullRequestBotFactoryTest {
             assertEquals("PullRequestBot@repo5", pullRequestBot2.toString());
             assertTrue(pullRequestBot2.enableMerge());
             assertFalse(pullRequestBot2.jcheckMerge());
+            assertTrue(pullRequestBot2.enableBackport());
 
             var pullRequestBot3 = (PullRequestBot) bots.get(3);
             assertEquals("PullRequestBot@repo2", pullRequestBot3.toString());
@@ -212,6 +216,7 @@ class PullRequestBotFactoryTest {
             assertTrue(pullRequestBot3.mergeSources().contains("openjdk/skara"));
             assertTrue(pullRequestBot3.mergeSources().contains("openjdk/playground"));
             assertFalse(pullRequestBot3.jcheckMerge());
+            assertFalse(pullRequestBot3.enableBackport());
 
             var csrIssueBot1 = (CSRIssueBot) bots.get(4);
             assertEquals(1, csrIssueBot1.repositories().size());
