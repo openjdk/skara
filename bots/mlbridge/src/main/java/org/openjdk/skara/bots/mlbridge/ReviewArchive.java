@@ -82,6 +82,8 @@ class ReviewArchive {
 
     public static final Pattern PUSHED_PATTERN = Pattern.compile("Pushed as commit ([a-f0-9]{40})\\.");
 
+    private static final int QUOTE_BODY_MAX_LENGTH = 2500;
+
     private Optional<Hash> findIntegratedHash() {
         return ignoredComments.stream()
                               .map(Comment::body)
@@ -233,6 +235,9 @@ class ReviewArchive {
     }
 
     private String quoteBody(String body) {
+        if (body.length() > QUOTE_BODY_MAX_LENGTH) {
+            body = body.substring(0, QUOTE_BODY_MAX_LENGTH) + "...";
+        }
         return Arrays.stream(body.strip().split("\\R"))
                      .map(line -> line.length() > 0 ? line.charAt(0) == '>' ? ">" + line : "> " + line : "> ")
                      .collect(Collectors.joining("\n"));
