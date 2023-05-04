@@ -47,6 +47,8 @@ import static org.openjdk.skara.issuetracker.jira.JiraProject.RESOLVED_IN_BUILD;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.SUBCOMPONENT;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
+
 public class IssueNotifierTests {
     private static final String pullRequestTip = "A pull request was submitted for review.";
 
@@ -2113,6 +2115,81 @@ public class IssueNotifierTests {
 
             // Resolved in Build should be updated
             assertEquals("b110", backport.properties().get(RESOLVED_IN_BUILD).asString());
+        }
+    }
+
+    @Test
+    void testFailedIssue(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.authenticatedUrl());
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var issueProject = credentials.getIssueProject();
+            var reviewIcon = URI.create("http://www.example.com/review.png");
+            var notifyBot = NotifyBot.newBuilder()
+                    .repository(repo)
+                    .storagePath(storageFolder)
+                    .branches(Pattern.compile("master"))
+                    .tagStorageBuilder(tagStorage)
+                    .branchStorageBuilder(branchStorage)
+                    .prStateStorageBuilder(prStateStorage)
+                    .integratorId(repo.forge().currentUser().id())
+                    .build();
+            var updater = IssueNotifier.newBuilder()
+                    .issueProject(issueProject)
+                    .reviewIcon(reviewIcon)
+                    .commitLink(false)
+                    .build();
+            // Register a RepositoryListener to make history initialize on the first run
+            notifyBot.registerRepositoryListener(new NullRepositoryListener());
+            updater.attachTo(notifyBot);
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Save the state
+            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history");
+
+            // Create an issue and commit a fix
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
+            var pr = credentials.createPullRequest(repo, "master", "master", issue.id() + ": Fix that issue");
+            pr.setBody("\n\n### Issue\n * " + "⚠️ Temporary failure when trying to retrieve information on issue `" + issue.id() + "`." + TEMPORARY_ISSUE_FAILURE_MARKER);
+            pr.addLabel("rfr");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // There should not be any links in the issue
+            var links = issue.links();
+            assertEquals(0, links.size());
+
+            //Resolve the temporary issue failure
+            pr.setBody("\n\n### Issue\n * [" + issue.id() + "](http://www.test.test/): The issue");
+            TestBotRunner.runPeriodicItems(notifyBot);
+            links = issue.links();
+            assertEquals(1, links.size());
+            var link = links.get(0);
+            assertEquals(reviewIcon, link.iconUrl().orElseThrow());
+            assertEquals("Review", link.title().orElseThrow());
+            assertEquals(pr.webUrl(), link.uri().orElseThrow());
+
+            // Wipe the history
+            localRepo.push(historyState, repo.authenticatedUrl(), "history", true);
+
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // There should be no new links
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals(1, updatedIssue.links().size());
         }
     }
 }

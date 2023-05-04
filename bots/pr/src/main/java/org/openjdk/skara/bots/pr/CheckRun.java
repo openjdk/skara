@@ -717,6 +717,7 @@ class CheckRun {
                         progressBody.append("⚠️ Temporary failure when trying to retrieve information on issue `");
                         progressBody.append(currentIssue.id());
                         progressBody.append("`.");
+                        progressBody.append(TEMPORARY_ISSUE_FAILURE_MARKER);
                         setExpiration(Duration.ofMinutes(30));
                     }
                 }
