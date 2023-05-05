@@ -87,7 +87,7 @@ public class ContributorCommand implements CommandHandler {
         }
 
         if (contributor.fullName().isPresent()) {
-            return Optional.of(EmailAddress.from(contributor.fullName().get(), contributor.username() + "@" + censusInstance.configuration.census().domain()));
+            return Optional.of(EmailAddress.from(contributor.fullName().get(), contributor.username() + "@" + censusInstance.configuration().census().domain()));
         } else {
             reply.println("`" + user + "` does not have a full name recorded in the census.");
             return Optional.empty();
