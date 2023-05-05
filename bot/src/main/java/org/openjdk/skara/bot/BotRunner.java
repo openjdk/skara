@@ -219,7 +219,8 @@ public class BotRunner {
                     EXCEPTIONS_COUNTER.labels(item.botName(), item.workItemName(), e.getClass().getName()).inc();
                     // Log as WARNING to avoid triggering alarms. Failed REST calls are tracked
                     // using metrics.
-                    log.log(Level.WARNING, "RestException during item execution (" + item + ")", e);
+                    log.log(Level.WARNING, "RestException during item execution (" + item + ") status code: "
+                            + e.getStatusCode(), e);
                     item.handleRuntimeException(e);
                 } catch (RuntimeException e) {
                     EXCEPTIONS_COUNTER.labels(item.botName(), item.workItemName(), e.getClass().getName()).inc();
