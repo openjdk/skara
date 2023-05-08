@@ -29,6 +29,8 @@ import org.openjdk.skara.vcs.Repository;
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -405,6 +407,96 @@ class ContributorTests {
             for (var line : pr.store().body().split("\n")) {
                 assertNotEquals("### Contributors", line);
             }
+        }
+    }
+
+    @Test
+    void testDomain(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(integrator.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var checkConf = localRepoFolder.resolve(".jcheck/conf");
+            Files.writeString(checkConf, "[census]\n" +
+                    "version=0\n" +
+                    "domain=test.com", StandardOpenOption.APPEND);
+            localRepo.add(checkConf);
+            localRepo.commit("modify .jcheck/conf", "testauthor", "ta@none.none");
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Issue an invalid command
+            pr.addComment("/contributor hello");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with an error message
+            assertLastCommentContains(pr, "Syntax");
+
+            // Add a contributor
+            pr.addComment("/contributor add integrationcommitter2");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr, "successfully added");
+            assertLastCommentContains(pr, "<integrationcommitter2@test.com>");
+
+            // Approve it as another user
+            var approvalPr = integrator.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The commit message preview should contain the contributor
+            var creditLine = pr.comments().stream()
+                    .flatMap(comment -> comment.body().lines())
+                    .filter(line -> line.contains("Generated Committer 2 <integrationcommitter2@test.com>"))
+                    .filter(line -> line.contains("Co-authored-by"))
+                    .findAny()
+                    .orElseThrow();
+            assertEquals("Co-authored-by: Generated Committer 2 <integrationcommitter2@test.com>", creditLine);
+
+            var pushed = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("change now passes all *automated*"))
+                    .count();
+            assertEquals(1, pushed);
+
+            // Integrate
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with an ok message
+            assertLastCommentContains(pr, "Pushed as commit");
+
+            // The change should now be present on the master branch
+            var pushedFolder = tempFolder.path().resolve("pushed");
+            var pushedRepo = Repository.materialize(pushedFolder, author.authenticatedUrl(), "master");
+            assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
+
+            var headHash = pushedRepo.resolve("HEAD").orElseThrow();
+            var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
+
+            // The contributor should be credited
+            creditLine = headCommit.message().stream()
+                    .filter(line -> line.contains("Generated Committer 2 <integrationcommitter2@test.com>"))
+                    .findAny()
+                    .orElseThrow();
+            assertEquals("Co-authored-by: Generated Committer 2 <integrationcommitter2@test.com>", creditLine);
         }
     }
 }
