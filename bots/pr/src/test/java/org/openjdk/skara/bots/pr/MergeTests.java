@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.forge.CheckStatus;
 import org.openjdk.skara.forge.Review;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.process.Process;
@@ -1727,6 +1728,126 @@ class MergeTests {
             var comment = pr.store().comments().get(pr.store().comments().size() - 1);
             assertEquals(1, pr.store().comments().size());
             assertTrue(comment.body().contains("can not be source repo for merge-style pull requests in this repository."));
+        }
+    }
+
+    @Test
+    void JCheckFailInOneOfTheCommits(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(integrator.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).jcheckMerge(true).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make more changes in another branch
+            var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other_/-1.2",
+                    "First other_/-1.2");
+            localRepo.push(otherHash1, author.authenticatedUrl(), "other_/-1.2", true);
+            var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other_/-1.2\n\r",
+                    "Second other_/-1.2\n\nReviewed-by: integrationreviewer2");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "other_/-1.2");
+
+            // Go back to the original master
+            localRepo.checkout(masterHash, true);
+
+            // Make a change with a corresponding PR
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            localRepo.add(unrelated);
+            var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
+            localRepo.merge(otherHash2);
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
+
+            var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other_/-1.2");
+
+            // Let the bot check the status
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // There is a merge commit at HEAD, but the merge commit is empty
+            assertTrue(pr.store().labelNames().contains("clean"));
+
+            // Push it
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should not push the commit
+            var pushed = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
+            assertEquals(0, pushed);
+
+            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (in commit " + otherHash1.hex() + ")"));
+            assertTrue(pr.store().body().contains("Whitespace errors (in commit " + otherHash2.hex() + ")"));
+        }
+    }
+
+    @Test
+    void JCheckConfInvalidInOneOfTheCommits(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(integrator.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).jcheckMerge(true).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make more changes in another branch
+            var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other_/-1.2",
+                    "First other_/-1.2");
+            localRepo.push(otherHash1, author.authenticatedUrl(), "other_/-1.2", true);
+
+            var confPath = localRepoFolder.resolve(".jcheck/conf");
+            Files.writeString(confPath, "Hello there!", StandardCharsets.UTF_8);
+            localRepo.add(confPath);
+            var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other_/-1.2\n\r",
+                    "Second other_/-1.2\n\nReviewed-by: integrationreviewer2");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "other_/-1.2");
+
+            // Go back to the original master
+            localRepo.checkout(masterHash, true);
+
+            // Make a change with a corresponding PR
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            localRepo.add(unrelated);
+            var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
+            localRepo.merge(otherHash2);
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
+
+            var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other_/-1.2");
+
+            // Let the bot check the status
+            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(mergeBot));
+
+            var checks = pr.checks(mergeHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, check.status());
+            assertEquals("line 0: entry must be of form 'key = value'", check.summary().get());
+            assertEquals("Exception occurred during merge jcheck in commit " + otherHash2.hex() + " - the operation will be retried",
+                    check.title().get());
         }
     }
 }

@@ -1350,7 +1350,7 @@ class CheckTests {
     }
 
     @Test
-    void useJCheckConfFromTargetBranch(TestInfo testInfo) throws IOException {
+    void invalidUpdatedJCheckConf(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -1375,17 +1375,18 @@ class CheckTests {
             var pr = credentials.createPullRequest(author, "master", "edit",
                                                    "This is a pull request", true);
 
-            // Check the status - should *not* throw because valid .jcheck/conf from
-            // "master" branch should be used
-            TestBotRunner.runPeriodicItems(checkBot);
-            TestBotRunner.runPeriodicItems(checkBot);
-            TestBotRunner.runPeriodicItems(checkBot);
+            // Check the status - should throw because in edit hash, .jcheck/conf is updated and it will trigger second jcheck
+            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
+            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
+            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
 
-            // Verify that the check succeeded
+            // Verify that the check failed
             var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
-            assertEquals(CheckStatus.SUCCESS, check.status());
+            assertEquals(CheckStatus.FAILURE, check.status());
+            assertEquals("line 0: entry must be of form 'key = value'", check.summary().get());
+            assertEquals("Exception occurred during second jcheck - the operation will be retried", check.title().get());
         }
     }
 
@@ -2649,7 +2650,7 @@ class CheckTests {
             // Update PR body right now
             pr.store().setBody("It's a new Body");
             try (var scratchFolder = new TemporaryDirectory()) {
-                checkWorkItem.prRun(scratchFolder.path());
+                checkWorkItem.prRun(new ScratchArea(scratchFolder.path(), checkBot.name()));
             }
             // PR body should not be updated by Bot
             assertEquals("It's a new Body", pr.store().body());
@@ -2657,7 +2658,7 @@ class CheckTests {
             checkWorkItem = (CheckWorkItem) checkBot.getPeriodicItems().get(1);
             checkWorkItem.pr = author.pullRequest(pr.id());
             try (var scratchFolder = new TemporaryDirectory()) {
-                checkWorkItem.prRun(scratchFolder.path());
+                checkWorkItem.prRun(new ScratchArea(scratchFolder.path(), checkBot.name()));
             }
             // PR body should be updated by Bot
             assertTrue(pr.store().body().contains("It's a new Body"));
@@ -2777,10 +2778,15 @@ class CheckTests {
             var updateHash = localRepo.commit("make .jcheck/conf invalid", "testauthor", "ta@none.none");
             localRepo.push(updateHash, author.authenticatedUrl(), "edit", true);
 
-            TestBotRunner.runPeriodicItems(checkBot);
+            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
 
-            // pr body should have the integrationBlocker for exception
-            assertTrue(pr.store().body().contains("(exception thrown when running jcheck with updated jcheck configuration)"));
+            // Verify that the check failed
+            checks = pr.checks(updateHash);
+            assertEquals(1, checks.size());
+            check = checks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, check.status());
+            assertEquals("line 18: entry must be of form 'key = value'", check.summary().get());
+            assertEquals("Exception occurred during second jcheck - the operation will be retried", check.title().get());
 
             // Restore .jcheck/conf and add whitespace issue check
             writeToCheckConf(checkConf);
@@ -2882,6 +2888,54 @@ class CheckTests {
             comment = pr.store().comments().get(pr.store().comments().size() - 1);
             assertEquals(1, pr.store().comments().size());
             assertTrue(comment.body().contains("Merge-style pull requests are not allowed in this repository"));
+
+            pr.setTitle("SKARA-123");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertEquals(1, pr.store().comments().size());
+        }
+    }
+
+    @Test
+    void backportDisabled(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .enableBackport(false)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Backport 0123456789012345678901234567890123456789");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(prBot);
+
+            var comment = pr.store().comments().get(pr.store().comments().size() - 1);
+            assertEquals(1, pr.store().comments().size());
+            assertTrue(comment.body().contains("backports are not allowed in this repository"));
+
+            pr.setTitle("Backport 123");
+            TestBotRunner.runPeriodicItems(prBot);
+            comment = pr.store().comments().get(pr.store().comments().size() - 1);
+            assertEquals(1, pr.store().comments().size());
+            assertTrue(comment.body().contains("backports are not allowed in this repository"));
 
             pr.setTitle("SKARA-123");
             TestBotRunner.runPeriodicItems(prBot);

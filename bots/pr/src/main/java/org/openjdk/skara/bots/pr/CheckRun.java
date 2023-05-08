@@ -717,6 +717,7 @@ class CheckRun {
                         progressBody.append("⚠️ Temporary failure when trying to retrieve information on issue `");
                         progressBody.append(currentIssue.id());
                         progressBody.append("`.");
+                        progressBody.append(TEMPORARY_ISSUE_FAILURE_MARKER);
                         setExpiration(Duration.ofMinutes(30));
                     }
                 }
@@ -1120,6 +1121,7 @@ class CheckRun {
         var checkBuilder = CheckBuilder.create(getJcheckName(pr), pr.headHash());
         var censusDomain = censusInstance.configuration().census().domain();
         Exception checkException = null;
+        String jcheckType = "jcheck";
 
         try {
             // Post check in-progress
@@ -1136,8 +1138,32 @@ class CheckRun {
                 rebasePossible = false;
             }
 
-            if (rebasePossible && PullRequestUtils.isMerge(pr)) {
-                localRepo.lookup(pr.headHash()).ifPresent(this::updateMergeClean);
+            List<String> mergeJCheckMessage = new ArrayList<>();
+
+            if (PullRequestUtils.isMerge(pr)) {
+                if (rebasePossible) {
+                    localRepo.lookup(pr.headHash()).ifPresent(this::updateMergeClean);
+                }
+
+                // JCheck all commits in "Merge PR"
+                if (workItem.bot.jcheckMerge()) {
+                    var commits = localRepo.commitMetadata(localRepo.mergeBase(
+                            PullRequestUtils.targetHash(localRepo), pr.headHash()), commitHash);
+                    var commitHashes = commits.stream()
+                            .map(CommitMetadata::hash)
+                            .collect(Collectors.toSet());
+                    commitHashes.remove(pr.headHash());
+                    for (Hash hash : commitHashes) {
+                        jcheckType = "merge jcheck in commit " + hash.hex();
+                        PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(hash);
+                        checkablePullRequest.executeChecks(hash, censusInstance, visitor, List.of(), hash);
+                        mergeJCheckMessage.addAll(visitor.messages().stream()
+                                .map(StringBuilder::new)
+                                .map(e -> e.append(" (in commit " + hash.hex() + ")"))
+                                .map(StringBuilder::toString)
+                                .toList());
+                    }
+                }
             }
 
             var original = backportedFrom();
@@ -1158,9 +1184,8 @@ class CheckRun {
                 additionalErrors = List.of(e.getMessage());
                 localHash = baseHash;
             }
-            PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor();
+            PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(checkablePullRequest.targetHash());
             boolean needUpdateAdditionalProgresses = false;
-            boolean sourceBranchJCheckConfValid = true;
             if (localHash.equals(baseHash)) {
                 if (additionalErrors.isEmpty()) {
                     additionalErrors = List.of("This PR contains no changes");
@@ -1169,26 +1194,21 @@ class CheckRun {
                 additionalErrors = List.of("This PR only contains changes already present in the target");
             } else {
                 // Determine current status
+                jcheckType = "jcheck";
                 var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash,
                         pr.repository().forge().currentUser(), comments, reviewMerge);
                 checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration, checkablePullRequest.targetHash());
                 // Don't need to run the second round if confOverride is set.
                 if (workItem.bot.confOverrideRepository().isEmpty() && isFileUpdated(".jcheck/conf", localHash)) {
-                    try {
-                        PullRequestCheckIssueVisitor visitor2 = checkablePullRequest.createVisitorUsingHeadHash();
-                        log.info("Run jcheck again with the updated configuration");
-                        checkablePullRequest.executeChecks(localHash, censusInstance, visitor2, additionalConfiguration, pr.headHash());
-                        secondJCheckMessage.addAll(visitor2.messages().stream()
-                                .map(StringBuilder::new)
-                                .map(e -> e.append(" (failed with the updated jcheck configuration)"))
-                                .map(StringBuilder::toString)
-                                .toList());
-                    } catch (Exception e) {
-                        var message = e.getMessage() + " (exception thrown when running jcheck with updated jcheck configuration)";
-                        log.warning(message);
-                        secondJCheckMessage.add(message);
-                        sourceBranchJCheckConfValid = false;
-                    }
+                    jcheckType = "second jcheck";
+                    PullRequestCheckIssueVisitor visitor2 = checkablePullRequest.createVisitor(pr.headHash());
+                    log.info("Run jcheck again with the updated configuration");
+                    checkablePullRequest.executeChecks(localHash, censusInstance, visitor2, additionalConfiguration, pr.headHash());
+                    secondJCheckMessage.addAll(visitor2.messages().stream()
+                            .map(StringBuilder::new)
+                            .map(e -> e.append(" (failed with the updated jcheck configuration)"))
+                            .map(StringBuilder::toString)
+                            .toList());
                 }
                 additionalErrors = botSpecificChecks(isCleanBackport);
                 needUpdateAdditionalProgresses = true;
@@ -1196,7 +1216,7 @@ class CheckRun {
 
             var confFile = localRepo.lines(Path.of(".jcheck/conf"), localHash);
             JdkVersion version = null;
-            if (confFile.isPresent() && sourceBranchJCheckConfValid) {
+            if (confFile.isPresent()) {
                 var configuration = JCheckConfiguration.parse(confFile.get());
                 var versionString = configuration.general().version().orElse(null);
 
@@ -1220,6 +1240,7 @@ class CheckRun {
 
             var integrationBlockers = botSpecificIntegrationBlockers(issues);
             integrationBlockers.addAll(secondJCheckMessage);
+            integrationBlockers.addAll(mergeJCheckMessage);
 
             var reviewersCommandIssued = ReviewersTracker.additionalRequiredReviewers(pr.repository().forge().currentUser(), comments).isPresent();
 
@@ -1288,7 +1309,7 @@ class CheckRun {
             log.throwing("CommitChecker", "checkStatus", e);
             newLabels.remove("ready");
             checkBuilder.metadata("invalid");
-            checkBuilder.title("Exception occurred during jcheck - the operation will be retried");
+            checkBuilder.title("Exception occurred during " + jcheckType + " - the operation will be retried");
             checkBuilder.summary(e.getMessage());
             checkBuilder.complete(false);
             checkException = e;

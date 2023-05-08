@@ -20,24 +20,41 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package org.openjdk.skara.bots.pr;
 
-package org.openjdk.skara.bots.common;
+import org.openjdk.skara.forge.HostedRepository;
 
-import java.util.regex.Pattern;
+import java.nio.file.Path;
 
-public class PullRequestConstants {
-    // MARKERS
-    public static final String PROGRESS_MARKER = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
-    public static final String CSR_NEEDED_MARKER = "<!-- csr: 'needed' -->";
-    public static final String CSR_UNNEEDED_MARKER = "<!-- csr: 'unneeded' -->";
-    public static final String JEP_MARKER = "<!-- jep: '%s' '%s' '%s' -->"; // <!-- jep: 'JEP-ID' 'ISSUE-ID' 'ISSUE-TITLE' -->
-    public static final String WEBREV_COMMENT_MARKER = "<!-- mlbridge webrev comment -->";
-    public static final String TEMPORARY_ISSUE_FAILURE_MARKER = "<!-- temporary issue failure -->";
+public class ScratchArea {
+    private final Path root;
+    private final String botName;
 
-    // LABELS
-    public static final String CSR_LABEL = "csr";
-    public static final String JEP_LABEL = "jep";
+    public ScratchArea(Path root, String botName) {
+        this.root = root;
+        this.botName = botName;
+    }
 
-    // PATTERNS
-    public static final Pattern JEP_MARKER_PATTERN = Pattern.compile("<!-- jep: '(.*?)' '(.*?)' '(.*?)' -->");
+    /**
+     *  Return a global repository path for this repository
+     */
+    public Path get(HostedRepository repo) {
+        return root.resolve(botName).resolve("repos").resolve(repo.name());
+    }
+
+    /**
+     *  Return a path suitable for this command
+     */
+    public Path get(CommandHandler commandHandler) {
+        return root.resolve(botName).resolve("command").resolve(commandHandler.name());
+    }
+
+    public Path getSeeds() {
+        return root.resolve("seeds");
+    }
+
+    public Path getCensus() {
+        return root.resolve("census");
+    }
+
 }

@@ -26,11 +26,11 @@ import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.PrintWriter;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.openjdk.skara.jcheck.ReviewersConfiguration.BYLAWS_URL;
+import static org.openjdk.skara.bots.common.CommandNameEnum.reviewers;
 
 public class ReviewersCommand implements CommandHandler {
     private static final Map<String, String> ROLE_MAPPINGS = Map.of(
@@ -75,7 +75,7 @@ public class ReviewersCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {
             reply.println("Only the author of the pull request or [Reviewers](https://openjdk.org/bylaws#reviewer) are allowed to change the number of required reviewers.");
             return;
@@ -162,6 +162,11 @@ public class ReviewersCommand implements CommandHandler {
     @Override
     public String description() {
         return "set the number of additional required reviewers for this PR";
+    }
+
+    @Override
+    public String name() {
+        return reviewers.name();
     }
 
     @Override

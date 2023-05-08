@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,7 +28,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.bots.notify.prbranch.PullRequestBranchNotifier;
-import org.openjdk.skara.forge.HostedBranch;
 import org.openjdk.skara.forge.PreIntegrations;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.json.*;
@@ -41,6 +40,8 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.*;
 import java.util.stream.*;
+
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
 public class PullRequestWorkItem implements WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
@@ -229,6 +230,10 @@ public class PullRequestWorkItem implements WorkItem {
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         if (!isOfInterest(pr)) {
+            return List.of();
+        }
+        if (pr.body().contains(TEMPORARY_ISSUE_FAILURE_MARKER)) {
+            log.warning("Found temporary issue failure, the notifiers will be stopped until the temporary issue failure resolved.");
             return List.of();
         }
         var historyPath = scratchPath.resolve("notify").resolve("history");

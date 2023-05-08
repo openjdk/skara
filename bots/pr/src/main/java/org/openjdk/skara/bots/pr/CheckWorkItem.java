@@ -247,14 +247,14 @@ class CheckWorkItem extends PullRequestWorkItem {
     }
 
     @Override
-    public Collection<WorkItem> prRun(Path scratchPath) {
-        var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
+    public Collection<WorkItem> prRun(ScratchArea scratchArea) {
+        var seedPath = bot.seedStorage().orElse(scratchArea.getSeeds());
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
         CensusInstance census;
         var comments = prComments();
 
         try {
-            census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
+            census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchArea.getCensus(), pr,
                     bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
         } catch (MissingJCheckConfException e) {
             if (bot.confOverrideRepository().isEmpty()) {
@@ -292,6 +292,18 @@ class CheckWorkItem extends PullRequestWorkItem {
         var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews, pr.targetRef());
         // Determine if the current state of the PR has already been checked
         if (forceUpdate || !currentCheckValid(census, comments, activeReviews, labels)) {
+            var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());
+            var backportIssueMatcher = BACKPORT_ISSUE_TITLE_PATTERN.matcher(pr.title());
+
+            // If backport pr is not allowed, reply warning to the user and return
+            if (!bot.enableBackport() && (backportHashMatcher.matches() || backportIssueMatcher.matches())) {
+                var backportDisabledText = "<!-- backport error -->\n" +
+                        ":warning: @" + pr.author().username() + " backports are not allowed in this repository." +
+                        " If it was unintentional, please modify the title of this pull request.";
+                addErrorComment(backportDisabledText, comments);
+                return List.of();
+            }
+
             // If merge pr is not allowed, reply warning to the user and return
             if (!bot.enableMerge() && PullRequestUtils.isMerge(pr)) {
                 var mergeDisabledText = "<!-- merge error -->\n" +
@@ -333,11 +345,10 @@ class CheckWorkItem extends PullRequestWorkItem {
                 return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
             }
 
-            var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());
             if (backportHashMatcher.matches()) {
                 var hash = new Hash(backportHashMatcher.group(1));
                 try {
-                    var localRepo = materializeLocalRepo(scratchPath, hostedRepositoryPool);
+                    var localRepo = materializeLocalRepo(scratchArea, hostedRepositoryPool);
                     if (localRepo.isAncestor(hash, pr.headHash())) {
                         var text = "<!-- backport error -->\n" +
                                 ":warning: @" + pr.author().username() + " the given backport hash `" + hash.hex() +
@@ -406,7 +417,6 @@ class CheckWorkItem extends PullRequestWorkItem {
             }
 
             // Check for a title of the form Backport <issueid>
-            var backportIssueMatcher = BACKPORT_ISSUE_TITLE_PATTERN.matcher(pr.title());
             if (backportIssueMatcher.matches()) {
                 var prefix = getMatchGroup(backportIssueMatcher, "prefix");
                 var id = getMatchGroup(backportIssueMatcher, "id");
@@ -459,7 +469,7 @@ class CheckWorkItem extends PullRequestWorkItem {
             }
 
             try {
-                Repository localRepo = materializeLocalRepo(scratchPath, hostedRepositoryPool);
+                Repository localRepo = materializeLocalRepo(scratchArea, hostedRepositoryPool);
 
                 var expiresAt = CheckRun.execute(this, pr, localRepo, comments, allReviews,
                         activeReviews, labels, census, bot.ignoreStaleReviews(), bot.integrators(), bot.reviewCleanBackport(),
@@ -509,9 +519,9 @@ class CheckWorkItem extends PullRequestWorkItem {
     // Lazily initiated
     private Repository localRepo;
 
-    private Repository materializeLocalRepo(Path scratchPath, HostedRepositoryPool hostedRepositoryPool) throws IOException {
+    private Repository materializeLocalRepo(ScratchArea scratchArea, HostedRepositoryPool hostedRepositoryPool) throws IOException {
         if (localRepo == null) {
-            var localRepoPath = scratchPath.resolve("pr").resolve("check").resolve(pr.repository().name());
+            var localRepoPath = scratchArea.get(pr.repository());
             localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, localRepoPath);
         }
         return localRepo;

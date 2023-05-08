@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -122,7 +122,8 @@ abstract class PullRequestWorkItem implements WorkItem {
         if (!isReady()) {
             return List.of();
         }
-        return prRun(scratchPath);
+        ScratchArea scratchArea = new ScratchArea(scratchPath, bot.name());
+        return prRun(scratchArea);
     }
 
     /**
@@ -135,7 +136,7 @@ abstract class PullRequestWorkItem implements WorkItem {
         return comments;
     }
 
-    abstract Collection<WorkItem> prRun(Path scratchPath);
+    abstract Collection<WorkItem> prRun(ScratchArea scratchArea);
 
     @Override
     public final void handleRuntimeException(RuntimeException e) {

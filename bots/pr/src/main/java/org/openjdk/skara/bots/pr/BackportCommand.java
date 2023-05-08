@@ -33,11 +33,12 @@ import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 import java.io.PrintWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.time.format.DateTimeFormatter;
+
+import static org.openjdk.skara.bots.common.CommandNameEnum.backport;
 
 public class BackportCommand implements CommandHandler {
     private void showHelp(PrintWriter reply) {
@@ -54,6 +55,11 @@ public class BackportCommand implements CommandHandler {
     }
 
     @Override
+    public String name() {
+        return backport.name();
+    }
+
+    @Override
     public boolean allowedInCommit() {
         return true;
     }
@@ -64,7 +70,7 @@ public class BackportCommand implements CommandHandler {
             + "(https://wiki.openjdk.org/display/skara#Skara-AssociatingyourGitHubaccountandyourOpenJDKusername)).";
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command,
                        List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
         if (censusInstance.contributor(command.user()).isEmpty()) {
             reply.println(USER_INVALID_WARNING);
@@ -171,7 +177,7 @@ public class BackportCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequestBot bot, HostedCommit commit, LimitedCensusInstance censusInstance,
-            Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+            ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (censusInstance.contributor(command.user()).isEmpty() && !command.user().equals(bot.repo().forge().currentUser())) {
             reply.println(USER_INVALID_WARNING);
             return;
@@ -233,9 +239,9 @@ public class BackportCommand implements CommandHandler {
             var backportBranchName = realUser.username() + "-backport-" + hash.abbreviate();
             var hostedBackportBranch = fork.branches().stream().filter(b -> b.name().equals(backportBranchName)).findAny();
             if (hostedBackportBranch.isEmpty()) {
-                var localRepoDir = scratchPath.resolve("backport-command")
-                                              .resolve(targetRepo.name())
-                                              .resolve("fork");
+                var localRepoDir = scratchArea.get(this)
+                        .resolve(targetRepo.name())
+                        .resolve("fork");
                 var localRepo = bot.hostedRepositoryPool()
                                    .orElseThrow(() -> new IllegalStateException("Missing repository pool for PR bot"))
                                    .materialize(targetRepo, localRepoDir);
