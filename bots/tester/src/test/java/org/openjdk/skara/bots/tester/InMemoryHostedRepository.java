@@ -274,4 +274,9 @@ class InMemoryHostedRepository implements HostedRepository {
     public int deleteDeployKeys(Duration age) {
         return 0;
     }
+
+    @Override
+    public boolean hasRepoAccess(HostUser user) {
+        return false;
+    }
 }

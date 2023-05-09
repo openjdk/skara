@@ -214,4 +214,9 @@ public interface HostedRepository {
      * The return value is the count of deleted keys
      */
     int deleteDeployKeys(Duration age);
+
+    /**
+     * Check whether the user has access to this repository
+     */
+    boolean hasRepoAccess(HostUser user);
 }

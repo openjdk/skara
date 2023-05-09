@@ -741,4 +741,9 @@ public class GitHubRepository implements HostedRepository {
         }
         return expired.size();
     }
+
+    @Override
+    public boolean hasRepoAccess(HostUser user) {
+        return true;
+    }
 }

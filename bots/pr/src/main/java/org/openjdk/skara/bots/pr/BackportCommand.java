@@ -69,6 +69,8 @@ public class BackportCommand implements CommandHandler {
             + " ([how to associate your GitHub account with your OpenJDK username]"
             + "(https://wiki.openjdk.org/display/skara#Skara-AssociatingyourGitHubaccountandyourOpenJDKusername)).";
 
+    private static final String REPO_ACCESS_WARNING = "The backport can not be created because you don't have access to the target repository.";
+
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command,
                        List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
@@ -121,7 +123,8 @@ public class BackportCommand implements CommandHandler {
             }
             var targetBranchName = targetBranch.name();
 
-            if (!verifyGroupMembership(targetRepo, command.user(), reply)) {
+            if (!targetRepo.hasRepoAccess(command.user())) {
+                reply.println(REPO_ACCESS_WARNING);
                 return;
             }
 
@@ -237,7 +240,8 @@ public class BackportCommand implements CommandHandler {
             }
         }
 
-        if (!verifyGroupMembership(targetRepo, realUser, reply)) {
+        if (!targetRepo.hasRepoAccess(realUser)) {
+            reply.println(REPO_ACCESS_WARNING);
             return;
         }
 
@@ -388,17 +392,5 @@ public class BackportCommand implements CommandHandler {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-    }
-
-    private boolean verifyGroupMembership(HostedRepository targetRepo, HostUser user, PrintWriter reply) {
-        // Only check in GitLab
-        boolean hasGroupMembership = true;
-        if (!targetRepo.forge().name().equals("GitHub") && !targetRepo.forge().name().equals("Test")) {
-            hasGroupMembership = targetRepo.canPush(user);
-        }
-        if (!hasGroupMembership) {
-            reply.println("The backport can not be created because you don't have access to the target repository.");
-        }
-        return hasGroupMembership;
     }
 }
