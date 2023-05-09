@@ -121,6 +121,10 @@ public class BackportCommand implements CommandHandler {
             }
             var targetBranchName = targetBranch.name();
 
+            if (!verifyGroupMembership(targetRepo, command.user(), reply)) {
+                return;
+            }
+
             // Add label
             var backportLabel = generateBackportLabel(targetRepoName, targetBranchName);
             if (pr.labelNames().contains(backportLabel)) {
@@ -231,6 +235,10 @@ public class BackportCommand implements CommandHandler {
                     return;
                 }
             }
+        }
+
+        if (!verifyGroupMembership(targetRepo, realUser, reply)) {
+            return;
         }
 
         try {
@@ -380,5 +388,17 @@ public class BackportCommand implements CommandHandler {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private boolean verifyGroupMembership(HostedRepository targetRepo, HostUser user, PrintWriter reply) {
+        // Only check in GitLab
+        boolean hasGroupMembership = true;
+        if (!targetRepo.forge().name().equals("GitHub") && !targetRepo.forge().name().equals("Test")) {
+            hasGroupMembership = targetRepo.canPush(user);
+        }
+        if (!hasGroupMembership) {
+            reply.println("The backport can not be created because you don't have group membership in the target repository!");
+        }
+        return hasGroupMembership;
     }
 }
