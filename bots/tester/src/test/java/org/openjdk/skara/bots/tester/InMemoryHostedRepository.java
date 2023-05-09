@@ -276,7 +276,7 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public boolean hasRepoAccess(HostUser user) {
+    public boolean canCreatePullRequest(HostUser user) {
         return false;
     }
 }

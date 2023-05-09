@@ -455,7 +455,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public boolean hasRepoAccess(HostUser user) {
+    public boolean canCreatePullRequest(HostUser user) {
         return true;
     }
 }

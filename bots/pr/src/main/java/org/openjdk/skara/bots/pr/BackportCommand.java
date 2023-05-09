@@ -69,7 +69,7 @@ public class BackportCommand implements CommandHandler {
             + " ([how to associate your GitHub account with your OpenJDK username]"
             + "(https://wiki.openjdk.org/display/skara#Skara-AssociatingyourGitHubaccountandyourOpenJDKusername)).";
 
-    private static final String REPO_ACCESS_WARNING = "The backport can not be created because you don't have access to the target repository.";
+    private static final String INSUFFICIENT_ACCESS_WARNING = "The backport can not be created because you don't have access to the target repository.";
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command,
@@ -123,8 +123,8 @@ public class BackportCommand implements CommandHandler {
             }
             var targetBranchName = targetBranch.name();
 
-            if (!targetRepo.hasRepoAccess(command.user())) {
-                reply.println(REPO_ACCESS_WARNING);
+            if (!targetRepo.canCreatePullRequest(command.user())) {
+                reply.println(INSUFFICIENT_ACCESS_WARNING);
                 return;
             }
 
@@ -240,8 +240,8 @@ public class BackportCommand implements CommandHandler {
             }
         }
 
-        if (!targetRepo.hasRepoAccess(realUser)) {
-            reply.println(REPO_ACCESS_WARNING);
+        if (!targetRepo.canCreatePullRequest(realUser)) {
+            reply.println(INSUFFICIENT_ACCESS_WARNING);
             return;
         }
 

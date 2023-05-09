@@ -216,7 +216,7 @@ public interface HostedRepository {
     int deleteDeployKeys(Duration age);
 
     /**
-     * Check whether the user has access to this repository
+     * Check whether the user is allowed to create pull request in this repository
      */
-    boolean hasRepoAccess(HostUser user);
+    boolean canCreatePullRequest(HostUser user);
 }

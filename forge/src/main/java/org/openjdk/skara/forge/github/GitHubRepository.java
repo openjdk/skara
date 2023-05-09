@@ -743,7 +743,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public boolean hasRepoAccess(HostUser user) {
+    public boolean canCreatePullRequest(HostUser user) {
         return true;
     }
 }

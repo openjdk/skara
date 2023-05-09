@@ -845,7 +845,7 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public boolean hasRepoAccess(HostUser user) {
+    public boolean canCreatePullRequest(HostUser user) {
         return canPush(user);
     }
 }
