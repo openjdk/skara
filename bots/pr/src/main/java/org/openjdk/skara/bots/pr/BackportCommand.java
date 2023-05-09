@@ -397,7 +397,7 @@ public class BackportCommand implements CommandHandler {
             hasGroupMembership = targetRepo.canPush(user);
         }
         if (!hasGroupMembership) {
-            reply.println("The backport can not be created because you don't have group membership in the target repository!");
+            reply.println("The backport can not be created because you don't have access to the target repository.");
         }
         return hasGroupMembership;
     }
