@@ -232,7 +232,7 @@ public class PullRequestWorkItem implements WorkItem {
         if (!isOfInterest(pr)) {
             return List.of();
         }
-        if (pr.body().contains(TEMPORARY_ISSUE_FAILURE_MARKER)) {
+        if (pr.isOpen() && pr.body().contains(TEMPORARY_ISSUE_FAILURE_MARKER)) {
             log.warning("Found temporary issue failure, the notifiers will be stopped until the temporary issue failure resolved.");
             return List.of();
         }
