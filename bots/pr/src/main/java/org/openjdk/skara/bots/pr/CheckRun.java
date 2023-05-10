@@ -1257,12 +1257,14 @@ class CheckRun {
             var readyForIntegration = readyForReview &&
                                       visitor.messages().isEmpty() &&
                                       !additionalProgresses.containsValue(false) &&
-                                      integrationBlockers.isEmpty();
+                                      integrationBlockers.isEmpty() &&
+                                      !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
             if (!reviewNeeded) {
                 // Reviews are not needed for clean backports unless this repo is configured with reviewCleanBackport enabled
                 readyForIntegration = readyForReview &&
                                       !additionalProgresses.containsValue(false) &&
-                                      integrationBlockers.isEmpty();
+                                      integrationBlockers.isEmpty() &&
+                                      !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
             }
 
             updateMergeReadyComment(readyForIntegration, commitMessage, rebasePossible);
