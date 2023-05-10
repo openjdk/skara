@@ -109,6 +109,10 @@ public class RestRequest {
                 return rawBody;
             }
 
+            if (body == null && queryType == RequestType.GET && bodyParams.isEmpty()) {
+                return null;
+            }
+
             var finalBody = body == null ? JSON.object() : body.asObject();
             for (var param : bodyParams) {
                 finalBody.put(param.key, param.value);
