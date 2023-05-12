@@ -22,19 +22,16 @@
  */
 package org.openjdk.skara.forge.gitlab;
 
-import org.openjdk.skara.forge.*;
+import java.net.URI;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.openjdk.skara.forge.Forge;
+import org.openjdk.skara.forge.ForgeFactory;
+import org.openjdk.skara.forge.ForgeUtils;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.json.JSONObject;
 import org.openjdk.skara.json.JSONValue;
-
-import java.io.*;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class GitLabForgeFactory implements ForgeFactory {
     @Override
@@ -45,40 +42,6 @@ public class GitLabForgeFactory implements ForgeFactory {
     @Override
     public Set<String> knownHosts() {
         return Set.of("gitlab.com");
-    }
-
-    private void configureSshKey(String userName, String hostName, String sshKey) {
-        var cfgPath = Path.of(System.getProperty("user.home"), ".ssh");
-        if (!Files.isDirectory(cfgPath)) {
-            try {
-                Files.createDirectories(cfgPath);
-            } catch (IOException ignored) {
-            }
-        }
-
-        var cfgFile = cfgPath.resolve("config");
-        var existing = "";
-        try {
-            existing = Files.readString(cfgFile, StandardCharsets.UTF_8);
-        } catch (IOException ignored) {
-        }
-
-        var userHost = userName + "." + hostName;
-        var existingBlock = Pattern.compile("^Match host " + Pattern.quote(userHost) + "(?:\\R[ \\t]+.*)+", Pattern.MULTILINE);
-        var existingMatcher = existingBlock.matcher(existing);
-        var filtered = existingMatcher.replaceAll("");
-        var result = "Match host " + userHost + "\n" +
-                "  Hostname " + hostName + "\n" +
-                "  PreferredAuthentications publickey\n" +
-                "  StrictHostKeyChecking no\n" +
-                "  IdentityFile " + sshKey + "\n" +
-                "\n";
-
-        try {
-            Files.writeString(cfgFile, result + filtered.strip() + "\n", StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
     }
 
     @Override
@@ -96,7 +59,7 @@ public class GitLabForgeFactory implements ForgeFactory {
         }
         var useSsh = false;
         if (configuration != null && configuration.contains("sshkey") && credential != null) {
-            configureSshKey(credential.username(), uri.getHost(), configuration.get("sshkey").asString());
+            ForgeUtils.configureSshKey(credential.username(), uri.getHost(), configuration.get("sshkey").asString());
             useSsh = true;
         }
         if (credential != null) {
