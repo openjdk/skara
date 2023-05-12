@@ -28,7 +28,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.forge.ForgeFactory;
-import org.openjdk.skara.forge.ForgeUtils;
+import org.openjdk.skara.forge.internal.ForgeUtils;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.json.JSONObject;
 import org.openjdk.skara.json.JSONValue;
