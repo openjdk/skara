@@ -31,6 +31,7 @@ import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.json.JSONObject;
 
 public class BitbucketForgeFactory implements ForgeFactory {
+
     @Override
     public String name() {
         return "bitbucket";
@@ -48,18 +49,17 @@ public class BitbucketForgeFactory implements ForgeFactory {
             name = configuration.get("name").asString();
         }
         var useSsh = false;
-        if (configuration != null && configuration.contains("sshkey") && credential != null) {
+        if (configuration != null && configuration.contains("sshkey")) {
+            if (credential == null) {
+                throw new RuntimeException("Cannot use SSH without credentials");
+            }
             ForgeUtils.configureSshKey(credential.username(), uri.getHost(), configuration.get("sshkey").asString());
             useSsh = true;
         }
-        int sshport = 22;
+        int sshport = BitbucketHost.DEFAULT_SSH_PORT;
         if (configuration != null && configuration.contains("sshport")) {
             sshport = configuration.get("sshport").asInt();
         }
-        if (credential != null) {
-            return new BitbucketHost(name, uri, useSsh, sshport, credential);
-        } else {
-            return new BitbucketHost(name, uri, useSsh, sshport);
-        }
+        return new BitbucketHost(name, uri, useSsh, sshport, credential);
     }
 }

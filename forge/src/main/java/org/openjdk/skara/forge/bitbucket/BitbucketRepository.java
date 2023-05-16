@@ -48,17 +48,17 @@ import org.openjdk.skara.vcs.Tag;
 import org.openjdk.skara.vcs.VCS;
 
 public class BitbucketRepository implements HostedRepository {
-    private final BitbucketHost bitbucketHost;
-    private final String repositoryName;
+    private final BitbucketHost host;
+    private final String name;
 
-    public BitbucketRepository(BitbucketHost bitbucketHost, String repositoryName) {
-        this.bitbucketHost = bitbucketHost;
-        this.repositoryName = repositoryName;
+    public BitbucketRepository(BitbucketHost host, String name) {
+        this.host = host;
+        this.name = name;
     }
 
     @Override
     public Forge forge() {
-        return bitbucketHost;
+        return host;
     }
 
     @Override
@@ -103,7 +103,7 @@ public class BitbucketRepository implements HostedRepository {
 
     @Override
     public String name() {
-        return repositoryName;
+        return name;
     }
 
     @Override
@@ -113,13 +113,13 @@ public class BitbucketRepository implements HostedRepository {
 
     @Override
     public URI authenticatedUrl() {
-        if (bitbucketHost.useSsh()) {
-            return URI.create("ssh://git@" + bitbucketHost.sshHostString() + "/" + repositoryName + ".git");
+        if (host.useSsh()) {
+            return URI.create("ssh://git@" + host.sshHostString() + "/" + name + ".git");
         } else {
             var builder = URIBuilder
-                    .base(bitbucketHost.getUri())
-                    .setPath("/" + repositoryName + ".git");
-            bitbucketHost.getCredential().ifPresent(cred -> builder.setAuthentication(cred.username() + ":" + cred.password()));
+                    .base(host.getUri())
+                    .setPath("/" + name + ".git");
+            host.getCredential().ifPresent(cred -> builder.setAuthentication(cred.username() + ":" + cred.password()));
             return builder.build();
         }
     }
@@ -181,7 +181,7 @@ public class BitbucketRepository implements HostedRepository {
 
     @Override
     public String namespace() {
-        return URIBuilder.base(bitbucketHost.getUri()).build().getHost();
+        return URIBuilder.base(host.getUri()).build().getHost();
     }
 
     @Override

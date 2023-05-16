@@ -32,6 +32,7 @@ import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.vcs.Hash;
 
 public class BitbucketHost implements Forge {
+    public static final int DEFAULT_SSH_PORT = 22;
     private final String name;
     private final URI uri;
     private final boolean useSsh;
@@ -44,14 +45,6 @@ public class BitbucketHost implements Forge {
         this.useSsh = useSsh;
         this.sshPort = sshPort;
         this.credential = credential;
-    }
-
-    public BitbucketHost(String name, URI uri, boolean useSsh, int sshPort) {
-        this.name = name;
-        this.uri = uri;
-        this.useSsh = useSsh;
-        this.sshPort = sshPort;
-        this.credential = null;
     }
 
     @Override
@@ -67,7 +60,7 @@ public class BitbucketHost implements Forge {
         if (credential == null) {
             throw new IllegalStateException("Cannot use ssh without user name");
         }
-        return credential.username() + "." + uri.getHost() + ((sshPort != 22) ? ":" + sshPort : "");
+        return credential.username() + "." + uri.getHost() + ((sshPort != DEFAULT_SSH_PORT) ? ":" + sshPort : "");
     }
 
     boolean useSsh() {
