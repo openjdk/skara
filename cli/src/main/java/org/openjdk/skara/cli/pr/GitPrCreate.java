@@ -24,6 +24,7 @@ package org.openjdk.skara.cli.pr;
 
 import org.openjdk.skara.args.*;
 import org.openjdk.skara.cli.*;
+import org.openjdk.skara.cli.ForgeUtils;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Label;
 import org.openjdk.skara.json.JSON;

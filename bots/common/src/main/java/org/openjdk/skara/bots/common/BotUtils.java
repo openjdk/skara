@@ -22,6 +22,10 @@
  */
 package org.openjdk.skara.bots.common;
 
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 /**
  * This class contains utility methods used by more than one bot. These methods
  * can't reasonably be located in the various libraries as they combine
@@ -29,8 +33,23 @@ package org.openjdk.skara.bots.common;
  * it should be encouraged to split it up into more cohesive units.
  */
 public class BotUtils {
+    private static final String lineSep = "(?:\\n|\\r|\\r\\n|\\n\\r)";
+    private static final Pattern issuesBlockPattern = Pattern.compile(lineSep + lineSep + "###? Issues?((?:" + lineSep + "(?: \\* )?\\[.*)+)", Pattern.MULTILINE);
+    private static final Pattern issuePattern = Pattern.compile("^(?: \\* )?\\[(\\S+)]\\(.*\\): (.*$)", Pattern.MULTILINE);
 
     public static String escape(String s) {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
+    public static Set<String> parseIssues(String body) {
+        var issuesBlockMatcher = issuesBlockPattern.matcher(body);
+        if (!issuesBlockMatcher.find()) {
+            return Set.of();
+        }
+        var issueMatcher = issuePattern.matcher(issuesBlockMatcher.group(1));
+        return issueMatcher.results()
+                .filter(mr -> !mr.group(2).endsWith(" (**CSR**)") && !mr.group(2).endsWith(" (**CSR**) (Withdrawn)") && !mr.group(2).endsWith(" (**JEP**)"))
+                .map(mo -> mo.group(1))
+                .collect(Collectors.toSet());
     }
 }

@@ -27,6 +27,7 @@ import java.time.ZonedDateTime;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openjdk.skara.bot.WorkItem;
+import org.openjdk.skara.bots.common.BotUtils;
 import org.openjdk.skara.bots.notify.prbranch.PullRequestBranchNotifier;
 import org.openjdk.skara.forge.PreIntegrations;
 import org.openjdk.skara.forge.PullRequest;
@@ -139,22 +140,6 @@ public class PullRequestWorkItem implements WorkItem {
         return "[\n" + String.join(",\n", entries) + "\n]";
     }
 
-    private final String lineSep = "(?:\\n|\\r|\\r\\n|\\n\\r)";
-    private final Pattern issuesBlockPattern = Pattern.compile(lineSep + lineSep + "###? Issues?((?:" + lineSep + "(?: \\* )?\\[.*)+)", Pattern.MULTILINE);
-    private final Pattern issuePattern = Pattern.compile("^(?: \\* )?\\[(\\S+)]\\(.*\\): (.*$)", Pattern.MULTILINE);
-
-    private Set<String> parseIssues() {
-        var issuesBlockMatcher = issuesBlockPattern.matcher(pr.body());
-        if (!issuesBlockMatcher.find()) {
-            return Set.of();
-        }
-        var issueMatcher = issuePattern.matcher(issuesBlockMatcher.group(1));
-        return issueMatcher.results()
-                           .filter(mr -> !mr.group(2).endsWith(" (**CSR**)") && !mr.group(2).endsWith(" (**CSR**) (Withdrawn)") && !mr.group(2).endsWith(" (**JEP**)"))
-                           .map(mo -> mo.group(1))
-                           .collect(Collectors.toSet());
-    }
-
     @Override
     public boolean concurrentWith(WorkItem other) {
         if (!(other instanceof PullRequestWorkItem)) {
@@ -243,7 +228,7 @@ public class PullRequestWorkItem implements WorkItem {
                 .deserializer(this::deserializePrState)
                 .materialize(historyPath);
 
-        var issues = parseIssues();
+        var issues = BotUtils.parseIssues(pr.body());
         var commit = resultingCommitHash();
         var state = new PullRequestState(pr, issues, commit, pr.headHash(), pr.state());
         var stored = storage.current();

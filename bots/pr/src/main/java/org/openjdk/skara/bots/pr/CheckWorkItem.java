@@ -23,11 +23,15 @@
 package org.openjdk.skara.bots.pr;
 
 import java.util.logging.Level;
+
+import org.openjdk.skara.bot.Bot;
 import org.openjdk.skara.bot.WorkItem;
+import org.openjdk.skara.bots.common.BotUtils;
 import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -62,11 +66,19 @@ class CheckWorkItem extends PullRequestWorkItem {
             """;
 
     private final boolean forceUpdate;
+    private boolean spawnedFromIssueBot = false;
 
     CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
                   boolean needsReadyCheck, boolean forceUpdate) {
         super(bot, prId, errorHandler, triggerUpdatedAt, needsReadyCheck);
         this.forceUpdate = forceUpdate;
+    }
+
+    CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
+                  boolean needsReadyCheck, boolean forceUpdate, boolean spawnedFromIssueBot) {
+        super(bot, prId, errorHandler, triggerUpdatedAt, needsReadyCheck);
+        this.forceUpdate = forceUpdate;
+        this.spawnedFromIssueBot = true;
     }
 
     CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
@@ -91,8 +103,8 @@ class CheckWorkItem extends PullRequestWorkItem {
         }
     }
 
-    String getMetadata(CensusInstance censusInstance, String title, String body, List<Comment> comments,
-                       List<Review> reviews, Set<String> labels, String targetRef, boolean isDraft, Duration expiresIn) {
+    String getPRMetadata(CensusInstance censusInstance, String title, String body, List<Comment> comments,
+                       List<Review> reviews, Set<String> labels, String targetRef, boolean isDraft) {
         try {
             var approverString = reviews.stream()
                                         .filter(review -> review.verdict() == Review.Verdict.APPROVED)
@@ -124,19 +136,49 @@ class CheckWorkItem extends PullRequestWorkItem {
             digest.update(targetRef.getBytes(StandardCharsets.UTF_8));
             digest.update(isDraft ? (byte)0 : (byte)1);
 
-            var ret = Base64.getUrlEncoder().encodeToString(digest.digest());
-            if (expiresIn != null) {
-                ret += ":" + Instant.now().plus(expiresIn).getEpochSecond();
-            }
-            return ret;
+            return Base64.getUrlEncoder().encodeToString(digest.digest());
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Cannot find SHA-256");
         }
     }
 
+    String getIssueMetadata(String prBody) {
+        try {
+            var issueProject = bot.issueProject();
+            if (issueProject == null) {
+                return "";
+            }
+            var issueIds = BotUtils.parseIssues(prBody);
+            var sortedIssueIds = issueIds.stream().sorted().toList();
+            var issues = sortedIssueIds.stream()
+                    .map(issueProject::issue)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .toList();
+            String ids = issues.stream().map(Issue::id).collect(Collectors.joining());
+            String priorities = issues.stream()
+                    .map(issue -> issue.properties().get("priority") == null ? "" : issue.properties().get("priority").asString())
+                    .collect(Collectors.joining());
+
+            var digest = MessageDigest.getInstance("SHA-256");
+            digest.update(ids.strip().getBytes(StandardCharsets.UTF_8));
+            digest.update(priorities.strip().getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().encodeToString(digest.digest());
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Cannot find SHA-256");
+        }
+    }
+
+    String getMetadata(String PRMetadata, String issueMetadata, Duration expiresIn) {
+        var ret = PRMetadata + "#" + issueMetadata;
+        if (expiresIn != null) {
+            ret += ":" + Instant.now().plus(expiresIn).getEpochSecond();
+        }
+        return ret;
+    }
+
     private boolean currentCheckValid(CensusInstance censusInstance, List<Comment> comments, List<Review> reviews, Set<String> labels) {
         var hash = pr.headHash();
-        var metadata = getMetadata(censusInstance, pr.title(), pr.body(), comments, reviews, labels, pr.targetRef(), pr.isDraft(), null);
         var currentChecks = pr.checks(hash);
         var jcheckName = CheckRun.getJcheckName(pr);
 
@@ -144,22 +186,54 @@ class CheckWorkItem extends PullRequestWorkItem {
             var check = currentChecks.get(jcheckName);
             if (check.completedAt().isPresent() && check.metadata().isPresent()) {
                 var previousMetadata = check.metadata().get();
+                Instant expiresAt = null;
+
                 if (previousMetadata.contains(":")) {
                     var splitIndex = previousMetadata.lastIndexOf(":");
-                    var stableMetadata = previousMetadata.substring(0, splitIndex);
-                    var expiresAt = Instant.ofEpochSecond(Long.parseLong(previousMetadata.substring(splitIndex + 1)));
-                    if (stableMetadata.equals(metadata) && expiresAt.isAfter(Instant.now())) {
-                        log.finer("Metadata with expiration time is still valid, not checking again");
-                        return true;
+                    expiresAt = Instant.ofEpochSecond(Long.parseLong(previousMetadata.substring(splitIndex + 1)));
+                    previousMetadata = previousMetadata.substring(0, splitIndex);
+                }
+
+                String[] substrings = previousMetadata.split("#");
+                String previousPRMetadata = substrings[0];
+                String previousIssueMetadata = (substrings.length > 1) ? substrings[1] : "";
+
+
+                // triggered by issue update
+                if (spawnedFromIssueBot) {
+                    var currIssueMetadata = getIssueMetadata(pr.body());
+                    if (expiresAt != null) {
+                        if (previousIssueMetadata.equals(currIssueMetadata) && expiresAt.isAfter(Instant.now())) {
+                            log.finer("Metadata with expiration time is still valid, not checking again");
+                            return true;
+                        } else {
+                            log.finer("Metadata expiration time has expired - checking again");
+                        }
                     } else {
-                        log.finer("Metadata expiration time has expired - checking again");
+                        if (previousIssueMetadata.equals(currIssueMetadata)) {
+                            log.fine("No activity since last check, not checking again.");
+                            return true;
+                        } else {
+                            log.fine("Previous metadata: " + previousIssueMetadata + " - current: " + currIssueMetadata);
+                        }
                     }
+                    // triggered by pr updates
                 } else {
-                    if (previousMetadata.equals(metadata)) {
-                        log.fine("No activity since last check, not checking again.");
-                        return true;
+                    var currPRMetadata = getPRMetadata(censusInstance, pr.title(), pr.body(), comments, reviews, labels, pr.targetRef(), pr.isDraft());
+                    if (expiresAt != null) {
+                        if (previousPRMetadata.equals(currPRMetadata) && expiresAt.isAfter(Instant.now())) {
+                            log.finer("Metadata with expiration time is still valid, not checking again");
+                            return true;
+                        } else {
+                            log.finer("Metadata expiration time has expired - checking again");
+                        }
                     } else {
-                        log.fine("Previous metadata: " + check.metadata().get() + " - current: " + metadata);
+                        if (previousPRMetadata.equals(currPRMetadata)) {
+                            log.fine("No activity since last check, not checking again.");
+                            return true;
+                        } else {
+                            log.fine("Previous metadata: " + previousPRMetadata + " - current: " + currPRMetadata);
+                        }
                     }
                 }
             } else {

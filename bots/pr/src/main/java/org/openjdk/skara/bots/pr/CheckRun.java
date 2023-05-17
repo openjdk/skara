@@ -655,6 +655,9 @@ class CheckRun {
             progressBody.append(warningListToText(integrationBlockers));
         }
 
+        // Before update status message, delete associations
+        var previousIssues = BotUtils.parseIssues(pr.body());
+        var currentIssues = new HashSet<String>();
         var issueProject = issueProject();
         if (issueProject != null && !allIssues.isEmpty()) {
             progressBody.append("\n\n### Issue");
@@ -681,14 +684,30 @@ class CheckRun {
                             progressBody.append("): ");
                             progressBody.append(BotUtils.escape(iss.get().title()));
                             var issueType = iss.get().properties().get("issuetype");
-                            if (issueType != null && "CSR".equals(issueType.asString())) {
-                                progressBody.append(" (**CSR**)");
-                                if (isWithdrawnCSR(iss.get())) {
-                                    progressBody.append(" (Withdrawn)");
+                            if (issueType != null) {
+                                if ("CSR".equals(issueType.asString())) {
+                                    progressBody.append(" (**CSR**)");
+                                    if (isWithdrawnCSR(iss.get())) {
+                                        progressBody.append(" (Withdrawn)");
+                                    }
+                                } else if ("JEP".equals(issueType.asString())) {
+                                    progressBody.append(" (**JEP**)");
+                                } else if ("Bug".equals(issueType.asString())) {
+                                    progressBody.append(" (**" + issueType.asString() + "**");
+                                    var issuePriority = iss.get().properties().get("priority");
+                                    if (issuePriority == null) {
+                                        progressBody.append(")");
+                                    } else {
+                                        progressBody.append(" - `" + issuePriority + "`)");
+                                    }
+                                    currentIssues.add(iss.get().id());
+                                } else if ("Enhancement".equals(issueType.asString())) {
+                                    progressBody.append(" (**Enhancement**)");
+                                    currentIssues.add(iss.get().id());
+                                } else {
+                                    progressBody.append(" (⚠️ Uncommon issue type: " + issueType.asString() + ")");
+                                    currentIssues.add(iss.get().id());
                                 }
-                            }
-                            if (issueType != null && "JEP".equals(issueType.asString())) {
-                                progressBody.append(" (**JEP**)");
                             }
                             if (!relaxedEquals(iss.get().title(), currentIssue.description())) {
                                 progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
@@ -722,6 +741,29 @@ class CheckRun {
                     }
                 }
                 progressBody.append("\n");
+            }
+
+            // Update the issuePRMap
+            var map = workItem.bot.issuePRMap();
+            // Add associations
+            var prId = pr.repository().name() + "#" + pr.id();
+            for (String issueId : currentIssues) {
+                if (!previousIssues.contains(issueId)) {
+                    map.putIfAbsent(issueId, new LinkedList<>());
+                    List<String> prIds = map.get(issueId);
+                    if (!prIds.contains(prId)) {
+                        prIds.add(prId);
+                    }
+                }
+            }
+            // Delete associations
+            for (String oldIssueId : previousIssues) {
+                if (!currentIssues.contains(oldIssueId)) {
+                    List<String> prIds = map.get(oldIssueId);
+                    if (prIds != null) {
+                        prIds.remove(prId);
+                    }
+                }
             }
         }
 
@@ -1304,8 +1346,8 @@ class CheckRun {
             }
 
             // Calculate current metadata to avoid unnecessary future checks
-            var metadata = workItem.getMetadata(censusInstance, title, updatedBody, pr.comments(), activeReviews,
-                                                newLabels, pr.targetRef(), pr.isDraft(), expiresIn);
+            var metadata = workItem.getMetadata(workItem.getPRMetadata(censusInstance, title, updatedBody, pr.comments(), activeReviews,
+                                                newLabels, pr.targetRef(), pr.isDraft()), workItem.getIssueMetadata(updatedBody), expiresIn);
             checkBuilder.metadata(metadata);
         } catch (Exception e) {
             log.throwing("CommitChecker", "checkStatus", e);

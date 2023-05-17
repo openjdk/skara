@@ -25,38 +25,33 @@ package org.openjdk.skara.bots.pr;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 import org.openjdk.skara.bot.WorkItem;
-import org.openjdk.skara.forge.PullRequestUtils;
 import org.openjdk.skara.issuetracker.Issue;
-import org.openjdk.skara.issuetracker.Link;
-import org.openjdk.skara.jbs.Backports;
 
 /**
  * The IssueWorkItem is read-only. Its purpose is to create PullRequestWorkItems for
  * every pull request found in the Backport hierarchy associated with a CSR issue.
  * It should only be triggered when a modified CSR issue has been found.
  */
-class CSRIssueWorkItem implements WorkItem {
+class IssueWorkItem implements WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
-    private final CSRIssueBot bot;
-    private final Issue csrIssue;
+    private final IssueBot bot;
+    private final Issue issue;
     private final Consumer<RuntimeException> errorHandler;
 
-    public CSRIssueWorkItem(CSRIssueBot bot, Issue csrIssue, Consumer<RuntimeException> errorHandler) {
+    public IssueWorkItem(IssueBot bot, Issue issue, Consumer<RuntimeException> errorHandler) {
         this.bot = bot;
-        this.csrIssue = csrIssue;
+        this.issue = issue;
         this.errorHandler = errorHandler;
     }
 
     @Override
     public String toString() {
-        return botName() + "/CSRIssueWorkItem@" + csrIssue.id();
+        return botName() + "/IssueWorkItem@" + issue.id();
     }
 
     /**
@@ -65,15 +60,15 @@ class CSRIssueWorkItem implements WorkItem {
      */
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof CSRIssueWorkItem otherItem)) {
+        if (!(other instanceof IssueWorkItem otherItem)) {
             return true;
         }
 
-        if (!csrIssue.project().name().equals(otherItem.csrIssue.project().name())) {
+        if (!issue.project().name().equals(otherItem.issue.project().name())) {
             return true;
         }
 
-        if (!csrIssue.id().equals(otherItem.csrIssue.id())) {
+        if (!issue.id().equals(otherItem.issue.id())) {
             return true;
         }
 
@@ -85,28 +80,18 @@ class CSRIssueWorkItem implements WorkItem {
 
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
-        var link = csrIssue.links().stream()
-                .filter(l -> l.relationship().isPresent() && "csr of".equals(l.relationship().get())).findAny();
-        var issue = link.flatMap(Link::issue);
-        var mainIssue = issue.flatMap(Backports::findMainIssue);
-        if (mainIssue.isEmpty()) {
-            return List.of();
-        }
-        var backports = Backports.findBackports(mainIssue.get(), false);
         var ret = new ArrayList<WorkItem>();
-        Stream.concat(mainIssue.stream(), backports.stream())
-                // Get all pull request ids related with all the issues
-                .flatMap(i -> bot.issuePRMap().get(i.id()) == null ? Stream.of() : bot.issuePRMap().get(i.id()).stream())
-                // Get all the pull requests
+
+        // find related prs according to the issue
+        bot.issuePRMap().get(issue.id()).stream()
                 .flatMap(id -> bot.repositories().stream()
                         .filter(r -> r.name().equals(id.split("#")[0]))
                         .map(r -> r.pullRequest(id.split("#")[1]))
                 )
                 .filter(Issue::isOpen)
-                .filter(pr -> bot.getPRBot(pr.repository().name()).enableCsr())
                 // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
                 // best we can do.
-                .map(pr -> new CheckWorkItem(bot.getPRBot(pr.repository().name()), pr.id(), errorHandler, csrIssue.updatedAt(), true, true))
+                .map(pr -> new CheckWorkItem(bot.getPRBot(pr.repository().name()), pr.id(), errorHandler, issue.updatedAt(), true, false, true))
                 .forEach(ret::add);
         return ret;
     }

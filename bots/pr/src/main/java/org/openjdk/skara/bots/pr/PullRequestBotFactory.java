@@ -28,6 +28,7 @@ import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.json.*;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -42,9 +43,10 @@ public class PullRequestBotFactory implements BotFactory {
     public List<Bot> create(BotConfiguration configuration) {
         var ret = new ArrayList<Bot>();
         var specific = configuration.specific();
-        var issueProjects = new HashMap<String, IssueProject>();
         var repositories = new HashMap<IssueProject, List<HostedRepository>>();
+        var repositoriesForCSR = new HashMap<IssueProject, List<HostedRepository>>();
         var pullRequestBotMap = new HashMap<String, PullRequestBot>();
+        var issueProjectToIssuePRMapMap = new HashMap<IssueProject, Map<String, List<String>>>();
 
         var externalPullRequestCommands = new HashMap<String, String>();
         if (specific.contains("external") && specific.get("external").contains("pr")) {
@@ -150,10 +152,14 @@ public class PullRequestBotFactory implements BotFactory {
                                          .collect(Collectors.toSet());
                 botBuilder.twentyFourHoursLabels(labels);
             }
-            var issueString = "";
+            IssueProject issueProject = null;
             if (repo.value().contains("issues")) {
-                issueString = repo.value().get("issues").asString();
-                botBuilder.issueProject(configuration.issueProject(issueString));
+                issueProject = configuration.issueProject(repo.value().get("issues").asString());
+                botBuilder.issueProject(issueProject);
+                repositories.putIfAbsent(issueProject, new ArrayList<>());
+                repositories.get(issueProject).add(repository);
+                issueProjectToIssuePRMapMap.putIfAbsent(issueProject, new ConcurrentHashMap<>());
+                botBuilder.issuePRMap(issueProjectToIssuePRMapMap.get(issueProject));
             }
             if (repo.value().contains("ignorestale")) {
                 botBuilder.ignoreStaleReviews(repo.value().get("ignorestale").asBoolean());
@@ -174,16 +180,9 @@ public class PullRequestBotFactory implements BotFactory {
             if (repo.value().contains("csr")) {
                 var enableCsr = repo.value().get("csr").asBoolean();
                 botBuilder.enableCsr(enableCsr);
-                if (enableCsr && !issueString.equals("")) {
-                    var issueProject = issueProjects.get(issueString);
-                    if (issueProject == null) {
-                        issueProject = configuration.issueProject(issueString);
-                        issueProjects.put(issueString, issueProject);
-                    }
-                    if (!repositories.containsKey(issueProject)) {
-                        repositories.put(issueProject, new ArrayList<>());
-                    }
-                    repositories.get(issueProject).add(repository);
+                if (enableCsr && issueProject != null) {
+                    repositoriesForCSR.putIfAbsent(issueProject, new ArrayList<>());
+                    repositoriesForCSR.get(issueProject).add(repository);
                 }
             }
             if (repo.value().contains("jep")) {
@@ -230,8 +229,14 @@ public class PullRequestBotFactory implements BotFactory {
             ret.add(prBot);
         }
 
-        for (IssueProject issueProject : issueProjects.values()) {
-            ret.add(new CSRIssueBot(issueProject, repositories.get(issueProject), pullRequestBotMap));
+        for (var issueProject : repositoriesForCSR.keySet()) {
+            ret.add(new CSRIssueBot(issueProject, repositoriesForCSR.get(issueProject), pullRequestBotMap,
+                    issueProjectToIssuePRMapMap.get(issueProject)));
+        }
+
+        for (var issueProject : issueProjectToIssuePRMapMap.keySet()) {
+            ret.add(new IssueBot(issueProject, repositories.get(issueProject), pullRequestBotMap,
+                    issueProjectToIssuePRMapMap.get(issueProject)));
         }
 
         return ret;
