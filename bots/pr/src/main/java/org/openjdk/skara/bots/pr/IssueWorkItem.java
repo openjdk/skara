@@ -83,6 +83,10 @@ class IssueWorkItem implements WorkItem {
         var ret = new ArrayList<WorkItem>();
 
         // find related prs according to the issue
+        var prIds = bot.issuePRMap().get(issue.id());
+        if (prIds == null) {
+            return ret;
+        }
         bot.issuePRMap().get(issue.id()).stream()
                 .flatMap(id -> bot.repositories().stream()
                         .filter(r -> r.name().equals(id.split("#")[0]))
