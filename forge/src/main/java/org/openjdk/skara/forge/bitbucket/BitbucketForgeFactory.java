@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,52 +20,46 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.forge.gitlab;
+package org.openjdk.skara.forge.bitbucket;
 
 import java.net.URI;
-import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.forge.ForgeFactory;
 import org.openjdk.skara.forge.internal.ForgeUtils;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.json.JSONObject;
-import org.openjdk.skara.json.JSONValue;
 
-public class GitLabForgeFactory implements ForgeFactory {
+public class BitbucketForgeFactory implements ForgeFactory {
+
     @Override
     public String name() {
-        return "gitlab";
+        return "bitbucket";
     }
 
     @Override
     public Set<String> knownHosts() {
-        return Set.of("gitlab.com");
+        return Set.of();
     }
 
     @Override
     public Forge create(URI uri, Credential credential, JSONObject configuration) {
-        var name = "GitLab";
+        var name = "Bitbucket";
         if (configuration != null && configuration.contains("name")) {
             name = configuration.get("name").asString();
         }
-        Set<String> groups = new HashSet<>();
-        if (configuration != null && configuration.contains("groups")) {
-            groups = configuration.get("groups")
-                                  .stream()
-                                  .map(JSONValue::asString)
-                                  .collect(Collectors.toSet());
-        }
         var useSsh = false;
-        if (configuration != null && configuration.contains("sshkey") && credential != null) {
+        if (configuration != null && configuration.contains("sshkey")) {
+            if (credential == null) {
+                throw new RuntimeException("Cannot use SSH without credentials");
+            }
             ForgeUtils.configureSshKey(credential.username(), uri.getHost(), configuration.get("sshkey").asString());
             useSsh = true;
         }
-        if (credential != null) {
-            return new GitLabHost(name, uri, useSsh, credential, groups);
-        } else {
-            return new GitLabHost(name, uri, useSsh, groups);
+        int sshport = BitbucketHost.DEFAULT_SSH_PORT;
+        if (configuration != null && configuration.contains("sshport")) {
+            sshport = configuration.get("sshport").asInt();
         }
+        return new BitbucketHost(name, uri, useSsh, sshport, credential);
     }
 }
