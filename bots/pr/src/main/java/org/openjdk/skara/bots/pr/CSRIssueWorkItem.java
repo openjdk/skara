@@ -31,7 +31,6 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import org.openjdk.skara.bot.WorkItem;
-import org.openjdk.skara.forge.PullRequestUtils;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.jbs.Backports;

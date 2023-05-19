@@ -655,8 +655,6 @@ class CheckRun {
             progressBody.append(warningListToText(integrationBlockers));
         }
 
-        // Before update status message, delete associations
-        var previousIssues = BotUtils.parseIssues(pr.body());
         var currentIssues = new HashSet<String>();
         var issueProject = issueProject();
         if (issueProject != null && !allIssues.isEmpty()) {
@@ -745,25 +743,39 @@ class CheckRun {
 
             // Update the issuePRMap
             var map = workItem.bot.issuePRMap();
-            // Add associations
             var prId = pr.repository().name() + "#" + pr.id();
-            for (String issueId : currentIssues) {
-                if (!previousIssues.contains(issueId)) {
+
+            if (workItem.bot.initializedPRMap().containsKey(prId)) {
+                // need previousIssues to delete associations
+                var previousIssues = BotUtils.parseIssues(pr.body());
+                // Add associations
+                for (String issueId : currentIssues) {
+                    if (!previousIssues.contains(issueId)) {
+                        map.putIfAbsent(issueId, new LinkedList<>());
+                        List<String> prIds = map.get(issueId);
+                        if (!prIds.contains(prId)) {
+                            prIds.add(prId);
+                        }
+                    }
+                }
+                // Delete associations
+                for (String oldIssueId : previousIssues) {
+                    if (!currentIssues.contains(oldIssueId)) {
+                        List<String> prIds = map.get(oldIssueId);
+                        if (prIds != null) {
+                            prIds.remove(prId);
+                        }
+                    }
+                }
+            } else {
+                for (String issueId : currentIssues) {
                     map.putIfAbsent(issueId, new LinkedList<>());
                     List<String> prIds = map.get(issueId);
                     if (!prIds.contains(prId)) {
                         prIds.add(prId);
                     }
                 }
-            }
-            // Delete associations
-            for (String oldIssueId : previousIssues) {
-                if (!currentIssues.contains(oldIssueId)) {
-                    List<String> prIds = map.get(oldIssueId);
-                    if (prIds != null) {
-                        prIds.remove(prId);
-                    }
-                }
+                workItem.bot.initializedPRMap().put(prId, true);
             }
         }
 

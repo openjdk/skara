@@ -525,8 +525,13 @@ public class JEPCommandTests {
             assertFalse(pr.store().body().contains("- [ ] Change requires a JEP request to be targeted"));
 
             // Test the PR bot with jep enable
-            var enableJepBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject)
-                    .enableJep(true).censusRepo(censusBuilder.build()).build();
+            var enableJepBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .enableJep(true)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(new HashMap<>())
+                    .build();
             pr.addComment("/jep TEST-2");
             TestBotRunner.runPeriodicItems(enableJepBot);
             assertLastCommentContains(pr, "pull request will not be integrated until the");

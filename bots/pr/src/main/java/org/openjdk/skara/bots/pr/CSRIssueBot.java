@@ -26,6 +26,7 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.openjdk.skara.bot.Bot;
 import org.openjdk.skara.bot.WorkItem;
@@ -43,9 +44,9 @@ public class CSRIssueBot implements Bot {
     private final IssueProject issueProject;
     private final List<HostedRepository> repositories;
     private final IssuePoller poller;
-
     private final Map<String, PullRequestBot> pullRequestBotMap;
     private final Map<String, List<String>> issuePRMap;
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     public CSRIssueBot(IssueProject issueProject, List<HostedRepository> repositories, Map<String, PullRequestBot> pullRequestBotMap,
                        Map<String, List<String>> issuePRMap) {
@@ -76,6 +77,7 @@ public class CSRIssueBot implements Bot {
     @Override
     public List<WorkItem> getPeriodicItems() {
         var issues = poller.updatedIssues();
+        log.info("Found " + issues.size() + " updated csr issues");
         var items = issues.stream()
                 .map(i -> (WorkItem) new CSRIssueWorkItem(this, i, e -> poller.retryIssue(i)))
                 .toList();

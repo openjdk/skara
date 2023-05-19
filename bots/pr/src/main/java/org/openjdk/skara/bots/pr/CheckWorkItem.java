@@ -24,7 +24,6 @@ package org.openjdk.skara.bots.pr;
 
 import java.util.logging.Level;
 
-import org.openjdk.skara.bot.Bot;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.bots.common.BotUtils;
 import org.openjdk.skara.bots.common.SolvesTracker;
