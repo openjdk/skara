@@ -59,6 +59,10 @@ public class JiraIssueTrackerFactory implements IssueTrackerFactory {
      * This method is only used by the manual test code.
      */
     public IssueTracker create(URI uri, String cookie) {
-        return new JiraHost(uri, cookie);
+        return new JiraHost(uri, "Cookie", cookie);
+    }
+
+    public IssueTracker createWithPat(URI uri, String pat) {
+        return new JiraHost(uri, "Bearer", pat);
     }
 }

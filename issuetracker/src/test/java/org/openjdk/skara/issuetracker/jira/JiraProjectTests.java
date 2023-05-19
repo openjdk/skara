@@ -39,7 +39,7 @@ import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
  * To be able to run the tests, you need to remove or comment out the @Disabled
  * annotation first.
  */
-@Disabled("Manual")
+//@Disabled("Manual")
 public class JiraProjectTests {
 
     @Test
@@ -82,5 +82,19 @@ public class JiraProjectTests {
         jiraIssue.setState(Issue.State.CLOSED);
         var jiraIssueOpt2 = jiraProject.issue(issueId);
         assertEquals(Issue.State.CLOSED, jiraIssueOpt2.get().state());
+    }
+
+    @Test
+    void testEquals() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var uri = URIBuilder.base("https://bugs.openjdk.org").build();
+        var pat = settings.getProperty("jira.pat");
+        var jiraHost = new JiraIssueTrackerFactory().createWithPat(uri, pat);
+        var jiraProject = jiraHost.project("SKARA");
+
+        var issue = jiraProject.issue("1914").orElseThrow();
+        var issue2 = jiraProject.issue("1914").orElseThrow();
+
+        assertEquals(issue, issue2);
     }
 }
