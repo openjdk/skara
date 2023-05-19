@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.network.URIBuilder;
+import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.test.ManualTestSettings;
 
 import java.io.IOException;
@@ -39,7 +40,7 @@ import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
  * To be able to run the tests, you need to remove or comment out the @Disabled
  * annotation first.
  */
-//@Disabled("Manual")
+@Disabled("Manual")
 public class JiraProjectTests {
 
     @Test
@@ -86,14 +87,17 @@ public class JiraProjectTests {
 
     @Test
     void testEquals() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
+        HttpProxy.setup();
         var uri = URIBuilder.base("https://bugs.openjdk.org").build();
+        var settings = ManualTestSettings.loadManualTestSettings();
         var pat = settings.getProperty("jira.pat");
-        var jiraHost = new JiraIssueTrackerFactory().createWithPat(uri, pat);
-        var jiraProject = jiraHost.project("SKARA");
+        var project = settings.getProperty("jira.project");
+        var issueId = settings.getProperty("jira.issue");
+        var jiraHost = new JiraIssueTrackerFactory().createWithPat(uri, "Bearer " + pat);
+        var jiraProject = jiraHost.project(project);
 
-        var issue = jiraProject.issue("1914").orElseThrow();
-        var issue2 = jiraProject.issue("1914").orElseThrow();
+        var issue = jiraProject.issue(issueId).orElseThrow();
+        var issue2 = jiraProject.issue(issueId).orElseThrow();
 
         assertEquals(issue, issue2);
     }

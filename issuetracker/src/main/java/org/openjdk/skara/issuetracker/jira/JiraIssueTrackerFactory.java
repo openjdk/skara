@@ -62,7 +62,11 @@ public class JiraIssueTrackerFactory implements IssueTrackerFactory {
         return new JiraHost(uri, "Cookie", cookie);
     }
 
+    /**
+     * Get the issue tracker according to personal access token
+     * This method is only used by the manual test code.
+     */
     public IssueTracker createWithPat(URI uri, String pat) {
-        return new JiraHost(uri, "Bearer", pat);
+        return new JiraHost(uri, "Authorization", pat);
     }
 }
