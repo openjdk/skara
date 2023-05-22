@@ -87,8 +87,8 @@ public class BotRunnerConfiguration {
                     try {
                         var keyContents = Files.readString(keyFile, StandardCharsets.UTF_8);
                         var pat = new Credential(github.get("app").get("id").asString() + ";" +
-                                                         github.get("app").get("installation").asString(),
-                                                 keyContents);
+                                github.get("app").get("installation").asString(),
+                                keyContents);
                         ret.put(entry.name(), Forge.from("github", uri, pat, github.asObject()));
                     } catch (IOException e) {
                         throw new ConfigurationError("Cannot find key file: " + keyFile);
@@ -99,6 +99,11 @@ public class BotRunnerConfiguration {
                 } else {
                     ret.put(entry.name(), Forge.from("github", uri, github.asObject()));
                 }
+            } else if (entry.value().contains("bitbucket")) {
+                var bitbucket = entry.value().get("bitbucket");
+                var uri = URIBuilder.base(bitbucket.get("url").asString()).build();
+                var credential = new Credential(bitbucket.get("username").asString(), bitbucket.get("pat").asString());
+                ret.put(entry.name(), Forge.from("bitbucket", uri, credential, bitbucket.asObject()));
             } else {
                 throw new ConfigurationError("Host " + entry.name());
             }

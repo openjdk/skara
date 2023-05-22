@@ -30,8 +30,12 @@ package org.openjdk.skara.network;
 public class UncheckedRestException extends RuntimeException {
     int statusCode;
 
-    public UncheckedRestException(String message, int statusCode) {
-        super(message);
+    public UncheckedRestException(int statusCode) {
+        this("Request returned bad status", null, statusCode);
+    }
+
+    public UncheckedRestException(String message, Throwable cause, int statusCode) {
+        super("[" +statusCode + "] " + message, cause);
         this.statusCode = statusCode;
     }
 
