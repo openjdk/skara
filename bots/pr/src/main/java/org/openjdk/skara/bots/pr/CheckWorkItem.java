@@ -160,10 +160,14 @@ class CheckWorkItem extends PullRequestWorkItem {
             String priorities = issues.stream()
                     .map(issue -> issue.properties().get("priority") == null ? "" : issue.properties().get("priority").asString())
                     .collect(Collectors.joining());
+            String types = issues.stream()
+                    .map(issue -> issue.properties().get("issueType") == null ? "" : issue.properties().get("issueType").asString())
+                    .collect(Collectors.joining());
 
             var digest = MessageDigest.getInstance("SHA-256");
             digest.update(ids.strip().getBytes(StandardCharsets.UTF_8));
             digest.update(priorities.strip().getBytes(StandardCharsets.UTF_8));
+            digest.update(types.strip().getBytes(StandardCharsets.UTF_8));
             return Base64.getUrlEncoder().encodeToString(digest.digest());
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Cannot find SHA-256");

@@ -358,7 +358,7 @@ class BackportTests {
                                            .addCommitter(author.forge().currentUser().id())
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            
+
             var bot = PullRequestBot.newBuilder()
                     .repo(integrator)
                     .censusRepo(censusBuilder.build())
