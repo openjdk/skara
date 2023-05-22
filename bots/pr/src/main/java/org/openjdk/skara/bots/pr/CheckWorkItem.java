@@ -333,6 +333,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                 }
             }
             bot.initializedPRs().put(prId, true);
+            log.info("Map after initialization with pr " + pr.id() + " : " + bot.issuePRMap());
         }
     }
 
@@ -387,7 +388,6 @@ class CheckWorkItem extends PullRequestWorkItem {
         var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews, pr.targetRef());
         // initialize issue associations for this pr
         initializeIssuePRMap();
-        log.info("Map after initialization with pr " + pr.id() + " : " + bot.issuePRMap());
         // Determine if the current state of the PR has already been checked
         if (forceUpdate || !currentCheckValid(census, comments, activeReviews, labels)) {
             var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());
