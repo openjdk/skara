@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,6 +44,7 @@ public class JiraIssue implements Issue {
     private final Logger log = Logger.getLogger("org.openjdk.skara.issuetracker.jira");
 
     private static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+    private static final List<String> FILTER_OUT_FIELDS = List.of("fields.customfield_11700");
 
     private List<Label> labels;
 
@@ -604,6 +605,7 @@ public class JiraIssue implements Issue {
     /**
      * Equality for a JiraIssue is based on the data snapshot retrieved when
      * the instance was created.
+     * Filter out the fields in FILTER_OUT_FIELDS
      */
     @Override
     public boolean equals(Object o) {
@@ -614,7 +616,30 @@ public class JiraIssue implements Issue {
             return false;
         }
         JiraIssue jiraIssue = (JiraIssue) o;
-        return Objects.equals(json, jiraIssue.json);
+        var copiedJson = JSON.parse(json.toString());
+        var copiedJiraIssueJson = JSON.parse(jiraIssue.json.toString());
+        filterOutJSONFields(copiedJson);
+        filterOutJSONFields(copiedJiraIssueJson);
+        return Objects.equals(copiedJson, copiedJiraIssueJson);
+    }
+
+    private void filterOutJSONFields(JSONValue json) {
+        for (String field : FILTER_OUT_FIELDS) {
+            var parts = field.split("\\.");
+            var tempJson = json.asObject();
+            var length = parts.length;
+            for (int i = 0; i < length; i++) {
+                if (i != length - 1) {
+                    if (tempJson.contains(parts[i])) {
+                        tempJson = tempJson.get(parts[i]).asObject();
+                    } else {
+                        break;
+                    }
+                } else {
+                    tempJson.remove(parts[i]);
+                }
+            }
+        }
     }
 
     @Override

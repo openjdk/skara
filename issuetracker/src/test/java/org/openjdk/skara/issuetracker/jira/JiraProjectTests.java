@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.network.URIBuilder;
+import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.test.ManualTestSettings;
 
 import java.io.IOException;
@@ -82,5 +83,22 @@ public class JiraProjectTests {
         jiraIssue.setState(Issue.State.CLOSED);
         var jiraIssueOpt2 = jiraProject.issue(issueId);
         assertEquals(Issue.State.CLOSED, jiraIssueOpt2.get().state());
+    }
+
+    @Test
+    void testEquals() throws IOException {
+        HttpProxy.setup();
+        var uri = URIBuilder.base("https://bugs.openjdk.org").build();
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var pat = settings.getProperty("jira.pat");
+        var project = settings.getProperty("jira.project");
+        var issueId = settings.getProperty("jira.issue");
+        var jiraHost = new JiraIssueTrackerFactory().createWithPat(uri, "Bearer " + pat);
+        var jiraProject = jiraHost.project(project);
+
+        var issue = jiraProject.issue(issueId).orElseThrow();
+        var issue2 = jiraProject.issue(issueId).orElseThrow();
+
+        assertEquals(issue, issue2);
     }
 }

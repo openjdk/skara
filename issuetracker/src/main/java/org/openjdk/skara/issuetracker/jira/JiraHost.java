@@ -55,7 +55,7 @@ public class JiraHost implements IssueTracker {
     /**
      * This constructor is only used by the manual test code.
      */
-    JiraHost(URI uri, String cookie) {
+    JiraHost(URI uri, String header, String value) {
         this.uri = uri;
         this.visibilityRole = null;
         this.securityLevel = null;
@@ -63,7 +63,7 @@ public class JiraHost implements IssueTracker {
         var baseApi = URIBuilder.base(uri)
                                 .appendPath("/rest/api/2/")
                                 .build();
-        request = new RestRequest(baseApi, "test", (r) -> Arrays.asList("Cookie", cookie));
+        request = new RestRequest(baseApi, "test", (r) -> Arrays.asList(header, value));
     }
 
     JiraHost(URI uri, JiraVault jiraVault) {
