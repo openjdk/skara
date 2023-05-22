@@ -316,9 +316,9 @@ class CheckWorkItem extends PullRequestWorkItem {
 
     private void initializeIssuePRMap() {
         // initialize the issuePRMap
-        var issueIds = BotUtils.parseIssues(pr.body());
         var prId = pr.repository().name() + "#" + pr.id();
         if (!bot.initializedPRMap().containsKey(prId)) {
+            var issueIds = BotUtils.parseIssues(pr.body());
             for (String issueId : issueIds) {
                 bot.issuePRMap().putIfAbsent(issueId, new LinkedList<>());
                 List<String> prIds = bot.issuePRMap().get(issueId);
