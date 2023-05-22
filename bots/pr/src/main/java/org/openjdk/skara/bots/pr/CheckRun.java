@@ -745,7 +745,7 @@ class CheckRun {
             var map = workItem.bot.issuePRMap();
             var prId = pr.repository().name() + "#" + pr.id();
 
-            // need previousIssues to delete associations
+            // Need previousIssues to delete associations
             var previousIssues = BotUtils.parseIssues(pr.body());
             // Add associations
             for (String issueId : currentIssues) {

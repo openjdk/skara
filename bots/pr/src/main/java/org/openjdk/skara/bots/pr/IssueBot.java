@@ -57,7 +57,7 @@ public class IssueBot implements Bot {
         // issues between the first run of each bot, without the risk of
         // returning excessive amounts of Issues in the first run.
         this.poller = new IssuePoller(issueProject, Duration.ofMinutes(10)) {
-            // Only query for CSR issues in this poller.
+            // Query for non-CSR and non-JEP issues in this poller.
             @Override
             protected List<Issue> queryIssues(IssueProject issueProject, ZonedDateTime updatedAfter) {
                 return issueProject.issues(updatedAfter).stream()
@@ -78,7 +78,7 @@ public class IssueBot implements Bot {
     @Override
     public List<WorkItem> getPeriodicItems() {
         var issues = poller.updatedIssues();
-        log.info("Found " + issues.size() + " updated issues");
+        log.info("Found " + issues.size() + " updated issues(exclude CSR and JEP issues)");
         var items = issues.stream()
                 .map(i -> (WorkItem) new IssueWorkItem(this, i, e -> poller.retryIssue(i)))
                 .toList();

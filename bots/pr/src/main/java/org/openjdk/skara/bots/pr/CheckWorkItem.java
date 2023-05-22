@@ -65,25 +65,27 @@ class CheckWorkItem extends PullRequestWorkItem {
             """;
 
     private final boolean forceUpdate;
-    private boolean spawnedFromIssueBot = false;
+    private final boolean spawnedFromIssueBot;
 
     CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
                   boolean needsReadyCheck, boolean forceUpdate) {
         super(bot, prId, errorHandler, triggerUpdatedAt, needsReadyCheck);
         this.forceUpdate = forceUpdate;
+        this.spawnedFromIssueBot = false;
     }
 
     CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
                   boolean needsReadyCheck, boolean forceUpdate, boolean spawnedFromIssueBot) {
         super(bot, prId, errorHandler, triggerUpdatedAt, needsReadyCheck);
         this.forceUpdate = forceUpdate;
-        this.spawnedFromIssueBot = true;
+        this.spawnedFromIssueBot = spawnedFromIssueBot;
     }
 
     CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
                   boolean needsReadyCheck) {
         super(bot, prId, errorHandler, triggerUpdatedAt, needsReadyCheck);
         this.forceUpdate = false;
+        this.spawnedFromIssueBot = false;
     }
 
     private String encodeReviewer(HostUser reviewer, CensusInstance censusInstance) {
@@ -203,17 +205,17 @@ class CheckWorkItem extends PullRequestWorkItem {
                     var currIssueMetadata = getIssueMetadata(pr.body());
                     if (expiresAt != null) {
                         if (previousIssueMetadata.equals(currIssueMetadata) && expiresAt.isAfter(Instant.now())) {
-                            log.finer("Metadata with expiration time is still valid, not checking again");
+                            log.finer("[Issue]Metadata with expiration time is still valid, not checking again");
                             return true;
                         } else {
-                            log.finer("Metadata expiration time has expired - checking again");
+                            log.finer("[Issue]Metadata expiration time has expired - checking again");
                         }
                     } else {
                         if (previousIssueMetadata.equals(currIssueMetadata)) {
-                            log.fine("No activity since last check, not checking again.");
+                            log.fine("[Issue]No activity since last check, not checking again.");
                             return true;
                         } else {
-                            log.fine("Previous metadata: " + previousIssueMetadata + " - current: " + currIssueMetadata);
+                            log.fine("[Issue]Previous metadata: " + previousIssueMetadata + " - current: " + currIssueMetadata);
                         }
                     }
                     // triggered by pr updates
@@ -221,17 +223,17 @@ class CheckWorkItem extends PullRequestWorkItem {
                     var currPRMetadata = getPRMetadata(censusInstance, pr.title(), pr.body(), comments, reviews, labels, pr.targetRef(), pr.isDraft());
                     if (expiresAt != null) {
                         if (previousPRMetadata.equals(currPRMetadata) && expiresAt.isAfter(Instant.now())) {
-                            log.finer("Metadata with expiration time is still valid, not checking again");
+                            log.finer("[PR]Metadata with expiration time is still valid, not checking again");
                             return true;
                         } else {
-                            log.finer("Metadata expiration time has expired - checking again");
+                            log.finer("[PR]Metadata expiration time has expired - checking again");
                         }
                     } else {
                         if (previousPRMetadata.equals(currPRMetadata)) {
-                            log.fine("No activity since last check, not checking again.");
+                            log.fine("[PR]No activity since last check, not checking again.");
                             return true;
                         } else {
-                            log.fine("Previous metadata: " + previousPRMetadata + " - current: " + currPRMetadata);
+                            log.fine("[PR]Previous metadata: " + previousPRMetadata + " - current: " + currPRMetadata);
                         }
                     }
                 }
@@ -315,18 +317,18 @@ class CheckWorkItem extends PullRequestWorkItem {
     }
 
     private void initializeIssuePRMap() {
-        // initialize the issuePRMap
+        // When bot restarts, the issuePRMap needs to get updated with this pr
         var prId = pr.repository().name() + "#" + pr.id();
-        if (!bot.initializedPRMap().containsKey(prId)) {
+        if (!bot.initializedPRs().containsKey(prId)) {
             var issueIds = BotUtils.parseIssues(pr.body());
             for (String issueId : issueIds) {
-                bot.issuePRMap().putIfAbsent(issueId, new LinkedList<>());
+                bot.issuePRMap().putIfAbsent(issueId, new ArrayList<>());
                 List<String> prIds = bot.issuePRMap().get(issueId);
                 if (!prIds.contains(prId)) {
                     prIds.add(prId);
                 }
             }
-            bot.initializedPRMap().put(prId, true);
+            bot.initializedPRs().put(prId, true);
         }
     }
 
@@ -381,7 +383,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews, pr.targetRef());
         // initialize issue associations for this pr
         initializeIssuePRMap();
-        log.info("Map after initialized: " + bot.issuePRMap());
+        log.info("Map after initialization with pr " + pr.id() + " : " + bot.issuePRMap());
         // Determine if the current state of the PR has already been checked
         if (forceUpdate || !currentCheckValid(census, comments, activeReviews, labels)) {
             var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());

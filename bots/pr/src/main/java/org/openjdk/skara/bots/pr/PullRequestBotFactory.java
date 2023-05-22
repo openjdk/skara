@@ -229,11 +229,13 @@ public class PullRequestBotFactory implements BotFactory {
             ret.add(prBot);
         }
 
+        // Create a CSRIssueBot for each issueProject which associated with at least one csr enabled repository
         for (var issueProject : repositoriesForCSR.keySet()) {
             ret.add(new CSRIssueBot(issueProject, repositoriesForCSR.get(issueProject), pullRequestBotMap,
                     issueProjectToIssuePRMapMap.get(issueProject)));
         }
 
+        // Create an IssueBot for each issueProject
         for (var issueProject : issueProjectToIssuePRMapMap.keySet()) {
             ret.add(new IssueBot(issueProject, repositories.get(issueProject), pullRequestBotMap,
                     issueProjectToIssuePRMapMap.get(issueProject)));

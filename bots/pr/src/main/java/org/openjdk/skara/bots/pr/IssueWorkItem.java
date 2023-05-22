@@ -33,8 +33,8 @@ import org.openjdk.skara.issuetracker.Issue;
 
 /**
  * The IssueWorkItem is read-only. Its purpose is to create PullRequestWorkItems for
- * every pull request found in the Backport hierarchy associated with a CSR issue.
- * It should only be triggered when a modified CSR issue has been found.
+ * every pull request associated with an updated issue.
+ * It should only be triggered when an updated issue(exclude CSR and JEP) has been found.
  */
 class IssueWorkItem implements WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
@@ -82,12 +82,12 @@ class IssueWorkItem implements WorkItem {
     public Collection<WorkItem> run(Path scratchPath) {
         var ret = new ArrayList<WorkItem>();
 
-        // find related prs according to the issue
+        // Get related prs according to the issue id
         var prIds = bot.issuePRMap().get(issue.id());
         if (prIds == null) {
             return ret;
         }
-        bot.issuePRMap().get(issue.id()).stream()
+        prIds.stream()
                 .flatMap(id -> bot.repositories().stream()
                         .filter(r -> r.name().equals(id.split("#")[0]))
                         .map(r -> r.pullRequest(id.split("#")[1]))

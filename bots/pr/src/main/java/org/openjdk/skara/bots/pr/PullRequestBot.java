@@ -74,7 +74,7 @@ class PullRequestBot implements Bot {
     private final Set<String> mergeSources;
     private final boolean enableBackport;
     private final Map<String, List<String>> issuePRMap;
-    private final Map<String, Boolean> initializedPRMap = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> initializedPRs = new ConcurrentHashMap<>();
 
     private Instant lastFullUpdate;
 
@@ -333,8 +333,8 @@ class PullRequestBot implements Bot {
         return issuePRMap;
     }
 
-    public Map<String, Boolean> initializedPRMap() {
-        return initializedPRMap;
+    public Map<String, Boolean> initializedPRs() {
+        return initializedPRs;
     }
 
     @Override

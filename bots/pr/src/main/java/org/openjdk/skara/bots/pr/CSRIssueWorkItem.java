@@ -36,7 +36,7 @@ import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.jbs.Backports;
 
 /**
- * The IssueWorkItem is read-only. Its purpose is to create PullRequestWorkItems for
+ * The CSRIssueWorkItem is read-only. Its purpose is to create PullRequestWorkItems for
  * every pull request found in the Backport hierarchy associated with a CSR issue.
  * It should only be triggered when a modified CSR issue has been found.
  */
@@ -59,7 +59,7 @@ class CSRIssueWorkItem implements WorkItem {
     }
 
     /**
-     * Concurrency between IssueWorkItems is ok as long as they aren't processing the
+     * Concurrency between CSRIssueWorkItems is ok as long as they aren't processing the
      * same issue and are spawned from the same bot instance.
      */
     @Override
