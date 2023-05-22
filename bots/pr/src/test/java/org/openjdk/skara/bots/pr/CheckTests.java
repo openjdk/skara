@@ -1707,11 +1707,13 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
+            Map<String, List<String>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
-                                         .repo(author)
-                                         .censusRepo(censusBuilder.build())
-                                         .issueProject(issues)
-                                         .build();
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             var bug = issues.createIssue("My first bug", List.of("A bug"), Map.of());
             var numericId = bug.id().split("-")[1];
@@ -1746,11 +1748,13 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
+            Map<String, List<String>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
-                                         .repo(author)
-                                         .censusRepo(censusBuilder.build())
-                                         .issueProject(issues)
-                                         .build();
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             var bug = issues.createIssue("My first bug", List.of("A bug"), Map.of());
 
@@ -1836,10 +1840,12 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
+            Map<String, List<String>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
                     .repo(author)
                     .censusRepo(censusBuilder.build())
                     .issueProject(issues)
+                    .issuePRMap(issuePRMap)
                     .build();
 
             var bug = issues.createIssue("My first bug", List.of("A bug"), Map.of());

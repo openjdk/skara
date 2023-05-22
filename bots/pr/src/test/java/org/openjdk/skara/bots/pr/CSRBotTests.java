@@ -200,7 +200,14 @@ class CSRBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            Map<String, List<String>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -245,7 +252,14 @@ class CSRBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            Map<String, List<String>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -291,7 +305,14 @@ class CSRBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            Map<String, List<String>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");

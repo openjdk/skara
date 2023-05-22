@@ -314,6 +314,22 @@ class CheckWorkItem extends PullRequestWorkItem {
         return false;
     }
 
+    private void initializeIssuePRMap() {
+        // initialize the issuePRMap
+        var issueIds = BotUtils.parseIssues(pr.body());
+        var prId = pr.repository().name() + "#" + pr.id();
+        if (!bot.initializedPRMap().containsKey(prId)) {
+            for (String issueId : issueIds) {
+                bot.issuePRMap().putIfAbsent(issueId, new LinkedList<>());
+                List<String> prIds = bot.issuePRMap().get(issueId);
+                if (!prIds.contains(prId)) {
+                    prIds.add(prId);
+                }
+            }
+            bot.initializedPRMap().put(prId, true);
+        }
+    }
+
     @Override
     public String toString() {
         return "CheckWorkItem@" + bot.repo().name() + "#" + prId;
@@ -363,6 +379,9 @@ class CheckWorkItem extends PullRequestWorkItem {
         var labels = new HashSet<>(pr.labelNames());
         // Filter out the active reviews
         var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews, pr.targetRef());
+        // initialize issue associations for this pr
+        initializeIssuePRMap();
+        log.info("Map after initialized: " + bot.issuePRMap());
         // Determine if the current state of the PR has already been checked
         if (forceUpdate || !currentCheckValid(census, comments, activeReviews, labels)) {
             var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());

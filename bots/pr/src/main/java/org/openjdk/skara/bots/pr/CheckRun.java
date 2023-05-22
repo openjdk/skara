@@ -745,37 +745,26 @@ class CheckRun {
             var map = workItem.bot.issuePRMap();
             var prId = pr.repository().name() + "#" + pr.id();
 
-            if (workItem.bot.initializedPRMap().containsKey(prId)) {
-                // need previousIssues to delete associations
-                var previousIssues = BotUtils.parseIssues(pr.body());
-                // Add associations
-                for (String issueId : currentIssues) {
-                    if (!previousIssues.contains(issueId)) {
-                        map.putIfAbsent(issueId, new LinkedList<>());
-                        List<String> prIds = map.get(issueId);
-                        if (!prIds.contains(prId)) {
-                            prIds.add(prId);
-                        }
-                    }
-                }
-                // Delete associations
-                for (String oldIssueId : previousIssues) {
-                    if (!currentIssues.contains(oldIssueId)) {
-                        List<String> prIds = map.get(oldIssueId);
-                        if (prIds != null) {
-                            prIds.remove(prId);
-                        }
-                    }
-                }
-            } else {
-                for (String issueId : currentIssues) {
+            // need previousIssues to delete associations
+            var previousIssues = BotUtils.parseIssues(pr.body());
+            // Add associations
+            for (String issueId : currentIssues) {
+                if (!previousIssues.contains(issueId)) {
                     map.putIfAbsent(issueId, new LinkedList<>());
                     List<String> prIds = map.get(issueId);
                     if (!prIds.contains(prId)) {
                         prIds.add(prId);
                     }
                 }
-                workItem.bot.initializedPRMap().put(prId, true);
+            }
+            // Delete associations
+            for (String oldIssueId : previousIssues) {
+                if (!currentIssues.contains(oldIssueId)) {
+                    List<String> prIds = map.get(oldIssueId);
+                    if (prIds != null) {
+                        prIds.remove(prId);
+                    }
+                }
             }
         }
 
