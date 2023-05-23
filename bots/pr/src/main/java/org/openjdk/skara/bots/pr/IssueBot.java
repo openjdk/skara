@@ -31,6 +31,7 @@ import org.openjdk.skara.issuetracker.IssueProject;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -79,9 +80,24 @@ public class IssueBot implements Bot {
     public List<WorkItem> getPeriodicItems() {
         var issues = poller.updatedIssues();
         log.info("Found " + issues.size() + " updated issues(exclude CSR and JEP issues)");
-        var items = issues.stream()
-                .map(i -> (WorkItem) new IssueWorkItem(this, i, e -> poller.retryIssue(i)))
-                .toList();
+        var items = new LinkedList<WorkItem>();
+        for (var issue : issues) {
+            var prRecords = issuePRMap.get(issue.id());
+            if (prRecords == null) {
+                continue;
+            }
+            prRecords.stream()
+                    .flatMap(record -> repositories.stream()
+                            .filter(r -> r.name().equals(record.repoName()))
+                            .map(r -> r.pullRequest(record.prId()))
+                    )
+                    .filter(Issue::isOpen)
+                    // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
+                    // best we can do.
+                    .map(pr -> new CheckWorkItem(pullRequestBotMap.get(pr.repository().name()), pr.id(),
+                            e -> poller.retryIssue(issue), issue.updatedAt(), true, false, true))
+                    .forEach(items::add);
+        }
         poller.lastBatchHandled();
         return items;
     }
@@ -93,10 +109,6 @@ public class IssueBot implements Bot {
 
     List<HostedRepository> repositories() {
         return repositories;
-    }
-
-    PullRequestBot getPRBot(String repo) {
-        return pullRequestBotMap.get(repo);
     }
 
     Map<String, List<PRRecord>> issuePRMap() {
