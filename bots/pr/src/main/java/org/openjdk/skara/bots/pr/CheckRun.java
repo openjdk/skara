@@ -690,7 +690,7 @@ class CheckRun {
                                     }
                                 } else if ("JEP".equals(issueType.asString())) {
                                     progressBody.append(" (**JEP**)");
-                                } else if ("Bug".equals(issueType.asString())) {
+                                } else {
                                     progressBody.append(" (**" + issueType.asString() + "**");
                                     var issuePriority = iss.get().properties().get("priority");
                                     if (issuePriority == null) {
@@ -698,12 +698,6 @@ class CheckRun {
                                     } else {
                                         progressBody.append(" - `" + issuePriority + "`)");
                                     }
-                                    currentIssues.add(iss.get().id());
-                                } else if ("Enhancement".equals(issueType.asString())) {
-                                    progressBody.append(" (**Enhancement**)");
-                                    currentIssues.add(iss.get().id());
-                                } else {
-                                    progressBody.append(" (⚠️ Uncommon issue type: " + issueType.asString() + ")");
                                     currentIssues.add(iss.get().id());
                                 }
                             }
