@@ -57,4 +57,9 @@ public class PRRecord {
     public int hashCode() {
         return Objects.hash(repoName, prId);
     }
+
+    @Override
+    public String toString() {
+        return repoName + "#" + prId;
+    }
 }
