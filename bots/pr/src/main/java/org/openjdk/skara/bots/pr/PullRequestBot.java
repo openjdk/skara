@@ -32,6 +32,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.time.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.*;
 import java.util.regex.Pattern;
 
@@ -73,7 +74,7 @@ class PullRequestBot implements Bot {
     private final Set<String> mergeSources;
     private final boolean enableBackport;
     private final Map<String, List<PRRecord>> issuePRMap;
-    private final Set<String> initializedPRs = new HashSet<>();
+    private final Map<String, Boolean> initializedPRs = new ConcurrentHashMap<>();
 
     private Instant lastFullUpdate;
 
@@ -351,7 +352,7 @@ class PullRequestBot implements Bot {
         }
     }
 
-    public Set<String> initializedPRs() {
+    public Map<String, Boolean> initializedPRs() {
         return initializedPRs;
     }
 
