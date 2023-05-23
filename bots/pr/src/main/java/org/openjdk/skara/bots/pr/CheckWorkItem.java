@@ -203,7 +203,6 @@ class CheckWorkItem extends PullRequestWorkItem {
                 String previousPRMetadata = substrings[0];
                 String previousIssueMetadata = (substrings.length > 1) ? substrings[1] : "";
 
-
                 // triggered by issue update
                 if (spawnedFromIssueBot) {
                     var currIssueMetadata = getIssueMetadata(pr.body());

@@ -655,6 +655,7 @@ class CheckRun {
             progressBody.append(warningListToText(integrationBlockers));
         }
 
+        // All the issues this pr related(except CSR and JEP)
         var currentIssues = new HashSet<String>();
         var issueProject = issueProject();
         if (issueProject != null && !allIssues.isEmpty()) {
@@ -752,6 +753,7 @@ class CheckRun {
                     workItem.bot.removeIssuePRMapping(oldIssueId, prRecord);
                 }
             }
+            log.info("Map after updated: " + workItem.bot.issuePRMap());
         }
 
         getReviewersList().ifPresent(reviewers -> {

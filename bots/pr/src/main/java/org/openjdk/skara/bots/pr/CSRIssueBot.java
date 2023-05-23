@@ -94,7 +94,7 @@ public class CSRIssueBot implements Bot {
         return repositories;
     }
 
-    PullRequestBot getPRBot(String repo){
+    PullRequestBot getPRBot(String repo) {
         return pullRequestBotMap.get(repo);
     }
 
