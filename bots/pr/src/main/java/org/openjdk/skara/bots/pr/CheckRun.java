@@ -736,7 +736,6 @@ class CheckRun {
             }
 
             // Update the issuePRMap
-            var map = workItem.bot.issuePRMap();
             var prRecord = new PRRecord(pr.repository().name(), pr.id());
 
             // Need previousIssues to delete associations
@@ -744,20 +743,13 @@ class CheckRun {
             // Add associations
             for (String issueId : currentIssues) {
                 if (!previousIssues.contains(issueId)) {
-                    map.putIfAbsent(issueId, new LinkedList<>());
-                    List<PRRecord> prPRRecords = map.get(issueId);
-                    if (!prPRRecords.contains(prRecord)) {
-                        prPRRecords.add(prRecord);
-                    }
+                    workItem.bot.addIssuePRMapping(issueId, prRecord);
                 }
             }
             // Delete associations
             for (String oldIssueId : previousIssues) {
                 if (!currentIssues.contains(oldIssueId)) {
-                    List<PRRecord> prPRRecords = map.get(oldIssueId);
-                    if (prPRRecords != null) {
-                        prPRRecords.remove(prRecord);
-                    }
+                    workItem.bot.removeIssuePRMapping(oldIssueId, prRecord);
                 }
             }
         }

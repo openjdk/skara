@@ -326,11 +326,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         if (!bot.initializedPRs().containsKey(prId)) {
             var issueIds = BotUtils.parseIssues(pr.body());
             for (String issueId : issueIds) {
-                bot.issuePRMap().putIfAbsent(issueId, new ArrayList<>());
-                List<PRRecord> prRecords = bot.issuePRMap().get(issueId);
-                if (!prRecords.contains(prId)) {
-                    prRecords.add(prRecord);
-                }
+                bot.addIssuePRMapping(issueId, prRecord);
             }
             bot.initializedPRs().put(prId, true);
             log.info("Map after initialization with pr " + pr.id() + " : " + bot.issuePRMap());

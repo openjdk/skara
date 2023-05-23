@@ -333,6 +333,25 @@ class PullRequestBot implements Bot {
         return issuePRMap;
     }
 
+    public void addIssuePRMapping(String issueId, PRRecord prRecord) {
+        issuePRMap.putIfAbsent(issueId, new LinkedList<>());
+        synchronized (issuePRMap.get(issueId)) {
+            List<PRRecord> prRecords = issuePRMap.get(issueId);
+            if (!prRecords.contains(prRecord)) {
+                prRecords.add(prRecord);
+            }
+        }
+    }
+
+    public void removeIssuePRMapping(String issueId, PRRecord prRecord) {
+        if (issuePRMap.get(issueId) != null) {
+            synchronized (issuePRMap.get(issueId)) {
+                List<PRRecord> prRecords = issuePRMap.get(issueId);
+                prRecords.remove(prRecord);
+            }
+        }
+    }
+
     public Map<String, Boolean> initializedPRs() {
         return initializedPRs;
     }
