@@ -88,9 +88,9 @@ class IssueWorkItem implements WorkItem {
             return ret;
         }
         prIds.stream()
-                .flatMap(id -> bot.repositories().stream()
-                        .filter(r -> r.name().equals(id.split("#")[0]))
-                        .map(r -> r.pullRequest(id.split("#")[1]))
+                .flatMap(record -> bot.repositories().stream()
+                        .filter(r -> r.name().equals(record.repoName()))
+                        .map(r -> r.pullRequest(record.prId()))
                 )
                 .filter(Issue::isOpen)
                 // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the

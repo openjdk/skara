@@ -97,9 +97,9 @@ class CSRIssueWorkItem implements WorkItem {
                 // Get all pull request ids related with all the issues
                 .flatMap(i -> bot.issuePRMap().get(i.id()) == null ? Stream.of() : bot.issuePRMap().get(i.id()).stream())
                 // Get all the pull requests
-                .flatMap(id -> bot.repositories().stream()
-                        .filter(r -> r.name().equals(id.split("#")[0]))
-                        .map(r -> r.pullRequest(id.split("#")[1]))
+                .flatMap(record -> bot.repositories().stream()
+                        .filter(r -> r.name().equals(record.repoName()))
+                        .map(r -> r.pullRequest(record.prId()))
                 )
                 .filter(Issue::isOpen)
                 .filter(pr -> bot.getPRBot(pr.repository().name()).enableCsr())

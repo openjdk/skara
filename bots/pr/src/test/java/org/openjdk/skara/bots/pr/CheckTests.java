@@ -802,7 +802,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
-            Map<String, List<String>> issuePRMap = new HashMap<>();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
                     .repo(author)
                     .censusRepo(censusBuilder.build())
@@ -869,7 +869,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            Map<String, List<String>> issuePRMap = new HashMap<>();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
                     .repo(author)
                     .censusRepo(censusBuilder.build())
@@ -972,7 +972,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            Map<String, List<String>> issuePRMap = new HashMap<>();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
                     .repo(author)
                     .censusRepo(censusBuilder.build())
@@ -1056,7 +1056,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                 .addAuthor(author.forge().currentUser().id())
                                 .addReviewer(reviewer.forge().currentUser().id());
-            Map<String, List<String>> issuePRMap = new HashMap<>();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
                     .repo(bot)
                     .issueProject(issues)
@@ -1132,7 +1132,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
-            Map<String, List<String>> issuePRMap = new HashMap<>();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
                     .repo(bot)
                     .issueProject(issueProject)
@@ -1648,7 +1648,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            Map<String, List<String>> issuePRMap = new HashMap<>();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
                     .repo(author)
                     .censusRepo(censusBuilder.build())
@@ -1707,7 +1707,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            Map<String, List<String>> issuePRMap = new HashMap<>();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
                     .repo(author)
                     .censusRepo(censusBuilder.build())
@@ -1748,7 +1748,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            Map<String, List<String>> issuePRMap = new HashMap<>();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
                     .repo(author)
                     .censusRepo(censusBuilder.build())
@@ -1840,7 +1840,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
-            Map<String, List<String>> issuePRMap = new HashMap<>();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
                     .repo(author)
                     .censusRepo(censusBuilder.build())
@@ -2013,7 +2013,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addCommitter(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
-            Map<String, List<String>> issuePRMap = new HashMap<>();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var prBot = PullRequestBot.newBuilder()
                     .repo(botRepo)
                     .censusRepo(censusBuilder.build())
@@ -2220,7 +2220,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
-            Map<String, List<String>> issuePRMap = new HashMap<>();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
                     .repo(author)
                     .censusRepo(censusBuilder.build())

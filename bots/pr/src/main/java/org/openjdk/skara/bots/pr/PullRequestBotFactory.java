@@ -46,7 +46,7 @@ public class PullRequestBotFactory implements BotFactory {
         var repositories = new HashMap<IssueProject, List<HostedRepository>>();
         var repositoriesForCSR = new HashMap<IssueProject, List<HostedRepository>>();
         var pullRequestBotMap = new HashMap<String, PullRequestBot>();
-        var issueProjectToIssuePRMapMap = new HashMap<IssueProject, Map<String, List<String>>>();
+        var issueProjectToIssuePRMapMap = new HashMap<IssueProject, Map<String, List<PRRecord>>>();
 
         var externalPullRequestCommands = new HashMap<String, String>();
         if (specific.contains("external") && specific.get("external").contains("pr")) {

@@ -64,7 +64,7 @@ public class PullRequestBotBuilder {
     private boolean jcheckMerge = false;
     private Set<String> mergeSources = Set.of();
     private boolean enableBackport = true;
-    private Map<String, List<String>> issuePRMap;
+    private Map<String, List<PRRecord>> issuePRMap;
 
     PullRequestBotBuilder() {
     }
@@ -234,7 +234,7 @@ public class PullRequestBotBuilder {
         return this;
     }
 
-    public PullRequestBotBuilder issuePRMap(Map<String, List<String>> issuePRMap) {
+    public PullRequestBotBuilder issuePRMap(Map<String, List<PRRecord>> issuePRMap) {
         this.issuePRMap = issuePRMap;
         return this;
     }

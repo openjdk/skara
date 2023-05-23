@@ -45,11 +45,11 @@ public class CSRIssueBot implements Bot {
     private final List<HostedRepository> repositories;
     private final IssuePoller poller;
     private final Map<String, PullRequestBot> pullRequestBotMap;
-    private final Map<String, List<String>> issuePRMap;
+    private final Map<String, List<PRRecord>> issuePRMap;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     public CSRIssueBot(IssueProject issueProject, List<HostedRepository> repositories, Map<String, PullRequestBot> pullRequestBotMap,
-                       Map<String, List<String>> issuePRMap) {
+                       Map<String, List<PRRecord>> issuePRMap) {
         this.issueProject = issueProject;
         this.repositories = repositories;
         this.pullRequestBotMap = pullRequestBotMap;
@@ -98,7 +98,7 @@ public class CSRIssueBot implements Bot {
         return pullRequestBotMap.get(repo);
     }
 
-    Map<String, List<String>> issuePRMap() {
+    Map<String, List<PRRecord>> issuePRMap() {
         return issuePRMap;
     }
 }

@@ -743,7 +743,7 @@ class CheckRun {
 
             // Update the issuePRMap
             var map = workItem.bot.issuePRMap();
-            var prId = pr.repository().name() + "#" + pr.id();
+            var prRecord = new PRRecord(pr.repository().name(), pr.id());
 
             // Need previousIssues to delete associations
             var previousIssues = BotUtils.parseIssues(pr.body());
@@ -751,18 +751,18 @@ class CheckRun {
             for (String issueId : currentIssues) {
                 if (!previousIssues.contains(issueId)) {
                     map.putIfAbsent(issueId, new LinkedList<>());
-                    List<String> prIds = map.get(issueId);
-                    if (!prIds.contains(prId)) {
-                        prIds.add(prId);
+                    List<PRRecord> prPRRecords = map.get(issueId);
+                    if (!prPRRecords.contains(prRecord)) {
+                        prPRRecords.add(prRecord);
                     }
                 }
             }
             // Delete associations
             for (String oldIssueId : previousIssues) {
                 if (!currentIssues.contains(oldIssueId)) {
-                    List<String> prIds = map.get(oldIssueId);
-                    if (prIds != null) {
-                        prIds.remove(prId);
+                    List<PRRecord> prPRRecords = map.get(oldIssueId);
+                    if (prPRRecords != null) {
+                        prPRRecords.remove(prRecord);
                     }
                 }
             }

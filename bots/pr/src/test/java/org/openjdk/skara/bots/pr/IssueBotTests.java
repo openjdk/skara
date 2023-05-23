@@ -55,7 +55,7 @@ public class IssueBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            Map<String, List<String>> issuePRMap = new HashMap<>();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var prBot = PullRequestBot.newBuilder()
                     .repo(bot)
                     .issueProject(issueProject)
@@ -158,7 +158,7 @@ public class IssueBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            Map<String, List<String>> issuePRMap = new HashMap<>();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var prBot = PullRequestBot.newBuilder()
                     .repo(bot)
                     .issueProject(issueProject)
@@ -222,7 +222,7 @@ public class IssueBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            Map<String, List<String>> issuePRMap = new HashMap<>();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var prBot = PullRequestBot.newBuilder()
                     .repo(bot)
                     .issueProject(issueProject)
