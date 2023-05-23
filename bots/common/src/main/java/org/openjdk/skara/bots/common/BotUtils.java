@@ -41,6 +41,12 @@ public class BotUtils {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
+    /**
+     * This method will parse issues from Pull Request Body and filters out JEP and CSR issues
+     *
+     * @param body The Pull Request Body
+     * @return Set of issue ids
+     */
     public static Set<String> parseIssues(String body) {
         var issuesBlockMatcher = issuesBlockPattern.matcher(body);
         if (!issuesBlockMatcher.find()) {

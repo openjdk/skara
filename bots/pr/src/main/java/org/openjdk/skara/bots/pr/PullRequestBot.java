@@ -32,7 +32,6 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.time.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.*;
 import java.util.regex.Pattern;
 
@@ -335,8 +334,8 @@ class PullRequestBot implements Bot {
 
     public void addIssuePRMapping(String issueId, PRRecord prRecord) {
         issuePRMap.putIfAbsent(issueId, new LinkedList<>());
-        synchronized (issuePRMap.get(issueId)) {
-            List<PRRecord> prRecords = issuePRMap.get(issueId);
+        List<PRRecord> prRecords = issuePRMap.get(issueId);
+        synchronized (prRecords) {
             if (!prRecords.contains(prRecord)) {
                 prRecords.add(prRecord);
             }
@@ -344,9 +343,9 @@ class PullRequestBot implements Bot {
     }
 
     public void removeIssuePRMapping(String issueId, PRRecord prRecord) {
-        if (issuePRMap.get(issueId) != null) {
-            synchronized (issuePRMap.get(issueId)) {
-                List<PRRecord> prRecords = issuePRMap.get(issueId);
+        List<PRRecord> prRecords = issuePRMap.get(issueId);
+        if (prRecords != null) {
+            synchronized (prRecords) {
                 prRecords.remove(prRecord);
             }
         }

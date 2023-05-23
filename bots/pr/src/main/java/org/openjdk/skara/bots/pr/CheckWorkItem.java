@@ -328,7 +328,6 @@ class CheckWorkItem extends PullRequestWorkItem {
                 bot.addIssuePRMapping(issueId, prRecord);
             }
             bot.initializedPRs().add(prId);
-            log.info("Map after initialization with pr " + pr.id() + " : " + bot.issuePRMap());
         }
     }
 

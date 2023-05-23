@@ -753,7 +753,6 @@ class CheckRun {
                     workItem.bot.removeIssuePRMapping(oldIssueId, prRecord);
                 }
             }
-            log.info("Map after updated: " + workItem.bot.issuePRMap());
         }
 
         getReviewersList().ifPresent(reviewers -> {

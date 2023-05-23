@@ -22,44 +22,5 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import java.util.Objects;
-
-public class PRRecord {
-    private String repoName;
-    private String prId;
-
-    public PRRecord(String repoName, String prId) {
-        this.repoName = repoName;
-        this.prId = prId;
-    }
-
-    public String repoName() {
-        return repoName;
-    }
-
-    public String prId() {
-        return prId;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        }
-        var other = (PRRecord) obj;
-        return repoName.equals(other.repoName) && prId.equals(other.prId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(repoName, prId);
-    }
-
-    @Override
-    public String toString() {
-        return repoName + "#" + prId;
-    }
+public record PRRecord(String repoName, String prId) {
 }
