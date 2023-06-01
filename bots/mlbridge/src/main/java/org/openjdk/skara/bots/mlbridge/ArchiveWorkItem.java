@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.mlbridge;
 
 import java.util.logging.Level;
 import org.openjdk.skara.bot.WorkItem;
+import org.openjdk.skara.bots.common.CommandNameEnum;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
@@ -39,7 +40,7 @@ import java.util.function.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static org.openjdk.skara.bots.common.PatternEnum.ARCHIVAL_COMMAND_PATTERN;
+import static org.openjdk.skara.bots.common.PatternEnum.EXECUTION_COMMAND_PATTERN;
 import static org.openjdk.skara.bots.common.PullRequestConstants.WEBREV_COMMENT_MARKER;
 
 class ArchiveWorkItem implements WorkItem {
@@ -118,21 +119,41 @@ class ArchiveWorkItem implements WorkItem {
         }
     }
 
-    private boolean ignoreComment(HostUser author, String body, ZonedDateTime createdTime, ZonedDateTime lastDraftTime) {
+    static String filterOutCommands(String body) {
+        var filteredBody = new StringBuilder();
+        boolean readingMultiLineCommandArgs = false;
+        for (var line : body.split("\\R")) {
+            var commandMatcher = EXECUTION_COMMAND_PATTERN.getPattern().matcher(line);
+            if (commandMatcher.matches()) {
+                readingMultiLineCommandArgs = false;
+                var command = commandMatcher.group(1).toLowerCase();
+                if (Arrays.stream(CommandNameEnum.values()).anyMatch(commandNameEnum -> commandNameEnum.name().equals(command))
+                        && CommandNameEnum.valueOf(command).isMultiLine()) {
+                    readingMultiLineCommandArgs = true;
+                }
+            } else {
+                if (!readingMultiLineCommandArgs) {
+                    filteredBody.append(line).append(System.lineSeparator());
+                }
+            }
+        }
+        return filteredBody.toString().strip();
+    }
+
+    private boolean ignoreComment(HostUser author, String body, ZonedDateTime createdTime, ZonedDateTime lastDraftTime, boolean isComment) {
         if (pr.repository().forge().currentUser().equals(author)) {
             return true;
         }
         if (bot.ignoredUsers().contains(author.username())) {
             return true;
         }
+
         // Check if this comment only contains command lines
-        var commandLineMatcher = ARCHIVAL_COMMAND_PATTERN.getPattern().matcher(body);
-        if (commandLineMatcher.find()) {
-            var filteredBody = commandLineMatcher.replaceAll("");
-            if (filteredBody.strip().isEmpty()) {
-                return true;
-            }
+        // For reviews, while the body is empty or only contains command, the bot should still archive it
+        if (isComment && filterOutCommands(body).isEmpty()) {
+            return true;
         }
+
         for (var ignoredCommentPattern : bot.ignoredComments()) {
             var ignoredCommentMatcher = ignoredCommentPattern.matcher(body);
             if (ignoredCommentMatcher.find()) {
@@ -349,7 +370,7 @@ class ArchiveWorkItem implements WorkItem {
 
             // Regular comments
             for (var comment : comments) {
-                if (ignoreComment(comment.author(), comment.body(), comment.createdAt(), lastDraftTime)) {
+                if (ignoreComment(comment.author(), comment.body(), comment.createdAt(), lastDraftTime, true)) {
                     archiver.addIgnored(comment);
                 } else {
                     archiver.addComment(comment);
@@ -359,7 +380,7 @@ class ArchiveWorkItem implements WorkItem {
             // Review comments
             var reviews = pr.reviews();
             for (var review : reviews) {
-                if (ignoreComment(review.reviewer(), review.body().orElse(""), review.createdAt(), lastDraftTime)) {
+                if (ignoreComment(review.reviewer(), review.body().orElse(""), review.createdAt(), lastDraftTime, false)) {
                     continue;
                 }
                 archiver.addReview(review);
@@ -371,7 +392,7 @@ class ArchiveWorkItem implements WorkItem {
                                    .sorted(Comparator.comparing(ReviewComment::path))
                                    .collect(Collectors.toList());
             for (var reviewComment : reviewComments) {
-                if (ignoreComment(reviewComment.author(), reviewComment.body(), reviewComment.createdAt(), lastDraftTime)) {
+                if (ignoreComment(reviewComment.author(), reviewComment.body(), reviewComment.createdAt(), lastDraftTime, true)) {
                     continue;
                 }
                 archiver.addReviewComment(reviewComment);
