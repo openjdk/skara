@@ -214,4 +214,9 @@ public interface HostedRepository {
      * The return value is the count of deleted keys
      */
     int deleteDeployKeys(Duration age);
+
+    /**
+     * Check whether the user is allowed to create pull request in this repository
+     */
+    boolean canCreatePullRequest(HostUser user);
 }

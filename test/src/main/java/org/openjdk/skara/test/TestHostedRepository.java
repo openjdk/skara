@@ -453,4 +453,9 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     public Map<Integer, ZonedDateTime> deployKeys() {
         return deployKeys;
     }
+
+    @Override
+    public boolean canCreatePullRequest(HostUser user) {
+        return true;
+    }
 }

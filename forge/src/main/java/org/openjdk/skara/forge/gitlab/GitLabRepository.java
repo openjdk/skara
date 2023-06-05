@@ -843,4 +843,9 @@ public class GitLabRepository implements HostedRepository {
         }
         return expiredKeys.size();
     }
+
+    @Override
+    public boolean canCreatePullRequest(HostUser user) {
+        return canPush(user);
+    }
 }
