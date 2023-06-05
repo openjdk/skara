@@ -32,6 +32,7 @@ import org.openjdk.skara.test.TestBotRunner;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,8 +54,13 @@ public class JEPCommandTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject)
-                    .censusRepo(censusBuilder.build()).enableJep(true).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .enableJep(true)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
@@ -217,8 +223,13 @@ public class JEPCommandTests {
                     .addAuthor(author.forge().currentUser().id())
                     .addCommitter(committer.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject)
-                    .censusRepo(censusBuilder.build()).enableJep(true).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .enableJep(true)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
@@ -300,8 +311,13 @@ public class JEPCommandTests {
             var issueProject = credentials.getIssueProject();
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject)
-                    .censusRepo(censusBuilder.build()).enableJep(true).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .enableJep(true)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
@@ -411,8 +427,13 @@ public class JEPCommandTests {
             var issueProject = credentials.getIssueProject();
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject)
-                    .censusRepo(censusBuilder.build()).enableJep(true).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .enableJep(true)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
@@ -490,8 +511,13 @@ public class JEPCommandTests {
             var pr = credentials.createPullRequest(author, "master", "edit", mainIssue.id() + ": " + mainIssue.title());
 
             // Test the PR bot with jep disable
-            var disableJepBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject)
-                            .enableJep(false).censusRepo(censusBuilder.build()).build();
+            var disableJepBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .enableJep(false)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(new HashMap<>())
+                    .build();
             pr.addComment("/jep TEST-2");
             TestBotRunner.runPeriodicItems(disableJepBot);
             assertLastCommentContains(pr, "This repository has not been configured to use the `jep` command.");
@@ -499,8 +525,13 @@ public class JEPCommandTests {
             assertFalse(pr.store().body().contains("- [ ] Change requires a JEP request to be targeted"));
 
             // Test the PR bot with jep enable
-            var enableJepBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject)
-                    .enableJep(true).censusRepo(censusBuilder.build()).build();
+            var enableJepBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .enableJep(true)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(new HashMap<>())
+                    .build();
             pr.addComment("/jep TEST-2");
             TestBotRunner.runPeriodicItems(enableJepBot);
             assertLastCommentContains(pr, "pull request will not be integrated until the");

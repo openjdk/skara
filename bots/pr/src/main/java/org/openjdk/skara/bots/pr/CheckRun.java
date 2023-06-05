@@ -655,6 +655,8 @@ class CheckRun {
             progressBody.append(warningListToText(integrationBlockers));
         }
 
+        // All the issues this pr related(except CSR and JEP)
+        var currentIssues = new HashSet<String>();
         var issueProject = issueProject();
         if (issueProject != null && !allIssues.isEmpty()) {
             progressBody.append("\n\n### Issue");
@@ -681,14 +683,24 @@ class CheckRun {
                             progressBody.append("): ");
                             progressBody.append(BotUtils.escape(iss.get().title()));
                             var issueType = iss.get().properties().get("issuetype");
-                            if (issueType != null && "CSR".equals(issueType.asString())) {
-                                progressBody.append(" (**CSR**)");
-                                if (isWithdrawnCSR(iss.get())) {
-                                    progressBody.append(" (Withdrawn)");
+                            if (issueType != null) {
+                                if ("CSR".equals(issueType.asString())) {
+                                    progressBody.append(" (**CSR**)");
+                                    if (isWithdrawnCSR(iss.get())) {
+                                        progressBody.append(" (Withdrawn)");
+                                    }
+                                } else if ("JEP".equals(issueType.asString())) {
+                                    progressBody.append(" (**JEP**)");
+                                } else {
+                                    progressBody.append(" (**" + issueType.asString() + "**");
+                                    var issuePriority = iss.get().properties().get("priority");
+                                    if (issuePriority == null) {
+                                        progressBody.append(")");
+                                    } else {
+                                        progressBody.append(" - `" + issuePriority + "`)");
+                                    }
+                                    currentIssues.add(iss.get().id());
                                 }
-                            }
-                            if (issueType != null && "JEP".equals(issueType.asString())) {
-                                progressBody.append(" (**JEP**)");
                             }
                             if (!relaxedEquals(iss.get().title(), currentIssue.description())) {
                                 progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
@@ -722,6 +734,24 @@ class CheckRun {
                     }
                 }
                 progressBody.append("\n");
+            }
+
+            // Update the issuePRMap
+            var prRecord = new PRRecord(pr.repository().name(), pr.id());
+
+            // Need previousIssues to delete associations
+            var previousIssues = BotUtils.parseIssues(pr.body());
+            // Add associations
+            for (String issueId : currentIssues) {
+                if (!previousIssues.contains(issueId)) {
+                    workItem.bot.addIssuePRMapping(issueId, prRecord);
+                }
+            }
+            // Delete associations
+            for (String oldIssueId : previousIssues) {
+                if (!currentIssues.contains(oldIssueId)) {
+                    workItem.bot.removeIssuePRMapping(oldIssueId, prRecord);
+                }
             }
         }
 
@@ -1304,8 +1334,8 @@ class CheckRun {
             }
 
             // Calculate current metadata to avoid unnecessary future checks
-            var metadata = workItem.getMetadata(censusInstance, title, updatedBody, pr.comments(), activeReviews,
-                                                newLabels, pr.targetRef(), pr.isDraft(), expiresIn);
+            var metadata = workItem.getMetadata(workItem.getPRMetadata(censusInstance, title, updatedBody, pr.comments(), activeReviews,
+                                                newLabels, pr.targetRef(), pr.isDraft()), workItem.getIssueMetadata(updatedBody), expiresIn);
             checkBuilder.metadata(metadata);
         } catch (Exception e) {
             log.throwing("CommitChecker", "checkStatus", e);

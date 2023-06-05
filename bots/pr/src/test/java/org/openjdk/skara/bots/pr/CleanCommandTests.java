@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@ import org.openjdk.skara.test.*;
 
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
@@ -44,9 +45,10 @@ public class CleanCommandTests {
                                            .addReviewer(integrator.forge().currentUser().id());
 
             var prBot = PullRequestBot.newBuilder()
-                                      .repo(integrator)
-                                      .censusRepo(censusBuilder.build())
-                                      .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -87,10 +89,11 @@ public class CleanCommandTests {
                                            .addCommitter(author.forge().currentUser().id())
                                            .addReviewer(integrator.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -154,10 +157,11 @@ public class CleanCommandTests {
                                            .addCommitter(author.forge().currentUser().id())
                                            .addReviewer(integrator.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -233,10 +237,11 @@ public class CleanCommandTests {
                                            .addCommitter(author.forge().currentUser().id())
                                            .addReviewer(integrator.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -312,6 +317,7 @@ public class CleanCommandTests {
                     .repo(integrator)
                     .censusRepo(censusBuilder.build())
                     .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
                     .build();
 
             // Populate the projects repository

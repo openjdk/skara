@@ -802,7 +802,13 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).issueProject(issues).build();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
@@ -863,7 +869,13 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).issueProject(issues).build();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
@@ -960,7 +972,13 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).issueProject(issues).build();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
@@ -1038,8 +1056,14 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                 .addAuthor(author.forge().currentUser().id())
                                 .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues)
-                                            .censusRepo(censusBuilder.build()).enableCsr(true).build();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
@@ -1108,8 +1132,14 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject)
-                    .censusRepo(censusBuilder.build()).enableJep(true).build();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .enableJep(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
@@ -1618,9 +1648,13 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build())
-                                         .issueProject(issues)
-                                         .build();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             var bug = issues.createIssue("My first bug", List.of("A bug"),
                                          Map.of("issuetype", JSON.of("Bug")));
@@ -1673,11 +1707,13 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
-                                         .repo(author)
-                                         .censusRepo(censusBuilder.build())
-                                         .issueProject(issues)
-                                         .build();
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             var bug = issues.createIssue("My first bug", List.of("A bug"), Map.of());
             var numericId = bug.id().split("-")[1];
@@ -1712,11 +1748,13 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
-                                         .repo(author)
-                                         .censusRepo(censusBuilder.build())
-                                         .issueProject(issues)
-                                         .build();
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             var bug = issues.createIssue("My first bug", List.of("A bug"), Map.of());
 
@@ -1802,10 +1840,12 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             var checkBot = PullRequestBot.newBuilder()
                     .repo(author)
                     .censusRepo(censusBuilder.build())
                     .issueProject(issues)
+                    .issuePRMap(issuePRMap)
                     .build();
 
             var bug = issues.createIssue("My first bug", List.of("A bug"), Map.of());
@@ -1973,10 +2013,15 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addCommitter(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(botRepo)
-                    .censusRepo(censusBuilder.build()).issueProject(issueProject)
-                    .enableCsr(true).build();
-            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of("test", prBot));
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(botRepo)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issueProject)
+                    .enableCsr(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
+            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of("test", prBot), issuePRMap);
 
             // Run issue bot once to initialize lastUpdatedAt
             TestBotRunner.runPeriodicItems(csrIssueBot);
@@ -2175,7 +2220,13 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).issueProject(issueProject).build();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issueProject)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),

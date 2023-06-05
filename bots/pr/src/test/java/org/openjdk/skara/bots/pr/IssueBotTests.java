@@ -1,0 +1,296 @@
+/*
+ * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+package org.openjdk.skara.bots.pr;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.openjdk.skara.forge.CheckStatus;
+import org.openjdk.skara.json.JSON;
+import org.openjdk.skara.test.CheckableRepository;
+import org.openjdk.skara.test.HostCredentials;
+import org.openjdk.skara.test.TemporaryDirectory;
+import org.openjdk.skara.test.TestBotRunner;
+
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+
+public class IssueBotTests {
+    @Test
+    void simple(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(issuePRMap)
+                    .build();
+            var issueBot = new IssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot), issuePRMap);
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
+
+            TestBotRunner.runPeriodicItems(prBot);
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            var completedTime1 = check.completedAt().get();
+            assertEquals(CheckStatus.SUCCESS, check.status());
+            var substrings = check.metadata().get().split("#");
+            var prMetadata1 = substrings[0];
+            var issueMetadata1 = (substrings.length > 1) ? substrings[1] : "";
+            assertNotEquals("", issueMetadata1);
+
+            // Run issueBot, there is no update in the issue, so the metadata should not change
+            TestBotRunner.runPeriodicItems(issueBot);
+            check = pr.checks(editHash).get("jcheck");
+            var completedTime2 = check.completedAt().get();
+            assertEquals(completedTime1, completedTime2);
+
+            // Update the issue and run prBot first
+            // The check should not be updated
+            issue.setProperty("priority", JSON.of("4"));
+            TestBotRunner.runPeriodicItems(prBot);
+            check = pr.checks(editHash).get("jcheck");
+            var completedTime3 = check.completedAt().get();
+            assertEquals(completedTime2, completedTime3);
+
+            // Run issueBot
+            // The check should be updated
+            TestBotRunner.runPeriodicItems(issueBot);
+            check = pr.checks(editHash).get("jcheck");
+            var completedTime4 = check.completedAt().get();
+            substrings = check.metadata().get().split("#");
+            var prMetadata2 = substrings[0];
+            var issueMetadata2 = (substrings.length > 1) ? substrings[1] : "";
+            assertNotEquals(completedTime3, completedTime4);
+            // PR body has been updated, so the metadata for pr is also changed
+            assertNotEquals(prMetadata1, prMetadata2);
+            assertNotEquals(issueMetadata1, issueMetadata2);
+            assertTrue(pr.store().body().contains("(**Bug** - `\"4\"`)"));
+
+            // Update the PR and run issueBot first
+            // There should be no update in the check
+            pr.setBody("updated body");
+            TestBotRunner.runPeriodicItems(issueBot);
+            check = pr.checks(editHash).get("jcheck");
+            var completedTime5 = check.completedAt().get();
+            assertEquals(completedTime4, completedTime5);
+
+            // Run prBot
+            TestBotRunner.runPeriodicItems(prBot);
+            check = pr.checks(editHash).get("jcheck");
+            var completedTime6 = check.completedAt().get();
+            substrings = check.metadata().get().split("#");
+            var prMetadata3 = substrings[0];
+            var issueMetadata3 = (substrings.length > 1) ? substrings[1] : "";
+            assertNotEquals(completedTime5, completedTime6);
+            assertNotEquals(prMetadata2, prMetadata3);
+            // issue metadata should not be updated because no update in the issue
+            assertEquals(issueMetadata2, issueMetadata3);
+
+            // Extra run of prBot and issueBot
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(issueBot);
+            check = pr.checks(editHash).get("jcheck");
+            var completedTime7 = check.completedAt().get();
+            assertEquals(completedTime6, completedTime7);
+        }
+    }
+
+    @Test
+    void normalCommentInIssue(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(issuePRMap)
+                    .build();
+            var issueBot = new IssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot), issuePRMap);
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
+
+            TestBotRunner.runPeriodicItems(prBot);
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            var completedTime1 = check.completedAt().get();
+            assertEquals(CheckStatus.SUCCESS, check.status());
+            var substrings = check.metadata().get().split("#");
+            var prMetadata1 = substrings[0];
+            var issueMetadata1 = (substrings.length > 1) ? substrings[1] : "";
+            assertNotEquals("", issueMetadata1);
+
+            // Add a normal comment in the issue
+            issue.addComment("The issue commment!");
+            TestBotRunner.runPeriodicItems(issueBot);
+            check = pr.checks(editHash).get("jcheck");
+            var completedTime2 = check.completedAt().get();
+            assertEquals(completedTime1, completedTime2);
+
+            // Extra run of prBot and issueBot
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(issueBot);
+            check = pr.checks(editHash).get("jcheck");
+            var completedTime3 = check.completedAt().get();
+            assertEquals(completedTime2, completedTime3);
+        }
+    }
+
+    @Test
+    void multipleIssue(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
+            var issue2 = issueProject.createIssue("This is an issue2", List.of(), Map.of());
+            issue2.setProperty("issuetype", JSON.of("Bug"));
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(issuePRMap)
+                    .build();
+            var issueBot = new IssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot), issuePRMap);
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
+            pr.addComment("/issue " + issue2.id());
+
+            TestBotRunner.runPeriodicItems(prBot);
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            var completedTime1 = check.completedAt().get();
+            assertEquals(CheckStatus.SUCCESS, check.status());
+            var substrings = check.metadata().get().split("#");
+            var prMetadata1 = substrings[0];
+            var issueMetadata1 = (substrings.length > 1) ? substrings[1] : "";
+            assertNotEquals("", issueMetadata1);
+
+            // Run issueBot, check should not be updated
+            TestBotRunner.runPeriodicItems(issueBot);
+            check = pr.checks(editHash).get("jcheck");
+            var completedTime2 = check.completedAt().get();
+            assertEquals(completedTime1, completedTime2);
+
+            // Update issue2
+            issue2.setProperty("priority", JSON.of("4"));
+            // Run prBot first, check should not be updated
+            TestBotRunner.runPeriodicItems(prBot);
+            check = pr.checks(editHash).get("jcheck");
+            var completedTime3 = check.completedAt().get();
+            assertEquals(completedTime2, completedTime3);
+
+            // Run issueBot, check should be updated
+            TestBotRunner.runPeriodicItems(issueBot);
+            check = pr.checks(editHash).get("jcheck");
+            var completedTime4 = check.completedAt().get();
+            assertNotEquals(completedTime3, completedTime4);
+            substrings = check.metadata().get().split("#");
+            var prMetadata2 = substrings[0];
+            var issueMetadata2 = (substrings.length > 1) ? substrings[1] : "";
+            assertNotEquals(prMetadata1, prMetadata2);
+            assertNotEquals(issueMetadata1, issueMetadata2);
+            assertTrue(pr.store().body().contains("This is an issue (**Bug**)"));
+            assertTrue(pr.store().body().contains("This is an issue2 (**Bug** - `\"4\"`)"));
+
+            // Update issue
+            issue.setProperty("priority", JSON.of("1"));
+            // Run prBot first
+            TestBotRunner.runPeriodicItems(prBot);
+            assertFalse(pr.store().body().contains("This is an issue (**Bug** - `\"1\"`)"));
+            // Run issueBot
+            TestBotRunner.runPeriodicItems(issueBot);
+            assertTrue(pr.store().body().contains("This is an issue (**Bug** - `\"1\"`)"));
+            assertTrue(pr.store().body().contains("This is an issue2 (**Bug** - `\"4\"`)"));
+        }
+    }
+}

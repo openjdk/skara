@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -48,7 +48,12 @@ class IssueTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -173,10 +178,11 @@ class IssueTests {
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
             var prBot = PullRequestBot.newBuilder()
-                                      .repo(integrator)
-                                      .censusRepo(censusBuilder.build())
-                                      .issueProject(issues)
-                                      .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -272,7 +278,11 @@ class IssueTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
-            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+            var mergeBot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -307,7 +317,11 @@ class IssueTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -350,7 +364,12 @@ class IssueTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).issueProject(issues).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -397,7 +416,12 @@ class IssueTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).issueProject(issues).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -433,7 +457,12 @@ class IssueTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).issueProject(issues).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -468,7 +497,12 @@ class IssueTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).issueProject(issues).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -514,7 +548,12 @@ class IssueTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).issueProject(issues).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -554,7 +593,12 @@ class IssueTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).issueProject(issues).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -618,10 +662,11 @@ class IssueTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var prBot = PullRequestBot.newBuilder()
-                                      .repo(integrator)
-                                      .censusRepo(censusBuilder.build())
-                                      .issueProject(issueProject)
-                                      .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issueProject)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -685,10 +730,11 @@ class IssueTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var prBot = PullRequestBot.newBuilder()
-                                      .repo(integrator)
-                                      .censusRepo(censusBuilder.build())
-                                      .issueProject(issueProject)
-                                      .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issueProject)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -737,6 +783,7 @@ class IssueTests {
                     .repo(integrator)
                     .censusRepo(censusBuilder.build())
                     .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
                     .build();
 
             // Populate the projects repository

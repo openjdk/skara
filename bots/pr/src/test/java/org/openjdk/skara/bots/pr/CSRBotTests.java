@@ -24,7 +24,6 @@ package org.openjdk.skara.bots.pr;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.openjdk.skara.forge.PullRequestUtils;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.json.JSON;
@@ -36,6 +35,7 @@ import org.openjdk.skara.test.TestBotRunner;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -56,8 +56,15 @@ class CSRBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject).censusRepo(censusBuilder.build()).enableCsr(true).build();
-            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot));
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
+            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot), issuePRMap);
 
             // Run issue bot once to initialize lastUpdatedAt
             TestBotRunner.runPeriodicItems(csrIssueBot);
@@ -78,7 +85,7 @@ class CSRBotTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
-            PullRequestUtils.postPullRequestLinkComment(issue, pr);
+            TestBotRunner.runPeriodicItems(prBot);
 
             // Use CSRIssueBot to add CSR label
             TestBotRunner.runPeriodicItems(csrIssueBot);
@@ -193,7 +200,14 @@ class CSRBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -238,7 +252,14 @@ class CSRBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -284,7 +305,14 @@ class CSRBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -324,9 +352,15 @@ class CSRBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject).censusRepo(censusBuilder.build()).enableCsr(true).build();
-
-            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot));
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
+            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot), issuePRMap);
 
             // Run issue bot once to initialize lastUpdatedAt
             TestBotRunner.runPeriodicItems(csrIssueBot);
@@ -373,9 +407,6 @@ class CSRBotTests {
             // run bot to add backport label
             TestBotRunner.runPeriodicItems(prBot);
             assertTrue(pr.store().labelNames().contains("backport"));
-            // Add the notification link to the PR in the issue. This is needed for the CSRIssueBot to
-            // be able to trigger on CSR issue updates
-            PullRequestUtils.postPullRequestLinkComment(issue, pr);
 
             // Remove `version=0.1` from `.jcheck/conf`, set the version as null in the edit branch
             var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
@@ -503,9 +534,15 @@ class CSRBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot).issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
+            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot), issuePRMap);
 
-            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot));
             // Run issue bot once to initialize lastUpdatedAt
             TestBotRunner.runPeriodicItems(csrIssueBot);
 
@@ -520,16 +557,12 @@ class CSRBotTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
-            // Add the notification link to the PR in the issue. This is needed for the CSRIssueBot to
-            // be able to trigger on CSR issue updates
-            PullRequestUtils.postPullRequestLinkComment(issue, pr);
             // Run bot
             TestBotRunner.runPeriodicItems(prBot);
 
             // Add another issue to this pr
             var issue2 = issueProject.createIssue("This is an issue 2", List.of(), Map.of());
             issue2.setProperty("issuetype", JSON.of("Bug"));
-            PullRequestUtils.postPullRequestLinkComment(issue2, pr);
 
             // Add issue2 to this pr
             pr.addComment("/issue " + issue2.id());
@@ -550,7 +583,6 @@ class CSRBotTests {
             // Add another issue to this pr
             var issue3 = issueProject.createIssue("This is an issue 3", List.of(), Map.of());
             issue3.setProperty("issuetype", JSON.of("Bug"));
-            PullRequestUtils.postPullRequestLinkComment(issue3, pr);
 
             // Add issue3 to this pr
             pr.addComment("/issue " + issue3.id());
@@ -604,8 +636,15 @@ class CSRBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject).censusRepo(censusBuilder.build()).enableCsr(true).build();
-            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot));
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
+            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot), issuePRMap);
 
             // Run issue bot once to initialize lastUpdatedAt
             TestBotRunner.runPeriodicItems(csrIssueBot);
@@ -627,7 +666,7 @@ class CSRBotTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
-            PullRequestUtils.postPullRequestLinkComment(issue, pr);
+            TestBotRunner.runPeriodicItems(prBot);
 
             // Change .jcheck/conf in targetBranch
             localRepo.checkout(masterHash);

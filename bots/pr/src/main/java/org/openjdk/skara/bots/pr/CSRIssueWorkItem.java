@@ -31,13 +31,12 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import org.openjdk.skara.bot.WorkItem;
-import org.openjdk.skara.forge.PullRequestUtils;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.jbs.Backports;
 
 /**
- * The IssueWorkItem is read-only. Its purpose is to create PullRequestWorkItems for
+ * The CSRIssueWorkItem is read-only. Its purpose is to create PullRequestWorkItems for
  * every pull request found in the Backport hierarchy associated with a CSR issue.
  * It should only be triggered when a modified CSR issue has been found.
  */
@@ -56,11 +55,11 @@ class CSRIssueWorkItem implements WorkItem {
 
     @Override
     public String toString() {
-        return botName() + "/IssueWorkItem@" + csrIssue.id();
+        return botName() + "/CSRIssueWorkItem@" + csrIssue.id();
     }
 
     /**
-     * Concurrency between IssueWorkItems is ok as long as they aren't processing the
+     * Concurrency between CSRIssueWorkItems is ok as long as they aren't processing the
      * same issue and are spawned from the same bot instance.
      */
     @Override
@@ -95,9 +94,13 @@ class CSRIssueWorkItem implements WorkItem {
         var backports = Backports.findBackports(mainIssue.get(), false);
         var ret = new ArrayList<WorkItem>();
         Stream.concat(mainIssue.stream(), backports.stream())
-                .flatMap(i -> PullRequestUtils.pullRequestCommentLink(i).stream())
-                .flatMap(uri -> bot.repositories().stream()
-                        .flatMap(r -> r.parsePullRequestUrl(uri.toString()).stream()))
+                // Get all pull request ids related with all the issues
+                .flatMap(i -> bot.issuePRMap().get(i.id()) == null ? Stream.of() : bot.issuePRMap().get(i.id()).stream())
+                // Get all the pull requests
+                .flatMap(record -> bot.repositories().stream()
+                        .filter(r -> r.name().equals(record.repoName()))
+                        .map(r -> r.pullRequest(record.prId()))
+                )
                 .filter(Issue::isOpen)
                 .filter(pr -> bot.getPRBot(pr.repository().name()).enableCsr())
                 // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the

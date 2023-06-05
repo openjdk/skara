@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,10 +53,11 @@ class BackportTests {
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -151,10 +152,11 @@ class BackportTests {
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -252,10 +254,11 @@ class BackportTests {
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -355,11 +358,13 @@ class BackportTests {
                                            .addCommitter(author.forge().currentUser().id())
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
+
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -405,6 +410,7 @@ class BackportTests {
                     .repo(integrator)
                     .censusRepo(censusBuilder.build())
                     .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
                     .build();
 
             // Populate the projects repository
@@ -473,6 +479,7 @@ class BackportTests {
                     .repo(integrator)
                     .censusRepo(censusBuilder.build())
                     .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
                     .build();
 
             // Populate the projects repository
@@ -537,10 +544,11 @@ class BackportTests {
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -601,10 +609,11 @@ class BackportTests {
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -671,10 +680,11 @@ class BackportTests {
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -742,10 +752,11 @@ class BackportTests {
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -815,10 +826,11 @@ class BackportTests {
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -911,10 +923,11 @@ class BackportTests {
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -1020,10 +1033,11 @@ class BackportTests {
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -1078,10 +1092,11 @@ class BackportTests {
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -1136,10 +1151,11 @@ class BackportTests {
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -1194,10 +1210,11 @@ class BackportTests {
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -1292,10 +1309,11 @@ class BackportTests {
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder()
-                                    .repo(integrator)
-                                    .censusRepo(censusBuilder.build())
-                                    .issueProject(issues)
-                                    .build();
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -1352,6 +1370,7 @@ class BackportTests {
                     .repo(integrator)
                     .censusRepo(censusBuilder.build())
                     .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
                     .build();
 
             // Populate the projects repository
@@ -1468,6 +1487,7 @@ class BackportTests {
                     .repo(integrator)
                     .censusRepo(censusBuilder.build())
                     .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
                     .build();
 
             // Populate the projects repository
@@ -1595,6 +1615,7 @@ class BackportTests {
                     .repo(integrator)
                     .censusRepo(censusBuilder.build())
                     .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
                     .build();
 
             // Populate the projects repository
@@ -1715,6 +1736,7 @@ class BackportTests {
                     .censusRepo(censusBuilder.build())
                     .issueProject(issues)
                     .reviewCleanBackport(true)
+                    .issuePRMap(new HashMap<>())
                     .build();
 
             // Populate the projects repository
@@ -1816,6 +1838,7 @@ class BackportTests {
                     .repo(integrator)
                     .censusRepo(censusBuilder.build())
                     .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
                     .build();
 
             // Populate the projects repository

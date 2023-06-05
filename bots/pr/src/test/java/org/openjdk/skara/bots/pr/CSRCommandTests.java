@@ -54,7 +54,13 @@ class CSRCommandTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -129,7 +135,13 @@ class CSRCommandTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -167,7 +179,13 @@ class CSRCommandTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -211,7 +229,13 @@ class CSRCommandTests {
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id())
                                            .addCommitter(anotherPerson.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -287,7 +311,13 @@ class CSRCommandTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -327,7 +357,13 @@ class CSRCommandTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -371,7 +407,13 @@ class CSRCommandTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -430,8 +472,15 @@ class CSRCommandTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
-            var csrIssueBot = new CSRIssueBot(issues, List.of(author), Map.of(bot.name(), prBot));
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
+            var csrIssueBot = new CSRIssueBot(issues, List.of(author), Map.of(bot.name(), prBot), issuePRMap);
 
             // Run issue bot once to initialize lastUpdatedAt
             TestBotRunner.runPeriodicItems(csrIssueBot);
@@ -509,8 +558,15 @@ class CSRCommandTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
-            var csrIssueBot = new CSRIssueBot(issues, List.of(author), Map.of(bot.name(), prBot));
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
+            var csrIssueBot = new CSRIssueBot(issues, List.of(author), Map.of(bot.name(), prBot), issuePRMap);
 
             // Run issue bot once to initialize lastUpdatedAt
             TestBotRunner.runPeriodicItems(csrIssueBot);
@@ -578,7 +634,13 @@ class CSRCommandTests {
             var issues = credentials.getIssueProject();
             var censusBuilder = credentials.getCensusBuilder()
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -616,7 +678,13 @@ class CSRCommandTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -688,8 +756,13 @@ class CSRCommandTests {
             var pr = credentials.createPullRequest(author, "master", "edit", "Just a patch");
 
             // Test the pull request bot with csr disable
-            var disableCsrBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues)
-                    .enableCsr(false).censusRepo(censusBuilder.build()).build();
+            var disableCsrBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .enableCsr(false)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(new HashMap<>())
+                    .build();
             pr.addComment("/csr");
             TestBotRunner.runPeriodicItems(disableCsrBot);
             assertLastCommentContains(pr, "This repository has not been configured to use the `csr` command.");
@@ -732,11 +805,15 @@ class CSRCommandTests {
             csr.setProperty("fixVersions", JSON.array().add("18"));
             csr.setProperty("resolution", JSON.object().put("name", "Approved"));
             issue.addLink(Link.create(csr, "csr for").build());
-
-            var prBot = PullRequestBot.newBuilder().repo(bot).enableCsr(true)
-                    .censusRepo(censusBuilder.build()).issueProject(issueProject).build();
-
-            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot));
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .enableCsr(true)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issueProject)
+                    .issuePRMap(issuePRMap)
+                    .build();
+            var csrIssueBot = new CSRIssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot), issuePRMap);
 
             // Run issue prBot once to initialize lastUpdatedAt
             TestBotRunner.runPeriodicItems(csrIssueBot);
@@ -992,8 +1069,15 @@ class CSRCommandTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
-            var csrIssueBot = new CSRIssueBot(issues, List.of(author), Map.of(bot.name(), prBot));
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(issuePRMap)
+                    .build();
+            var csrIssueBot = new CSRIssueBot(issues, List.of(author), Map.of(bot.name(), prBot), issuePRMap);
 
             // Run issue bot once to initialize lastUpdatedAt
             TestBotRunner.runPeriodicItems(csrIssueBot);
@@ -1097,7 +1181,13 @@ class CSRCommandTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -1149,7 +1239,13 @@ class CSRCommandTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issues)
+                    .censusRepo(censusBuilder.build())
+                    .enableCsr(true)
+                    .issuePRMap(new HashMap<>())
+                    .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
