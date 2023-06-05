@@ -303,4 +303,9 @@ public class BitbucketRepository implements HostedRepository {
     public int deleteDeployKeys(Duration age) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public boolean canCreatePullRequest(HostUser user) {
+        throw new UnsupportedOperationException();
+    }
 }
