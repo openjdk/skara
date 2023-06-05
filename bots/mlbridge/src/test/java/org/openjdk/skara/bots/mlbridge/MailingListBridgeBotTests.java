@@ -1540,7 +1540,8 @@ class MailingListBridgeBotTests {
             pr.addComment("/integrate stuff");
             pr.addComment("the command is /hello there");
             pr.addComment("but this will be parsed\n/newline command");
-            pr.addComment("/multiline\nwill be dropped");
+            pr.addComment("/summary\nwill be dropped");
+            pr.addComment("/csr needed\nThis should not be dropped");
             TestBotRunner.runPeriodicItems(mlBot);
 
             // Run an archive pass
@@ -1563,13 +1564,14 @@ class MailingListBridgeBotTests {
             assertFalse(archiveContains(archiveFolder.path(), "/newline"));
             assertFalse(archiveContains(archiveFolder.path(), "/multiline"));
             assertFalse(archiveContains(archiveFolder.path(), "will be dropped"));
+            assertTrue(archiveContains(archiveFolder.path(), "This should not be dropped"));
 
             // There should not be consecutive empty lines due to a filtered multiline message
             var lines = archiveContents(archiveFolder.path(), "").orElseThrow();
             assertFalse(lines.contains("\n\n\n"), lines);
 
             // And a stand-alone multiline comment should not cause another mail to be sent
-            pr.addComment("/another\nmultiline\nwill not cause another mail");
+            pr.addComment("/summary\nmultiline\nwill not cause another mail");
             TestBotRunner.runPeriodicItems(mlBot);
             Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
             lines = archiveContents(archiveFolder.path(), "").orElseThrow();
