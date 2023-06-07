@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -339,7 +339,13 @@ def ls_tree(ui, repo, rev, **opts):
 
 @command(b'ls-remote', [], b'hg ls-remote PATH')
 def ls_remote(ui, repo, path, **opts):
-    peer = mercurial.hg.peer(ui or repo, opts, ui.expandpath(path))
+    try:
+        peer = mercurial.hg.peer(ui or repo, opts, ui.expandpath(path))
+    except:
+        from mercurial import utils
+        origsource, remote_path, branch = utils.urlutil.get_clone_path(ui, path)
+        peer = mercurial.hg.peer(repo, opts, remote_path)
+
     for branch, heads in peer.branchmap().iteritems():
         for head in heads:
             write(mercurial.node.hex(head))
