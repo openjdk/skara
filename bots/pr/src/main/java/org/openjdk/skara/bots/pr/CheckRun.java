@@ -697,7 +697,7 @@ class CheckRun {
                                     if (issuePriority == null) {
                                         progressBody.append(")");
                                     } else {
-                                        progressBody.append(" - `" + issuePriority + "`)");
+                                        progressBody.append(" - P" + issuePriority.asString() + ")");
                                     }
                                     currentIssues.add(iss.get().id());
                                 }
