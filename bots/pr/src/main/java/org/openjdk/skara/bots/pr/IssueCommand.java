@@ -162,7 +162,7 @@ public class IssueCommand implements CommandHandler {
             return;
         }
 
-        var titleIssue = Issue.fromStringRelaxed(pr.title());
+        var titleIssue = Issue.fromStringRelaxed(removeDraftPrefix(pr.title()));
         for (var issue : validatedIssues) {
             if (titleIssue.isEmpty()) {
                 reply.print("The primary solved issue for a PR is set through the PR title. Since the current title does ");
@@ -183,6 +183,11 @@ public class IssueCommand implements CommandHandler {
                 reply.println("Adding additional issue to " + name + " list: `" + issue.toShortString() + "`.");
             }
         }
+    }
+
+    private String removeDraftPrefix(String title) {
+        String pattern = "(?i)^draft:?\\s*";
+        return title.replaceAll(pattern, "");
     }
 
     private void removeIssue(PullRequestBot bot, String args, Set<String> currentSolved, PrintWriter reply) throws InvalidIssue {
