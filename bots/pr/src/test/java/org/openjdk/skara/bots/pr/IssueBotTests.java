@@ -113,7 +113,7 @@ public class IssueBotTests {
             // PR body has been updated, so the metadata for pr is also changed
             assertNotEquals(prMetadata1, prMetadata2);
             assertNotEquals(issueMetadata1, issueMetadata2);
-            assertTrue(pr.store().body().contains("(**Bug** - `\"4\"`)"));
+            assertTrue(pr.store().body().contains("(**Bug** - P4)"));
 
             // Update the PR and run issueBot first
             // There should be no update in the check
@@ -280,17 +280,17 @@ public class IssueBotTests {
             assertNotEquals(prMetadata1, prMetadata2);
             assertNotEquals(issueMetadata1, issueMetadata2);
             assertTrue(pr.store().body().contains("This is an issue (**Bug**)"));
-            assertTrue(pr.store().body().contains("This is an issue2 (**Bug** - `\"4\"`)"));
+            assertTrue(pr.store().body().contains("This is an issue2 (**Bug** - P4)"));
 
             // Update issue
             issue.setProperty("priority", JSON.of("1"));
             // Run prBot first
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().body().contains("This is an issue (**Bug** - `\"1\"`)"));
+            assertFalse(pr.store().body().contains("This is an issue (**Bug** - P1)"));
             // Run issueBot
             TestBotRunner.runPeriodicItems(issueBot);
-            assertTrue(pr.store().body().contains("This is an issue (**Bug** - `\"1\"`)"));
-            assertTrue(pr.store().body().contains("This is an issue2 (**Bug** - `\"4\"`)"));
+            assertTrue(pr.store().body().contains("This is an issue (**Bug** - P1)"));
+            assertTrue(pr.store().body().contains("This is an issue2 (**Bug** - P4)"));
         }
     }
 }
