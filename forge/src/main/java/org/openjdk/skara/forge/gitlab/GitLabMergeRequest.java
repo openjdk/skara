@@ -343,8 +343,7 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     /**
-     * In GitLab, if the pull request is in draft mode, the title will include the draft prefix,
-     * @return
+     * In GitLab, if the pull request is in draft mode, the title will include the draft prefix
      */
     @Override
     public String title() {
