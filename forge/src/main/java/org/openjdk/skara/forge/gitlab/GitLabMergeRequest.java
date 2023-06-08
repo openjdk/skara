@@ -52,6 +52,7 @@ public class GitLabMergeRequest implements PullRequest {
     private Object comparisonSnapshot;
 
     private static final int GITLAB_MR_COMMENT_BODY_MAX_SIZE = 64_000;
+    private static final String DRAFT_PREFIX = "Draft:";
 
     GitLabMergeRequest(GitLabRepository repository, GitLabHost host, JSONValue jsonValue, RestRequest request) {
         this.repository = repository;
@@ -341,13 +342,35 @@ public class GitLabMergeRequest implements PullRequest {
         return targetRef;
     }
 
+    /**
+     * In GitLab, if the pull request is in draft mode, the title will include the draft prefix
+     */
     @Override
     public String title() {
-        return json.get("title").asString().strip();
+        var title = json.get("title").asString().strip();
+        String pattern = "(?i)^draft:?\\s*";
+        return title.replaceAll(pattern, "").strip();
     }
 
+    /**
+     * In GitLab, when the bot attempts to update the pull request title,
+     * it should check if the pull request is in draft mode.
+     * If it is, the bot should add the draft prefix.
+     */
     @Override
     public void setTitle(String title) {
+        if (isDraft()) {
+            title = DRAFT_PREFIX + " " + title;
+        }
+        request.put("")
+               .body("title", title)
+               .execute();
+    }
+
+    /**
+     * This method sets the title without checking if the pull request is in draft mode.
+     */
+    private void setTitleWithoutDraftPrefix(String title) {
         request.put("")
                .body("title", title)
                .execute();
@@ -783,10 +806,8 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public void makeNotDraft() {
-        var title = title();
-        var draftPrefix = "Draft:";
-        if (title.startsWith(draftPrefix)) {
-            setTitle(title.substring(draftPrefix.length()).stripLeading());
+        if (isDraft()) {
+            setTitleWithoutDraftPrefix(title());
         }
     }
 
