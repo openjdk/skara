@@ -457,24 +457,25 @@ public class BotRunner {
             log.log(Level.FINE, "Start of checking for periodic items", TaskPhases.BEGIN);
             try {
                 for (var bot : bots) {
+                    Instant botStart = Instant.now();
                     try (var ___ = new LogContext("bot", bot.toString())) {
-                        Instant botStart = Instant.now();
                         log.fine("Start of checking for periodic items for " + bot);
                         var items = bot.getPeriodicItems();
                         for (var item : items) {
                             submitOrSchedule(item);
                         }
+                    } catch (UncheckedRestException e) {
+                        // Log as WARNING to avoid triggering alarms. Failed REST calls are tracked
+                        // using metrics.
+                        log.log(Level.WARNING, "RestException during periodic items checking", e);
+                    } catch (RuntimeException e) {
+                        log.log(Level.SEVERE, "Exception during periodic items checking: " + e.getMessage(), e);
+                    } finally {
                         var duration = Duration.between(botStart, Instant.now());
                         log.log(Level.FINE, "Checking for periodic items for " + bot + " took " + duration, duration);
                         PERIODIC_CHECK_TIME.labels(bot.name()).inc(duration.toMillis() / 1_000.0);
                     }
                 }
-            } catch (UncheckedRestException e) {
-                // Log as WARNING to avoid triggering alarms. Failed REST calls are tracked
-                // using metrics.
-                log.log(Level.WARNING, "RestException during periodic items checking", e);
-            } catch (RuntimeException e) {
-                log.log(Level.SEVERE, "Exception during periodic items checking: " + e.getMessage(), e);
             } finally {
                 var duration = Duration.between(start, Instant.now());
                 log.log(Level.FINE, "Checking periodic items took " + duration,
