@@ -135,8 +135,8 @@ class CheckWorkItem extends PullRequestWorkItem {
             digest.update(commentString.getBytes(StandardCharsets.UTF_8));
             digest.update(labelString.getBytes(StandardCharsets.UTF_8));
             digest.update(targetRef.getBytes(StandardCharsets.UTF_8));
-            digest.update(isDraft ? (byte)0 : (byte)1);
             digest.update(jcheckConfInTargetRef.getBytes(StandardCharsets.UTF_8));
+            digest.update(isDraft ? (byte)0 : (byte)1);
 
             return Base64.getUrlEncoder().encodeToString(digest.digest());
         } catch (NoSuchAlgorithmException e) {
