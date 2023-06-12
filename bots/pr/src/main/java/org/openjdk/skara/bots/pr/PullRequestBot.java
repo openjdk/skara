@@ -189,8 +189,11 @@ class PullRequestBot implements Bot {
                 .toList();
         // Check if .jcheck/conf updated in each target ref
         for (var targetRef : allTargetRefs) {
-            var currConf = remoteRepo.fileContents(".jcheck/conf", targetRef)
-                    .orElseThrow(() -> new RuntimeException("Could not find .jcheck/conf on ref " + targetRef + " in repo " + remoteRepo.name()));
+            var currConfOpt = remoteRepo.fileContents(".jcheck/conf", targetRef);
+            if (currConfOpt.isEmpty()) {
+                continue;
+            }
+            var currConf = currConfOpt.get();
             if (!jCheckConfMap.containsKey(targetRef) || !jCheckConfMap.get(targetRef).equals(currConf)) {
                 ret.addAll(remoteRepo.openPullRequests().stream()
                         .filter(pullRequest -> pullRequest.targetRef().equals(targetRef))

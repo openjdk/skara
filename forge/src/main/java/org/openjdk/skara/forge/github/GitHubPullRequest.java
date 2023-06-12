@@ -844,8 +844,7 @@ public class GitHubPullRequest implements PullRequest {
     @Override
     public String targetRefJCheckConf() {
         if (targetRefJCheckConf == null) {
-            targetRefJCheckConf = repository.fileContents(".jcheck/conf", targetRef())
-                    .orElseThrow(() -> new RuntimeException("Could not find .jcheck/conf on ref " + targetRef() + " in repo " + repository.name()));
+            targetRefJCheckConf = repository.fileContents(".jcheck/conf", targetRef()).orElse("");
         }
         return targetRefJCheckConf;
     }

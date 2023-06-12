@@ -360,8 +360,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public String targetRefJCheckConf() {
         if (targetRefJCheckConf == null) {
-            targetRefJCheckConf = targetRepository.fileContents(".jcheck/conf", targetRef())
-                    .orElseThrow(() -> new RuntimeException("Could not find .jcheck/conf on ref " + targetRef() + " in repo " + targetRepository.name()));
+            targetRefJCheckConf = targetRepository.fileContents(".jcheck/conf", targetRef()).orElse("");
         }
         return targetRefJCheckConf;
     }
