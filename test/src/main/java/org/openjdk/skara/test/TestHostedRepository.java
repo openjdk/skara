@@ -269,6 +269,9 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         try {
             var result = new ArrayList<HostedBranch>();
             for (var b : localRepository.branches()) {
+                if (b.name().equals("testhostcontent") || b.name().equals("testlock")) {
+                    continue;
+                }
                 result.add(new HostedBranch(b.name(), localRepository.resolve(b).orElseThrow()));
             }
             return result;
