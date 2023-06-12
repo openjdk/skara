@@ -52,6 +52,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     protected final String targetRef;
     protected final boolean draft;
     private List<Label> labels;
+    private String targetRefJCheckConf;
 
     public TestPullRequest(TestPullRequestStore store, TestHostedRepository targetRepository) {
         super(store, targetRepository.forge().currentUser());
@@ -354,5 +355,14 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), headHash, sourceRef, targetRef, draft);
+    }
+
+    @Override
+    public String targetRefJCheckConf() {
+        if (targetRefJCheckConf == null) {
+            targetRefJCheckConf = targetRepository.fileContents(".jcheck/conf", targetRef())
+                    .orElseThrow(() -> new RuntimeException("Could not find .jcheck/conf on ref " + targetRef() + " in repo " + targetRepository.name()));
+        }
+        return targetRefJCheckConf;
     }
 }

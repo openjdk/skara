@@ -35,6 +35,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 class PullRequestBot implements Bot {
     private final HostedRepository remoteRepo;
@@ -75,6 +76,7 @@ class PullRequestBot implements Bot {
     private final boolean enableBackport;
     private final Map<String, List<PRRecord>> issuePRMap;
     private final Map<String, Boolean> initializedPRs = new ConcurrentHashMap<>();
+    private final Map<String, String> jCheckConfMap = new HashMap<>();
 
     private Instant lastFullUpdate;
 
@@ -165,9 +167,40 @@ class PullRequestBot implements Bot {
         if (processPR) {
             List<PullRequest> prs = poller.updatedPullRequests();
             workItems.addAll(getPullRequestWorkItems(prs));
+
+            var jCheckConfUpdateRelatedPRs = getJCheckConfUpdateRelatedPRs(prs);
+            workItems.addAll(getPullRequestWorkItems(jCheckConfUpdateRelatedPRs));
             poller.lastBatchHandled();
         }
         return workItems;
+    }
+
+    private List<PullRequest> getJCheckConfUpdateRelatedPRs(List<PullRequest> prs) {
+        var ret = new ArrayList<PullRequest>();
+        // Get all open prs and filter out duplicate prs
+        var openPrs = remoteRepo.openPullRequests().stream()
+                .filter(pullRequest -> prs.stream()
+                        .noneMatch(pullRequest1 -> pullRequest1.isSame(pullRequest)))
+                .toList();
+        // Get all target refs except 'pr' refs
+        // If a pr's targetRef is pr ref, it means it's a dependent pr
+        // For dependent PRs, we don't need to update them at this time
+        var allTargetRefs = openPrs.stream()
+                .map(PullRequest::targetRef)
+                .filter(ref -> !ref.startsWith("pr/"))
+                .collect(Collectors.toSet());
+        // Check if .jcheck/conf updated in each target ref
+        for (var targetRef : allTargetRefs) {
+            var currConf = remoteRepo.fileContents(".jcheck/conf", targetRef)
+                    .orElseThrow(() -> new RuntimeException("Could not find .jcheck/conf on ref " + targetRef + " in repo " + remoteRepo.name()));
+            if (!jCheckConfMap.containsKey(targetRef) || !jCheckConfMap.get(targetRef).equals(currConf)) {
+                ret.addAll(openPrs.stream()
+                        .filter(pullRequest -> pullRequest.targetRef().equals(targetRef))
+                        .toList());
+                jCheckConfMap.put(targetRef, currConf);
+            }
+        }
+        return ret;
     }
 
     @Override

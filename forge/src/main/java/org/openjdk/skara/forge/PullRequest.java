@@ -265,4 +265,10 @@ public interface PullRequest extends Issue {
                 })
                 .toList();
     }
+
+    /**
+     * Returns .jcheck/conf in the target ref of this pull request
+     * @return
+     */
+    String targetRefJCheckConf();
 }

@@ -50,6 +50,7 @@ public class GitLabMergeRequest implements PullRequest {
 
     // Lazy cache for comparisonSnapshot
     private Object comparisonSnapshot;
+    private String targetRefJCheckConf;
 
     private static final int GITLAB_MR_COMMENT_BODY_MAX_SIZE = 64_000;
 
@@ -925,5 +926,14 @@ public class GitLabMergeRequest implements PullRequest {
                     + "...";
         }
         return body;
+    }
+
+    @Override
+    public String targetRefJCheckConf() {
+        if (targetRefJCheckConf == null) {
+            targetRefJCheckConf = repository.fileContents(".jcheck/conf", targetRef())
+                    .orElseThrow(() -> new RuntimeException("Could not find .jcheck/conf on ref " + targetRef() + " in repo " + repository.name()));
+        }
+        return targetRefJCheckConf;
     }
 }

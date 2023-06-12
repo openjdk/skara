@@ -45,6 +45,7 @@ public class GitHubPullRequest implements PullRequest {
     private final Logger log = Logger.getLogger("org.openjdk.skara.host");
 
     private List<Label> labels = null;
+    private String targetRefJCheckConf;
 
     private static final int GITHUB_PR_COMMENT_BODY_MAX_SIZE = 64_000;
 
@@ -838,5 +839,14 @@ public class GitHubPullRequest implements PullRequest {
                 .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()))
                 .max(ZonedDateTime::compareTo)
                 .orElseGet(this::createdAt);
+    }
+
+    @Override
+    public String targetRefJCheckConf() {
+        if (targetRefJCheckConf == null) {
+            targetRefJCheckConf = repository.fileContents(".jcheck/conf", targetRef())
+                    .orElseThrow(() -> new RuntimeException("Could not find .jcheck/conf on ref " + targetRef() + " in repo " + repository.name()));
+        }
+        return targetRefJCheckConf;
     }
 }
