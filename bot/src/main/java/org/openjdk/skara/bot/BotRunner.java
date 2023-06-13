@@ -232,19 +232,24 @@ public class BotRunner {
                         log.log(Level.SEVERE, "Exception during item execution (" + item + "): " + e.getMessage(), e);
                     }
                     item.handleRuntimeException(e);
+                } catch (Error e) {
+                    EXCEPTIONS_COUNTER.labels(item.botName(), item.workItemName(), e.getClass().getName()).inc();
+                    log.log(Level.SEVERE, "Error thrown during item execution: (" + item + "): " + e.getMessage(), e);
+                    throw e;
                 } finally {
                     var duration = Duration.between(start, Instant.now());
                     log.log(Level.FINE, "Item " + item + " is now done after " + duration,
                             new Object[]{TaskPhases.END, duration});
+                    synchronized (executor) {
+                        scratchPaths.addLast(scratchPath);
+                        done(item);
+                    }
                 }
                 if (followUpItems != null) {
                     followUpItems.forEach(BotRunner.this::submitOrSchedule);
                 }
 
                 synchronized (executor) {
-                    scratchPaths.addLast(scratchPath);
-                    done(item);
-
                     // Some of the pending items may now be eligible for execution
                     var candidateItems = pending.entrySet().stream()
                             .filter(e -> e.getValue().isEmpty() || !active.containsKey(e.getValue().get()))
