@@ -105,7 +105,7 @@ class CheckWorkItem extends PullRequestWorkItem {
     }
 
     String getPRMetadata(CensusInstance censusInstance, String title, String body, List<Comment> comments,
-                       List<Review> reviews, Set<String> labels, String targetRef, boolean isDraft, String jcheckConfInTargetRef) {
+                       List<Review> reviews, Set<String> labels, String targetRef, boolean isDraft) {
         try {
             var approverString = reviews.stream()
                                         .filter(review -> review.verdict() == Review.Verdict.APPROVED)
@@ -135,8 +135,8 @@ class CheckWorkItem extends PullRequestWorkItem {
             digest.update(commentString.getBytes(StandardCharsets.UTF_8));
             digest.update(labelString.getBytes(StandardCharsets.UTF_8));
             digest.update(targetRef.getBytes(StandardCharsets.UTF_8));
-            digest.update(jcheckConfInTargetRef.getBytes(StandardCharsets.UTF_8));
-            digest.update(isDraft ? (byte)0 : (byte)1);
+            digest.update(censusInstance.configuration().rawJCheckConf().getBytes(StandardCharsets.UTF_8));
+            digest.update(isDraft ? (byte) 0 : (byte) 1);
 
             return Base64.getUrlEncoder().encodeToString(digest.digest());
         } catch (NoSuchAlgorithmException e) {
@@ -225,7 +225,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     // triggered by pr updates
                 } else {
                     var currPRMetadata = getPRMetadata(censusInstance, pr.title(), pr.body(), comments, reviews,
-                            labels, pr.targetRef(), pr.isDraft(), pr.targetRefJCheckConf());
+                            labels, pr.targetRef(), pr.isDraft());
                     if (expiresAt != null) {
                         if (previousPRMetadata.equals(currPRMetadata) && expiresAt.isAfter(Instant.now())) {
                             log.finer("[PR]Metadata with expiration time is still valid, not checking again");

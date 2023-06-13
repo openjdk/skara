@@ -35,7 +35,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 class PullRequestBot implements Bot {
     private final HostedRepository remoteRepo;
@@ -77,6 +76,7 @@ class PullRequestBot implements Bot {
     private final Map<String, List<PRRecord>> issuePRMap;
     private final Map<String, Boolean> initializedPRs = new ConcurrentHashMap<>();
     private final Map<String, String> jCheckConfMap = new HashMap<>();
+    private final Map<String, Set<String>> targetRefPRMap = new HashMap<>();
 
     private Instant lastFullUpdate;
 
@@ -168,6 +168,19 @@ class PullRequestBot implements Bot {
             List<PullRequest> prs = poller.updatedPullRequests();
             workItems.addAll(getPullRequestWorkItems(prs));
 
+            // Update targetRefPRMap
+            for (var pr : prs) {
+                var targetRef = pr.targetRef();
+                var prId = pr.id();
+                if (pr.isOpen()) {
+                    targetRefPRMap.computeIfAbsent(targetRef, key -> new HashSet<>()).add(prId);
+                } else {
+                    if (targetRefPRMap.containsKey(targetRef)) {
+                        targetRefPRMap.get(targetRef).remove(prId);
+                    }
+                }
+            }
+
             var jCheckConfUpdateRelatedPRs = getJCheckConfUpdateRelatedPRs();
             // Filter out duplicate prs
             var filteredPrs = jCheckConfUpdateRelatedPRs.stream()
@@ -182,22 +195,20 @@ class PullRequestBot implements Bot {
 
     private List<PullRequest> getJCheckConfUpdateRelatedPRs() {
         var ret = new ArrayList<PullRequest>();
-        // Get all branches except 'pr' branch
-        var allTargetRefs = remoteRepo.branches().stream()
-                .map(HostedBranch::name)
-                .filter(name -> !name.startsWith("pr/"))
+        // If there is any pr targets on the ref, then the bot needs to check whether the .jcheck/conf updated in this ref
+        var allTargetRefs = targetRefPRMap.keySet().stream()
+                .filter(key -> !targetRefPRMap.get(key).isEmpty())
                 .toList();
-        // Check if .jcheck/conf updated in each target ref
         for (var targetRef : allTargetRefs) {
             var currConfOpt = remoteRepo.fileContents(".jcheck/conf", targetRef);
             if (currConfOpt.isEmpty()) {
                 continue;
             }
             var currConf = currConfOpt.get();
-            if (!jCheckConfMap.containsKey(targetRef) || !jCheckConfMap.get(targetRef).equals(currConf)) {
-                ret.addAll(remoteRepo.openPullRequests().stream()
-                        .filter(pullRequest -> pullRequest.targetRef().equals(targetRef))
-                        .toList());
+            if (!jCheckConfMap.containsKey(targetRef)) {
+                jCheckConfMap.put(targetRef, currConf);
+            } else if (!jCheckConfMap.get(targetRef).equals(currConf)) {
+                ret.addAll(remoteRepo.openPullRequestsTargetsSpecificRef(targetRef));
                 jCheckConfMap.put(targetRef, currConf);
             }
         }

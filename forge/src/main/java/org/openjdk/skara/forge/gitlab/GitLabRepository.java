@@ -848,4 +848,16 @@ public class GitLabRepository implements HostedRepository {
     public boolean canCreatePullRequest(HostUser user) {
         return canPush(user);
     }
+
+    @Override
+    public List<PullRequest> openPullRequestsTargetsSpecificRef(String targetRef) {
+        return request.get("merge_requests")
+                .param("state", "opened")
+                .param("target_branch", targetRef)
+                .execute().stream()
+                .filter(this::hasHeadHash)
+                .map(this::refetchMergeRequest)
+                .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
+                .collect(Collectors.toList());
+    }
 }

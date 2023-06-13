@@ -219,4 +219,9 @@ public interface HostedRepository {
      * Check whether the user is allowed to create pull request in this repository
      */
     boolean canCreatePullRequest(HostUser user);
+
+    /**
+     * Returns a list of open pull requests which targets at the specific ref
+     */
+    List<PullRequest> openPullRequestsTargetsSpecificRef(String targetRef);
 }

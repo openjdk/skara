@@ -50,7 +50,6 @@ public class GitLabMergeRequest implements PullRequest {
 
     // Lazy cache for comparisonSnapshot
     private Object comparisonSnapshot;
-    private String targetRefJCheckConf;
 
     private static final int GITLAB_MR_COMMENT_BODY_MAX_SIZE = 64_000;
     private static final String DRAFT_PREFIX = "Draft:";
@@ -947,13 +946,5 @@ public class GitLabMergeRequest implements PullRequest {
                     + "...";
         }
         return body;
-    }
-
-    @Override
-    public String targetRefJCheckConf() {
-        if (targetRefJCheckConf == null) {
-            targetRefJCheckConf = repository.fileContents(".jcheck/conf", targetRef()).orElse("");
-        }
-        return targetRefJCheckConf;
     }
 }

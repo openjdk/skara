@@ -367,9 +367,4 @@ class InMemoryPullRequest implements PullRequest {
     public List<ReferenceChange> targetRefChanges() {
         return List.of();
     }
-
-    @Override
-    public String targetRefJCheckConf() {
-        return null;
-    }
 }
