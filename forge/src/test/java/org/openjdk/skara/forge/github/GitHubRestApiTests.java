@@ -268,4 +268,12 @@ public class GitHubRestApiTests {
         var githubRepo = githubRepoOpt.get();
         githubRepo.deleteDeployKeys(Duration.ofHours(24));
     }
+
+    @Test
+    void restrictPushAccess() {
+        var gitHubRepo = githubHost.repository(settings.getProperty("github.repository")).orElseThrow();
+        var branch = new Branch(settings.getProperty("github.repository.branch"));
+        var user = githubHost.user(settings.getProperty("github.user2")).orElseThrow();
+        gitHubRepo.restrictPushAccess(branch, user);
+    }
 }
