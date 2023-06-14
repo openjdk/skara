@@ -322,8 +322,15 @@ public class BackportCommand implements CommandHandler {
 
             if (!fork.canPush(realUser)) {
                 fork.addCollaborator(realUser, true);
+            } else {
+                // It's not possible to add branch level push protection unless the user
+                // already has push permissions in the repository. If we try to restrict
+                // it anyway, nobody can push to the branch. At least this way, if the
+                // user already has push permissions, the branch will be protected,
+                // otherwise anyone with push permissions in the repository will be able
+                // to push to the branch.
+                fork.restrictPushAccess(new Branch(backportBranchName), realUser);
             }
-            fork.restrictPushAccess(new Branch(backportBranchName), realUser);
 
             var message = CommitMessageParsers.v1.parse(commit);
             var formatter = DateTimeFormatter.ofPattern("d MMM uuuu");
