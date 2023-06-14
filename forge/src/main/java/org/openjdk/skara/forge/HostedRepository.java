@@ -223,5 +223,5 @@ public interface HostedRepository {
     /**
      * Returns a list of open pull requests which targets at the specific ref
      */
-    List<PullRequest> openPullRequestsTargetsSpecificRef(String targetRef);
+    List<PullRequest> openPullRequestsWithTargetRef(String targetRef);
 }
