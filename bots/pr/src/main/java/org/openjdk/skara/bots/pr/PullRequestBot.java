@@ -75,6 +75,8 @@ class PullRequestBot implements Bot {
     private final boolean enableBackport;
     private final Map<String, List<PRRecord>> issuePRMap;
     private final Map<String, Boolean> initializedPRs = new ConcurrentHashMap<>();
+    private final Map<String, String> jCheckConfMap = new HashMap<>();
+    private final Map<String, Set<String>> targetRefPRMap = new HashMap<>();
 
     private Instant lastFullUpdate;
 
@@ -165,9 +167,52 @@ class PullRequestBot implements Bot {
         if (processPR) {
             List<PullRequest> prs = poller.updatedPullRequests();
             workItems.addAll(getPullRequestWorkItems(prs));
+
+            // Update targetRefPRMap
+            for (var pr : prs) {
+                var targetRef = pr.targetRef();
+                var prId = pr.id();
+                if (pr.isOpen()) {
+                    targetRefPRMap.computeIfAbsent(targetRef, key -> new HashSet<>()).add(prId);
+                } else {
+                    if (targetRefPRMap.containsKey(targetRef)) {
+                        targetRefPRMap.get(targetRef).remove(prId);
+                    }
+                }
+            }
+
+            var jCheckConfUpdateRelatedPRs = getJCheckConfUpdateRelatedPRs();
+            // Filter out duplicate prs
+            var filteredPrs = jCheckConfUpdateRelatedPRs.stream()
+                    .filter(pullRequest -> prs.stream()
+                            .noneMatch(pr -> pr.isSame(pullRequest)))
+                    .toList();
+            workItems.addAll(getPullRequestWorkItems(filteredPrs));
             poller.lastBatchHandled();
         }
         return workItems;
+    }
+
+    private List<PullRequest> getJCheckConfUpdateRelatedPRs() {
+        var ret = new ArrayList<PullRequest>();
+        // If there is any pr targets on the ref, then the bot needs to check whether the .jcheck/conf updated in this ref
+        var allTargetRefs = targetRefPRMap.keySet().stream()
+                .filter(key -> !targetRefPRMap.get(key).isEmpty())
+                .toList();
+        for (var targetRef : allTargetRefs) {
+            var currConfOpt = remoteRepo.fileContents(".jcheck/conf", targetRef);
+            if (currConfOpt.isEmpty()) {
+                continue;
+            }
+            var currConf = currConfOpt.get();
+            if (!jCheckConfMap.containsKey(targetRef)) {
+                jCheckConfMap.put(targetRef, currConf);
+            } else if (!jCheckConfMap.get(targetRef).equals(currConf)) {
+                ret.addAll(remoteRepo.openPullRequestsWithTargetRef(targetRef));
+                jCheckConfMap.put(targetRef, currConf);
+            }
+        }
+        return ret;
     }
 
     @Override

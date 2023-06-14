@@ -458,4 +458,12 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     public boolean canCreatePullRequest(HostUser user) {
         return true;
     }
+
+    @Override
+    public List<PullRequest> openPullRequestsWithTargetRef(String targetRef) {
+        return host.getPullRequests(this).stream()
+                .filter(pr -> pr.state().equals(Issue.State.OPEN))
+                .filter(pr -> pr.targetRef.equals(targetRef))
+                .collect(Collectors.toList());
+    }
 }

@@ -2993,4 +2993,60 @@ class CheckTests {
             assertEquals(1, pr.store().comments().size());
         }
     }
+
+    @Test
+    void targetJCheckConfUpdate(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(prBot);
+
+            assertTrue(pr.store().body().contains("1 review required"));
+
+            // Run it again
+            TestBotRunner.runPeriodicItems(prBot);
+
+            //Make a change to .jcheck/conf in target branch
+            localRepo.checkout(localRepo.defaultBranch());
+            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            var newConf = defaultConf.replace("reviewers=1", "reviewers=2");
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            localRepo.add(localRepo.root().resolve(".jcheck/conf"));
+            var confHash = localRepo.commit("set reviewers=2", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, author.authenticatedUrl(), "master", true);
+
+            TestBotRunner.runPeriodicItems(prBot);
+
+            assertTrue(pr.store().body().contains("2 reviews required"));
+
+            // Run it again
+            TestBotRunner.runPeriodicItems(prBot);
+
+            TestBotRunner.runPeriodicItems(prBot);
+        }
+    }
 }

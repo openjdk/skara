@@ -308,4 +308,9 @@ public class BitbucketRepository implements HostedRepository {
     public boolean canCreatePullRequest(HostUser user) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public List<PullRequest> openPullRequestsWithTargetRef(String targetRef) {
+        throw new UnsupportedOperationException();
+    }
 }
