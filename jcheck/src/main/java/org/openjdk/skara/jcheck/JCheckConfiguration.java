@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -155,7 +155,7 @@ public class JCheckConfiguration {
 
     public static JCheckConfiguration parse(List<String> lines) {
         var ini = INI.parse(lines);
-        var rawConf = String.join("", lines);
+        var rawConf = String.join("\n", lines);
         if (ini.sections().size() == 0) {
             // This is an old-style jcheck conf with only a global section -
             // translate to new configuration style before parsing.

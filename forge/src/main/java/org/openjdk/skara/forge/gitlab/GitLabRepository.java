@@ -850,7 +850,7 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public List<PullRequest> openPullRequestsTargetsSpecificRef(String targetRef) {
+    public List<PullRequest> openPullRequestsWithTargetRef(String targetRef) {
         return request.get("merge_requests")
                 .param("state", "opened")
                 .param("target_branch", targetRef)

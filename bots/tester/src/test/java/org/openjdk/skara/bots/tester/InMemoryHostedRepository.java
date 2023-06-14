@@ -281,7 +281,7 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public List<PullRequest> openPullRequestsTargetsSpecificRef(String targetRef) {
+    public List<PullRequest> openPullRequestsWithTargetRef(String targetRef) {
         return null;
     }
 }

@@ -748,7 +748,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public List<PullRequest> openPullRequestsTargetsSpecificRef(String targetRef) {
+    public List<PullRequest> openPullRequestsWithTargetRef(String targetRef) {
         return request.get("pulls")
                 .param("state", "open")
                 .param("base", targetRef)

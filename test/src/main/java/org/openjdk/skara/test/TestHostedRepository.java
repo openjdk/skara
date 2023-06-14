@@ -460,7 +460,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public List<PullRequest> openPullRequestsTargetsSpecificRef(String targetRef) {
+    public List<PullRequest> openPullRequestsWithTargetRef(String targetRef) {
         return host.getPullRequests(this).stream()
                 .filter(pr -> pr.state().equals(Issue.State.OPEN))
                 .filter(pr -> pr.targetRef.equals(targetRef))

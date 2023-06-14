@@ -310,7 +310,7 @@ public class BitbucketRepository implements HostedRepository {
     }
 
     @Override
-    public List<PullRequest> openPullRequestsTargetsSpecificRef(String targetRef) {
+    public List<PullRequest> openPullRequestsWithTargetRef(String targetRef) {
         throw new UnsupportedOperationException();
     }
 }

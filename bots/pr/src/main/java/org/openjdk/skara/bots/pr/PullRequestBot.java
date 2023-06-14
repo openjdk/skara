@@ -208,7 +208,7 @@ class PullRequestBot implements Bot {
             if (!jCheckConfMap.containsKey(targetRef)) {
                 jCheckConfMap.put(targetRef, currConf);
             } else if (!jCheckConfMap.get(targetRef).equals(currConf)) {
-                ret.addAll(remoteRepo.openPullRequestsTargetsSpecificRef(targetRef));
+                ret.addAll(remoteRepo.openPullRequestsWithTargetRef(targetRef));
                 jCheckConfMap.put(targetRef, currConf);
             }
         }
