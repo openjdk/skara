@@ -210,7 +210,7 @@ public class CheckablePullRequest {
             conf = JCheck.parseConfiguration(localRepo, hash, additionalConfiguration);
         }
         if (conf.isEmpty()) {
-            throw new RuntimeException("Failed to parse jcheck configuration at: " + targetHash() + " with extra: " + additionalConfiguration);
+            throw new RuntimeException("Failed to parse jcheck configuration at: " + hash + " with extra: " + additionalConfiguration);
         }
         visitor.setConfiguration(conf.get());
         try (var issues = JCheck.check(localRepo, censusInstance.census(), CommitMessageParsers.v1, localHash,
