@@ -61,7 +61,10 @@ public class PullRequestBotBuilder {
     private boolean processPR = true;
     private boolean processCommit = true;
     private boolean enableMerge = true;
+    private boolean jcheckMerge = false;
     private Set<String> mergeSources = Set.of();
+    private boolean enableBackport = true;
+    private Map<String, List<PRRecord>> issuePRMap;
 
     PullRequestBotBuilder() {
     }
@@ -221,6 +224,21 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder jcheckMerge(boolean jcheckMerge) {
+        this.jcheckMerge = jcheckMerge;
+        return this;
+    }
+
+    public PullRequestBotBuilder enableBackport(boolean enableBackport) {
+        this.enableBackport = enableBackport;
+        return this;
+    }
+
+    public PullRequestBotBuilder issuePRMap(Map<String, List<PRRecord>> issuePRMap) {
+        this.issuePRMap = issuePRMap;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration,
                                   externalPullRequestCommands, externalCommitCommands,
@@ -229,6 +247,6 @@ public class PullRequestBotBuilder {
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
                                   confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom,
                                   enableCsr, enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge,
-                                  processPR, processCommit, enableMerge, mergeSources);
+                                  processPR, processCommit, enableMerge, mergeSources, jcheckMerge, enableBackport, issuePRMap);
     }
 }

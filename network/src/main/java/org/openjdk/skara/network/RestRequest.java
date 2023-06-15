@@ -109,6 +109,10 @@ public class RestRequest {
                 return rawBody;
             }
 
+            if (body == null && queryType == RequestType.GET && bodyParams.isEmpty()) {
+                return null;
+            }
+
             var finalBody = body == null ? JSON.object() : body.asObject();
             for (var param : bodyParams) {
                 finalBody.put(param.key, param.value);
@@ -366,7 +370,11 @@ public class RestRequest {
         if (response.body().isEmpty()) {
             return JSON.of();
         }
-        return JSON.parse(response.body());
+        try {
+            return JSON.parse(response.body());
+        } catch (RuntimeException e) {
+            throw new UncheckedRestException("Failed to parse response", e, response.statusCode());
+        }
     }
 
     private Optional<JSONValue> transformBadResponse(HttpResponse<String> response, QueryBuilder queryBuilder) {
@@ -380,7 +388,7 @@ public class RestRequest {
             log.warning("Request returned bad status: " + response.statusCode());
             log.info(queryBuilder.toString());
             log.info(response.body());
-            throw new UncheckedRestException("Request returned bad status: " + response.statusCode(), response.statusCode());
+            throw new UncheckedRestException(response.statusCode());
         } else {
             return Optional.empty();
         }
@@ -523,7 +531,7 @@ public class RestRequest {
         var response = sendRequest(request, queryBuilder.skipLimiter);
         responseCounter.labels(Integer.toString(response.statusCode()), Boolean.toString(false)).inc();
         if (response.statusCode() >= 400) {
-            throw new UncheckedRestException("Bad response: " + response.statusCode(), response.statusCode());
+            throw new UncheckedRestException(response.statusCode());
         }
         return response.body();
     }

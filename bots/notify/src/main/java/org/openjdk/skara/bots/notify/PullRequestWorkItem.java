@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,8 +27,8 @@ import java.time.ZonedDateTime;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openjdk.skara.bot.WorkItem;
+import org.openjdk.skara.bots.common.BotUtils;
 import org.openjdk.skara.bots.notify.prbranch.PullRequestBranchNotifier;
-import org.openjdk.skara.forge.HostedBranch;
 import org.openjdk.skara.forge.PreIntegrations;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.json.*;
@@ -41,6 +41,8 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.*;
 import java.util.stream.*;
+
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
 public class PullRequestWorkItem implements WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
@@ -138,22 +140,6 @@ public class PullRequestWorkItem implements WorkItem {
         return "[\n" + String.join(",\n", entries) + "\n]";
     }
 
-    private final String lineSep = "(?:\\n|\\r|\\r\\n|\\n\\r)";
-    private final Pattern issuesBlockPattern = Pattern.compile(lineSep + lineSep + "###? Issues?((?:" + lineSep + "(?: \\* )?\\[.*)+)", Pattern.MULTILINE);
-    private final Pattern issuePattern = Pattern.compile("^(?: \\* )?\\[(\\S+)]\\(.*\\): (.*$)", Pattern.MULTILINE);
-
-    private Set<String> parseIssues() {
-        var issuesBlockMatcher = issuesBlockPattern.matcher(pr.body());
-        if (!issuesBlockMatcher.find()) {
-            return Set.of();
-        }
-        var issueMatcher = issuePattern.matcher(issuesBlockMatcher.group(1));
-        return issueMatcher.results()
-                           .filter(mr -> !mr.group(2).endsWith(" (**CSR**)") && !mr.group(2).endsWith(" (**CSR**) (Withdrawn)") && !mr.group(2).endsWith(" (**JEP**)"))
-                           .map(mo -> mo.group(1))
-                           .collect(Collectors.toSet());
-    }
-
     @Override
     public boolean concurrentWith(WorkItem other) {
         if (!(other instanceof PullRequestWorkItem)) {
@@ -231,6 +217,10 @@ public class PullRequestWorkItem implements WorkItem {
         if (!isOfInterest(pr)) {
             return List.of();
         }
+        if (pr.isOpen() && pr.body().contains(TEMPORARY_ISSUE_FAILURE_MARKER)) {
+            log.warning("Found temporary issue failure, the notifiers will be stopped until the temporary issue failure resolved.");
+            return List.of();
+        }
         var historyPath = scratchPath.resolve("notify").resolve("history");
         var listenerScratchPath = scratchPath.resolve("notify").resolve("listener");
         var storage = prStateStorageBuilder
@@ -238,7 +228,7 @@ public class PullRequestWorkItem implements WorkItem {
                 .deserializer(this::deserializePrState)
                 .materialize(historyPath);
 
-        var issues = parseIssues();
+        var issues = BotUtils.parseIssues(pr.body());
         var commit = resultingCommitHash();
         var state = new PullRequestState(pr, issues, commit, pr.headHash(), pr.state());
         var stored = storage.current();

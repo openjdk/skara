@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,8 +34,9 @@ public class JCheckConfiguration {
     private RepositoryConfiguration repository;
     private CensusConfiguration census;
     private ChecksConfiguration checks;
+    private String rawJCheckConf;
 
-    private JCheckConfiguration(INI ini) {
+    private JCheckConfiguration(INI ini, String rawConf) {
         general = GeneralConfiguration.parse(ini.section(GeneralConfiguration.name()));
         if (general.project() == null) {
             throw new IllegalArgumentException("general.project must be specified");
@@ -43,6 +44,7 @@ public class JCheckConfiguration {
         repository = RepositoryConfiguration.parse(ini.section(RepositoryConfiguration.name()));
         census = CensusConfiguration.parse(ini.section(CensusConfiguration.name()));
         checks = ChecksConfiguration.parse(ini.section(ChecksConfiguration.name()));
+        rawJCheckConf = rawConf;
     }
 
     public GeneralConfiguration general() {
@@ -59,6 +61,10 @@ public class JCheckConfiguration {
 
     public ChecksConfiguration checks() {
         return checks;
+    }
+
+    public String rawJCheckConf() {
+        return rawJCheckConf;
     }
 
     private static INI convert(INI old) {
@@ -149,12 +155,13 @@ public class JCheckConfiguration {
 
     public static JCheckConfiguration parse(List<String> lines) {
         var ini = INI.parse(lines);
+        var rawConf = String.join("\n", lines);
         if (ini.sections().size() == 0) {
             // This is an old-style jcheck conf with only a global section -
             // translate to new configuration style before parsing.
-            return new JCheckConfiguration(convert(ini));
+            return new JCheckConfiguration(convert(ini), rawConf);
         }
-        return new JCheckConfiguration(ini);
+        return new JCheckConfiguration(ini, rawConf);
     }
 
     public static Optional<JCheckConfiguration> from(ReadOnlyRepository r, Hash h, Path p) throws IOException {

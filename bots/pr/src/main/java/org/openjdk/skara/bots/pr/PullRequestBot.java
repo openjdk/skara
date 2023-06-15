@@ -32,6 +32,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.time.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.*;
 import java.util.regex.Pattern;
 
@@ -69,7 +70,13 @@ class PullRequestBot implements Bot {
     private final boolean processPR;
     private final boolean processCommit;
     private final boolean enableMerge;
+    private final boolean jcheckMerge;
     private final Set<String> mergeSources;
+    private final boolean enableBackport;
+    private final Map<String, List<PRRecord>> issuePRMap;
+    private final Map<String, Boolean> initializedPRs = new ConcurrentHashMap<>();
+    private final Map<String, String> jCheckConfMap = new HashMap<>();
+    private final Map<String, Set<String>> targetRefPRMap = new HashMap<>();
 
     private Instant lastFullUpdate;
 
@@ -83,7 +90,8 @@ class PullRequestBot implements Bot {
                    String confOverrideRef, String censusLink, Map<String, HostedRepository> forks,
                    Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr, boolean enableJep,
                    boolean reviewCleanBackport, String mlbridgeBotName, boolean reviewMerge, boolean processPR, boolean processCommit,
-                   boolean enableMerge, Set<String> mergeSources) {
+                   boolean enableMerge, Set<String> mergeSources, boolean jcheckMerge, boolean enableBackport,
+                   Map<String, List<PRRecord>> issuePRMap) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -115,6 +123,9 @@ class PullRequestBot implements Bot {
         this.processCommit = processCommit;
         this.enableMerge = enableMerge;
         this.mergeSources = mergeSources;
+        this.jcheckMerge = jcheckMerge;
+        this.enableBackport = enableBackport;
+        this.issuePRMap = issuePRMap;
 
         autoLabelled = new HashSet<>();
         poller = new PullRequestPoller(repo, true);
@@ -156,9 +167,52 @@ class PullRequestBot implements Bot {
         if (processPR) {
             List<PullRequest> prs = poller.updatedPullRequests();
             workItems.addAll(getPullRequestWorkItems(prs));
+
+            // Update targetRefPRMap
+            for (var pr : prs) {
+                var targetRef = pr.targetRef();
+                var prId = pr.id();
+                if (pr.isOpen()) {
+                    targetRefPRMap.computeIfAbsent(targetRef, key -> new HashSet<>()).add(prId);
+                } else {
+                    if (targetRefPRMap.containsKey(targetRef)) {
+                        targetRefPRMap.get(targetRef).remove(prId);
+                    }
+                }
+            }
+
+            var jCheckConfUpdateRelatedPRs = getJCheckConfUpdateRelatedPRs();
+            // Filter out duplicate prs
+            var filteredPrs = jCheckConfUpdateRelatedPRs.stream()
+                    .filter(pullRequest -> prs.stream()
+                            .noneMatch(pr -> pr.isSame(pullRequest)))
+                    .toList();
+            workItems.addAll(getPullRequestWorkItems(filteredPrs));
             poller.lastBatchHandled();
         }
         return workItems;
+    }
+
+    private List<PullRequest> getJCheckConfUpdateRelatedPRs() {
+        var ret = new ArrayList<PullRequest>();
+        // If there is any pr targets on the ref, then the bot needs to check whether the .jcheck/conf updated in this ref
+        var allTargetRefs = targetRefPRMap.keySet().stream()
+                .filter(key -> !targetRefPRMap.get(key).isEmpty())
+                .toList();
+        for (var targetRef : allTargetRefs) {
+            var currConfOpt = remoteRepo.fileContents(".jcheck/conf", targetRef);
+            if (currConfOpt.isEmpty()) {
+                continue;
+            }
+            var currConf = currConfOpt.get();
+            if (!jCheckConfMap.containsKey(targetRef)) {
+                jCheckConfMap.put(targetRef, currConf);
+            } else if (!jCheckConfMap.get(targetRef).equals(currConf)) {
+                ret.addAll(remoteRepo.openPullRequestsWithTargetRef(targetRef));
+                jCheckConfMap.put(targetRef, currConf);
+            }
+        }
+        return ret;
     }
 
     @Override
@@ -304,12 +358,47 @@ class PullRequestBot implements Bot {
         return enableMerge;
     }
 
+    public boolean jcheckMerge() {
+        return jcheckMerge;
+    }
+
     public Set<String> mergeSources() {
         return mergeSources;
     }
 
+    public boolean enableBackport() {
+        return enableBackport;
+    }
+
     public Set<String> integrators() {
         return integrators;
+    }
+
+    public Map<String, List<PRRecord>> issuePRMap() {
+        return issuePRMap;
+    }
+
+    public void addIssuePRMapping(String issueId, PRRecord prRecord) {
+        issuePRMap.putIfAbsent(issueId, new LinkedList<>());
+        List<PRRecord> prRecords = issuePRMap.get(issueId);
+        synchronized (prRecords) {
+            if (!prRecords.contains(prRecord)) {
+                prRecords.add(prRecord);
+            }
+        }
+    }
+
+    public void removeIssuePRMapping(String issueId, PRRecord prRecord) {
+        List<PRRecord> prRecords = issuePRMap.get(issueId);
+        if (prRecords != null) {
+            synchronized (prRecords) {
+                prRecords.remove(prRecord);
+            }
+        }
+    }
+
+    public Map<String, Boolean> initializedPRs() {
+        return initializedPRs;
     }
 
     @Override

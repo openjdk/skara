@@ -28,9 +28,10 @@ import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.PrintWriter;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
+
+import static org.openjdk.skara.bots.common.CommandNameEnum.contributor;
 
 public class ContributorCommand implements CommandHandler {
     private static final Pattern COMMAND_PATTERN = Pattern.compile("^(add|remove)\\s+(.+)$");
@@ -86,7 +87,8 @@ public class ContributorCommand implements CommandHandler {
         }
 
         if (contributor.fullName().isPresent()) {
-            return Optional.of(EmailAddress.from(contributor.fullName().get(), contributor.username() + "@openjdk.org"));
+            return Optional.of(EmailAddress.from(contributor.fullName().get(), contributor.username() + "@" +
+                    censusInstance.configuration().census().domain()));
         } else {
             reply.println("`" + user + "` does not have a full name recorded in the census.");
             return Optional.empty();
@@ -94,7 +96,7 @@ public class ContributorCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!command.user().equals(pr.author())) {
             reply.println("Only the author (@" + pr.author().username() + ") is allowed to issue the `contributor` command.");
             return;
@@ -144,6 +146,11 @@ public class ContributorCommand implements CommandHandler {
     @Override
     public String description() {
         return "adds or removes additional contributors for a PR";
+    }
+
+    @Override
+    public String name() {
+        return contributor.name();
     }
 
     @Override

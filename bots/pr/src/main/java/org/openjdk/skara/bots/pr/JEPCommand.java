@@ -28,10 +28,10 @@ import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.Issue;
 
 import java.io.PrintWriter;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
+import static org.openjdk.skara.bots.common.CommandNameEnum.jep;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
@@ -83,7 +83,7 @@ public class JEPCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command,
                        List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
         if (!bot.enableJep()) {
             reply.println("This repository has not been configured to use the `jep` command.");
@@ -159,6 +159,11 @@ public class JEPCommand implements CommandHandler {
     @Override
     public String description() {
         return "require a JDK Enhancement Proposal (JEP) for this pull request";
+    }
+
+    @Override
+    public String name() {
+        return jep.name();
     }
 
     @Override

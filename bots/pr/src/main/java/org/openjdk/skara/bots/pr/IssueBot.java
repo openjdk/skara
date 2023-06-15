@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,12 +22,6 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import java.time.Duration;
-import java.time.ZonedDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Logger;
-
 import org.openjdk.skara.bot.Bot;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.HostedRepository;
@@ -35,21 +29,24 @@ import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.IssuePoller;
 import org.openjdk.skara.issuetracker.IssueProject;
 
-/**
- * The CSRIssueBot polls an IssueProject for updated issues of CSR type. When
- * found, IssueWorkItems are created to figure out if any PR needs to be
- * re-evaluated.
- */
-public class CSRIssueBot implements Bot {
+import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
+
+public class IssueBot implements Bot {
     private final IssueProject issueProject;
     private final List<HostedRepository> repositories;
     private final IssuePoller poller;
+
     private final Map<String, PullRequestBot> pullRequestBotMap;
     private final Map<String, List<PRRecord>> issuePRMap;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
-    public CSRIssueBot(IssueProject issueProject, List<HostedRepository> repositories, Map<String, PullRequestBot> pullRequestBotMap,
-                       Map<String, List<PRRecord>> issuePRMap) {
+    public IssueBot(IssueProject issueProject, List<HostedRepository> repositories, Map<String, PullRequestBot> pullRequestBotMap,
+                    Map<String, List<PRRecord>> issuePRMap) {
         this.issueProject = issueProject;
         this.repositories = repositories;
         this.pullRequestBotMap = pullRequestBotMap;
@@ -61,41 +58,57 @@ public class CSRIssueBot implements Bot {
         // issues between the first run of each bot, without the risk of
         // returning excessive amounts of Issues in the first run.
         this.poller = new IssuePoller(issueProject, Duration.ofMinutes(10)) {
-            // Only query for CSR issues in this poller.
+            // Query for non-CSR and non-JEP issues in this poller.
             @Override
             protected List<Issue> queryIssues(IssueProject issueProject, ZonedDateTime updatedAfter) {
-                return issueProject.csrIssues(updatedAfter);
+                return issueProject.issues(updatedAfter).stream()
+                        .filter(issue -> {
+                            var issueType = issue.properties().get("issuetype");
+                            return issueType != null && !"CSR".equals(issueType.asString()) && !"JEP".equals(issueType.asString());
+                        })
+                        .toList();
             }
         };
     }
 
     @Override
     public String toString() {
-        return "CSRIssueBot@" + issueProject.name();
+        return "IssueBot@" + issueProject.name();
     }
 
     @Override
     public List<WorkItem> getPeriodicItems() {
         var issues = poller.updatedIssues();
-        log.info("Found " + issues.size() + " updated csr issues");
-        var items = issues.stream()
-                .map(i -> (WorkItem) new CSRIssueWorkItem(this, i, e -> poller.retryIssue(i)))
-                .toList();
+        log.info("Found " + issues.size() + " updated issues(exclude CSR and JEP issues)");
+        var items = new LinkedList<WorkItem>();
+        for (var issue : issues) {
+            var prRecords = issuePRMap.get(issue.id());
+            if (prRecords == null) {
+                continue;
+            }
+            prRecords.stream()
+                    .flatMap(record -> repositories.stream()
+                            .filter(r -> r.name().equals(record.repoName()))
+                            .map(r -> r.pullRequest(record.prId()))
+                    )
+                    .filter(Issue::isOpen)
+                    // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
+                    // best we can do.
+                    .map(pr -> new CheckWorkItem(pullRequestBotMap.get(pr.repository().name()), pr.id(),
+                            e -> poller.retryIssue(issue), issue.updatedAt(), true, false, true))
+                    .forEach(items::add);
+        }
         poller.lastBatchHandled();
         return items;
     }
 
     @Override
     public String name() {
-        return PullRequestBotFactory.NAME + "-csr";
+        return PullRequestBotFactory.NAME + "-issue";
     }
 
     List<HostedRepository> repositories() {
         return repositories;
-    }
-
-    PullRequestBot getPRBot(String repo) {
-        return pullRequestBotMap.get(repo);
     }
 
     Map<String, List<PRRecord>> issuePRMap() {

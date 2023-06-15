@@ -20,48 +20,41 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.common;
+package org.openjdk.skara.bots.pr;
 
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import org.openjdk.skara.forge.HostedRepository;
 
-/**
- * Enum for Skara command names
- */
-public enum CommandNameEnum {
-    help,
-    integrate,
-    sponsor,
-    contributor,
-    summary(true),
-    issue,
-    solves,
-    reviewers,
-    csr,
-    jep,
-    reviewer,
-    label,
-    cc,
-    clean,
-    open,
-    backport,
-    tag;
+import java.nio.file.Path;
 
-    private boolean isMultiLine = false;
+public class ScratchArea {
+    private final Path root;
+    private final String botName;
 
-    CommandNameEnum() {
+    public ScratchArea(Path root, String botName) {
+        this.root = root;
+        this.botName = botName;
     }
 
-    CommandNameEnum(boolean isMultiLine) {
-        this.isMultiLine = isMultiLine;
+    /**
+     *  Return a global repository path for this repository
+     */
+    public Path get(HostedRepository repo) {
+        return root.resolve(botName).resolve("repos").resolve(repo.name());
     }
 
-    public boolean isMultiLine() {
-        return isMultiLine;
+    /**
+     *  Return a path suitable for this command
+     */
+    public Path get(CommandHandler commandHandler) {
+        return root.resolve(botName).resolve("command").resolve(commandHandler.name());
     }
 
-    /* Utility method for returning command names separated by provided deliminator */
-    public static String commandNamesSepByDelim(String deliminator) {
-        return Stream.of(CommandNameEnum.values()).map(CommandNameEnum::name).collect(Collectors.joining(deliminator));
+    public Path getSeeds() {
+        return root.resolve("seeds");
     }
+
+    public Path getCensus() {
+        return root.resolve("census");
+    }
+
 }

@@ -276,6 +276,16 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public boolean canCreatePullRequest(HostUser user) {
+        return false;
+    }
+
+    @Override
+    public List<PullRequest> openPullRequestsWithTargetRef(String targetRef) {
+        return null;
+    }
+
+    @Override
     public List<String> deployKeyTitles(Duration age) {
         return List.of();
     }

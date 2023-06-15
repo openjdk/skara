@@ -68,6 +68,7 @@ class PullRequestBotFactoryTest {
                           "censuslink": "https://test.test.com",
                           "issues": "TEST",
                           "csr": true,
+                          "backport": false,
                           "merge": false,
                           "two-reviewers": [
                             "rfr"
@@ -90,6 +91,7 @@ class PullRequestBotFactoryTest {
                           "censuslink": "https://test.test.com",
                           "issues": "TEST2",
                           "csr": true,
+                          "backport": true,
                           "merge": true,
                           "two-reviewers": [
                             "rfr"
@@ -121,7 +123,8 @@ class PullRequestBotFactoryTest {
                           ],
                           "reviewCleanBackport": true,
                           "reviewMerge": true,
-                          "processPR": false
+                          "processPR": false,
+                          "jcheckMerge": true
                         },
                         "repo7": {
                           "census": "census:master",
@@ -139,7 +142,8 @@ class PullRequestBotFactoryTest {
                           ],
                           "reviewCleanBackport": true,
                           "reviewMerge": true,
-                          "processPR": false
+                          "processPR": false,
+                          "jcheckMerge": false
                         }
                       },
                       "forks": {
@@ -170,50 +174,108 @@ class PullRequestBotFactoryTest {
 
             var bots = testBotFactory.createBots(PullRequestBotFactory.NAME, jsonConfig);
             // A pullRequestBot for every configured repository and A CSRIssueBot for every configured issue project with any repo configured with 'csr: true'
+            // A IssueBot for every configured issue project
             // No CSRIssueBot created for issueTracker TEST3 because it is not associated with any CSR enabled repo
-            assertEquals(6, bots.size());
+            assertEquals(9, bots.size());
 
-            var pullRequestBot0 = (PullRequestBot) bots.get(0);
-            assertEquals("PullRequestBot@repo6", pullRequestBot0.toString());
-            assertEquals("used to run tests", pullRequestBot0.externalPullRequestCommands().get("test"));
-            assertEquals("TEST2", pullRequestBot0.issueProject().name());
-            assertEquals("census", pullRequestBot0.censusRepo().name());
-            assertEquals("master", pullRequestBot0.censusRef());
-            assertEquals("{test=used to run tests}", pullRequestBot0.externalPullRequestCommands().toString());
-            assertEquals("{test=Signature needs verify}", pullRequestBot0.blockingCheckLabels().toString());
-            assertEquals("[rfr]", pullRequestBot0.twoReviewersLabels().toString());
-            assertEquals("[24h_test]", pullRequestBot0.twentyFourHoursLabels().toString());
-            assertFalse(pullRequestBot0.ignoreStaleReviews());
-            assertEquals(".*", pullRequestBot0.allowedTargetBranches().toString());
-            var integrators = pullRequestBot0.integrators();
+            var pullRequestBot2 = (PullRequestBot) bots.stream()
+                    .filter(bot -> bot.toString().equals("PullRequestBot@repo2"))
+                    .findFirst().orElseThrow();
+            assertEquals("PullRequestBot@repo2", pullRequestBot2.toString());
+            assertFalse(pullRequestBot2.enableMerge());
+            assertTrue(pullRequestBot2.mergeSources().contains("openjdk/skara"));
+            assertTrue(pullRequestBot2.mergeSources().contains("openjdk/playground"));
+            assertFalse(pullRequestBot2.jcheckMerge());
+            assertFalse(pullRequestBot2.enableBackport());
+
+            var pullRequestBot5 = (PullRequestBot) bots.stream()
+                    .filter(bot -> bot.toString().equals("PullRequestBot@repo5"))
+                    .findFirst().orElseThrow();
+            assertEquals("PullRequestBot@repo5", pullRequestBot5.toString());
+            assertTrue(pullRequestBot5.enableMerge());
+            assertFalse(pullRequestBot5.jcheckMerge());
+            assertTrue(pullRequestBot5.enableBackport());
+
+            var pullRequestBot6 = (PullRequestBot) bots.stream()
+                    .filter(bot -> bot.toString().equals("PullRequestBot@repo6"))
+                    .findFirst().orElseThrow();
+            assertEquals("PullRequestBot@repo6", pullRequestBot6.toString());
+            assertEquals("used to run tests", pullRequestBot6.externalPullRequestCommands().get("test"));
+            assertEquals("TEST2", pullRequestBot6.issueProject().name());
+            assertEquals("census", pullRequestBot6.censusRepo().name());
+            assertEquals("master", pullRequestBot6.censusRef());
+            assertEquals("{test=used to run tests}", pullRequestBot6.externalPullRequestCommands().toString());
+            assertEquals("{test=Signature needs verify}", pullRequestBot6.blockingCheckLabels().toString());
+            assertEquals("[rfr]", pullRequestBot6.twoReviewersLabels().toString());
+            assertEquals("[24h_test]", pullRequestBot6.twentyFourHoursLabels().toString());
+            assertFalse(pullRequestBot6.ignoreStaleReviews());
+            assertEquals(".*", pullRequestBot6.allowedTargetBranches().toString());
+            var integrators = pullRequestBot6.integrators();
             assertEquals(2, integrators.size());
             assertTrue(integrators.contains("integrator1"));
             assertTrue(integrators.contains("integrator2"));
-            assertTrue(pullRequestBot0.reviewCleanBackport());
-            assertTrue(pullRequestBot0.reviewMerge());
-            assertEquals("mlbridge[bot]", pullRequestBot0.mlbridgeBotName());
-            assertTrue(pullRequestBot0.enableMerge());
+            assertTrue(pullRequestBot6.reviewCleanBackport());
+            assertTrue(pullRequestBot6.reviewMerge());
+            assertEquals("mlbridge[bot]", pullRequestBot6.mlbridgeBotName());
+            assertTrue(pullRequestBot6.enableMerge());
+            assertTrue(pullRequestBot6.jcheckMerge());
+            assertTrue(pullRequestBot6.enableBackport());
 
-            var pullRequestBot1 = (PullRequestBot) bots.get(1);
-            assertEquals("PullRequestBot@repo7", pullRequestBot1.toString());
+            var pullRequestBot7 = (PullRequestBot) bots.stream()
+                    .filter(bot -> bot.toString().equals("PullRequestBot@repo7"))
+                    .findFirst().orElseThrow();
+            assertEquals("PullRequestBot@repo7", pullRequestBot7.toString());
+            assertFalse(pullRequestBot7.jcheckMerge());
 
-            var pullRequestBot2 = (PullRequestBot) bots.get(2);
-            assertEquals("PullRequestBot@repo5", pullRequestBot2.toString());
-            assertTrue(pullRequestBot2.enableMerge());
-
-            var pullRequestBot3 = (PullRequestBot) bots.get(3);
-            assertEquals("PullRequestBot@repo2", pullRequestBot3.toString());
-            assertFalse(pullRequestBot3.enableMerge());
-            assertTrue(pullRequestBot3.mergeSources().contains("openjdk/skara"));
-            assertTrue(pullRequestBot3.mergeSources().contains("openjdk/playground"));
-
-            var csrIssueBot1 = (CSRIssueBot) bots.get(4);
+            var csrIssueBot1 = (CSRIssueBot) bots.stream()
+                    .filter(bot -> bot.toString().equals("CSRIssueBot@TEST"))
+                    .findFirst().orElseThrow();
+            // repo5 and repo6 are both configured with issueProject TEST2, but only repo5 is enabled csr
             assertEquals(1, csrIssueBot1.repositories().size());
             assertNotNull(csrIssueBot1.getPRBot("repo5"));
+            assertEquals("CSRIssueBot@TEST", csrIssueBot1.toString());
 
-            var csrIssueBot2 = (CSRIssueBot) bots.get(5);
+            var csrIssueBot2 = (CSRIssueBot) bots.stream()
+                    .filter(bot -> bot.toString().equals("CSRIssueBot@TEST2"))
+                    .findFirst().orElseThrow();
             assertEquals(1, csrIssueBot2.repositories().size());
             assertNotNull(csrIssueBot2.getPRBot("repo2"));
+            assertEquals("CSRIssueBot@TEST2", csrIssueBot2.toString());
+
+            var issueBot1 = (IssueBot) bots.stream()
+                    .filter(bot -> bot.toString().equals("IssueBot@TEST"))
+                    .findFirst().orElseThrow();
+            assertEquals("IssueBot@TEST", issueBot1.toString());
+            // repo2 is configured with issueProject TEST
+            assertEquals(1, issueBot1.repositories().size());
+
+            var issueBot2 = (IssueBot) bots.stream()
+                    .filter(bot -> bot.toString().equals("IssueBot@TEST2"))
+                    .findFirst().orElseThrow();
+            assertEquals("IssueBot@TEST2", issueBot2.toString());
+            // repo5 and repo6 are both configured with issueProject TEST2
+            assertEquals(2, issueBot2.repositories().size());
+
+            var issueBot3 = (IssueBot) bots.stream()
+                    .filter(bot -> bot.toString().equals("IssueBot@TEST3"))
+                    .findFirst().orElseThrow();
+            assertEquals("IssueBot@TEST3", issueBot3.toString());
+            // repo7 is configured with issueProject TEST3
+            assertEquals(1, issueBot3.repositories().size());
+
+            // prBot for repo2, issueBot for TEST and csrIssueBot for TEST should share the same map
+            assertSame(pullRequestBot2.issuePRMap(), issueBot1.issuePRMap());
+            assertSame(pullRequestBot2.issuePRMap(), csrIssueBot1.issuePRMap());
+            // prBot for repo5, repo6, issueBot for TEST2 and csrIssueBot for TEST2 should share the same map
+            assertSame(pullRequestBot6.issuePRMap(), pullRequestBot5.issuePRMap());
+            assertSame(pullRequestBot6.issuePRMap(), issueBot2.issuePRMap());
+            assertSame(pullRequestBot6.issuePRMap(), csrIssueBot2.issuePRMap());
+            // prBot for repo7 and issueBot for TEST3 should share the same map
+            assertSame(pullRequestBot7.issuePRMap(), issueBot3.issuePRMap());
+
+            assertNotSame(pullRequestBot6.issuePRMap(), pullRequestBot2.issuePRMap());
+            assertNotSame(pullRequestBot6.issuePRMap(), pullRequestBot7.issuePRMap());
+            assertNotSame(pullRequestBot7.issuePRMap(), pullRequestBot2.issuePRMap());
         }
     }
 }

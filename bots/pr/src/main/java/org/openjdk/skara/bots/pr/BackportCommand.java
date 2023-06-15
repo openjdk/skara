@@ -33,11 +33,12 @@ import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 import java.io.PrintWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.time.format.DateTimeFormatter;
+
+import static org.openjdk.skara.bots.common.CommandNameEnum.backport;
 
 public class BackportCommand implements CommandHandler {
     private void showHelp(PrintWriter reply) {
@@ -54,6 +55,11 @@ public class BackportCommand implements CommandHandler {
     }
 
     @Override
+    public String name() {
+        return backport.name();
+    }
+
+    @Override
     public boolean allowedInCommit() {
         return true;
     }
@@ -63,8 +69,10 @@ public class BackportCommand implements CommandHandler {
             + " ([how to associate your GitHub account with your OpenJDK username]"
             + "(https://wiki.openjdk.org/display/skara#Skara-AssociatingyourGitHubaccountandyourOpenJDKusername)).";
 
+    private static final String INSUFFICIENT_ACCESS_WARNING = "The backport can not be created because you don't have access to the target repository.";
+
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command,
                        List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
         if (censusInstance.contributor(command.user()).isEmpty()) {
             reply.println(USER_INVALID_WARNING);
@@ -114,6 +122,11 @@ public class BackportCommand implements CommandHandler {
                 return;
             }
             var targetBranchName = targetBranch.name();
+
+            if (!targetRepo.canCreatePullRequest(command.user())) {
+                reply.println(INSUFFICIENT_ACCESS_WARNING);
+                return;
+            }
 
             // Add label
             var backportLabel = generateBackportLabel(targetRepoName, targetBranchName);
@@ -171,7 +184,7 @@ public class BackportCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequestBot bot, HostedCommit commit, LimitedCensusInstance censusInstance,
-            Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+            ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (censusInstance.contributor(command.user()).isEmpty() && !command.user().equals(bot.repo().forge().currentUser())) {
             reply.println(USER_INVALID_WARNING);
             return;
@@ -227,15 +240,20 @@ public class BackportCommand implements CommandHandler {
             }
         }
 
+        if (!targetRepo.canCreatePullRequest(realUser)) {
+            reply.println(INSUFFICIENT_ACCESS_WARNING);
+            return;
+        }
+
         try {
             var hash = commit.hash();
             Hash backportHash;
             var backportBranchName = realUser.username() + "-backport-" + hash.abbreviate();
             var hostedBackportBranch = fork.branches().stream().filter(b -> b.name().equals(backportBranchName)).findAny();
             if (hostedBackportBranch.isEmpty()) {
-                var localRepoDir = scratchPath.resolve("backport-command")
-                                              .resolve(targetRepo.name())
-                                              .resolve("fork");
+                var localRepoDir = scratchArea.get(this)
+                        .resolve(targetRepo.name())
+                        .resolve("fork");
                 var localRepo = bot.hostedRepositoryPool()
                                    .orElseThrow(() -> new IllegalStateException("Missing repository pool for PR bot"))
                                    .materialize(targetRepo, localRepoDir);
@@ -304,8 +322,15 @@ public class BackportCommand implements CommandHandler {
 
             if (!fork.canPush(realUser)) {
                 fork.addCollaborator(realUser, true);
+            } else {
+                // It's not possible to add branch level push protection unless the user
+                // already has push permissions in the repository. If we try to restrict
+                // it anyway, nobody can push to the branch. At least this way, if the
+                // user already has push permissions, the branch will be protected,
+                // otherwise anyone with push permissions in the repository will be able
+                // to push to the branch.
+                fork.restrictPushAccess(new Branch(backportBranchName), realUser);
             }
-            fork.restrictPushAccess(new Branch(backportBranchName), realUser);
 
             var message = CommitMessageParsers.v1.parse(commit);
             var formatter = DateTimeFormatter.ofPattern("d MMM uuuu");

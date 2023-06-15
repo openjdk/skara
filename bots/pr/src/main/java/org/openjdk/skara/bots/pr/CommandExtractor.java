@@ -29,7 +29,6 @@ import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.host.HostUser;
 
 import java.io.PrintWriter;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -68,7 +67,7 @@ public class CommandExtractor {
 
     static class HelpCommand implements CommandHandler {
         @Override
-        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
             reply.println("Available commands:");
             Stream.concat(
                     commandHandlers.entrySet().stream()
@@ -80,7 +79,7 @@ public class CommandExtractor {
         }
 
         @Override
-        public void handle(PullRequestBot bot, HostedCommit hash, LimitedCensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+        public void handle(PullRequestBot bot, HostedCommit hash, LimitedCensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
             reply.println("Available commands:");
             Stream.concat(
                     commandHandlers.entrySet().stream()
@@ -94,6 +93,11 @@ public class CommandExtractor {
         @Override
         public String description() {
             return "shows this text";
+        }
+
+        @Override
+        public String name() {
+            return help.name();
         }
 
         @Override

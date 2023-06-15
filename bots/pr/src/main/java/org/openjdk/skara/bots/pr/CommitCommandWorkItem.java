@@ -87,7 +87,7 @@ public class CommitCommandWorkItem implements WorkItem {
         }
     }
 
-    private void processCommand(Path scratchPath, HostedCommit commit, LimitedCensusInstance censusInstance,
+    private void processCommand(ScratchArea scratchArea, HostedCommit commit, LimitedCensusInstance censusInstance,
             CommandInvocation command, List<CommitComment> allComments) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
@@ -103,7 +103,7 @@ public class CommitCommandWorkItem implements WorkItem {
                 var comments = allComments.stream()
                                           .map(cc -> (Comment)cc)
                                           .collect(Collectors.toList());
-                handler.get().handle(bot, commit, censusInstance, scratchPath, command, comments, printer);
+                handler.get().handle(bot, commit, censusInstance, scratchArea, command, comments, printer);
             } else {
                 printer.print("The command `");
                 printer.print(command.name());
@@ -179,7 +179,7 @@ public class CommitCommandWorkItem implements WorkItem {
             }
             var commit = bot.repo().commit(hash).orElseThrow(() ->
                     new IllegalStateException("Commit with hash " + hash + " missing"));
-            processCommand(scratchPath, commit, census, command, allComments);
+            processCommand(new ScratchArea(scratchPath, bot.name()), commit, census, command, allComments);
         }
         return List.of();
     }

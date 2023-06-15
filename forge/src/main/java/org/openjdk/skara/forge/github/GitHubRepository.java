@@ -743,6 +743,21 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
+    public boolean canCreatePullRequest(HostUser user) {
+        return true;
+    }
+
+    @Override
+    public List<PullRequest> openPullRequestsWithTargetRef(String targetRef) {
+        return request.get("pulls")
+                .param("state", "open")
+                .param("base", targetRef)
+                .execute().asArray().stream()
+                .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<String> deployKeyTitles(Duration age) {
         var parts = name().split("/");
         var owner = parts[0];

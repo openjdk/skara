@@ -216,6 +216,16 @@ public interface HostedRepository {
     int deleteDeployKeys(Duration age);
 
     /**
+     * Check whether the user is allowed to create pull request in this repository
+     */
+    boolean canCreatePullRequest(HostUser user);
+
+    /**
+     * Returns a list of open pull requests which targets at the specific ref
+     */
+    List<PullRequest> openPullRequestsWithTargetRef(String targetRef);
+
+    /**
      * Return the titles of expired deploy keys which are older than 'age' in this repository
      */
     List<String> deployKeyTitles(Duration age);

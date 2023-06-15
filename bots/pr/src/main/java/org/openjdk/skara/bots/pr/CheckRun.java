@@ -655,6 +655,8 @@ class CheckRun {
             progressBody.append(warningListToText(integrationBlockers));
         }
 
+        // All the issues this pr related(except CSR and JEP)
+        var currentIssues = new HashSet<String>();
         var issueProject = issueProject();
         if (issueProject != null && !allIssues.isEmpty()) {
             progressBody.append("\n\n### Issue");
@@ -681,14 +683,24 @@ class CheckRun {
                             progressBody.append("): ");
                             progressBody.append(BotUtils.escape(iss.get().title()));
                             var issueType = iss.get().properties().get("issuetype");
-                            if (issueType != null && "CSR".equals(issueType.asString())) {
-                                progressBody.append(" (**CSR**)");
-                                if (isWithdrawnCSR(iss.get())) {
-                                    progressBody.append(" (Withdrawn)");
+                            if (issueType != null) {
+                                if ("CSR".equals(issueType.asString())) {
+                                    progressBody.append(" (**CSR**)");
+                                    if (isWithdrawnCSR(iss.get())) {
+                                        progressBody.append(" (Withdrawn)");
+                                    }
+                                } else if ("JEP".equals(issueType.asString())) {
+                                    progressBody.append(" (**JEP**)");
+                                } else {
+                                    progressBody.append(" (**" + issueType.asString() + "**");
+                                    var issuePriority = iss.get().properties().get("priority");
+                                    if (issuePriority == null) {
+                                        progressBody.append(")");
+                                    } else {
+                                        progressBody.append(" - P" + issuePriority.asString() + ")");
+                                    }
+                                    currentIssues.add(iss.get().id());
                                 }
-                            }
-                            if (issueType != null && "JEP".equals(issueType.asString())) {
-                                progressBody.append(" (**JEP**)");
                             }
                             if (!relaxedEquals(iss.get().title(), currentIssue.description())) {
                                 progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
@@ -717,10 +729,29 @@ class CheckRun {
                         progressBody.append("⚠️ Temporary failure when trying to retrieve information on issue `");
                         progressBody.append(currentIssue.id());
                         progressBody.append("`.");
+                        progressBody.append(TEMPORARY_ISSUE_FAILURE_MARKER);
                         setExpiration(Duration.ofMinutes(30));
                     }
                 }
                 progressBody.append("\n");
+            }
+
+            // Update the issuePRMap
+            var prRecord = new PRRecord(pr.repository().name(), pr.id());
+
+            // Need previousIssues to delete associations
+            var previousIssues = BotUtils.parseIssues(pr.body());
+            // Add associations
+            for (String issueId : currentIssues) {
+                if (!previousIssues.contains(issueId)) {
+                    workItem.bot.addIssuePRMapping(issueId, prRecord);
+                }
+            }
+            // Delete associations
+            for (String oldIssueId : previousIssues) {
+                if (!currentIssues.contains(oldIssueId)) {
+                    workItem.bot.removeIssuePRMapping(oldIssueId, prRecord);
+                }
             }
         }
 
@@ -1120,6 +1151,7 @@ class CheckRun {
         var checkBuilder = CheckBuilder.create(getJcheckName(pr), pr.headHash());
         var censusDomain = censusInstance.configuration().census().domain();
         Exception checkException = null;
+        String jcheckType = "jcheck";
 
         try {
             // Post check in-progress
@@ -1136,8 +1168,32 @@ class CheckRun {
                 rebasePossible = false;
             }
 
-            if (rebasePossible && PullRequestUtils.isMerge(pr)) {
-                localRepo.lookup(pr.headHash()).ifPresent(this::updateMergeClean);
+            List<String> mergeJCheckMessage = new ArrayList<>();
+
+            if (PullRequestUtils.isMerge(pr)) {
+                if (rebasePossible) {
+                    localRepo.lookup(pr.headHash()).ifPresent(this::updateMergeClean);
+                }
+
+                // JCheck all commits in "Merge PR"
+                if (workItem.bot.jcheckMerge()) {
+                    var commits = localRepo.commitMetadata(localRepo.mergeBase(
+                            PullRequestUtils.targetHash(localRepo), pr.headHash()), commitHash);
+                    var commitHashes = commits.stream()
+                            .map(CommitMetadata::hash)
+                            .collect(Collectors.toSet());
+                    commitHashes.remove(pr.headHash());
+                    for (Hash hash : commitHashes) {
+                        jcheckType = "merge jcheck in commit " + hash.hex();
+                        PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(hash);
+                        checkablePullRequest.executeChecks(hash, censusInstance, visitor, List.of(), hash);
+                        mergeJCheckMessage.addAll(visitor.messages().stream()
+                                .map(StringBuilder::new)
+                                .map(e -> e.append(" (in commit " + hash.hex() + ")"))
+                                .map(StringBuilder::toString)
+                                .toList());
+                    }
+                }
             }
 
             var original = backportedFrom();
@@ -1158,9 +1214,8 @@ class CheckRun {
                 additionalErrors = List.of(e.getMessage());
                 localHash = baseHash;
             }
-            PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor();
+            PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(checkablePullRequest.targetHash());
             boolean needUpdateAdditionalProgresses = false;
-            boolean sourceBranchJCheckConfValid = true;
             if (localHash.equals(baseHash)) {
                 if (additionalErrors.isEmpty()) {
                     additionalErrors = List.of("This PR contains no changes");
@@ -1169,26 +1224,21 @@ class CheckRun {
                 additionalErrors = List.of("This PR only contains changes already present in the target");
             } else {
                 // Determine current status
+                jcheckType = "jcheck";
                 var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash,
                         pr.repository().forge().currentUser(), comments, reviewMerge);
                 checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration, checkablePullRequest.targetHash());
                 // Don't need to run the second round if confOverride is set.
                 if (workItem.bot.confOverrideRepository().isEmpty() && isFileUpdated(".jcheck/conf", localHash)) {
-                    try {
-                        PullRequestCheckIssueVisitor visitor2 = checkablePullRequest.createVisitorUsingHeadHash();
-                        log.info("Run jcheck again with the updated configuration");
-                        checkablePullRequest.executeChecks(localHash, censusInstance, visitor2, additionalConfiguration, pr.headHash());
-                        secondJCheckMessage.addAll(visitor2.messages().stream()
-                                .map(StringBuilder::new)
-                                .map(e -> e.append(" (failed with the updated jcheck configuration)"))
-                                .map(StringBuilder::toString)
-                                .toList());
-                    } catch (Exception e) {
-                        var message = e.getMessage() + " (exception thrown when running jcheck with updated jcheck configuration)";
-                        log.warning(message);
-                        secondJCheckMessage.add(message);
-                        sourceBranchJCheckConfValid = false;
-                    }
+                    jcheckType = "second jcheck";
+                    PullRequestCheckIssueVisitor visitor2 = checkablePullRequest.createVisitor(pr.headHash());
+                    log.info("Run jcheck again with the updated configuration");
+                    checkablePullRequest.executeChecks(localHash, censusInstance, visitor2, additionalConfiguration, pr.headHash());
+                    secondJCheckMessage.addAll(visitor2.messages().stream()
+                            .map(StringBuilder::new)
+                            .map(e -> e.append(" (failed with the updated jcheck configuration)"))
+                            .map(StringBuilder::toString)
+                            .toList());
                 }
                 additionalErrors = botSpecificChecks(isCleanBackport);
                 needUpdateAdditionalProgresses = true;
@@ -1196,7 +1246,7 @@ class CheckRun {
 
             var confFile = localRepo.lines(Path.of(".jcheck/conf"), localHash);
             JdkVersion version = null;
-            if (confFile.isPresent() && sourceBranchJCheckConfValid) {
+            if (confFile.isPresent()) {
                 var configuration = JCheckConfiguration.parse(confFile.get());
                 var versionString = configuration.general().version().orElse(null);
 
@@ -1220,6 +1270,7 @@ class CheckRun {
 
             var integrationBlockers = botSpecificIntegrationBlockers(issues);
             integrationBlockers.addAll(secondJCheckMessage);
+            integrationBlockers.addAll(mergeJCheckMessage);
 
             var reviewersCommandIssued = ReviewersTracker.additionalRequiredReviewers(pr.repository().forge().currentUser(), comments).isPresent();
 
@@ -1236,12 +1287,14 @@ class CheckRun {
             var readyForIntegration = readyForReview &&
                                       visitor.messages().isEmpty() &&
                                       !additionalProgresses.containsValue(false) &&
-                                      integrationBlockers.isEmpty();
+                                      integrationBlockers.isEmpty() &&
+                                      !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
             if (!reviewNeeded) {
                 // Reviews are not needed for clean backports unless this repo is configured with reviewCleanBackport enabled
                 readyForIntegration = readyForReview &&
                                       !additionalProgresses.containsValue(false) &&
-                                      integrationBlockers.isEmpty();
+                                      integrationBlockers.isEmpty() &&
+                                      !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
             }
 
             updateMergeReadyComment(readyForIntegration, commitMessage, rebasePossible);
@@ -1281,14 +1334,14 @@ class CheckRun {
             }
 
             // Calculate current metadata to avoid unnecessary future checks
-            var metadata = workItem.getMetadata(censusInstance, title, updatedBody, pr.comments(), activeReviews,
-                                                newLabels, pr.targetRef(), pr.isDraft(), expiresIn);
+            var metadata = workItem.getMetadata(workItem.getPRMetadata(censusInstance, title, updatedBody, pr.comments(), activeReviews,
+                    newLabels, pr.targetRef(), pr.isDraft()), workItem.getIssueMetadata(updatedBody), expiresIn);
             checkBuilder.metadata(metadata);
         } catch (Exception e) {
             log.throwing("CommitChecker", "checkStatus", e);
             newLabels.remove("ready");
             checkBuilder.metadata("invalid");
-            checkBuilder.title("Exception occurred during jcheck - the operation will be retried");
+            checkBuilder.title("Exception occurred during " + jcheckType + " - the operation will be retried");
             checkBuilder.summary(e.getMessage());
             checkBuilder.complete(false);
             checkException = e;
