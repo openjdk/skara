@@ -276,4 +276,14 @@ public class GitHubRestApiTests {
         var user = githubHost.user(settings.getProperty("github.user2")).orElseThrow();
         gitHubRepo.restrictPushAccess(branch, user);
     }
+
+    @Test
+    void testDeployKeyTitles() {
+        var githubRepoOpt = githubHost.repository("zhaosongzs/Test");
+        assumeTrue(githubRepoOpt.isPresent());
+        var githubRepo = githubRepoOpt.get();
+        var expiredDeployKeys = githubRepo.deployKeyTitles(Duration.ofMinutes(5));
+        assertTrue(expiredDeployKeys.contains("Test1"));
+        assertTrue(expiredDeployKeys.contains("Test2"));
+    }
 }

@@ -860,4 +860,14 @@ public class GitLabRepository implements HostedRepository {
                 .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<String> deployKeyTitles(Duration age) {
+        return request.get("deploy_keys").execute()
+                .stream()
+                .filter(key -> ZonedDateTime.parse(key.get("created_at").asString())
+                        .isBefore(ZonedDateTime.now().minus(age)))
+                .map(key -> key.get("title").asString())
+                .toList();
+    }
 }

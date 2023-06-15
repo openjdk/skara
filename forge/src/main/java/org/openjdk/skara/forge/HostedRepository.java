@@ -224,4 +224,9 @@ public interface HostedRepository {
      * Returns a list of open pull requests which targets at the specific ref
      */
     List<PullRequest> openPullRequestsWithTargetRef(String targetRef);
+
+    /**
+     * Return the titles of expired deploy keys which are older than 'age' in this repository
+     */
+    List<String> deployKeyTitles(Duration age);
 }

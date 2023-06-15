@@ -290,4 +290,18 @@ public class GitLabRestApiTest {
 
         gitLabRepo.deleteDeployKeys(Duration.ofHours(24));
     }
+
+    @Test
+    void testDeployKeyTitles() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var username = settings.getProperty("gitlab.user");
+        var token = settings.getProperty("gitlab.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
+
+        var expiredDeployKeys = gitLabRepo.deployKeyTitles(Duration.ofMinutes(5));
+        assertTrue(expiredDeployKeys.contains("test1"));
+    }
 }
