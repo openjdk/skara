@@ -313,4 +313,9 @@ public class BitbucketRepository implements HostedRepository {
     public List<PullRequest> openPullRequestsWithTargetRef(String targetRef) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public List<String> deployKeyTitles(Duration age) {
+        throw new UnsupportedOperationException();
+    }
 }
