@@ -1370,11 +1370,12 @@ class CheckRun {
     }
 
     private boolean isFileUpdated(String filename, Hash hash) throws IOException {
-        return localRepo.commits(hash.hex(), 1).stream()
-                .anyMatch(commit -> commit.parentDiffs().stream()
-                        .anyMatch(diff -> diff.patches().stream()
-                                .anyMatch(patch -> (patch.source().path().isPresent() && patch.source().path().get().toString().equals(filename))
-                                        || ((patch.target().path().isPresent() && patch.target().path().get().toString().equals(filename))))));
+        return !localRepo.files(hash, Path.of(filename)).isEmpty() &&
+                localRepo.commits(hash.hex(), 1).stream()
+                        .anyMatch(commit -> commit.parentDiffs().stream()
+                                .anyMatch(diff -> diff.patches().stream()
+                                        .anyMatch(patch -> (patch.source().path().isPresent() && patch.source().path().get().toString().equals(filename))
+                                                || ((patch.target().path().isPresent() && patch.target().path().get().toString().equals(filename))))));
     }
 
     private void updateCSRLabel(List<Issue> issues, JdkVersion version, Map<Issue, org.openjdk.skara.issuetracker.Issue> csrIssueTrackerIssueMap) {
