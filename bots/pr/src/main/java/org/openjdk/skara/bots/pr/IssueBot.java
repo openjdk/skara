@@ -26,7 +26,7 @@ import org.openjdk.skara.bot.Bot;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.issuetracker.Issue;
-import org.openjdk.skara.issuetracker.IssuePoller;
+import org.openjdk.skara.issuetracker.IssueProjectPoller;
 import org.openjdk.skara.issuetracker.IssueProject;
 
 import java.time.Duration;
@@ -35,11 +35,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 
 public class IssueBot implements Bot {
     private final IssueProject issueProject;
     private final List<HostedRepository> repositories;
-    private final IssuePoller poller;
+    private final IssueProjectPoller poller;
 
     private final Map<String, PullRequestBot> pullRequestBotMap;
     private final Map<String, List<PRRecord>> issuePRMap;
@@ -57,10 +58,10 @@ public class IssueBot implements Bot {
         // potential time difference between local and remote, as well as timing
         // issues between the first run of each bot, without the risk of
         // returning excessive amounts of Issues in the first run.
-        this.poller = new IssuePoller(issueProject, Duration.ofMinutes(10)) {
+        this.poller = new IssueProjectPoller(issueProject, Duration.ofMinutes(10)) {
             // Query for non-CSR and non-JEP issues in this poller.
             @Override
-            protected List<Issue> queryIssues(IssueProject issueProject, ZonedDateTime updatedAfter) {
+            protected List<IssueTrackerIssue> queryIssues(IssueProject issueProject, ZonedDateTime updatedAfter) {
                 return issueProject.issues(updatedAfter).stream()
                         .filter(issue -> {
                             var issueType = issue.properties().get("issuetype");

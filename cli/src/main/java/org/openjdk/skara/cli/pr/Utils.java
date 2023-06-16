@@ -29,6 +29,7 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.IssueTracker;
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -186,11 +187,11 @@ class Utils {
         return Optional.ofNullable(conf.get().general().jbs());
     }
 
-    static Optional<Issue> getIssue(Commit commit, Optional<String> project) throws IOException {
+    static Optional<IssueTrackerIssue> getIssue(Commit commit, Optional<String> project) throws IOException {
         return project.isEmpty() ? Optional.empty() : getIssue(commit, project.get());
     }
 
-    static Optional<Issue> getIssue(Commit commit, String project) throws IOException {
+    static Optional<IssueTrackerIssue> getIssue(Commit commit, String project) throws IOException {
         var message = CommitMessageParsers.v1.parse(commit.message());
         var issues = message.issues();
         if (issues.isEmpty()) {
@@ -202,15 +203,15 @@ class Utils {
         return Optional.empty();
     }
 
-    static Optional<Issue> getIssue(Branch b, Optional<String> project) throws IOException {
+    static Optional<IssueTrackerIssue> getIssue(Branch b, Optional<String> project) throws IOException {
         return project.isEmpty() ? Optional.empty() : getIssue(b, project.get());
     }
 
-    static Optional<Issue> getIssue(Branch b, String project) throws IOException {
+    static Optional<IssueTrackerIssue> getIssue(Branch b, String project) throws IOException {
         return getIssue(b.name(), project);
     }
 
-    static Optional<Issue> getIssue(String s, String project) throws IOException {
+    static Optional<IssueTrackerIssue> getIssue(String s, String project) throws IOException {
         var m = ISSUE_ID_PATTERN.matcher(s);
         if (m.matches()) {
             var id = m.group(2);

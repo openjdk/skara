@@ -31,7 +31,7 @@ import org.openjdk.skara.test.HostCredentials;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
-import org.openjdk.skara.test.TestIssue;
+import org.openjdk.skara.test.TestIssueTrackerIssue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -270,9 +270,9 @@ public class BackportsTests {
     private static class BackportManager {
         private final HostCredentials credentials;
         private final IssueProject issueProject;
-        private final List<TestIssue> issues;
+        private final List<TestIssueTrackerIssue> issues;
 
-        private void setState(Issue issue, String version) {
+        private void setState(IssueTrackerIssue issue, String version) {
             if (version.endsWith("#open")) {
                 version = version.substring(0, version.length() - 5);
             } else if (version.endsWith("#wontfix")) {
@@ -316,7 +316,7 @@ public class BackportsTests {
 
         void assertLabeled(String... labeledVersions) {
             var related = Backports.findBackports(issues.get(0), true);
-            var allIssues = new ArrayList<Issue>();
+            var allIssues = new ArrayList<IssueTrackerIssue>();
             allIssues.add(issues.get(0));
             allIssues.addAll(related);
             var labeledIssues = Backports.releaseStreamDuplicates(allIssues)
@@ -329,7 +329,7 @@ public class BackportsTests {
 
         void assertNotLabeled(String... labeledVersions) {
             var related = Backports.findBackports(issues.get(0), true);
-            var allIssues = new ArrayList<Issue>();
+            var allIssues = new ArrayList<IssueTrackerIssue>();
             allIssues.add(issues.get(0));
             allIssues.addAll(related);
             var labeledIssues = Backports.releaseStreamDuplicates(allIssues)
@@ -1022,7 +1022,7 @@ public class BackportsTests {
 
             issue.setState(Issue.State.RESOLVED);
             // Need to reload the issue from the store for this to be picked up.
-            issue = (TestIssue) issueProject.issue(issue.id()).orElseThrow();
+            issue = (TestIssueTrackerIssue) issueProject.issue(issue.id()).orElseThrow();
             assertEquals(issue.id(), Backports.findFixedIssue(issue, Pattern.compile("17")).orElseThrow().id());
 
             backport2.setState(Issue.State.RESOLVED);

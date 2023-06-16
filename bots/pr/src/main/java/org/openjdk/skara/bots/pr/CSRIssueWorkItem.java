@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.jbs.Backports;
 
@@ -44,10 +45,10 @@ class CSRIssueWorkItem implements WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     private final CSRIssueBot bot;
-    private final Issue csrIssue;
+    private final IssueTrackerIssue csrIssue;
     private final Consumer<RuntimeException> errorHandler;
 
-    public CSRIssueWorkItem(CSRIssueBot bot, Issue csrIssue, Consumer<RuntimeException> errorHandler) {
+    public CSRIssueWorkItem(CSRIssueBot bot, IssueTrackerIssue csrIssue, Consumer<RuntimeException> errorHandler) {
         this.bot = bot;
         this.csrIssue = csrIssue;
         this.errorHandler = errorHandler;

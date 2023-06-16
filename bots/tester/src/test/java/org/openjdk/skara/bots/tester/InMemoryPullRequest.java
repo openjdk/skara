@@ -265,36 +265,6 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
-    public List<Link> links() {
-        return null;
-    }
-
-    @Override
-    public void addLink(Link link) {
-
-    }
-
-    @Override
-    public void removeLink(Link link) {
-
-    }
-
-    @Override
-    public Map<String, JSONValue> properties() {
-        return null;
-    }
-
-    @Override
-    public void setProperty(String name, JSONValue value) {
-
-    }
-
-    @Override
-    public void removeProperty(String name) {
-
-    }
-
-    @Override
     public void setTitle(String title) {
     }
 

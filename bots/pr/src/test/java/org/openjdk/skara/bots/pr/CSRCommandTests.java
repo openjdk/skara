@@ -112,7 +112,7 @@ class CSRCommandTests {
         }
     }
 
-    private String generateCSRProgressMessage(org.openjdk.skara.issuetracker.Issue issue) {
+    private String generateCSRProgressMessage(IssueTrackerIssue issue) {
         return "Change requires CSR request [" + issue.id() + "](" + issue.webUrl() + ") to be approved";
     }
 

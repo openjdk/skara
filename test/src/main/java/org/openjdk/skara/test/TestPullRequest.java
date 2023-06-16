@@ -64,7 +64,6 @@ public class TestPullRequest extends TestIssue implements PullRequest {
         setLastUpdate(store().lastUpdate());
     }
 
-    @Override
     protected TestPullRequest copy() {
         return new TestPullRequest(store(), targetRepository);
     }

@@ -373,7 +373,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         }
     }
 
-    private Optional<Issue> findAltFixedVersionIssue(Issue issue, Branch branch) {
+    private Optional<IssueTrackerIssue> findAltFixedVersionIssue(IssueTrackerIssue issue, Branch branch) {
         if (altFixVersions != null) {
             var matchingBranchPattern = altFixVersions.keySet().stream()
                     .filter(pattern -> pattern.matcher(branch.toString()).matches())

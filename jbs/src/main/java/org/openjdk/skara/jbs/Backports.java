@@ -23,6 +23,7 @@
 package org.openjdk.skara.jbs;
 
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.json.JSONValue;
 
@@ -39,7 +40,7 @@ public class Backports {
 
     private static final Pattern FEATURE_FAMILY_PATTERN = Pattern.compile("^([^\\d]*)(\\d*)$");
 
-    private static boolean isPrimaryIssue(Issue issue) {
+    private static boolean isPrimaryIssue(IssueTrackerIssue issue) {
         var properties = issue.properties();
         if (!properties.containsKey("issuetype")) {
             throw new RuntimeException("Unknown type for issue " + issue.id());
@@ -52,7 +53,7 @@ public class Backports {
         return !version.startsWith("tbd") && !version.toLowerCase().equals("unknown");
     }
 
-    public static Set<String> fixVersions(Issue issue) {
+    public static Set<String> fixVersions(IssueTrackerIssue issue) {
         if (!issue.properties().containsKey("fixVersions")) {
             return Set.of();
         }
@@ -67,7 +68,7 @@ public class Backports {
      * @param issue
      * @return
      */
-    public static Optional<JdkVersion> mainFixVersion(Issue issue) {
+    public static Optional<JdkVersion> mainFixVersion(IssueTrackerIssue issue) {
         var versionString = fixVersions(issue).stream()
                                               .filter(Backports::isNonScratchVersion)
                                               .collect(Collectors.toList());
@@ -89,7 +90,7 @@ public class Backports {
      *  Return the main issue for this backport.
      *  Harmless when called with the main issue
      */
-    public static Optional<Issue> findMainIssue(Issue issue) {
+    public static Optional<IssueTrackerIssue> findMainIssue(IssueTrackerIssue issue) {
         if (isPrimaryIssue(issue)) {
             return Optional.of(issue);
         }
@@ -115,7 +116,7 @@ public class Backports {
      * fixVersionsList must contain one entry that is an exact match for fixVersions; any
      * other entries must be scratch values.
      */
-    private static boolean matchVersion(Issue issue, JdkVersion fixVersion) {
+    private static boolean matchVersion(IssueTrackerIssue issue, JdkVersion fixVersion) {
         var mainVersion = mainFixVersion(issue);
         if (mainVersion.isEmpty()) {
             return false;
@@ -127,7 +128,7 @@ public class Backports {
      * If fixVersion has a major release of <N>, and opt string of <opt> it matches if
      * the fixVersionList has an <N>-pool-<opt> entry.
      */
-    private static boolean matchOptPoolVersion(Issue issue, JdkVersion fixVersion) {
+    private static boolean matchOptPoolVersion(IssueTrackerIssue issue, JdkVersion fixVersion) {
         // Remove any trailing 'u' from the feature version as that isn't used in *-pool versions
         var majorVersion = fixVersion.feature().replaceFirst("u$", "");
         if (fixVersion.opt().isPresent()) {
@@ -149,7 +150,7 @@ public class Backports {
      * If fixVersion has a major release of <N>, it matches if the fixVersionList has an
      * <N>-pool entry.
      */
-    private static boolean matchPoolVersion(Issue issue, JdkVersion fixVersion) {
+    private static boolean matchPoolVersion(IssueTrackerIssue issue, JdkVersion fixVersion) {
         // Remove any trailing 'u' from the feature version as that isn't used in *-pool versions
         var majorVersion = fixVersion.feature().replaceFirst("u$", "");
         var poolVersion = JdkVersion.parse(majorVersion + "-pool");
@@ -185,7 +186,7 @@ public class Backports {
     /**
      * Return true if fixVersionList is empty or contains only scratch values.
      */
-    private static boolean matchScratchVersion(Issue issue) {
+    private static boolean matchScratchVersion(IssueTrackerIssue issue) {
         var nonScratch = fixVersions(issue).stream()
                                            .filter(Backports::isNonScratchVersion)
                                            .collect(Collectors.toList());
@@ -206,9 +207,9 @@ public class Backports {
      *
      * A "scratch" fixVersion is empty, "tbd.*", or "unknown".
      */
-    public static Optional<Issue> findIssue(Issue primary, JdkVersion fixVersion) {
+    public static Optional<IssueTrackerIssue> findIssue(IssueTrackerIssue primary, JdkVersion fixVersion) {
         log.fine("Searching for properly versioned issue for primary issue " + primary.id());
-        var candidates = Stream.concat(Stream.of(primary), findBackports(primary, false).stream()).collect(Collectors.toList());
+        var candidates = Stream.concat(Stream.of(primary), findBackports(primary, false).stream()).toList();
         candidates.forEach(c -> log.fine("Candidate: " + c.id() + " with versions: " + String.join(",", fixVersions(c))));
         var matchingVersionIssue = candidates.stream()
                                              .filter(i -> matchVersion(i, fixVersion))
@@ -250,7 +251,7 @@ public class Backports {
      * Returns issue or one of its backports that has a fixVersion matching the
      * version pattern and is fixed.
      */
-    public static Optional<Issue> findFixedIssue(Issue primary, Pattern versionPattern) {
+    public static Optional<IssueTrackerIssue> findFixedIssue(IssueTrackerIssue primary, Pattern versionPattern) {
         log.fine("Searching for fixed issue with fix version matching /" + versionPattern + "/ "
                 + " for primary issue " + primary.id());
         return Stream.concat(Stream.of(primary).filter(Issue::isFixed), findBackports(primary, true).stream())
@@ -271,7 +272,7 @@ public class Backports {
      *
      * A "scratch" fixVersion is empty, "tbd.*", or "unknown".
      */
-    public static Optional<Issue> findClosestIssue(List<Issue> issueList, JdkVersion fixVersion) {
+    public static Optional<IssueTrackerIssue> findClosestIssue(List<IssueTrackerIssue> issueList, JdkVersion fixVersion) {
         var matchingVersionIssue = issueList.stream()
                 .filter(issue -> Backports.fixVersions(issue).stream().anyMatch(v -> v.equals(fixVersion.raw())))
                 .findFirst();
@@ -304,8 +305,8 @@ public class Backports {
     /**
      * Find the right CSR according to the primary issue and the requested version
      */
-    public static Optional<Issue> findCsr(Issue primary, JdkVersion version) {
-        var csrList = new ArrayList<Issue>();
+    public static Optional<IssueTrackerIssue> findCsr(IssueTrackerIssue primary, JdkVersion version) {
+        var csrList = new ArrayList<IssueTrackerIssue>();
         csrLink(primary).flatMap(Link::issue).ifPresent(csrList::add);
         for (var backportIssue : Backports.findBackports(primary, false)) {
             csrLink(backportIssue).flatMap(Link::issue).ifPresent(csrList::add);
@@ -316,12 +317,12 @@ public class Backports {
     /**
      * Find the CSR of the provided issue
      */
-    private static Optional<Link> csrLink(Issue issue) {
+    private static Optional<Link> csrLink(IssueTrackerIssue issue) {
         return issue == null ? Optional.empty() : issue.links().stream()
                 .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
     }
 
-    public static List<Issue> findBackports(Issue primary, boolean fixedOnly) {
+    public static List<IssueTrackerIssue> findBackports(IssueTrackerIssue primary, boolean fixedOnly) {
         var links = primary.links();
         return links.stream()
                     .filter(l -> l.issue().isPresent())
@@ -444,8 +445,8 @@ public class Backports {
     }
 
     // Split the issue list depending on the release stream
-    private static List<List<Issue>> groupByReleaseStream(List<Issue> issues) {
-        var streamIssues = new HashMap<String, List<Issue>>();
+    private static List<List<IssueTrackerIssue>> groupByReleaseStream(List<IssueTrackerIssue> issues) {
+        var streamIssues = new HashMap<String, List<IssueTrackerIssue>>();
         for (var issue : issues) {
             var fixVersion = mainFixVersion(issue);
             if (fixVersion.isEmpty()) {
@@ -461,7 +462,7 @@ public class Backports {
             }
         }
 
-        var ret = new ArrayList<List<Issue>>();
+        var ret = new ArrayList<List<IssueTrackerIssue>>();
         for (var issuesInStream : streamIssues.values()) {
             if (issuesInStream.size() < 2) {
                 // It's not a release stream unless it has more than one entry
@@ -474,7 +475,7 @@ public class Backports {
     }
 
     // Certain versions / build numbers have a special meaning, and should be excluded from stream processing
-    private static boolean onExcludeList(Issue issue) {
+    private static boolean onExcludeList(IssueTrackerIssue issue) {
         var fixVersion = mainFixVersion(issue);
         if (fixVersion.isEmpty()) {
             return false;
@@ -518,8 +519,8 @@ public class Backports {
      *
      * @param related
      */
-    public static List<Issue> releaseStreamDuplicates(List<Issue> related) {
-        var ret = new ArrayList<Issue>();
+    public static List<IssueTrackerIssue> releaseStreamDuplicates(List<IssueTrackerIssue> related) {
+        var ret = new ArrayList<IssueTrackerIssue>();
 
         var includedOnly = related.stream()
                 .filter(issue -> !onExcludeList(issue))

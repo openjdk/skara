@@ -25,7 +25,6 @@ package org.openjdk.skara.issuetracker;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.ZonedDateTime;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.openjdk.skara.test.HostCredentials;
@@ -34,13 +33,13 @@ import org.openjdk.skara.test.TestHost;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class IssuePollerTests {
+public class IssueProjectPollerTests {
 
     @Test
     void simple(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var issueProject = credentials.getIssueProject();
-            var issuePoller = new IssuePoller(issueProject, Duration.ZERO);
+            var issuePoller = new IssueProjectPoller(issueProject, Duration.ZERO);
 
             // Poll with no Issues in the project
             var issues = issuePoller.updatedIssues();
@@ -87,7 +86,7 @@ public class IssuePollerTests {
     void startUpPadding(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var issueProject = credentials.getIssueProject();
-            var issuePoller = new IssuePoller(issueProject, Duration.ofDays(2));
+            var issuePoller = new IssueProjectPoller(issueProject, Duration.ofDays(2));
 
             // Create two issues, one with updatedAt before and one after the startup
             // padding limit.
@@ -108,7 +107,7 @@ public class IssuePollerTests {
         try (var credentials = new HostCredentials(testInfo)) {
             var issueProject = credentials.getIssueProject();
             var testHost = (TestHost) issueProject.issueTracker();
-            var issuePoller = new IssuePoller(issueProject, Duration.ZERO);
+            var issuePoller = new IssueProjectPoller(issueProject, Duration.ZERO);
 
             // Create issue and poll for it
             var issue1 = credentials.createIssue(issueProject, "Issue 1");
@@ -176,7 +175,7 @@ public class IssuePollerTests {
     void retries(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var issueProject = credentials.getIssueProject();
-            var issuePoller = new IssuePoller(issueProject, Duration.ZERO);
+            var issuePoller = new IssueProjectPoller(issueProject, Duration.ZERO);
 
             // Create issue
             var issue1 = credentials.createIssue(issueProject, "Issue 1");

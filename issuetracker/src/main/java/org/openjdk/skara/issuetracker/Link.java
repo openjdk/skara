@@ -35,9 +35,10 @@ public class Link {
     private final URI statusIconUrl;
     private final String statusIconTitle;
     private final boolean resolved;
-    private final Issue linked;
+    private final IssueTrackerIssue linked;
 
-    Link(URI uri, String title, String relationship, String summary, URI iconUrl, String iconTitle, URI statusIconUrl, String statusIconTitle, boolean resolved, Issue linked) {
+    Link(URI uri, String title, String relationship, String summary, URI iconUrl, String iconTitle,
+            URI statusIconUrl, String statusIconTitle, boolean resolved, IssueTrackerIssue linked) {
         this.uri = uri;
         this.title = title;
         this.relationship = relationship;
@@ -54,7 +55,7 @@ public class Link {
         return new WebLinkBuilder(uri, title);
     }
 
-    public static IssueLinkBuilder create(Issue issue, String relationship) {
+    public static IssueLinkBuilder create(IssueTrackerIssue issue, String relationship) {
         return new IssueLinkBuilder(issue, relationship);
     }
 
@@ -66,7 +67,7 @@ public class Link {
         return Optional.ofNullable(title);
     }
 
-    public Optional<Issue> issue() {
+    public Optional<IssueTrackerIssue> issue() {
         return Optional.ofNullable(linked);
     }
 

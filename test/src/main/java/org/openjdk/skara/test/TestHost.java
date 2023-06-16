@@ -67,7 +67,7 @@ public class TestHost implements Forge, IssueTracker {
         final Map<String, IssueProject> issueProjects = new HashMap<>();
         final Set<TemporaryDirectory> folders = new HashSet<>();
         private final Map<String, TestPullRequestStore> pullRequests = new HashMap<>();
-        private final Map<String, TestIssueStore> issues = new HashMap<>();
+        private final Map<String, TestIssueTrackerIssueStore> issues = new HashMap<>();
     }
 
     private Repository createLocalRepository() {
@@ -212,23 +212,23 @@ public class TestHost implements Forge, IssueTracker {
                                 .collect(Collectors.toList());
     }
 
-    TestIssue createIssue(TestIssueProject issueProject, String title, List<String> body, Map<String, JSONValue> properties) {
+    TestIssueTrackerIssue createIssue(TestIssueProject issueProject, String title, List<String> body, Map<String, JSONValue> properties) {
         var id = issueProject.projectName().toUpperCase() + "-" + (data.issues.size() + 1);
         HostUser author = issueProject.issueTracker().currentUser();
-        var issueStore = new TestIssueStore(id, issueProject, author, title, body, properties);
+        var issueStore = new TestIssueTrackerIssueStore(id, issueProject, author, title, body, properties);
         data.issues.put(id, issueStore);
-        return new TestIssue(issueStore, author);
+        return new TestIssueTrackerIssue(issueStore, author);
     }
 
-    TestIssue getIssue(TestIssueProject issueProject, String id) {
+    TestIssueTrackerIssue getIssue(TestIssueProject issueProject, String id) {
         var issueStore = data.issues.get(id);
         if (issueStore == null) {
             return null;
         }
-        return new TestIssue(issueStore, issueProject.issueTracker().currentUser());
+        return new TestIssueTrackerIssue(issueStore, issueProject.issueTracker().currentUser());
     }
 
-    TestIssue getJepIssue(TestIssueProject issueProject, String jepId) {
+    TestIssueTrackerIssue getJepIssue(TestIssueProject issueProject, String jepId) {
         var jepIssue = data.issues.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .map(issue -> getIssue(issueProject, issue.getKey()))
@@ -242,7 +242,7 @@ public class TestHost implements Forge, IssueTracker {
         return jepIssue.orElse(null);
     }
 
-    List<TestIssue> getIssues(TestIssueProject issueProject) {
+    List<TestIssueTrackerIssue> getIssues(TestIssueProject issueProject) {
         return data.issues.entrySet().stream()
                           .sorted(Comparator.comparing(Map.Entry::getKey))
                           .map(issue -> getIssue(issueProject, issue.getKey()))
@@ -250,7 +250,7 @@ public class TestHost implements Forge, IssueTracker {
                           .collect(Collectors.toList());
     }
 
-    List<TestIssue> getIssues(TestIssueProject issueProject, ZonedDateTime updatedAfter) {
+    List<TestIssueTrackerIssue> getIssues(TestIssueProject issueProject, ZonedDateTime updatedAfter) {
         return data.issues.entrySet().stream()
                           .sorted(Map.Entry.comparingByKey())
                           .map(issue -> getIssue(issueProject, issue.getKey()))
@@ -258,7 +258,7 @@ public class TestHost implements Forge, IssueTracker {
                           .collect(Collectors.toList());
     }
 
-    List<TestIssue> getCsrIssues(TestIssueProject issueProject, ZonedDateTime updatedAfter) {
+    List<TestIssueTrackerIssue> getCsrIssues(TestIssueProject issueProject, ZonedDateTime updatedAfter) {
         return data.issues.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .map(issue -> getIssue(issueProject, issue.getKey()))
@@ -270,10 +270,10 @@ public class TestHost implements Forge, IssueTracker {
                 .collect(Collectors.toList());
     }
 
-    Optional<TestIssue> getLastUpdatedIssue(TestIssueProject issueProject) {
+    Optional<TestIssueTrackerIssue> getLastUpdatedIssue(TestIssueProject issueProject) {
         return data.issues.keySet().stream()
                 .map(testIssue -> getIssue(issueProject, testIssue))
-                .max(Comparator.comparing(TestIssue::updatedAt));
+                .max(Comparator.comparing(TestIssueTrackerIssue::updatedAt));
     }
 
     public void setMinTimeStampUpdateInterval(Duration minTimeStampUpdateInterval) {

@@ -42,7 +42,7 @@ class CommitCommentNotifier implements Notifier, PullRequestListener {
         this.issueProject = issueProject;
     }
 
-    private List<Issue> issues(CommitMetadata metadata) {
+    private List<IssueTrackerIssue> issues(CommitMetadata metadata) {
         var commitMessage = CommitMessageParsers.v1.parse(metadata);
         return commitMessage.issues()
                             .stream()

@@ -54,12 +54,12 @@ public class TestIssueProject implements IssueProject {
     }
 
     @Override
-    public Issue createIssue(String title, List<String> body, Map<String, JSONValue> properties) {
+    public IssueTrackerIssue createIssue(String title, List<String> body, Map<String, JSONValue> properties) {
         return host.createIssue(this, title, body, properties);
     }
 
     @Override
-    public Optional<Issue> issue(String id) {
+    public Optional<IssueTrackerIssue> issue(String id) {
         if (id.indexOf('-') < 0) {
             id = projectName.toUpperCase() + "-" + id;
         }
@@ -68,27 +68,27 @@ public class TestIssueProject implements IssueProject {
     }
 
     @Override
-    public Optional<Issue> jepIssue(String jepId) {
+    public Optional<IssueTrackerIssue> jepIssue(String jepId) {
         return Optional.ofNullable(host.getJepIssue(this, jepId));
     }
 
     @Override
-    public List<Issue> issues() {
+    public List<IssueTrackerIssue> issues() {
         return new ArrayList<>(host.getIssues(this));
     }
 
     @Override
-    public List<Issue> issues(ZonedDateTime updatedAfter) {
+    public List<IssueTrackerIssue> issues(ZonedDateTime updatedAfter) {
         return new ArrayList<>(host.getIssues(this, updatedAfter));
     }
 
     @Override
-    public List<Issue> csrIssues(ZonedDateTime updatedAfter) {
+    public List<IssueTrackerIssue> csrIssues(ZonedDateTime updatedAfter) {
         return new ArrayList<>(host.getCsrIssues(this, updatedAfter));
     }
 
     @Override
-    public Optional<Issue> lastUpdatedIssue() {
+    public Optional<IssueTrackerIssue> lastUpdatedIssue() {
         return Optional.ofNullable(host.getLastUpdatedIssue(this).orElse(null));
     }
 

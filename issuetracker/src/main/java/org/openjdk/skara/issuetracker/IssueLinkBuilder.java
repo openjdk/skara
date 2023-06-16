@@ -23,10 +23,10 @@
 package org.openjdk.skara.issuetracker;
 
 public class IssueLinkBuilder {
-    private final Issue linked;
+    private final IssueTrackerIssue linked;
     private final String relationship;
 
-    IssueLinkBuilder(Issue issue, String relationship) {
+    IssueLinkBuilder(IssueTrackerIssue issue, String relationship) {
         this.linked = issue;
         this.relationship = relationship;
     }

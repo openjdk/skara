@@ -432,7 +432,7 @@ class IssueTests {
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
-            var issue1 = (TestIssue)issues.createIssue("First", List.of("Hello"), Map.of());
+            var issue1 = (TestIssueTrackerIssue)issues.createIssue("First", List.of("Hello"), Map.of());
             issue1.setState(Issue.State.CLOSED);
             issue1.store().properties().put("resolution", JSON.object().put("name", JSON.of("Not an Issue")));
             var pr = credentials.createPullRequest(author, "master", "edit",
@@ -473,7 +473,7 @@ class IssueTests {
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
-            var issue1 = (TestIssue)issues.createIssue("First", List.of("Hello"), Map.of());
+            var issue1 = (TestIssueTrackerIssue)issues.createIssue("First", List.of("Hello"), Map.of());
             issue1.setState(Issue.State.RESOLVED);
             var pr = credentials.createPullRequest(author, "master", "edit",
                     issue1.id() + ": This is a pull request");
@@ -530,7 +530,7 @@ class IssueTests {
 
     private static final Pattern addedIssuePattern = Pattern.compile("`(.*)` was successfully created", Pattern.MULTILINE);
 
-    private static Issue issueFromLastComment(PullRequest pr, IssueProject issueProject) {
+    private static IssueTrackerIssue issueFromLastComment(PullRequest pr, IssueProject issueProject) {
         var comments = pr.comments();
         var lastComment = comments.get(comments.size() - 1);
         var addedIssueMatcher = addedIssuePattern.matcher(lastComment.body());

@@ -35,7 +35,7 @@ import java.util.*;
  * Backing store for TestPullRequest. Represents the "server side" state of a
  * pull request.
  */
-public class TestPullRequestStore extends TestIssueStore {
+public class TestPullRequestStore extends TestIssueTrackerIssueStore {
     private TestHostedRepository sourceRepository;
     private String targetRef;
     private String sourceRef;

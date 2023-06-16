@@ -35,7 +35,7 @@ import java.util.logging.*;
 import java.util.regex.Pattern;
 import java.util.stream.*;
 
-public class JiraIssue implements Issue {
+public class JiraIssue implements IssueTrackerIssue {
     private final JiraProject jiraProject;
     private final RestRequest request;
     private final JSONValue json;
