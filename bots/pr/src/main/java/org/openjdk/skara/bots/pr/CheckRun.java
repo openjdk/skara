@@ -1370,7 +1370,7 @@ class CheckRun {
     }
 
     private boolean isFileUpdated(String filename, Hash hash) throws IOException {
-        return localRepo.show(Path.of(filename), hash).isPresent() &&
+        return !localRepo.files(hash, Path.of(filename)).isEmpty() &&
                 localRepo.commits(hash.hex(), 1).stream()
                         .anyMatch(commit -> commit.parentDiffs().stream()
                                 .anyMatch(diff -> diff.patches().stream()
