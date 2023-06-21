@@ -56,7 +56,6 @@ public class TestIssueStore {
         this.author = author;
         this.title = title;
         this.body = String.join("\n", body);
-
     }
 
     public String id() {

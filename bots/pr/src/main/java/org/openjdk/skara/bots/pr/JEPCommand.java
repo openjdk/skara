@@ -25,7 +25,6 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.issuetracker.Issue;
 
 import java.io.PrintWriter;
 import java.util.List;

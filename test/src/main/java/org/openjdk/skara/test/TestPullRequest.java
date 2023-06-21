@@ -64,10 +64,6 @@ public class TestPullRequest extends TestIssue implements PullRequest {
         setLastUpdate(store().lastUpdate());
     }
 
-    protected TestPullRequest copy() {
-        return new TestPullRequest(store(), targetRepository);
-    }
-
     /**
      * Gives test code direct access to the backing store object to be able to
      * inspect and manipulate state directly.

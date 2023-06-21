@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.jbs;
 
-import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.json.JSONValue;
@@ -254,7 +253,7 @@ public class Backports {
     public static Optional<IssueTrackerIssue> findFixedIssue(IssueTrackerIssue primary, Pattern versionPattern) {
         log.fine("Searching for fixed issue with fix version matching /" + versionPattern + "/ "
                 + " for primary issue " + primary.id());
-        return Stream.concat(Stream.of(primary).filter(Issue::isFixed), findBackports(primary, true).stream())
+        return Stream.concat(Stream.of(primary).filter(IssueTrackerIssue::isFixed), findBackports(primary, true).stream())
                 .filter(i -> mainFixVersion(i).map(v -> versionPattern.matcher(v.raw()).matches()).orElse(false))
                 .findFirst();
     }

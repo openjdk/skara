@@ -432,7 +432,7 @@ class IssueTests {
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
-            var issue1 = (TestIssueTrackerIssue)issues.createIssue("First", List.of("Hello"), Map.of());
+            var issue1 = (TestIssueTrackerIssue) issues.createIssue("First", List.of("Hello"), Map.of());
             issue1.setState(Issue.State.CLOSED);
             issue1.store().properties().put("resolution", JSON.object().put("name", JSON.of("Not an Issue")));
             var pr = credentials.createPullRequest(author, "master", "edit",
@@ -473,7 +473,7 @@ class IssueTests {
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
-            var issue1 = (TestIssueTrackerIssue)issues.createIssue("First", List.of("Hello"), Map.of());
+            var issue1 = (TestIssueTrackerIssue) issues.createIssue("First", List.of("Hello"), Map.of());
             issue1.setState(Issue.State.RESOLVED);
             var pr = credentials.createPullRequest(author, "master", "edit",
                     issue1.id() + ": This is a pull request");

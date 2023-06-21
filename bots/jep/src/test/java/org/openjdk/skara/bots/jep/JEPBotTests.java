@@ -24,7 +24,6 @@ package org.openjdk.skara.bots.jep;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.CheckableRepository;
