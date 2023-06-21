@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,17 +33,17 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class IssuePoller {
+public class IssueProjectPoller {
 
-    private static final Logger log = Logger.getLogger(IssuePoller.class.getName());
+    private static final Logger log = Logger.getLogger(IssueProjectPoller.class.getName());
 
     private final IssueProject issueProject;
     private final Duration timeStampQueryPrecision;
     private final ZonedDateTime initialUpdatedAt;
-    private final Map<String, Issue> retryMap = new HashMap<>();
+    private final Map<String, IssueTrackerIssue> retryMap = new HashMap<>();
 
-    record QueryResult(Map<String, Issue> issues, ZonedDateTime maxUpdatedAt,
-                       Instant afterQuery, List<Issue> result,
+    record QueryResult(Map<String, IssueTrackerIssue> issues, ZonedDateTime maxUpdatedAt,
+                       Instant afterQuery, List<IssueTrackerIssue> result,
                        /*
                         * When enough time has passed since the last time we actually returned
                         * results, it's possible to pad the updatedAt query parameter to avoid
@@ -58,15 +58,15 @@ public class IssuePoller {
      * @param startUpPadding The amount of historic time to include in the
      *                       very first query
      */
-    public IssuePoller(IssueProject issueProject, Duration startUpPadding) {
+    public IssueProjectPoller(IssueProject issueProject, Duration startUpPadding) {
         this.issueProject = issueProject;
         this.timeStampQueryPrecision = issueProject.issueTracker().timeStampQueryPrecision();
         this.initialUpdatedAt = ZonedDateTime.now().minus(startUpPadding);
     }
 
-    public List<Issue> updatedIssues() {
+    public List<IssueTrackerIssue> updatedIssues() {
         var beforeQuery = Instant.now();
-        List<Issue> issues = queryIssues();
+        List<IssueTrackerIssue> issues = queryIssues();
         var afterQuery = Instant.now();
 
         // Convert the query result into a map
@@ -122,11 +122,11 @@ public class IssuePoller {
         }
     }
 
-    public synchronized void retryIssue(Issue issue) {
+    public synchronized void retryIssue(IssueTrackerIssue issue) {
         retryMap.put(issue.id(), issue);
     }
 
-    private List<Issue> queryIssues() {
+    private List<IssueTrackerIssue> queryIssues() {
         ZonedDateTime queryAfter;
         if (prev == null || prev.maxUpdatedAt == null) {
             queryAfter = initialUpdatedAt;
@@ -147,14 +147,14 @@ public class IssuePoller {
      * @param issueProject IssueProject to run query on
      * @param updatedAfter Timestamp for updatedAt query
      */
-    protected List<Issue> queryIssues(IssueProject issueProject, ZonedDateTime updatedAfter) {
+    protected List<IssueTrackerIssue> queryIssues(IssueProject issueProject, ZonedDateTime updatedAfter) {
         return issueProject.issues(updatedAfter);
     }
 
     /**
      * Evaluates if an issue has been updated since the previous query result.
      */
-    private boolean isUpdated(Issue issue) {
+    private boolean isUpdated(IssueTrackerIssue issue) {
         if (prev == null) {
             return true;
         }
@@ -171,7 +171,7 @@ public class IssuePoller {
     /**
      * Returns a list of all prs with retries added.
      */
-    private synchronized List<Issue> addRetries(List<Issue> issues) {
+    private synchronized List<IssueTrackerIssue> addRetries(List<IssueTrackerIssue> issues) {
         if (retryMap.isEmpty()) {
             return issues;
         } else {

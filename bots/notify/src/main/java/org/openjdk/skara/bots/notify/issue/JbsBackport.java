@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -49,7 +49,7 @@ public class JbsBackport {
         }
     }
 
-    private Issue createBackportIssue(Issue primary, String fixVersion, String defaultSecurity) {
+    private IssueTrackerIssue createBackportIssue(IssueTrackerIssue primary, String fixVersion, String defaultSecurity) {
         var finalProperties = new HashMap<>(primary.properties());
         finalProperties.put("issuetype", JSON.of("Backport"));
         finalProperties.put("fixVersion", JSON.of(fixVersion));
@@ -65,7 +65,7 @@ public class JbsBackport {
         return backport;
     }
 
-    public Issue createBackport(Issue primary, String fixVersion, String assignee, String defaultSecurity) {
+    public IssueTrackerIssue createBackport(IssueTrackerIssue primary, String fixVersion, String assignee, String defaultSecurity) {
         if (backportRequest == null) {
             if (primary.project().webUrl().toString().contains("openjdk.org")) {
                 throw new RuntimeException("Backports on JBS require vault authentication");

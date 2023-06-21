@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -73,7 +73,7 @@ public class IssueRedecorate {
         }
 
         var issueProject = issueTracker.project("JDK");
-        org.openjdk.skara.issuetracker.Issue issue = issueProject.issue(arguments.at(0).asString()).orElseThrow();
+        IssueTrackerIssue issue = issueProject.issue(arguments.at(0).asString()).orElseThrow();
 
         var mainIssue = Backports.findMainIssue(issue);
         if (mainIssue.isEmpty()) {
@@ -83,7 +83,7 @@ public class IssueRedecorate {
         System.out.println("Looking at " + arguments.at(0).asString() + " - main issue is " + mainIssue.get().id());
 
         var related = Backports.findBackports(mainIssue.get(), true);
-        var allIssues = new ArrayList<Issue>();
+        var allIssues = new ArrayList<IssueTrackerIssue>();
         allIssues.add(mainIssue.get());
         allIssues.addAll(related);
 

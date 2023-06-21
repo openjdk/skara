@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -373,7 +373,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         }
     }
 
-    private Optional<Issue> findAltFixedVersionIssue(Issue issue, Branch branch) {
+    private Optional<IssueTrackerIssue> findAltFixedVersionIssue(IssueTrackerIssue issue, Branch branch) {
         if (altFixVersions != null) {
             var matchingBranchPattern = altFixVersions.keySet().stream()
                     .filter(pattern -> pattern.matcher(branch.toString()).matches())

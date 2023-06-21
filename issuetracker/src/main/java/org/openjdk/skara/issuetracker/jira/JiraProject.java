@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -46,7 +46,7 @@ public class JiraProject implements IssueProject {
     private JSONObject projectMetadataCache = null;
     private List<JiraLinkType> linkTypes = null;
     private JSONObject createMetaCache = null;
-    private Map<String, Map<String, JSONObject>> createFieldCache = new HashMap<>();
+    private final Map<String, Map<String, JSONObject>> createFieldCache = new HashMap<>();
     private JSONObject editMetaCache = null;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.issuetracker.jira");
@@ -354,7 +354,7 @@ public class JiraProject implements IssueProject {
     }
 
     @Override
-    public Issue createIssue(String title, List<String> body, Map<String, JSONValue> properties) {
+    public IssueTrackerIssue createIssue(String title, List<String> body, Map<String, JSONValue> properties) {
         var query = JSON.object();
 
         // Encode optional properties as fields
@@ -425,7 +425,7 @@ public class JiraProject implements IssueProject {
     }
 
     @Override
-    public Optional<Issue> issue(String id) {
+    public Optional<IssueTrackerIssue> issue(String id) {
         if (id.indexOf('-') < 0) {
             id = projectName.toUpperCase() + "-" + id;
         }
@@ -445,7 +445,7 @@ public class JiraProject implements IssueProject {
     }
 
     @Override
-    public Optional<Issue> jepIssue(String jepId) {
+    public Optional<IssueTrackerIssue> jepIssue(String jepId) {
         var issues = request.post("search")
                 .body("jql", "project = " + projectName + " AND \"JEP Number\" ~ \"" + jepId + "\"")
                 .execute();
@@ -458,8 +458,8 @@ public class JiraProject implements IssueProject {
     }
 
     @Override
-    public List<Issue> issues() {
-        var ret = new ArrayList<Issue>();
+    public List<IssueTrackerIssue> issues() {
+        var ret = new ArrayList<IssueTrackerIssue>();
         var issues = request.post("search")
                             .body("jql", "project = " + projectName + " AND status in (Open, New)")
                             .execute();
@@ -470,7 +470,7 @@ public class JiraProject implements IssueProject {
     }
 
     @Override
-    public List<Issue> issues(ZonedDateTime updatedAfter) {
+    public List<IssueTrackerIssue> issues(ZonedDateTime updatedAfter) {
         var timeString = toTimeString(updatedAfter);
         var jql = "project = " + projectName + " AND updated >= '" + timeString + "'";
         return queryIssues(jql);
@@ -478,14 +478,14 @@ public class JiraProject implements IssueProject {
 
 
     @Override
-    public List<Issue> csrIssues(ZonedDateTime updatedAfter) {
+    public List<IssueTrackerIssue> csrIssues(ZonedDateTime updatedAfter) {
         var timeString = toTimeString(updatedAfter);
         var jql = "project = " + projectName + " AND updated >= '" + timeString + "' AND issuetype = CSR";
         return queryIssues(jql);
     }
 
     @Override
-    public Optional<Issue> lastUpdatedIssue() {
+    public Optional<IssueTrackerIssue> lastUpdatedIssue() {
         var jql = "project = " + projectName + " ORDER BY updated DESC";
         var issues = request.get("search")
                 .param("jql", jql)
@@ -505,8 +505,8 @@ public class JiraProject implements IssueProject {
         return timeZoned.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm"));
     }
 
-    private ArrayList<Issue> queryIssues(String jql) {
-        var ret = new ArrayList<Issue>();
+    private ArrayList<IssueTrackerIssue> queryIssues(String jql) {
+        var ret = new ArrayList<IssueTrackerIssue>();
         var issues = request.get("search")
                 .param("jql", jql)
                 .execute();

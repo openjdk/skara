@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,22 +22,22 @@
  */
 package org.openjdk.skara.test;
 
-import org.openjdk.skara.host.HostUser;
-import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.json.*;
-import org.openjdk.skara.network.URIBuilder;
-
 import java.net.URI;
 import java.time.ZonedDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.IssueProject;
+import org.openjdk.skara.issuetracker.Label;
+import org.openjdk.skara.network.URIBuilder;
 
 /**
- * TestIssue is the object returned from a TestHost when queried for issues.
- * It's backed by a TestIssueStore, which tracks the "server side" state of the
- * issue. A TestIssue object contains a snapshot of the server side state for
- * all data directly related to the issue. What data is snapshotted and what
- * is fetched on request should be the same as for JiraIssue.
+ * Base class with common functionality for TestIssueTrackerIssue and TestPullRequest
  */
 public class TestIssue implements Issue {
     private final TestIssueStore store;
@@ -111,10 +111,10 @@ public class TestIssue implements Issue {
         var size = comments.size();
         var lastId = size > 0 ? comments.get(size - 1).id() : null;
         var comment = new Comment(String.valueOf(lastId != null ? Integer.parseInt(lastId) + 1 : 0),
-                                  body,
-                                  user,
-                                  ZonedDateTime.now(),
-                                  ZonedDateTime.now());
+                body,
+                user,
+                ZonedDateTime.now(),
+                ZonedDateTime.now());
         store.comments().add(comment);
         store.setLastUpdate(ZonedDateTime.now());
         return comment;
@@ -131,10 +131,10 @@ public class TestIssue implements Issue {
                 .filter(comment -> comment.id().equals(id)).findAny().orElseThrow();
         var index = comments().indexOf(originalComment);
         var comment = new Comment(originalComment.id(),
-                                  body,
-                                  originalComment.author(),
-                                  originalComment.createdAt(),
-                                  ZonedDateTime.now());
+                body,
+                originalComment.author(),
+                originalComment.createdAt(),
+                ZonedDateTime.now());
         store.comments().set(index, comment);
         store.setLastUpdate(ZonedDateTime.now());
         return comment;
@@ -160,24 +160,11 @@ public class TestIssue implements Issue {
         store.setState(state);
         store.setLastUpdate(ZonedDateTime.now());
         store.setClosedBy(user);
-        if (state == State.RESOLVED || state == State.CLOSED) {
-            store.properties().put("resolution", JSON.object().put("name", JSON.of("Fixed")));
-        }
     }
 
-    /**
-     * This implementation mimics the JiraIssue definition of isFixed and is
-     * needed to test handling of backports.
-     */
-    @Override
+   @Override
     public boolean isFixed() {
-        if (isResolved() || isClosed()) {
-            var resolution = store.properties().get("resolution");
-            if (!resolution.isNull()) {
-                return "Fixed".equals(resolution.get("name").asString());
-            }
-        }
-        return false;
+        return isResolved() || isClosed();
     }
 
     @Override
@@ -228,91 +215,6 @@ public class TestIssue implements Issue {
     public void setAssignees(List<HostUser> assignees) {
         store.assignees().clear();
         store.assignees().addAll(assignees);
-        store.setLastUpdate(ZonedDateTime.now());
-    }
-
-    /**
-     * When links are returned, they need to contain fresh snapshots of any TestIssue.
-     */
-    @Override
-    public List<Link> links() {
-        return store.links().stream()
-                .map(this::updateLinkIssue)
-                .toList();
-    }
-
-    private Link updateLinkIssue(Link link) {
-        if (link.issue().isPresent()) {
-            var issue = (TestIssue) link.issue().get();
-            return Link.create(issue.copy(), link.relationship().orElseThrow()).build();
-        } else {
-            return link;
-        }
-    }
-
-    protected TestIssue copy() {
-        return new TestIssue(store, user);
-    }
-
-    @Override
-    public void addLink(Link link) {
-        if (link.uri().isPresent()) {
-            removeLink(link);
-            store.links().add(link);
-        } else if (link.issue().isPresent()) {
-            var existing = store.links().stream()
-                    .filter(l -> l.issue().isPresent() && l.issue().get().id().equals(link.issue().orElseThrow().id()))
-                    .findAny();
-            existing.ifPresent(store.links()::remove);
-            store.links().add(link);
-            if (existing.isEmpty()) {
-                var map = Map.of("backported by", "backport of", "backport of", "backported by",
-                        "csr for", "csr of", "csr of", "csr for",
-                        "blocks", "is blocked by", "is blocked by", "blocks",
-                        "clones", "is cloned by", "is cloned by", "clones");
-                var reverseRelationship = map.getOrDefault(link.relationship().orElseThrow(), link.relationship().orElseThrow());
-                var reverse = Link.create(this, reverseRelationship).build();
-                link.issue().get().addLink(reverse);
-            }
-        } else {
-            throw new IllegalArgumentException("Can't add unknown link type: " + link);
-        }
-        store.setLastUpdate(ZonedDateTime.now());
-    }
-
-    @Override
-    public void removeLink(Link link) {
-        if (link.uri().isPresent()) {
-            store.links().removeIf(l -> l.uri().equals(link.uri()));
-        } else if (link.issue().isPresent()) {
-            var existing = store.links().stream()
-                                     .filter(l -> l.issue().orElseThrow().id().equals(link.issue().orElseThrow().id()))
-                                     .findAny();
-            if (existing.isPresent()) {
-                store.links().remove(existing.get());
-                var reverse = Link.create(this, "").build();
-                link.issue().get().removeLink(reverse);
-            }
-        } else {
-            throw new IllegalArgumentException("Can't remove unknown link type: " + link);
-        }
-        store.setLastUpdate(ZonedDateTime.now());
-    }
-
-    @Override
-    public Map<String, JSONValue> properties() {
-        return store.properties();
-    }
-
-    @Override
-    public void setProperty(String name, JSONValue value) {
-        store.properties().put(name, value);
-        store.setLastUpdate(ZonedDateTime.now());
-    }
-
-    @Override
-    public void removeProperty(String name) {
-        store.properties().remove(name);
         store.setLastUpdate(ZonedDateTime.now());
     }
 

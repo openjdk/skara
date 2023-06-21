@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,7 +42,7 @@ class CommitCommentNotifier implements Notifier, PullRequestListener {
         this.issueProject = issueProject;
     }
 
-    private List<Issue> issues(CommitMetadata metadata) {
+    private List<IssueTrackerIssue> issues(CommitMetadata metadata) {
         var commitMessage = CommitMessageParsers.v1.parse(metadata);
         return commitMessage.issues()
                             .stream()

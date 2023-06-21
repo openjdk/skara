@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,15 +31,15 @@ import java.util.*;
 public interface IssueProject {
     IssueTracker issueTracker();
     URI webUrl();
-    Issue createIssue(String title, List<String> body, Map<String, JSONValue> properties);
-    Optional<Issue> issue(String id);
-    List<Issue> issues();
+    IssueTrackerIssue createIssue(String title, List<String> body, Map<String, JSONValue> properties);
+    Optional<IssueTrackerIssue> issue(String id);
+    List<IssueTrackerIssue> issues();
 
     /**
      * Find all issues that have been updated after or on the given time, with
      * a resolution given by Host::timeStampQueryPrecision.
      */
-    List<Issue> issues(ZonedDateTime updatedAfter);
+    List<IssueTrackerIssue> issues(ZonedDateTime updatedAfter);
     String name();
 
     /**
@@ -47,7 +47,7 @@ public interface IssueProject {
      * @param jepId JEP ID
      * @return the corresponding issue
      */
-    Optional<Issue> jepIssue(String jepId);
+    Optional<IssueTrackerIssue> jepIssue(String jepId);
 
     /**
      * Find all issues of CSR type updated after or on the given time, with
@@ -55,11 +55,11 @@ public interface IssueProject {
      * @param updatedAfter Timestamp
      * @return List of issues found
      */
-    List<Issue> csrIssues(ZonedDateTime updatedAfter);
+    List<IssueTrackerIssue> csrIssues(ZonedDateTime updatedAfter);
 
     /**
      * Find the last updated issue.
      * @return The last updated issue, or empty if none exist
      */
-    Optional<Issue> lastUpdatedIssue();
+    Optional<IssueTrackerIssue> lastUpdatedIssue();
 }

@@ -25,11 +25,11 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.issuetracker.Issue;
 
 import java.io.PrintWriter;
 import java.util.List;
 import java.util.Optional;
+import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 
 import static org.openjdk.skara.bots.common.CommandNameEnum.jep;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
@@ -60,8 +60,8 @@ public class JEPCommand implements CommandHandler {
                 """);
     }
 
-    private Optional<Issue> getJepIssue(String args, PullRequestBot bot) {
-        Optional<Issue> jbsIssue = Optional.empty();
+    private Optional<IssueTrackerIssue> getJepIssue(String args, PullRequestBot bot) {
+        Optional<IssueTrackerIssue> jbsIssue = Optional.empty();
         var upperArgs = args.toUpperCase();
         if (upperArgs.startsWith("JEP-")) {
             // Handle the JEP ID with `JEP` prefix

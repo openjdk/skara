@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,6 +30,11 @@ import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * An interface for common aspects of different kinds of issues, either in a bug tracking
+ * system or pull requests. In practice it's rare to operate on something that could be
+ * either a bug or a pull request, so avoid using this interface directly.
+ */
 public interface Issue {
     /**
      * Project containing the issue.
@@ -200,18 +205,6 @@ public interface Issue {
      * @param assignees
      */
     void setAssignees(List<HostUser> assignees);
-
-    List<Link> links();
-
-    void addLink(Link link);
-
-    void removeLink(Link link);
-
-    Map<String, JSONValue> properties();
-
-    void setProperty(String name, JSONValue value);
-
-    void removeProperty(String name);
 
     Optional<HostUser> closedBy();
 }

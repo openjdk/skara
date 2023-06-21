@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.jep;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.CheckableRepository;
 import org.openjdk.skara.test.HostCredentials;
@@ -57,7 +57,7 @@ public class JEPBotTests {
             localRepo.push(masterHash, repo.authenticatedUrl(), "master", true);
 
             var mainIssue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
-            List<Issue> issueLists = new ArrayList<>();
+            List<IssueTrackerIssue> issueLists = new ArrayList<>();
             var statusList = List.of("Draft", "Submitted", "Candidate", "Proposed to Target",
                     "Proposed to Drop", "Closed", "Targeted", "Integrated", "Completed");
             for (int i = 1; i <= 9; i++) {

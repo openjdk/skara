@@ -52,7 +52,7 @@ import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 public class IssueNotifierTests {
     private static final String pullRequestTip = "A pull request was submitted for review.";
 
-    private Set<String> fixVersions(Issue issue) {
+    private Set<String> fixVersions(IssueTrackerIssue issue) {
         if (!issue.properties().containsKey("fixVersions")) {
             return Set.of();
         }

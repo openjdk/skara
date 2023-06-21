@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,16 +22,24 @@
  */
 package org.openjdk.skara.issuetracker;
 
-public class IssueLinkBuilder {
-    private final IssueTrackerIssue linked;
-    private final String relationship;
+import java.util.List;
+import java.util.Map;
+import org.openjdk.skara.json.JSONValue;
 
-    IssueLinkBuilder(IssueTrackerIssue issue, String relationship) {
-        this.linked = issue;
-        this.relationship = relationship;
-    }
+/**
+ * Extension of the Issue interface with additional functionality present in a bug
+ * tracking system. Extracted to an interface to facilitate test implementations.
+ */
+public interface IssueTrackerIssue extends Issue {
+    List<Link> links();
 
-    public Link build() {
-        return new Link(null, null, relationship, null, null, null, null, null, false, linked);
-    }
+    void addLink(Link link);
+
+    void removeLink(Link link);
+
+    Map<String, JSONValue> properties();
+
+    void setProperty(String name, JSONValue value);
+
+    void removeProperty(String name);
 }

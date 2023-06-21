@@ -775,36 +775,6 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
-    public List<Link> links() {
-        throw new RuntimeException("not implemented yet");
-    }
-
-    @Override
-    public void addLink(Link link) {
-        throw new RuntimeException("not implemented yet");
-    }
-
-    @Override
-    public void removeLink(Link link) {
-        throw new RuntimeException("not implemented yet");
-    }
-
-    @Override
-    public Map<String, JSONValue> properties() {
-        throw new RuntimeException("not implemented yet");
-    }
-
-    @Override
-    public void setProperty(String name,JSONValue value) {
-        throw new RuntimeException("not implemented yet");
-    }
-
-    @Override
-    public void removeProperty(String name) {
-        throw new RuntimeException("not implemented yet");
-    }
-
-    @Override
     public void makeNotDraft() {
         if (isDraft()) {
             setTitleWithoutDraftPrefix(title());

@@ -134,7 +134,7 @@ class CheckRun {
         return List.of();
     }
 
-    private List<Issue> issuesWithCSRAndJEP(List<Issue> issues, List<org.openjdk.skara.issuetracker.Issue> csrIssueTrackerIssues) {
+    private List<Issue> issuesWithCSRAndJEP(List<Issue> issues, List<IssueTrackerIssue> csrIssueTrackerIssues) {
         if (!issues.isEmpty()) {
             issues.addAll(getCsrIssues(csrIssueTrackerIssues));
             getJepIssue().ifPresent(issues::add);
@@ -147,9 +147,9 @@ class CheckRun {
      * Get the csr issue map, key is the main issue and value is the csr issue.
      * Note: The type of csr issue is 'org.openjdk.skara.issuetracker.Issue'.
      */
-    private Map<Issue, org.openjdk.skara.issuetracker.Issue> getCsrIssueTrackerIssues(List<Issue> issues, JdkVersion version) {
+    private Map<Issue, IssueTrackerIssue> getCsrIssueTrackerIssues(List<Issue> issues, JdkVersion version) {
         var issueProject = issueProject();
-        var csrIssueMap = new HashMap<Issue, org.openjdk.skara.issuetracker.Issue>();
+        var csrIssueMap = new HashMap<Issue, IssueTrackerIssue>();
         if (issueProject == null) {
             return Map.of();
         }
@@ -170,7 +170,7 @@ class CheckRun {
     /**
      * Get the csr issue. Note: this `Issue` is not the issue in module `issuetracker`.
      */
-    private List<Issue> getCsrIssues(List<org.openjdk.skara.issuetracker.Issue> csrIssueTrackerIssues) {
+    private List<Issue> getCsrIssues(List<IssueTrackerIssue> csrIssueTrackerIssues) {
 
         return csrIssueTrackerIssues.stream()
                 .map(perIssue -> Issue.fromStringRelaxed(perIssue.id() + ": " + perIssue.title()))
@@ -253,7 +253,7 @@ class CheckRun {
         return ret;
     }
 
-    private boolean isWithdrawnCSR(org.openjdk.skara.issuetracker.Issue csr) {
+    private boolean isWithdrawnCSR(IssueTrackerIssue csr) {
         if (csr.isClosed()) {
             var resolution = csr.properties().get("resolution");
             if (resolution != null && !resolution.isNull()) {
@@ -266,12 +266,12 @@ class CheckRun {
         return false;
     }
 
-    private String generateCSRProgressMessage(org.openjdk.skara.issuetracker.Issue issue) {
+    private String generateCSRProgressMessage(IssueTrackerIssue issue) {
         return "Change requires CSR request [" + issue.id() + "](" + issue.webUrl() + ") to be approved";
     }
 
     // Additional bot-specific progresses that are not handled by JCheck
-    private Map<String, Boolean> botSpecificProgresses(List<org.openjdk.skara.issuetracker.Issue> csrIssueTrackerIssues, JdkVersion version) {
+    private Map<String, Boolean> botSpecificProgresses(List<IssueTrackerIssue> csrIssueTrackerIssues, JdkVersion version) {
         var ret = new HashMap<String, Boolean>();
 
         var csrIssues = csrIssueTrackerIssues.stream()
@@ -1378,7 +1378,7 @@ class CheckRun {
                                                 || ((patch.target().path().isPresent() && patch.target().path().get().toString().equals(filename))))));
     }
 
-    private void updateCSRLabel(List<Issue> issues, JdkVersion version, Map<Issue, org.openjdk.skara.issuetracker.Issue> csrIssueTrackerIssueMap) {
+    private void updateCSRLabel(List<Issue> issues, JdkVersion version, Map<Issue, IssueTrackerIssue> csrIssueTrackerIssueMap) {
         if (issues.isEmpty()) {
             return;
         }

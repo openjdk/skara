@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,7 +44,7 @@ public class HostCredentials implements AutoCloseable {
     private final String testName;
     private final Credentials credentials;
     private final List<PullRequest> pullRequestsToBeClosed = new ArrayList<>();
-    private final List<Issue> issuesToBeClosed = new ArrayList<>();
+    private final List<IssueTrackerIssue> issuesToBeClosed = new ArrayList<>();
     private HostedRepository credentialsLock;
     private int nextHostIndex;
 
@@ -396,8 +396,8 @@ public class HostCredentials implements AutoCloseable {
         return createPullRequest(sourceRepository, targetRepository, targetRef, sourceRef, title, List.of("PR body"), false);
     }
 
-    public TestIssue createIssue(IssueProject issueProject, String title) {
-        var issue = (TestIssue) issueProject.createIssue(title, List.of(), Map.of("issuetype", JSON.of("Bug")));
+    public TestIssueTrackerIssue createIssue(IssueProject issueProject, String title) {
+        var issue = (TestIssueTrackerIssue) issueProject.createIssue(title, List.of(), Map.of("issuetype", JSON.of("Bug")));
         issuesToBeClosed.add(issue);
         return issue;
     }

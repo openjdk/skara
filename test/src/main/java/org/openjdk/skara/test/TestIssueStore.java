@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,17 +22,18 @@
  */
 package org.openjdk.skara.test;
 
-import java.util.stream.Collectors;
-import org.openjdk.skara.host.HostUser;
-import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.json.JSONValue;
-
 import java.time.ZonedDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.IssueProject;
 
 /**
- * Backing store for TestIssue. Represents the "server side" state of an Issue.
- *
+ * Base class for backing store for issues. Represents the server side store of an Issue.
  */
 public class TestIssueStore {
     private final String id;
@@ -45,22 +46,16 @@ public class TestIssueStore {
     private final List<Comment> comments = new ArrayList<>();
     private final Map<String, ZonedDateTime> labels = new HashMap<>();
     private final List<HostUser> assignees = new ArrayList<>();
-    private final List<Link> links = new ArrayList<>();
-    private final Map<String, JSONValue> properties = new HashMap<>();
     private final ZonedDateTime created = ZonedDateTime.now();
     private ZonedDateTime lastUpdate = created;
     private HostUser closedBy = null;
 
-    public TestIssueStore(String id, IssueProject issueProject, HostUser author, String title, List<String> body,
-            Map<String, JSONValue> properties) {
+    public TestIssueStore(String id, IssueProject issueProject, HostUser author, String title, List<String> body) {
         this.id = id;
         this.issueProject = issueProject;
         this.author = author;
         this.title = title;
         this.body = String.join("\n", body);
-        if (properties != null) {
-            this.properties.putAll(properties);
-        }
     }
 
     public String id() {
@@ -101,14 +96,6 @@ public class TestIssueStore {
 
     public List<HostUser> assignees() {
         return assignees;
-    }
-
-    public List<Link> links() {
-        return links;
-    }
-
-    public Map<String, JSONValue> properties() {
-        return properties;
     }
 
     public ZonedDateTime created() {
