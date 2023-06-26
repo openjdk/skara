@@ -123,88 +123,80 @@ class CheckRun {
         return matcher.matches();
     }
 
-    private List<Issue> issues() {
+    /**
+     * Builds a map of all associated regular issues, from Issue to IssueTrackerIssue
+     * if found. The map is ordered to support consistent presentation order.
+     */
+    private Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap() {
         var issue = Issue.fromStringRelaxed(pr.title());
         if (issue.isPresent()) {
             var issues = new ArrayList<Issue>();
             issues.add(issue.get());
             issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
-            return issues;
+            var issueProject = issueProject();
+            var map = new LinkedHashMap<Issue, Optional<IssueTrackerIssue>>();
+            if (issueProject != null) {
+                issues.forEach(i -> {
+                    var issueTrackerIssue = issueProject.issue(i.shortId());
+                    if (issueTrackerIssue.isEmpty()) {
+                        log.info("Failed to retrieve issue " + i.id());
+                        setExpiration(Duration.ofMinutes(10));
+                    }
+                    map.put(i, issueTrackerIssue);
+                });
+            } else {
+                issues.forEach(i -> {
+                    map.put(i, Optional.empty());
+                });
+            }
+            return map;
         }
-        return List.of();
-    }
-
-    private List<Issue> issuesWithCSRAndJEP(List<Issue> issues, List<IssueTrackerIssue> csrIssueTrackerIssues) {
-        if (!issues.isEmpty()) {
-            issues.addAll(getCsrIssues(csrIssueTrackerIssues));
-            getJepIssue().ifPresent(issues::add);
-            return issues;
-        }
-        return List.of();
+        return Map.of();
     }
 
     /**
-     * Get the csr issue map, key is the main issue and value is the csr issue.
-     * Note: The type of csr issue is 'org.openjdk.skara.issuetracker.Issue'.
+     * Constructs a map from main issue ID to CSR issue.
      */
-    private Map<Issue, IssueTrackerIssue> getCsrIssueTrackerIssues(List<Issue> issues, JdkVersion version) {
-        var issueProject = issueProject();
-        var csrIssueMap = new HashMap<Issue, IssueTrackerIssue>();
-        if (issueProject == null) {
-            return Map.of();
-        }
+    private Map<String, IssueTrackerIssue> issueToCsrMap(Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap, JdkVersion version) {
+        var csrIssueMap = new HashMap<String, IssueTrackerIssue>();
         if (version == null) {
             return Map.of();
         }
-        for (var issue : issues) {
-            var jbsIssueOpt = issueProject.issue(issue.shortId());
-            if (jbsIssueOpt.isEmpty()) {
-                continue;
+        for (var issue : regularIssuesMap.values()) {
+            if (issue.isPresent()) {
+                var csrIssue = Backports.findCsr(issue.get(), version);
+                csrIssue.ifPresent(csr -> csrIssueMap.put(issue.get().id(), csr));
             }
-            var csrOptional = Backports.findCsr(jbsIssueOpt.get(), version);
-            csrOptional.ifPresent(csr -> csrIssueMap.put(issue, csr));
         }
         return csrIssueMap;
     }
 
     /**
-     * Get the csr issue. Note: this `Issue` is not the issue in module `issuetracker`.
+     * Gets the JEP issue from the IssueProject if there is one
      */
-    private List<Issue> getCsrIssues(List<IssueTrackerIssue> csrIssueTrackerIssues) {
-
-        return csrIssueTrackerIssues.stream()
-                .map(perIssue -> Issue.fromStringRelaxed(perIssue.id() + ": " + perIssue.title()))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .toList();
-    }
-
-    private Optional<Issue> getJepIssue() {
-        var comment = getJepComment();
-        if (comment.isPresent()) {
-            return Issue.fromStringRelaxed(comment.get().group(2) + ": " + comment.get().group(3));
+    private Optional<IssueTrackerIssue> jepIssue() {
+        var issueProject = issueProject();
+        if (issueProject != null) {
+            var comment = findJepComment();
+            return comment.flatMap(c -> issueProject.issue(c.group(2)));
         }
         return Optional.empty();
     }
 
-    private Optional<Matcher> getJepComment() {
-        var jepComment = pr.comments().stream()
+    private Optional<Matcher> findJepComment() {
+        var jepComment = comments.stream()
                 .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))
                 .flatMap(comment -> comment.body().lines())
                 .map(JEP_MARKER_PATTERN::matcher)
                 .filter(Matcher::find)
-                .reduce((first, second) -> second)
-                .orElse(null);
-        if (jepComment == null) {
-            return Optional.empty();
+                .reduce((first, second) -> second);
+        if (jepComment.isPresent()) {
+            var issueId = jepComment.get().group(2);
+            if ("unneeded".equals(issueId)) {
+                return Optional.empty();
+            }
         }
-
-        var issueId = jepComment.group(2);
-        if ("unneeded".equals(issueId)) {
-            return  Optional.empty();
-        }
-
-        return Optional.of(jepComment);
+        return jepComment;
     }
 
     private IssueProject issueProject() {
@@ -255,10 +247,10 @@ class CheckRun {
 
     private boolean isWithdrawnCSR(IssueTrackerIssue csr) {
         if (csr.isClosed()) {
-            var resolution = csr.properties().get("resolution");
-            if (resolution != null && !resolution.isNull()) {
-                var name = resolution.get("name");
-                if (name != null && !name.isNull() && name.asString().equals("Withdrawn")) {
+            var resolution = csr.resolution();
+            if (resolution.isPresent()) {
+                var name = resolution.get();
+                if (name.equals("Withdrawn")) {
                     return true;
                 }
             }
@@ -271,7 +263,8 @@ class CheckRun {
     }
 
     // Additional bot-specific progresses that are not handled by JCheck
-    private Map<String, Boolean> botSpecificProgresses(List<IssueTrackerIssue> csrIssueTrackerIssues, JdkVersion version) {
+    private Map<String, Boolean> botSpecificProgresses(List<IssueTrackerIssue> csrIssueTrackerIssues,
+            IssueTrackerIssue jepIssue, JdkVersion version) {
         var ret = new HashMap<String, Boolean>();
 
         var csrIssues = csrIssueTrackerIssues.stream()
@@ -288,30 +281,32 @@ class CheckRun {
                 ret.put(generateCSRProgressMessage(csrIssue), false);
                 continue;
             }
-            var resolution = csrIssue.properties().get("resolution");
-            if (resolution == null || resolution.isNull()) {
+            var resolution = csrIssue.resolution();
+            if (resolution.isEmpty()) {
                 ret.put(generateCSRProgressMessage(csrIssue), false);
                 continue;
             }
-            var name = resolution.get("name");
-            if (name == null || name.isNull()) {
-                ret.put(generateCSRProgressMessage(csrIssue), false);
-                continue;
-            }
-            if (!name.asString().equals("Approved")) {
+            if (!resolution.get().equals("Approved")) {
                 ret.put(generateCSRProgressMessage(csrIssue), false);
                 continue;
             }
             ret.put(generateCSRProgressMessage(csrIssue), true);
         }
 
-
-        if (pr.labelNames().contains("jep")) {
-            ret.put("Change requires a JEP request to be targeted", false);
-        } else {
-            var comment = getJepComment();
-            if (comment.isPresent()) {
-                ret.put("Change requires a JEP request to be targeted", true);
+        if (jepIssue != null) {
+            var jepIssueStatus = jepIssue.status();
+            var jepResolution = jepIssue.resolution();
+            var jepHasTargeted = "Targeted".equals(jepIssueStatus) ||
+                    "Integrated".equals(jepIssueStatus) ||
+                    "Completed".equals(jepIssueStatus) ||
+                    ("Closed".equals(jepIssueStatus) && jepResolution.isPresent() && "Delivered".equals(jepResolution.get()));
+            ret.put("Change requires a JEP request to be targeted", jepHasTargeted);
+            if (jepHasTargeted && newLabels.contains("jep")) {
+                log.info("JEP issue " + jepIssue.id() + " found in state " + jepIssueStatus + ", removing JEP label from " + describe(pr));
+                newLabels.remove("jep");
+            } else if (!jepHasTargeted && !newLabels.contains("jep")) {
+                log.info("JEP issue " + jepIssue.id() + " found in state " + jepIssueStatus + ", adding JEP label to " + describe(pr));
+                newLabels.add("jep");
             }
         }
         return ret;
@@ -328,24 +323,25 @@ class CheckRun {
         return Map.of("rejected", "The change is currently blocked from integration by a rejection.");
     }
 
-    private List<String> botSpecificIntegrationBlockers(List<Issue> issues) {
+    private List<String> botSpecificIntegrationBlockers(Map<Issue, Optional<IssueTrackerIssue>> issues) {
         var ret = new ArrayList<String>();
 
         var issueProject = issueProject();
         if (issueProject != null) {
-            for (var currentIssue : issues) {
+            for (var issueEntry : issues.entrySet()) {
+                var issue = issueEntry.getKey();
+                var issueTrackerIssue = issueEntry.getValue();
                 try {
-                    var iss = issueProject.issue(currentIssue.shortId());
-                    if (iss.isPresent()) {
-                        if (!relaxedEquals(iss.get().title(), currentIssue.description())) {
-                            var issueString = "[" + iss.get().id() + "](" + iss.get().webUrl() + ")";
+                    if (issueTrackerIssue.isPresent()) {
+                        if (!relaxedEquals(issueTrackerIssue.get().title(), issue.description())) {
+                            var issueString = "[" + issueTrackerIssue.get().id() + "](" + issueTrackerIssue.get().webUrl() + ")";
                             ret.add("Title mismatch between PR and JBS for issue " + issueString);
                             setExpiration(Duration.ofMinutes(10));
                         }
 
-                        var properties = iss.get().properties();
+                        var properties = issueTrackerIssue.get().properties();
                         if (!properties.containsKey("issuetype")) {
-                            var issueString = "[" + iss.get().id() + "](" + iss.get().webUrl() + ")";
+                            var issueString = "[" + issueTrackerIssue.get().id() + "](" + issueTrackerIssue.get().webUrl() + ")";
                             ret.add("Issue " + issueString + " does not contain property `issuetype`");
                             setExpiration(Duration.ofMinutes(10));
                         } else {
@@ -356,12 +352,12 @@ class CheckRun {
                             }
                         }
                     } else {
-                        ret.add("Failed to retrieve information on issue `" + currentIssue.id() +
+                        ret.add("Failed to retrieve information on issue `" + issue.id() +
                                 "`. Please make sure it exists and is accessible.");
                         setExpiration(Duration.ofMinutes(10));
                     }
                 } catch (RuntimeException e) {
-                    ret.add("Failed to retrieve information on issue `" + currentIssue.id() +
+                    ret.add("Failed to retrieve information on issue `" + issue.id() +
                             "`. This may be a temporary failure and will be retried.");
                     setExpiration(Duration.ofMinutes(30));
                 }
@@ -627,8 +623,10 @@ class CheckRun {
     }
 
     private String getStatusMessage(PullRequestCheckIssueVisitor visitor,
-                                    List<String> additionalErrors, Map<String, Boolean> additionalProgresses,
-                                    List<String> integrationBlockers, boolean reviewNeeded, List<Issue> allIssues) {
+            List<String> additionalErrors, Map<String, Boolean> additionalProgresses,
+            List<String> integrationBlockers, boolean reviewNeeded,
+            Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap,
+            IssueTrackerIssue jepIssue, Collection<IssueTrackerIssue> csrIssues) {
         var progressBody = new StringBuilder();
         progressBody.append("---------\n");
         progressBody.append("### Progress\n");
@@ -658,89 +656,81 @@ class CheckRun {
         // All the issues this pr related(except CSR and JEP)
         var currentIssues = new HashSet<String>();
         var issueProject = issueProject();
-        if (issueProject != null && !allIssues.isEmpty()) {
+        if (issueProject != null && !regularIssuesMap.isEmpty()) {
             progressBody.append("\n\n### Issue");
-            if (allIssues.size() > 1) {
+            if (regularIssuesMap.size() + csrIssues.size() > 1 || jepIssue != null) {
                 progressBody.append("s");
             }
             progressBody.append("\n");
-            for (var currentIssue : allIssues) {
+            for (var issueEntry : regularIssuesMap.entrySet()) {
+                var issue = issueEntry.getKey();
                 progressBody.append(" * ");
-                if (currentIssue.project().isPresent() && !currentIssue.project().get().equals(issueProject.name())) {
+                if (issue.project().isPresent() && !issue.project().get().equals(issueProject.name())) {
                     progressBody.append("⚠️ Issue `");
-                    progressBody.append(currentIssue.id());
+                    progressBody.append(issue.id());
                     progressBody.append("` does not belong to the `");
                     progressBody.append(issueProject.name());
                     progressBody.append("` project.");
                 } else {
-                    try {
-                        var iss = issueProject.issue(currentIssue.shortId());
-                        if (iss.isPresent()) {
-                            progressBody.append("[");
-                            progressBody.append(iss.get().id());
-                            progressBody.append("](");
-                            progressBody.append(iss.get().webUrl());
-                            progressBody.append("): ");
-                            progressBody.append(BotUtils.escape(iss.get().title()));
-                            var issueType = iss.get().properties().get("issuetype");
-                            if (issueType != null) {
-                                if ("CSR".equals(issueType.asString())) {
-                                    progressBody.append(" (**CSR**)");
-                                    if (isWithdrawnCSR(iss.get())) {
-                                        progressBody.append(" (Withdrawn)");
-                                    }
-                                } else if ("JEP".equals(issueType.asString())) {
-                                    progressBody.append(" (**JEP**)");
-                                } else {
-                                    progressBody.append(" (**" + issueType.asString() + "**");
-                                    var issuePriority = iss.get().properties().get("priority");
-                                    if (issuePriority == null) {
-                                        progressBody.append(")");
-                                    } else {
-                                        progressBody.append(" - P" + issuePriority.asString() + ")");
-                                    }
-                                    currentIssues.add(iss.get().id());
-                                }
+                    var issueTrackerIssue = issueEntry.getValue();
+                    if (issueTrackerIssue.isPresent()) {
+                        currentIssues.add(issueTrackerIssue.get().id());
+                        formatIssue(progressBody, issueTrackerIssue.get());
+                        var issueType = issueTrackerIssue.get().properties().get("issuetype");
+                        if (issueType != null) {
+                            progressBody.append(" (**").append(issueType.asString()).append("**");
+                            var issuePriority = issueTrackerIssue.get().properties().get("priority");
+                            if (issuePriority == null) {
+                                progressBody.append(")");
+                            } else {
+                                progressBody.append(" - P").append(issuePriority.asString()).append(")");
                             }
-                            if (!relaxedEquals(iss.get().title(), currentIssue.description())) {
-                                progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
-                                setExpiration(Duration.ofMinutes(10));
-                            }
-                            if (!iss.get().isOpen()) {
-                                if (!pr.labelNames().contains("backport") &&
-                                        (issueType == null || !List.of("CSR", "JEP").contains(issueType.asString()))) {
-                                    if (iss.get().isFixed()) {
-                                        progressBody.append(" ⚠️ Issue is already resolved. " +
-                                                "Consider making this a \"backport pull request\" by setting " +
-                                                "the PR title to `Backport <hash>` with the hash of the original commit. " +
-                                                "See [Backports](https://wiki.openjdk.org/display/SKARA/Backports).");
-                                    } else {
-                                        progressBody.append(" ⚠️ Issue is not open.");
-                                    }
-                                }
-                            }
-                        } else {
-                            progressBody.append("⚠️ Failed to retrieve information on issue `");
-                            progressBody.append(currentIssue.id());
-                            progressBody.append("`.");
+                        }
+                        if (!relaxedEquals(issueTrackerIssue.get().title(), issue.description())) {
+                            progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
                             setExpiration(Duration.ofMinutes(10));
                         }
-                    } catch (RuntimeException e) {
-                        progressBody.append("⚠️ Temporary failure when trying to retrieve information on issue `");
-                        progressBody.append(currentIssue.id());
+                        if (!issueTrackerIssue.get().isOpen()) {
+                            if (!pr.labelNames().contains("backport") &&
+                                    (issueType == null || !List.of("CSR", "JEP").contains(issueType.asString()))) {
+                                if (issueTrackerIssue.get().isFixed()) {
+                                    progressBody.append(" ⚠️ Issue is already resolved. " +
+                                            "Consider making this a \"backport pull request\" by setting " +
+                                            "the PR title to `Backport <hash>` with the hash of the original commit. " +
+                                            "See [Backports](https://wiki.openjdk.org/display/SKARA/Backports).");
+                                } else {
+                                    progressBody.append(" ⚠️ Issue is not open.");
+                                }
+                            }
+                        }
+                    } else {
+                        progressBody.append("⚠️ Failed to retrieve information on issue `");
+                        progressBody.append(issue.id());
                         progressBody.append("`.");
-                        progressBody.append(TEMPORARY_ISSUE_FAILURE_MARKER);
-                        setExpiration(Duration.ofMinutes(30));
                     }
                 }
                 progressBody.append("\n");
+            }
+            if (jepIssue != null) {
+                currentIssues.add(jepIssue.id());
+                progressBody.append(" * ");
+                formatIssue(progressBody, jepIssue);
+                progressBody.append(" (**JEP**)");
+            }
+            for (var csrIssue : csrIssues) {
+                progressBody.append(" * ");
+                formatIssue(progressBody, csrIssue);
+                progressBody.append(" (**CSR**)");
+                if (isWithdrawnCSR(csrIssue)) {
+                    progressBody.append(" (Withdrawn)");
+                }
             }
 
             // Update the issuePRMap
             var prRecord = new PRRecord(pr.repository().name(), pr.id());
 
             // Need previousIssues to delete associations
-            var previousIssues = BotUtils.parseIssues(pr.body());
+            var previousIssues = BotUtils.parseAllIssues(pr.body());
             // Add associations
             for (String issueId : currentIssues) {
                 if (!previousIssues.contains(issueId)) {
@@ -776,6 +766,15 @@ class CheckRun {
             progressBody.append(webrevCommentLink.get());
         }
         return progressBody.toString();
+    }
+
+    private static void formatIssue(StringBuilder progressBody, IssueTrackerIssue issueTrackerIssue) {
+        progressBody.append("[");
+        progressBody.append(issueTrackerIssue.id());
+        progressBody.append("](");
+        progressBody.append(issueTrackerIssue.webUrl());
+        progressBody.append("): ");
+        progressBody.append(BotUtils.escape(issueTrackerIssue.title()));
     }
 
     private Optional<String> getWebrevCommentLink() {
@@ -858,14 +857,6 @@ class CheckRun {
             return description;
         }
         return newBody;
-    }
-
-    private String verdictToString(Review.Verdict verdict) {
-        return switch (verdict) {
-            case APPROVED -> "changes are approved";
-            case DISAPPROVED -> "more changes needed";
-            case NONE -> "comment added";
-        };
     }
 
     private Optional<Comment> findComment(String marker) {
@@ -1189,7 +1180,7 @@ class CheckRun {
                         checkablePullRequest.executeChecks(hash, censusInstance, visitor, List.of(), hash);
                         mergeJCheckMessage.addAll(visitor.messages().stream()
                                 .map(StringBuilder::new)
-                                .map(e -> e.append(" (in commit " + hash.hex() + ")"))
+                                .map(e -> e.append(" (in commit ").append(hash.hex()).append(")"))
                                 .map(StringBuilder::toString)
                                 .toList());
                     }
@@ -1255,20 +1246,21 @@ class CheckRun {
                 }
             }
             // issues without CSR issues and JEP issues
-            var issues = issues();
-            var csrIssueTrackerIssueMap = getCsrIssueTrackerIssues(issues, version);
-            var csrIssueTrackerIssues = csrIssueTrackerIssueMap.values().stream().toList();
+            var regularIssuesMap = regularIssuesMap();
+            var jepIssue = jepIssue().orElse(null);
+            var issueToCsrMap = issueToCsrMap(regularIssuesMap, version);
+            var csrIssues = issueToCsrMap.values().stream().toList();
             if (needUpdateAdditionalProgresses) {
-                additionalProgresses = botSpecificProgresses(csrIssueTrackerIssues, version);
+                additionalProgresses = botSpecificProgresses(csrIssues, jepIssue, version);
             }
 
             // Check the status of csr issues and determine whether to add or remove csr label here
-            updateCSRLabel(issues, version, csrIssueTrackerIssueMap);
+            updateCSRLabel(version, issueToCsrMap);
 
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             var readyForReview = updateReadyForReview(visitor, additionalErrors);
 
-            var integrationBlockers = botSpecificIntegrationBlockers(issues);
+            var integrationBlockers = botSpecificIntegrationBlockers(regularIssuesMap);
             integrationBlockers.addAll(secondJCheckMessage);
             integrationBlockers.addAll(mergeJCheckMessage);
 
@@ -1277,7 +1269,8 @@ class CheckRun {
             var reviewNeeded = !isCleanBackport || reviewCleanBackport || reviewersCommandIssued;
 
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, reviewNeeded, issuesWithCSRAndJEP(issues, csrIssueTrackerIssues));
+            var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers,
+                    reviewNeeded, regularIssuesMap, jepIssue, issueToCsrMap.values());
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
 
@@ -1378,8 +1371,8 @@ class CheckRun {
                                                 || ((patch.target().path().isPresent() && patch.target().path().get().toString().equals(filename))))));
     }
 
-    private void updateCSRLabel(List<Issue> issues, JdkVersion version, Map<Issue, IssueTrackerIssue> csrIssueTrackerIssueMap) {
-        if (issues.isEmpty()) {
+    private void updateCSRLabel(JdkVersion version, Map<String, IssueTrackerIssue> csrIssueTrackerIssueMap) {
+        if (csrIssueTrackerIssueMap.isEmpty()) {
             return;
         }
 
@@ -1388,7 +1381,6 @@ class CheckRun {
             return;
         }
         boolean notExistingUnresolvedCSR = true;
-        boolean existingCSR = false;
         boolean existingApprovedCSR = false;
 
         var issueProject = issueProject();
@@ -1397,24 +1389,11 @@ class CheckRun {
             return;
         }
 
-        for (var issue : issues) {
-            var jbsIssueOpt = issueProject.issue(issue.shortId());
-            if (jbsIssueOpt.isEmpty()) {
-                // An issue could not be found, so the csr label cannot be removed
-                notExistingUnresolvedCSR = false;
-                var issueId = issue.project().isEmpty() ? (issueProject.name() + "-" + issue.id()) : issue.id();
-                log.info(issueId + " for " + describe(pr) + " not found");
-                continue;
-            }
+        for (var csrEntry : csrIssueTrackerIssueMap.entrySet()) {
+            var mainIssueId = csrEntry.getKey();
+            var csr = csrEntry.getValue();
 
-            var csr = csrIssueTrackerIssueMap.get(issue);
-            if (csr == null) {
-                log.info("No CSR found for issue " + jbsIssueOpt.get().id() + " for " + describe(pr) + " with fixVersion " + version.raw());
-                continue;
-            }
-            existingCSR = true;
-
-            log.info("Found CSR " + csr.id() + " for issue " + jbsIssueOpt.get().id() + " for " + describe(pr));
+            log.info("Found CSR " + csr.id() + " for issue " + mainIssueId + " for " + describe(pr));
 
             var resolution = csr.properties().get("resolution");
             if (resolution == null || resolution.isNull()) {
@@ -1470,7 +1449,7 @@ class CheckRun {
                 existingApprovedCSR = true;
             }
         }
-        if (notExistingUnresolvedCSR && existingCSR && (!isCSRNeeded(pr.comments()) || existingApprovedCSR) && pr.labelNames().contains(CSR_LABEL)) {
+        if (notExistingUnresolvedCSR && (!isCSRNeeded(pr.comments()) || existingApprovedCSR) && pr.labelNames().contains(CSR_LABEL)) {
             log.info("All CSR issues closed and approved for " + describe(pr) + ", removing CSR label");
             newLabels.remove(CSR_LABEL);
         }

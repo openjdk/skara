@@ -53,8 +53,8 @@ public class JiraProjectTests {
         var closedJepOpt = jiraProject.jepIssue("421");
         assertTrue(closedJepOpt.isPresent());
         var closedJep = closedJepOpt.get();
-        assertEquals("Closed", closedJep.properties().get("status").get("name").asString());
-        assertEquals("Delivered", closedJep.properties().get("resolution").get("name").asString());
+        assertEquals("Closed", closedJep.status());
+        assertEquals("Delivered", closedJep.resolution().orElseThrow());
         assertEquals("JEP", closedJep.properties().get("issuetype").asString());
         assertEquals("421", closedJep.properties().get(JEP_NUMBER).asString());
 

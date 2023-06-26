@@ -279,7 +279,7 @@ public class IssueBotTests {
             var issueMetadata2 = (substrings.length > 1) ? substrings[1] : "";
             assertNotEquals(prMetadata1, prMetadata2);
             assertNotEquals(issueMetadata1, issueMetadata2);
-            assertTrue(pr.store().body().contains("This is an issue (**Bug**)"));
+            assertTrue(pr.store().body().contains("This is an issue (**Bug** - P3)"));
             assertTrue(pr.store().body().contains("This is an issue2 (**Bug** - P4)"));
 
             // Update issue

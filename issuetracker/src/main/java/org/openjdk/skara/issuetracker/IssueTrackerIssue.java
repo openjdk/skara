@@ -24,6 +24,7 @@ package org.openjdk.skara.issuetracker;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.openjdk.skara.json.JSONValue;
 
 /**
@@ -42,4 +43,15 @@ public interface IssueTrackerIssue extends Issue {
     void setProperty(String name, JSONValue value);
 
     void removeProperty(String name);
+
+    /**
+     * @return The raw status name string from the issue tracker
+     */
+    String status();
+
+    /**
+     * @return The raw resolution name string from the issue tracker, or empty
+     * if it hasn't been set.
+     */
+    Optional<String> resolution();
 }

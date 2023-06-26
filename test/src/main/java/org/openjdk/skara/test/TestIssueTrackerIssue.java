@@ -25,6 +25,7 @@ package org.openjdk.skara.test;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 import org.openjdk.skara.issuetracker.Link;
@@ -60,6 +61,23 @@ public class TestIssueTrackerIssue extends TestIssue implements IssueTrackerIssu
         }
     }
 
+    @Override
+    public String status() {
+        return store().properties().get("status").get("name").asString();
+    }
+
+    @Override
+    public Optional<String> resolution() {
+        var resolution = store().properties().get("resolution");
+        if (resolution != null && !resolution.isNull()) {
+            var name = resolution.get("name");
+            if (name != null && !name.isNull()) {
+                return Optional.of(resolution.get("name").asString());
+            }
+        }
+        return Optional.empty();
+    }
+
     /**
      * This implementation mimics the JiraIssue definition of isFixed and is
      * needed to test handling of backports.
@@ -67,10 +85,7 @@ public class TestIssueTrackerIssue extends TestIssue implements IssueTrackerIssu
     @Override
     public boolean isFixed() {
         if (super.isFixed()) {
-            var resolution = store().properties().get("resolution");
-            if (!resolution.isNull()) {
-                return "Fixed".equals(resolution.get("name").asString());
-            }
+            return resolution().map(r -> r.equals("Fixed")).orElse(Boolean.FALSE);
         }
         return false;
     }

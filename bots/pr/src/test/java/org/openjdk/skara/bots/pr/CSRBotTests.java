@@ -297,7 +297,7 @@ class CSRBotTests {
             var issues = credentials.getIssueProject();
             var issue = issues.createIssue("This is an issue", List.of(), Map.of());
 
-            var csr = issues.createIssue("This is an CSR with null resolution", List.of(),
+            var csr = issues.createIssue("This is a CSR with null resolution", List.of(),
                     Map.of("resolution", JSON.object().put("name", JSON.of())));
             csr.setState(Issue.State.OPEN);
             issue.addLink(Link.create(csr, "csr for").build());

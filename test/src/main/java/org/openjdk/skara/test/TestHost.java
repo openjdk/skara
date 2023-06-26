@@ -26,6 +26,8 @@ import java.time.Duration;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.json.JSON;
+import org.openjdk.skara.json.JSONObject;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
@@ -216,6 +218,13 @@ public class TestHost implements Forge, IssueTracker {
         var id = issueProject.projectName().toUpperCase() + "-" + (data.issues.size() + 1);
         HostUser author = issueProject.issueTracker().currentUser();
         var issueStore = new TestIssueTrackerIssueStore(id, issueProject, author, title, body, properties);
+        // Set defaults for some expected mandatory fields
+        if (!properties.containsKey("priority")) {
+            issueStore.properties().put("priority", JSON.of("3"));
+        }
+        if (!properties.containsKey("issuetype")) {
+            issueStore.properties().put("issuetype", JSON.of("Bug"));
+        }
         data.issues.put(id, issueStore);
         return new TestIssueTrackerIssue(issueStore, author);
     }
