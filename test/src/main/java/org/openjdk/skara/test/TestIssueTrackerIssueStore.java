@@ -44,8 +44,10 @@ public class TestIssueTrackerIssueStore extends TestIssueStore {
     public TestIssueTrackerIssueStore(String id, IssueProject issueProject, HostUser author, String title,
             List<String> body, Map<String, JSONValue> properties) {
         super(id, issueProject, author, title, body);
-        // Default status New to mimic JiraIssue
+        // Set defaults for some expected mandatory fields
         this.properties.put("status", JSON.object().put("name", JSON.of("New")));
+        this.properties.put("priority", JSON.of("3"));
+        this.properties.put("issuetype", JSON.of("Bug"));
         if (properties != null) {
             this.properties.putAll(properties);
         }
