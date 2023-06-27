@@ -30,6 +30,7 @@ import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -65,6 +66,7 @@ class CheckWorkItem extends PullRequestWorkItem {
 
     private final boolean forceUpdate;
     private final boolean spawnedFromIssueBot;
+    private final Map<String, Optional<IssueTrackerIssue>> issues = new HashMap<>();
 
     CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
                   boolean needsReadyCheck, boolean forceUpdate) {
@@ -101,6 +103,18 @@ class CheckWorkItem extends PullRequestWorkItem {
                     project.isReviewer(username, censusVersion) + project.isCommitter(username, censusVersion) +
                     project.isAuthor(username, censusVersion);
         }
+    }
+
+    /**
+     * Provides cached fetching of issues from the IssueTracker.
+     * @param id ID of issue to fetch
+     * @return The issue if found, otherwise empty.
+     */
+    Optional<IssueTrackerIssue> issueTrackerIssue(String id) {
+        if (!issues.containsKey(id)) {
+            issues.put(id, bot.issueProject().issue(id));
+        }
+        return issues.get(id);
     }
 
     String getPRMetadata(CensusInstance censusInstance, String title, String body, List<Comment> comments,
@@ -152,7 +166,7 @@ class CheckWorkItem extends PullRequestWorkItem {
             var issueIds = BotUtils.parseAllIssues(prBody);
             var issuesData = issueIds.stream()
                     .sorted()
-                    .map(issueProject::issue)
+                    .map(this::issueTrackerIssue)
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .map(issue -> {
@@ -283,7 +297,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                 return false;
             }
 
-            var issue = project.issue(id);
+            var issue = issueTrackerIssue(id);
             if (issue.isPresent()) {
                 var issueTitle = issue.get().title();
                 if (title.isEmpty()) {
@@ -471,7 +485,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     }
 
                     var id = issues.get(0).id();
-                    var issue = bot.issueProject().issue(id);
+                    var issue = issueTrackerIssue(id);
                     if (!issue.isPresent()) {
                         var text = "<!-- backport error -->\n" +
                                    ":warning: @" + pr.author().username() + " the issue with id `" + id + "` from commit " +
@@ -525,7 +539,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     addErrorComment(text, comments);
                     return List.of();
                 }
-                var issue = project.issue(id);
+                var issue = issueTrackerIssue(id);
                 if (issue.isEmpty()) {
                     var text = "<!-- backport error -->\n" +
                             ":warning: @" + pr.author().username() + " the issue with id `" + id + "` " +

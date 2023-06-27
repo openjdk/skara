@@ -133,11 +133,10 @@ class CheckRun {
             var issues = new ArrayList<Issue>();
             issues.add(issue.get());
             issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
-            var issueProject = issueProject();
             var map = new LinkedHashMap<Issue, Optional<IssueTrackerIssue>>();
-            if (issueProject != null) {
+            if (issueProject() != null) {
                 issues.forEach(i -> {
-                    var issueTrackerIssue = issueProject.issue(i.shortId());
+                    var issueTrackerIssue = workItem.issueTrackerIssue(i.shortId());
                     if (issueTrackerIssue.isEmpty()) {
                         log.info("Failed to retrieve issue " + i.id());
                         setExpiration(Duration.ofMinutes(10));
@@ -175,10 +174,9 @@ class CheckRun {
      * Gets the JEP issue from the IssueProject if there is one
      */
     private Optional<IssueTrackerIssue> jepIssue() {
-        var issueProject = issueProject();
-        if (issueProject != null) {
+        if (issueProject() != null) {
             var comment = findJepComment();
-            return comment.flatMap(c -> issueProject.issue(c.group(2)));
+            return comment.flatMap(c -> workItem.issueTrackerIssue(c.group(2)));
         }
         return Optional.empty();
     }
@@ -326,8 +324,7 @@ class CheckRun {
     private List<String> botSpecificIntegrationBlockers(Map<Issue, Optional<IssueTrackerIssue>> issues) {
         var ret = new ArrayList<String>();
 
-        var issueProject = issueProject();
-        if (issueProject != null) {
+        if (issueProject() != null) {
             for (var issueEntry : issues.entrySet()) {
                 var issue = issueEntry.getKey();
                 var issueTrackerIssue = issueEntry.getValue();
@@ -1383,8 +1380,7 @@ class CheckRun {
         boolean notExistingUnresolvedCSR = true;
         boolean existingApprovedCSR = false;
 
-        var issueProject = issueProject();
-        if (issueProject == null) {
+        if (issueProject() == null) {
             log.info("No issue project found for " + describe(pr));
             return;
         }
