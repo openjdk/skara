@@ -30,8 +30,6 @@ import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.issuetracker.Issue;
-import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
