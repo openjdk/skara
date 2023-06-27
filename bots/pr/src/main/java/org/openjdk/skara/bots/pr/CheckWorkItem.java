@@ -179,6 +179,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                             issueData.append(properties.get("priority").asString());
                             issueData.append(properties.get("issuetype").asString());
                         }
+                        issueData.append(String.join("", issue.labelNames()));
                         return issueData;
                     })
                     .collect(Collectors.joining());
@@ -583,7 +584,7 @@ class CheckWorkItem extends PullRequestWorkItem {
 
                 var expiresAt = CheckRun.execute(this, pr, localRepo, comments, allReviews,
                         activeReviews, labels, census, bot.ignoreStaleReviews(), bot.integrators(), bot.reviewCleanBackport(),
-                        bot.reviewMerge());
+                        bot.reviewMerge(), bot.approval());
                 if (log.isLoggable(Level.INFO)) {
                     // Log latency from the original updatedAt of the PR when this WorkItem
                     // was triggered to when it was just updated by the CheckRun.execute above.

@@ -144,6 +144,15 @@ class PullRequestBotFactoryTest {
                           "reviewMerge": true,
                           "processPR": false,
                           "jcheckMerge": false
+                          "approval": {
+                            "request": "-critical-request",
+                            "approved": "-critical-approved",
+                            "rejected": "-critical-rejected",
+                            "branches": {
+                              "jdk20.0.1": { "prefix": "CPU23_04" },
+                              "jdk20.0.2": { "prefix": "CPU23_05" },
+                              }
+                          }
                         }
                       },
                       "forks": {

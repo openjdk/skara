@@ -74,13 +74,14 @@ class CheckRun {
     private final Set<String> newLabels;
     private final boolean reviewCleanBackport;
     private final boolean reviewMerge;
+    private final Approval approval;
 
     private Duration expiresIn;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
                      CensusInstance censusInstance, boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport,
-                     boolean reviewMerge) throws IOException {
+                     boolean reviewMerge, Approval approval) throws IOException {
         this.workItem = workItem;
         this.pr = pr;
         this.localRepo = localRepo;
@@ -94,6 +95,7 @@ class CheckRun {
         this.integrators = integrators;
         this.reviewCleanBackport = reviewCleanBackport;
         this.reviewMerge = reviewMerge;
+        this.approval = approval;
 
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
         checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews,
@@ -103,10 +105,11 @@ class CheckRun {
     }
 
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
-                        List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance,
-                        boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport, boolean reviewMerge) throws IOException {
+                                     List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance,
+                                     boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport, boolean reviewMerge,
+                                     Approval approval) throws IOException {
         var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance,
-                ignoreStaleReviews, integrators, reviewCleanBackport, reviewMerge);
+                ignoreStaleReviews, integrators, reviewCleanBackport, reviewMerge, approval);
         run.checkStatus();
         if (run.expiresIn != null) {
             return Optional.of(Instant.now().plus(run.expiresIn));
@@ -261,9 +264,24 @@ class CheckRun {
     }
 
     // Additional bot-specific progresses that are not handled by JCheck
-    private Map<String, Boolean> botSpecificProgresses(List<IssueTrackerIssue> csrIssueTrackerIssues,
-            IssueTrackerIssue jepIssue, JdkVersion version) {
+    private Map<String, Boolean> botSpecificProgresses(Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap,
+                                                       List<IssueTrackerIssue> csrIssueTrackerIssues,
+                                                       IssueTrackerIssue jepIssue, JdkVersion version) {
         var ret = new HashMap<String, Boolean>();
+
+        if (approval != null) {
+            for (var issueOpt : regularIssuesMap.values()) {
+                if (issueOpt.isPresent()) {
+                    var issue = issueOpt.get();
+                    var labelNames = issue.labelNames();
+                    if (labelNames.contains(approval.approvedLabel(pr.targetRef()))) {
+                        ret.put("[" + issue.id() + "](" + issue.webUrl() + ") needs maintainer approval in JBS", true);
+                    } else {
+                        ret.put("[" + issue.id() + "](" + issue.webUrl() + ") needs maintainer approval in JBS", false);
+                    }
+                }
+            }
+        }
 
         var csrIssues = csrIssueTrackerIssues.stream()
                 .filter(issue -> issue.properties().containsKey("issuetype"))
@@ -677,11 +695,25 @@ class CheckRun {
                         if (issueType != null) {
                             progressBody.append(" (**").append(issueType.asString()).append("**");
                             var issuePriority = issueTrackerIssue.get().properties().get("priority");
-                            if (issuePriority == null) {
-                                progressBody.append(")");
-                            } else {
-                                progressBody.append(" - P").append(issuePriority.asString()).append(")");
+                            if (issuePriority != null) {
+                                progressBody.append(" - P").append(issuePriority.asString());
                             }
+                            if (approval != null) {
+                                String status = "";
+                                String targetRef = pr.targetRef();
+                                var labels = issueTrackerIssue.get().labelNames();
+                                if (labels.contains(approval.rejectedLabel(targetRef))) {
+                                    status = "Rejected";
+                                } else if (labels.contains(approval.approvedLabel(targetRef))) {
+                                    status = "Approved";
+                                } else if (labels.contains(approval.requestedLabel(targetRef))) {
+                                    status = "Requested";
+                                }
+                                if (!status.isEmpty() && !status.isBlank()) {
+                                    progressBody.append(" - ").append(status);
+                                }
+                            }
+                            progressBody.append(")");
                         }
                         if (!relaxedEquals(issueTrackerIssue.get().title(), issue.description())) {
                             progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
@@ -1248,7 +1280,7 @@ class CheckRun {
             var issueToCsrMap = issueToCsrMap(regularIssuesMap, version);
             var csrIssues = issueToCsrMap.values().stream().toList();
             if (needUpdateAdditionalProgresses) {
-                additionalProgresses = botSpecificProgresses(csrIssues, jepIssue, version);
+                additionalProgresses = botSpecificProgresses(regularIssuesMap, csrIssues, jepIssue, version);
             }
 
             // Check the status of csr issues and determine whether to add or remove csr label here

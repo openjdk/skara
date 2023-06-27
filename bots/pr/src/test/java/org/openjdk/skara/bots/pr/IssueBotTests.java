@@ -293,4 +293,55 @@ public class IssueBotTests {
             assertTrue(pr.store().body().contains("This is an issue2 (**Bug** - P4)"));
         }
     }
+
+    @Test
+    void maintainerApprovalInJBS(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
+            issue.setProperty("priority", JSON.of("4"));
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(issuePRMap)
+                    .approval(new Approval("", "jdk17u-fix-request", "jdk17u-fix-yes", "jdk17u-fix-no"))
+                    .build();
+            var issueBot = new IssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot), issuePRMap);
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
+
+            TestBotRunner.runPeriodicItems(prBot);
+            assertFalse(pr.store().labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("rfr"));
+
+            issue.addLabel("jdk17u-fix-request");
+            TestBotRunner.runPeriodicItems(issueBot);
+            assertTrue(pr.store().body().contains("Requested"));
+
+            issue.addLabel("jdk17u-fix-yes");
+            TestBotRunner.runPeriodicItems(issueBot);
+            assertTrue(pr.store().body().contains("Approved"));
+        }
+    }
 }
