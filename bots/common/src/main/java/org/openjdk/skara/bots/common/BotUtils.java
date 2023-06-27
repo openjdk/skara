@@ -42,7 +42,7 @@ public class BotUtils {
     }
 
     /**
-     * This method will parse issues from Pull Request Body and filters out JEP and CSR issues
+     * Parses issues from a pull request body and filters out JEP and CSR issues
      *
      * @param body The Pull Request Body
      * @return Set of issue ids
@@ -55,6 +55,23 @@ public class BotUtils {
         var issueMatcher = issuePattern.matcher(issuesBlockMatcher.group(1));
         return issueMatcher.results()
                 .filter(mr -> !mr.group(2).endsWith(" (**CSR**)") && !mr.group(2).endsWith(" (**CSR**) (Withdrawn)") && !mr.group(2).endsWith(" (**JEP**)"))
+                .map(mo -> mo.group(1))
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Parses issues from a pull request body.
+     *
+     * @param body The pull request body
+     * @return Set of issue ids
+     */
+    public static Set<String> parseAllIssues(String body) {
+        var issuesBlockMatcher = issuesBlockPattern.matcher(body);
+        if (!issuesBlockMatcher.find()) {
+            return Set.of();
+        }
+        var issueMatcher = issuePattern.matcher(issuesBlockMatcher.group(1));
+        return issueMatcher.results()
                 .map(mo -> mo.group(1))
                 .collect(Collectors.toSet());
     }

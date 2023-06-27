@@ -190,6 +190,23 @@ public class JiraIssue implements IssueTrackerIssue {
         }
     }
 
+    @Override
+    public String status() {
+        return json.get("fields").get("status").get("name").asString();
+    }
+
+    @Override
+    public Optional<String> resolution() {
+        var resolution = json.get("fields").get("resolution");
+        if (resolution != null && !resolution.isNull()) {
+            var name = resolution.get("name");
+            if (name != null && !name.isNull()) {
+                return Optional.of(resolution.get("name").asString());
+            }
+        }
+        return Optional.empty();
+    }
+
     /**
      * A Jira issue is considered fixed if it's either resolved or closed and
      * the resolution is "Fixed".

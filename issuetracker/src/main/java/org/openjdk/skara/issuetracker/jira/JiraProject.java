@@ -251,6 +251,7 @@ public class JiraProject implements IssueProject {
                 if (value.isString()) {
                     return Optional.of(value);
                 } // fall-through
+            case "status": // fall-through
             case "issuetype":
                 return Optional.of(JSON.of(value.get("name").asString()));
             case "priority": // fall-through

@@ -37,7 +37,6 @@ module {
 
 dependencies {
     implementation project(':bots:pr')
-    implementation project(':bots:jep')
     implementation project(':bots:hgbridge')
     implementation project(':bots:forward')
     implementation project(':bots:notify')

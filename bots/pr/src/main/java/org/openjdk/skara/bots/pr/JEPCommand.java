@@ -129,19 +129,14 @@ public class JEPCommand implements CommandHandler {
         }
 
         // Get the issue status
-        var issueStatus = jbsIssue.properties().get("status").get("name").asString();
-        var resolution = jbsIssue.properties().get("resolution");
-        String resolutionName = "";
-        if (resolution != null && !resolution.isNull() &&
-                resolution.get("name") != null && !resolution.get("name").isNull()) {
-            resolutionName = resolution.get("name").asString();
-        }
+        var issueStatus = jbsIssue.status();
+        var resolution = jbsIssue.resolution();
 
         // Set the marker and output the result
         var jepNumber = jbsIssue.properties().get(JEP_NUMBER).asString();
         reply.println(String.format(JEP_MARKER, jepNumber, jbsIssue.id(), jbsIssue.title()));
         if ("Targeted".equals(issueStatus) || "Integrated".equals(issueStatus) ||
-            "Completed".equals(issueStatus) || ("Closed".equals(issueStatus) && "Delivered".equals(resolutionName))) {
+            "Completed".equals(issueStatus) || ("Closed".equals(issueStatus) && resolution.isPresent() && "Delivered".equals(resolution.get()))) {
             reply.println("The JEP for this pull request, [JEP-" + jepNumber + "](" + jbsIssue.webUrl() + "), has already been targeted.");
             if (labelNames.contains(JEP_LABEL)) {
                 labelsToRemove.add(JEP_LABEL);

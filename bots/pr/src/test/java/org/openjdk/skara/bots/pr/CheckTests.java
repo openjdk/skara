@@ -1133,13 +1133,16 @@ class CheckTests {
                     .addAuthor(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
             Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
-            var checkBot = PullRequestBot.newBuilder()
+            var prBot = PullRequestBot.newBuilder()
                     .repo(bot)
                     .issueProject(issueProject)
                     .censusRepo(censusBuilder.build())
                     .enableJep(true)
                     .issuePRMap(issuePRMap)
                     .build();
+            HashMap<String, PullRequestBot> pullRequestBotMap = new HashMap<>();
+            pullRequestBotMap.put(bot.name(), prBot);
+            var issueBot = new IssueBot(issueProject, List.of(bot), pullRequestBotMap, issuePRMap);
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
@@ -1157,54 +1160,57 @@ class CheckTests {
             var pr = credentials.createPullRequest(author, "master", "edit", mainIssue.id() + ": " + mainIssue.title());
 
             // PR should have one issue
-            TestBotRunner.runPeriodicItems(checkBot);
+            TestBotRunner.runPeriodicItems(prBot);
             assertTrue(pr.store().body().contains("### Issue"));
             assertFalse(pr.store().body().contains("### Issues"));
             assertTrue(pr.store().body().contains("The main issue"));
             assertFalse(pr.store().body().contains("The jep issue (**JEP**)"));
+            assertFalse(pr.store().labelNames().contains("jep"));
+
+            // Run IssueBot once to initialize state for updated issues queries
+            TestBotRunner.runPeriodicItems(issueBot);
 
             // Require jep
             pr.addComment("/jep JEP-123");
 
             // PR should have two issues
-            TestBotRunner.runPeriodicItems(checkBot);
+            TestBotRunner.runPeriodicItems(prBot);
             assertTrue(pr.store().body().contains("### Issues"));
             assertTrue(pr.store().body().contains("The main issue"));
             assertTrue(pr.store().body().contains("The jep issue (**JEP**)"));
+            assertTrue(pr.store().labelNames().contains("jep"));
 
             // Set the state of the jep issue to `Targeted`.
-            // This step is not necessary, because the JEPBot is not actually running
-            // in this test case. But it is good to keep it to show the logic.
             jepIssue.setProperty("status", JSON.object().put("name", "Targeted"));
 
-            // Simulate the JEPBot to remove the `jep` label when the jep issue has been targeted.
-            jepIssue.removeLabel("jep");
-
-            // Push a commit to trigger the check which can update the PR body.
-            var newHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(newHash, author.authenticatedUrl(), "edit", false);
-
             // PR should have two issues even though the jep issue has been targeted
-            TestBotRunner.runPeriodicItems(checkBot);
+            TestBotRunner.runPeriodicItems(issueBot);
             assertTrue(pr.store().body().contains("### Issues"));
             assertTrue(pr.store().body().contains("The main issue"));
             assertTrue(pr.store().body().contains("The jep issue (**JEP**)"));
+            assertFalse(pr.store().labelNames().contains("jep"));
 
-            // Set the state of the jep issue to `Closed`.
+            // Set the state of the jep issue to `Closed` without a resolution, this
+            // should re-add the label but keep the JEP issue in the list
             jepIssue.setState(Issue.State.CLOSED);
             jepIssue.setProperty("status", JSON.object().put("name", "Closed"));
-
-            // Push a commit to trigger the check which can update the PR body.
-            newHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(newHash, author.authenticatedUrl(), "edit", false);
-
-            // PR should have two issues even though the jep issue has been Closed
-            TestBotRunner.runPeriodicItems(checkBot);
+            TestBotRunner.runPeriodicItems(issueBot);
             assertTrue(pr.store().body().contains("### Issues"));
             assertTrue(pr.store().body().contains("The main issue"));
             assertTrue(pr.store().body().contains("The jep issue (**JEP**)"));
+            assertTrue(pr.store().labelNames().contains("jep"));
             // The jep issue state doesn't need to be `open`.
             assertFalse(pr.store().body().contains("Issue is not open"));
+
+            // Set the resolution to Delivered, this should remove the label
+            // PR should have two issues even though the jep issue has been Closed
+            jepIssue.setProperty("resolution", JSON.object().put("name", "Delivered"));
+
+            TestBotRunner.runPeriodicItems(issueBot);
+            assertTrue(pr.store().body().contains("### Issues"));
+            assertTrue(pr.store().body().contains("The main issue"));
+            assertTrue(pr.store().body().contains("The jep issue (**JEP**)"));
+            assertFalse(pr.store().labelNames().contains("jep"));
         }
     }
 
@@ -1789,11 +1795,13 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
+            var issuePRMap = new HashMap<String, List<PRRecord>>();
             var checkBot = PullRequestBot.newBuilder()
-                                         .repo(author)
-                                         .censusRepo(censusBuilder.build())
-                                         .issueProject(issues)
-                                         .build();
+                    .repo(author)
+                    .issuePRMap(issuePRMap)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .build();
 
             var bug = issues.createIssue("My first bug", List.of("A bug"), Map.of());
             var numericId = bug.id().split("-")[1];

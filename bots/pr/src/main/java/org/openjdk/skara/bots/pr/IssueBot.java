@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 
-public class IssueBot implements Bot {
+class IssueBot implements Bot {
     private final IssueProject issueProject;
     private final List<HostedRepository> repositories;
     private final IssueProjectPoller poller;
@@ -46,7 +46,7 @@ public class IssueBot implements Bot {
     private final Map<String, List<PRRecord>> issuePRMap;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
-    public IssueBot(IssueProject issueProject, List<HostedRepository> repositories, Map<String, PullRequestBot> pullRequestBotMap,
+    IssueBot(IssueProject issueProject, List<HostedRepository> repositories, Map<String, PullRequestBot> pullRequestBotMap,
                     Map<String, List<PRRecord>> issuePRMap) {
         this.issueProject = issueProject;
         this.repositories = repositories;
@@ -65,7 +65,7 @@ public class IssueBot implements Bot {
                 return issueProject.issues(updatedAfter).stream()
                         .filter(issue -> {
                             var issueType = issue.properties().get("issuetype");
-                            return issueType != null && !"CSR".equals(issueType.asString()) && !"JEP".equals(issueType.asString());
+                            return issueType != null && !"CSR".equals(issueType.asString());
                         })
                         .toList();
             }
@@ -80,7 +80,7 @@ public class IssueBot implements Bot {
     @Override
     public List<WorkItem> getPeriodicItems() {
         var issues = poller.updatedIssues();
-        log.info("Found " + issues.size() + " updated issues(exclude CSR and JEP issues)");
+        log.info("Found " + issues.size() + " updated issues(exclude CSR issues)");
         var items = new LinkedList<WorkItem>();
         for (var issue : issues) {
             var prRecords = issuePRMap.get(issue.id());

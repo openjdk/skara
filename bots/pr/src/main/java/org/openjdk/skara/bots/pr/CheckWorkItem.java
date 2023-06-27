@@ -30,7 +30,6 @@ import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -150,25 +149,28 @@ class CheckWorkItem extends PullRequestWorkItem {
             if (issueProject == null) {
                 return "";
             }
-            var issueIds = BotUtils.parseIssues(prBody);
-            var sortedIssueIds = issueIds.stream().sorted().toList();
-            var issues = sortedIssueIds.stream()
+            var issueIds = BotUtils.parseAllIssues(prBody);
+            var issuesData = issueIds.stream()
+                    .sorted()
                     .map(issueProject::issue)
                     .filter(Optional::isPresent)
                     .map(Optional::get)
-                    .toList();
-            String ids = issues.stream().map(Issue::id).collect(Collectors.joining());
-            String priorities = issues.stream()
-                    .map(issue -> issue.properties().get("priority") == null ? "" : issue.properties().get("priority").asString())
-                    .collect(Collectors.joining());
-            String types = issues.stream()
-                    .map(issue -> issue.properties().get("issueType") == null ? "" : issue.properties().get("issueType").asString())
+                    .map(issue -> {
+                        var issueData = new StringBuilder();
+                        issueData.append(issue.id());
+                        issueData.append(issue.status());
+                        issue.resolution().ifPresent(issueData::append);
+                        var properties = issue.properties();
+                        if (properties != null) {
+                            issueData.append(properties.get("priority").asString());
+                            issueData.append(properties.get("issuetype").asString());
+                        }
+                        return issueData;
+                    })
                     .collect(Collectors.joining());
 
             var digest = MessageDigest.getInstance("SHA-256");
-            digest.update(ids.strip().getBytes(StandardCharsets.UTF_8));
-            digest.update(priorities.strip().getBytes(StandardCharsets.UTF_8));
-            digest.update(types.strip().getBytes(StandardCharsets.UTF_8));
+            digest.update(issuesData.getBytes(StandardCharsets.UTF_8));
             return Base64.getUrlEncoder().encodeToString(digest.digest());
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Cannot find SHA-256");
@@ -325,7 +327,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         // When bot restarts, the issuePRMap needs to get updated with this pr
         var prRecord = new PRRecord(pr.repository().name(), prId);
         if (!bot.initializedPRs().containsKey(prId)) {
-            var issueIds = BotUtils.parseIssues(pr.body());
+            var issueIds = BotUtils.parseAllIssues(pr.body());
             for (String issueId : issueIds) {
                 bot.addIssuePRMapping(issueId, prRecord);
             }
