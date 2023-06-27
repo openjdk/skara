@@ -1395,8 +1395,8 @@ class CheckRun {
 
             log.info("Found CSR " + csr.id() + " for issue " + mainIssueId + " for " + describe(pr));
 
-            var resolution = csr.properties().get("resolution");
-            if (resolution == null || resolution.isNull()) {
+            var resolutionOpt = csr.resolution();
+            if (resolutionOpt.isEmpty()) {
                 notExistingUnresolvedCSR = false;
                 if (!pr.labelNames().contains(CSR_LABEL)) {
                     log.info("CSR issue resolution is null for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
@@ -1407,17 +1407,7 @@ class CheckRun {
                 continue;
             }
 
-            var name = resolution.get("name");
-            if (name == null || name.isNull()) {
-                notExistingUnresolvedCSR = false;
-                if (!pr.labelNames().contains(CSR_LABEL)) {
-                    log.info("CSR issue resolution name is null for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
-                    newLabels.add(CSR_LABEL);
-                } else {
-                    log.info("CSR issue resolution name is null for csr issue " + csr.id() + " for " + describe(pr) + ", not removing the CSR label");
-                }
-                continue;
-            }
+            var resolution = resolutionOpt.get();
 
             if (csr.state() != org.openjdk.skara.issuetracker.Issue.State.CLOSED) {
                 notExistingUnresolvedCSR = false;
@@ -1430,8 +1420,8 @@ class CheckRun {
                 continue;
             }
 
-            if (!name.asString().equals("Approved")) {
-                if (name.asString().equals("Withdrawn")) {
+            if (!resolution.equals("Approved")) {
+                if (resolution.equals("Withdrawn")) {
                     // This condition is necessary to prevent the bot from adding the CSR label again.
                     // And the bot can't remove the CSR label automatically here.
                     // Because the PR author with the role of Committer may withdraw a CSR that

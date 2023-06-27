@@ -26,8 +26,6 @@ import java.time.Duration;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.json.JSON;
-import org.openjdk.skara.json.JSONObject;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
