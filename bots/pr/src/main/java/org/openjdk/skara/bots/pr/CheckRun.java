@@ -277,7 +277,7 @@ class CheckRun {
                     if (labelNames.contains(approval.approvedLabel(pr.targetRef()))) {
                         ret.put("[" + issue.id() + "](" + issue.webUrl() + ") needs maintainer approval", true);
                     } else {
-                        ret.put("[" + issue.id() + "](" + issue.webUrl() + ") needs maintainer approval in JBS", false);
+                        ret.put("[" + issue.id() + "](" + issue.webUrl() + ") needs maintainer approval", false);
                     }
                 }
             }
