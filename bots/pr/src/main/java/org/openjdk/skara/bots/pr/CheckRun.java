@@ -275,7 +275,7 @@ class CheckRun {
                     var issue = issueOpt.get();
                     var labelNames = issue.labelNames();
                     if (labelNames.contains(approval.approvedLabel(pr.targetRef()))) {
-                        ret.put("[" + issue.id() + "](" + issue.webUrl() + ") needs maintainer approval in JBS", true);
+                        ret.put("[" + issue.id() + "](" + issue.webUrl() + ") needs maintainer approval", true);
                     } else {
                         ret.put("[" + issue.id() + "](" + issue.webUrl() + ") needs maintainer approval in JBS", false);
                     }
