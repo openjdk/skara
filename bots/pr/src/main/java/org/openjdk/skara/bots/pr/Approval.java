@@ -67,4 +67,16 @@ public class Approval {
         }
         return prefix;
     }
+
+    public boolean needsApproval(String targetRef) {
+        if (branchPrefixes.isEmpty()) {
+            return true;
+        }
+        for (var branchPattern : branchPrefixes.keySet()) {
+            if (branchPattern.matcher(targetRef).matches()) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

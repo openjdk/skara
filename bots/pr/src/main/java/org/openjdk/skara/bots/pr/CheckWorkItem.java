@@ -179,7 +179,9 @@ class CheckWorkItem extends PullRequestWorkItem {
                             issueData.append(properties.get("priority").asString());
                             issueData.append(properties.get("issuetype").asString());
                         }
-                        issueData.append(String.join("", issue.labelNames()));
+                        if (bot.approval() != null && bot.approval().needsApproval(pr.targetRef())) {
+                            issueData.append(String.join("", issue.labelNames()));
+                        }
                         return issueData;
                     })
                     .collect(Collectors.joining());

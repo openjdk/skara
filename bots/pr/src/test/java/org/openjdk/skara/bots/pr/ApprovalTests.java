@@ -35,11 +35,13 @@ public class ApprovalTests {
         assertEquals("jdk17u-fix-request", approval.requestedLabel("master"));
         assertEquals("jdk17u-fix-yes", approval.approvedLabel("master"));
         assertEquals("jdk17u-fix-no", approval.rejectedLabel("master"));
+        assertTrue(approval.needsApproval("master"));
 
         approval = new Approval("jdk17u-fix-", "request", "yes", "no");
         assertEquals("jdk17u-fix-request", approval.requestedLabel("master"));
         assertEquals("jdk17u-fix-yes", approval.approvedLabel("master"));
         assertEquals("jdk17u-fix-no", approval.rejectedLabel("master"));
+        assertTrue(approval.needsApproval("master"));
 
         approval = new Approval("", "-critical-request", "-critical-approved", "-critical-rejected");
         approval.addBranchPrefix(Pattern.compile("jdk20.0.1"), "CPU23_04");
@@ -50,5 +52,9 @@ public class ApprovalTests {
         assertEquals("CPU23_05-critical-request", approval.requestedLabel("jdk20.0.2"));
         assertEquals("CPU23_05-critical-approved", approval.approvedLabel("jdk20.0.2"));
         assertEquals("CPU23_05-critical-rejected", approval.rejectedLabel("jdk20.0.2"));
+        assertFalse(approval.needsApproval("master"));
+        assertTrue(approval.needsApproval("jdk20.0.1"));
+        assertTrue(approval.needsApproval("jdk20.0.2"));
+        assertFalse(approval.needsApproval("jdk20.0.3"));
     }
 }

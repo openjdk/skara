@@ -269,7 +269,7 @@ class CheckRun {
                                                        IssueTrackerIssue jepIssue, JdkVersion version) {
         var ret = new HashMap<String, Boolean>();
 
-        if (approval != null) {
+        if (approval != null && approval.needsApproval(pr.targetRef())) {
             for (var issueOpt : regularIssuesMap.values()) {
                 if (issueOpt.isPresent()) {
                     var issue = issueOpt.get();
@@ -698,7 +698,7 @@ class CheckRun {
                             if (issuePriority != null) {
                                 progressBody.append(" - P").append(issuePriority.asString());
                             }
-                            if (approval != null) {
+                            if (approval != null && approval.needsApproval(pr.targetRef())) {
                                 String status = "";
                                 String targetRef = pr.targetRef();
                                 var labels = issueTrackerIssue.get().labelNames();
@@ -709,7 +709,7 @@ class CheckRun {
                                 } else if (labels.contains(approval.requestedLabel(targetRef))) {
                                     status = "Requested";
                                 }
-                                if (!status.isEmpty() && !status.isBlank()) {
+                                if (!status.isEmpty()) {
                                     progressBody.append(" - ").append(status);
                                 }
                             }
