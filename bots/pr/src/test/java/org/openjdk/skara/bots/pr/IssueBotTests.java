@@ -405,6 +405,8 @@ public class IssueBotTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().labelNames().contains("ready"));
             assertTrue(pr.store().body().contains("[TEST-1](http://localhost/project/testTEST-1) needs maintainer approval"));
+            assertEquals(pr.store().comments().get(1).body(), "⚠️  @user1 There are still some issues that have not received maintainer approval.\n" +
+                    "Please follow the instruction here to get maintainer approval: [Requesting push approval for fixes](https://openjdk.org/projects/jdk-updates/approval.html)<!-- PullRequestBot approval needed comment -->");
 
             issue.addLabel("CPU23_04-critical-request");
             TestBotRunner.runPeriodicItems(issueBot);
@@ -413,6 +415,7 @@ public class IssueBotTests {
             issue.addLabel("CPU23_04-critical-approved");
             TestBotRunner.runPeriodicItems(issueBot);
             assertTrue(pr.store().body().contains("Approved"));
+            assertEquals(pr.store().comments().get(1).body(), "@user1 All the issues have already got the maintainer approval!<!-- PullRequestBot approval needed comment -->");
         }
     }
 }

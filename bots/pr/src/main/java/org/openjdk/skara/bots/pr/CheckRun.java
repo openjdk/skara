@@ -70,6 +70,7 @@ class CheckRun {
     private static final String EMPTY_PR_BODY_MARKER = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private static final String FULL_NAME_WARNING_MARKER = "<!-- PullRequestBot full name warning comment -->";
+    private static final String APPROVAL_NEEDED_MARKER = "<!-- PullRequestBot approval needed comment -->";
     private static final Set<String> PRIMARY_TYPES = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final Set<String> newLabels;
     private final boolean reviewCleanBackport;
@@ -269,7 +270,7 @@ class CheckRun {
                                                        IssueTrackerIssue jepIssue, JdkVersion version) {
         var ret = new HashMap<String, Boolean>();
 
-        if (approval != null && approval.needsApproval(pr.targetRef())) {
+        if (approvalNeeded()) {
             for (var issueOpt : regularIssuesMap.values()) {
                 if (issueOpt.isPresent()) {
                     var issue = issueOpt.get();
@@ -698,7 +699,7 @@ class CheckRun {
                             if (issuePriority != null) {
                                 progressBody.append(" - P").append(issuePriority.asString());
                             }
-                            if (approval != null && approval.needsApproval(pr.targetRef())) {
+                            if (approvalNeeded()) {
                                 String status = "";
                                 String targetRef = pr.targetRef();
                                 var labels = issueTrackerIssue.get().labelNames();
@@ -1318,7 +1319,9 @@ class CheckRun {
                                       integrationBlockers.isEmpty() &&
                                       !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
             }
-
+            if (approvalNeeded()) {
+                updateApprovalNeededComment(additionalProgresses);
+            }
             updateMergeReadyComment(readyForIntegration, commitMessage, rebasePossible);
             if (readyForIntegration && rebasePossible) {
                 newLabels.add("ready");
@@ -1488,6 +1491,40 @@ class CheckRun {
 
     private String describe(PullRequest pr) {
         return pr.repository().name() + "#" + pr.id();
+    }
+
+    private boolean approvalNeeded() {
+        return approval != null && approval.needsApproval(pr.targetRef());
+    }
+
+    private void updateApprovalNeededComment(Map<String, Boolean> additionalProgresses) {
+        var existing = findComment(APPROVAL_NEEDED_MARKER);
+        var existingUnapproved = false;
+        for (var entry : additionalProgresses.entrySet()) {
+            if (entry.getKey().endsWith("needs maintainer approval") && !entry.getValue()) {
+                existingUnapproved = true;
+                break;
+            }
+        }
+        StringBuilder messageBuilder = new StringBuilder();
+        if (existingUnapproved) {
+            messageBuilder.append("⚠️  @").append(pr.author().username())
+                    .append(" There are still some issues that have not received maintainer approval.")
+                    .append("\n")
+                    .append("Please follow the instruction here to get maintainer approval: ")
+                    .append("[Requesting push approval for fixes](https://openjdk.org/projects/jdk-updates/approval.html)");
+        } else {
+            messageBuilder.append("@").append(pr.author().username()).append(" All the issues have already got the maintainer approval!");
+        }
+        messageBuilder.append(APPROVAL_NEEDED_MARKER);
+        String message = messageBuilder.toString();
+        if (existing.isPresent()) {
+            if (!existing.get().body().equals(message)) {
+                pr.updateComment(existing.get().id(), message);
+            }
+        } else {
+            pr.addComment(message);
+        }
     }
 
 }
