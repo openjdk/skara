@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import java.time.ZonedDateTime;
+
 import org.openjdk.skara.forge.HostedCommit;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
@@ -62,7 +63,9 @@ public class CommandExtractor {
             Map.entry(clean.name(), new CleanCommand()),
             Map.entry(open.name(), new OpenCommand()),
             Map.entry(backport.name(), new BackportCommand()),
-            Map.entry(tag.name(), new TagCommand())
+            Map.entry(tag.name(), new TagCommand()),
+            Map.entry(approval.name(), new ApprovalCommand()),
+            Map.entry(approve.name(), new ApproveCommand())
     );
 
     static class HelpCommand implements CommandHandler {

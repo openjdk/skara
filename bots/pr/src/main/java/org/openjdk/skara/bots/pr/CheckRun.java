@@ -702,6 +702,7 @@ class CheckRun {
                             if (approvalNeeded()) {
                                 String status = "";
                                 String targetRef = pr.targetRef();
+                                var existingRequested = false;
                                 var labels = issueTrackerIssue.get().labelNames();
                                 if (labels.contains(approval.rejectedLabel(targetRef))) {
                                     status = "Rejected";
@@ -709,6 +710,12 @@ class CheckRun {
                                     status = "Approved";
                                 } else if (labels.contains(approval.requestedLabel(targetRef))) {
                                     status = "Requested";
+                                    existingRequested = true;
+                                }
+                                if (existingRequested) {
+                                    newLabels.add("approval");
+                                } else {
+                                    newLabels.remove("approval");
                                 }
                                 if (!status.isEmpty()) {
                                     progressBody.append(" - ").append(status);
