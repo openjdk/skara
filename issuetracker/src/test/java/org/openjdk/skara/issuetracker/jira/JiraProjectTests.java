@@ -40,7 +40,7 @@ import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
  * To be able to run the tests, you need to remove or comment out the @Disabled
  * annotation first.
  */
-@Disabled("Manual")
+//@Disabled("Manual")
 public class JiraProjectTests {
 
     @Test

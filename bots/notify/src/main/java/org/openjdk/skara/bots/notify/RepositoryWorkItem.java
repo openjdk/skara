@@ -74,9 +74,10 @@ public class RepositoryWorkItem implements WorkItem {
         this.listeners = listeners;
     }
 
-    private void handleNewRef(Repository localRepo, Reference ref, Collection<Reference> allRefs, RepositoryListener listener, Path scratchPath) throws NonRetriableException {
+    private void handleNewRef(Repository localRepo, Reference ref, Collection<Reference> allRefs, Collection<Reference> candidateRefs,
+                              RepositoryListener listener, Path scratchPath) throws NonRetriableException {
         // Figure out the best parent ref
-        var candidates = new HashSet<>(allRefs);
+        var candidates = new HashSet<>(candidateRefs);
         candidates.remove(ref);
         if (candidates.size() == 0) {
             log.warning("No parent candidates found for branch '" + ref.name() + "' - ignoring");
@@ -113,7 +114,8 @@ public class RepositoryWorkItem implements WorkItem {
         listener.onNewCommits(repository, localRepo, scratchPath, commits, branch);
     }
 
-    private List<Throwable> handleRef(Repository localRepo, UpdateHistory history, Reference ref, Collection<Reference> allRefs, Path scratchPath) throws IOException {
+    private List<Throwable> handleRef(Repository localRepo, UpdateHistory history, Reference ref, Collection<Reference> allRefs,
+                                      Collection<Reference> candidateRefs, Path scratchPath) throws IOException {
         var errors = new ArrayList<Throwable>();
         var branch = new Branch(ref.name());
         for (var listener : listeners) {
@@ -124,7 +126,7 @@ public class RepositoryWorkItem implements WorkItem {
                     history.setBranchHash(branch, listener.name(), ref.hash());
                 }
                 try {
-                    handleNewRef(localRepo, ref, allRefs, listener, scratchPath.resolve(listener.name()));
+                    handleNewRef(localRepo, ref, allRefs, candidateRefs, listener, scratchPath.resolve(listener.name()));
                 } catch (NonRetriableException e) {
                     errors.add(e.cause());
                     continue;
@@ -349,10 +351,15 @@ public class RepositoryWorkItem implements WorkItem {
 
         try {
             var localRepo = repositoryPool.materializeBare(repository, scratchPath.resolve("notify").resolve("repowi").resolve(repository.name()));
-            var knownRefs = localRepo.remoteBranches(repository.authenticatedUrl().toString())
-                                     .stream()
-                                     .filter(ref -> branches.matcher(ref.name()).matches())
-                                     .collect(Collectors.toList());
+            var defaultBranchName = localRepo.defaultBranch().name();
+            var candidateRefs = localRepo.remoteBranches(repository.authenticatedUrl().toString())
+                    .stream()
+                    .filter(ref -> branches.matcher(ref.name()).matches() || ref.name().equals(defaultBranchName))
+                    .toList();
+            var knownRefs = candidateRefs
+                    .stream()
+                    .filter(ref -> branches.matcher(ref.name()).matches())
+                    .collect(Collectors.toList());
             localRepo.fetchAll(repository.authenticatedUrl(), true);
 
             var history = UpdateHistory.create(tagStorageBuilder, historyPath.resolve("tags"), branchStorageBuilder, historyPath.resolve("branches"));
@@ -378,7 +385,7 @@ public class RepositoryWorkItem implements WorkItem {
                         }
                     }
                 }
-                errors.addAll(handleRef(localRepo, history, ref, knownRefs, scratchPath));
+                errors.addAll(handleRef(localRepo, history, ref, knownRefs, candidateRefs, scratchPath));
             }
 
             for (var listener : listeners) {
