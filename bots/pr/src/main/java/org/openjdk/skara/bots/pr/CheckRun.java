@@ -132,7 +132,7 @@ class CheckRun {
         if (issue.isPresent()) {
             var issues = new ArrayList<Issue>();
             issues.add(issue.get());
-            issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
+            issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments, pr.title()));
             var map = new LinkedHashMap<Issue, Optional<IssueTrackerIssue>>();
             if (issueProject() != null) {
                 issues.forEach(i -> {

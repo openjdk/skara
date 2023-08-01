@@ -285,8 +285,7 @@ public class IssueCommand implements CommandHandler {
             showHelp(reply);
             return;
         }
-
-        var currentSolved = SolvesTracker.currentSolved(pr.repository().forge().currentUser(), allComments)
+        var currentSolved = SolvesTracker.currentSolved(pr.repository().forge().currentUser(), allComments, pr.title())
                                          .stream()
                                          .map(Issue::shortId)
                                          .collect(Collectors.toSet());
