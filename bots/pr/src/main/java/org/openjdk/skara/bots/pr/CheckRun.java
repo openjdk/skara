@@ -301,10 +301,10 @@ class CheckRun {
             ret.put("Change requires a JEP request to be targeted", jepHasTargeted);
             if (jepHasTargeted && newLabels.contains("jep")) {
                 log.info("JEP issue " + jepIssue.id() + " found in state " + jepIssueStatus + ", removing JEP label from " + describe(pr));
-                newLabels.remove("jep");
+                newLabels.remove(JEP_LABEL);
             } else if (!jepHasTargeted && !newLabels.contains("jep")) {
                 log.info("JEP issue " + jepIssue.id() + " found in state " + jepIssueStatus + ", adding JEP label to " + describe(pr));
-                newLabels.add("jep");
+                newLabels.add(JEP_LABEL);
             }
         }
         return ret;
