@@ -713,6 +713,7 @@ class CheckRun {
                 progressBody.append(" * ");
                 formatIssue(progressBody, jepIssue);
                 progressBody.append(" (**JEP**)");
+                progressBody.append("\n");
             }
             for (var csrIssue : csrIssues) {
                 progressBody.append(" * ");
@@ -721,6 +722,7 @@ class CheckRun {
                 if (isWithdrawnCSR(csrIssue)) {
                     progressBody.append(" (Withdrawn)");
                 }
+                progressBody.append("\n");
             }
 
             // Update the issuePRMap
