@@ -144,7 +144,7 @@ public class JEPCommand implements CommandHandler {
         } else {
             // The current issue status may be "Draft", "Submitted", "Candidate", "Proposed to Target", "Proposed to Drop" or "Closed without Delivered"
             if (jepNumber.equals("NotAllocated")) {
-                reply.println("This pull request will not be integrated until the [" + jbsIssue.id()
+                reply.println("This pull request will not be integrated until the [JEP " + jbsIssue.id()
                         + "](" + jbsIssue.webUrl() + ")" + " has been targeted.");
             } else {
                 reply.println("This pull request will not be integrated until the [JEP-" + jepNumber
