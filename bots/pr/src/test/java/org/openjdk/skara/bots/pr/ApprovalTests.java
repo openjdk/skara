@@ -35,7 +35,7 @@ public class ApprovalTests {
         assertEquals("jdk17u-fix-request", approval.requestedLabel("master"));
         assertEquals("jdk17u-fix-yes", approval.approvedLabel("master"));
         assertEquals("jdk17u-fix-no", approval.rejectedLabel("master"));
-        assertEquals("https://test.opnejdk.org", approval.documentLink());
+        assertEquals("https://test.openjdk.org", approval.documentLink());
         assertTrue(approval.needsApproval("master"));
 
         approval = new Approval("jdk17u-fix-", "request", "yes", "no", "https://test.openjdk.org");
