@@ -88,8 +88,6 @@ public class CheckablePullRequest {
                                                                comments).stream()
                                                  .map(email -> Author.fromString(email.toString()))
                                                  .collect(Collectors.toList());
-
-        var additionalIssues = SolvesTracker.currentSolved(currentUser, comments);
         var summary = Summary.summary(currentUser, comments);
         CommitMessageBuilder commitMessageBuilder;
         if (PullRequestUtils.isMerge(pr)) {
@@ -116,6 +114,7 @@ public class CheckablePullRequest {
             var issue = Issue.fromStringRelaxed(pr.title());
             commitMessageBuilder = issue.map(CommitMessage::title).orElseGet(() -> CommitMessage.title(pr.title()));
             if (issue.isPresent()) {
+                var additionalIssues = SolvesTracker.currentSolved(currentUser, comments, pr.title());
                 commitMessageBuilder.issues(additionalIssues);
             }
             if (original != null) {
