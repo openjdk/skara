@@ -1319,9 +1319,20 @@ class CheckRun {
                                       integrationBlockers.isEmpty() &&
                                       !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
             }
+
             if (approvalNeeded()) {
-                updateApprovalNeededComment(additionalProgresses);
+                var readyButMaintainerApproval = true;
+                for (var entry : additionalProgresses.entrySet()) {
+                    if (!entry.getKey().endsWith("needs maintainer approval") && !entry.getValue()) {
+                        readyButMaintainerApproval = false;
+                        break;
+                    }
+                }
+                if (readyButMaintainerApproval) {
+                    postApprovalNeededComment(additionalProgresses);
+                }
             }
+
             updateMergeReadyComment(readyForIntegration, commitMessage, rebasePossible);
             if (readyForIntegration && rebasePossible) {
                 newLabels.add("ready");
@@ -1497,34 +1508,15 @@ class CheckRun {
         return approval != null && approval.needsApproval(pr.targetRef());
     }
 
-    private void updateApprovalNeededComment(Map<String, Boolean> additionalProgresses) {
+    private void postApprovalNeededComment(Map<String, Boolean> additionalProgresses) {
         var existing = findComment(APPROVAL_NEEDED_MARKER);
-        var existingUnapproved = false;
-        for (var entry : additionalProgresses.entrySet()) {
-            if (entry.getKey().endsWith("needs maintainer approval") && !entry.getValue()) {
-                existingUnapproved = true;
-                break;
-            }
-        }
-        StringBuilder messageBuilder = new StringBuilder();
-        if (existingUnapproved) {
-            messageBuilder.append("⚠️  @").append(pr.author().username())
-                    .append(" There are still some issues that have not received maintainer approval.")
-                    .append("\n")
-                    .append("Please follow the instruction here to get maintainer approval: ")
-                    .append("[Requesting push approval for fixes](https://openjdk.org/projects/jdk-updates/approval.html)");
-        } else {
-            messageBuilder.append("@").append(pr.author().username()).append(" All the issues have already got the maintainer approval!");
-        }
-        messageBuilder.append(APPROVAL_NEEDED_MARKER);
-        String message = messageBuilder.toString();
         if (existing.isPresent()) {
-            if (!existing.get().body().equals(message)) {
-                pr.updateComment(existing.get().id(), message);
-            }
-        } else {
-            pr.addComment(message);
+            return;
         }
+        String message = "⚠️  @" + pr.author().username() +
+                " This change has now been reviewed and requires maintainer [approval](" + approval.documentLink() + ")." +
+                APPROVAL_NEEDED_MARKER;
+        pr.addComment(message);
     }
 
 }
