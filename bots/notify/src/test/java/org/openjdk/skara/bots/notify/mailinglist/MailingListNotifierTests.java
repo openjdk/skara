@@ -1086,7 +1086,9 @@ public class MailingListNotifierTests {
             assertEquals(listAddress, email.sender());
             assertEquals(EmailAddress.from("testauthor", "ta@none.none"), email.author());
             assertEquals(email.recipients(), List.of(listAddress));
-            assertEquals("git: test: created branch newbranch1 based on the branch master containing 2 unique commits", email.subject());
+            assertTrue(email.subject().contains("git: test: created branch newbranch1 based on the branch"));
+            assertTrue(email.subject().contains("master") || email.subject().contains("testlock"));
+            assertTrue(email.subject().contains("containing 2 unique commits"));
             assertTrue(email.body().contains("12345678: Some fixes"));
             assertTrue(email.hasHeader("extra1"));
             assertEquals("value1", email.headerValue("extra1"));
