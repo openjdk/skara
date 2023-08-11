@@ -148,7 +148,7 @@ class PullRequestBotFactoryTest {
                             "request": "-critical-request",
                             "approved": "-critical-approved",
                             "rejected": "-critical-rejected",
-                            "documentLink": "https://test.openjdk.org",
+                            "documentLink": "https://example.com",
                             "branches": {
                               "jdk20.0.1": { "prefix": "CPU23_04" },
                               "jdk20.0.2": { "prefix": "CPU23_05" },
@@ -236,7 +236,7 @@ class PullRequestBotFactoryTest {
                     .findFirst().orElseThrow();
             assertEquals("PullRequestBot@repo7", pullRequestBot7.toString());
             assertFalse(pullRequestBot7.jcheckMerge());
-            assertEquals("https://test.openjdk.org", pullRequestBot7.approval().documentLink());
+            assertEquals("https://example.com", pullRequestBot7.approval().documentLink());
 
             var csrIssueBot1 = (CSRIssueBot) bots.stream()
                     .filter(bot -> bot.toString().equals("CSRIssueBot@TEST"))
