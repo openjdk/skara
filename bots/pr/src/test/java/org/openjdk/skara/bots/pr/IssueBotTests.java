@@ -317,7 +317,7 @@ public class IssueBotTests {
                     .issueProject(issueProject)
                     .censusRepo(censusBuilder.build())
                     .issuePRMap(issuePRMap)
-                    .approval(new Approval("", "jdk17u-fix-request", "jdk17u-fix-yes", "jdk17u-fix-no"))
+                    .approval(new Approval("", "jdk17u-fix-request", "jdk17u-fix-yes", "jdk17u-fix-no", "https://example.com"))
                     .build();
             var issueBot = new IssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot), issuePRMap);
 
@@ -363,7 +363,7 @@ public class IssueBotTests {
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
             Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
-            Approval approval = new Approval("", "-critical-request", "-critical-approved", "-critical-rejected");
+            Approval approval = new Approval("", "-critical-request", "-critical-approved", "-critical-rejected", "https://example.com");
             approval.addBranchPrefix(Pattern.compile("jdk20.0.1"), "CPU23_04");
             approval.addBranchPrefix(Pattern.compile("jdk20.0.2"), "CPU23_05");
 
@@ -405,8 +405,7 @@ public class IssueBotTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().labelNames().contains("ready"));
             assertTrue(pr.store().body().contains("[TEST-1](http://localhost/project/testTEST-1) needs maintainer approval"));
-            assertEquals(pr.store().comments().get(1).body(), "⚠️  @user1 There are still some issues that have not received maintainer approval.\n" +
-                    "Please follow the instruction here to get maintainer approval: [Requesting push approval for fixes](https://openjdk.org/projects/jdk-updates/approval.html)<!-- PullRequestBot approval needed comment -->");
+            assertEquals("⚠️  @user1 This change is now ready for you to apply for maintainer [approval](https://example.com).<!-- PullRequestBot approval needed comment -->", pr.store().comments().get(1).body());
 
             issue.addLabel("CPU23_04-critical-request");
             TestBotRunner.runPeriodicItems(issueBot);
@@ -415,7 +414,7 @@ public class IssueBotTests {
             issue.addLabel("CPU23_04-critical-approved");
             TestBotRunner.runPeriodicItems(issueBot);
             assertTrue(pr.store().body().contains("Approved"));
-            assertEquals(pr.store().comments().get(1).body(), "@user1 All the issues have already got the maintainer approval!<!-- PullRequestBot approval needed comment -->");
+            assertEquals("⚠️  @user1 This change is now ready for you to apply for maintainer [approval](https://example.com).<!-- PullRequestBot approval needed comment -->", pr.store().comments().get(1).body());
         }
     }
 }

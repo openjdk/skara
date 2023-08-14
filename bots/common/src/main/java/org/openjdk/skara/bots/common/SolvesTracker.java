@@ -44,7 +44,7 @@ public class SolvesTracker {
         return String.format(SOLVES_MARKER, issue.shortId(), "");
     }
 
-    public static List<Issue> currentSolved(HostUser botUser, List<Comment> comments) {
+    public static List<Issue> currentSolved(HostUser botUser, List<Comment> comments, String title) {
         var solvesActions = comments.stream()
                 .filter(comment -> comment.author().equals(botUser))
                 .flatMap(comment -> comment.body().lines())
@@ -52,8 +52,12 @@ public class SolvesTracker {
                 .filter(Matcher::find)
                 .collect(Collectors.toList());
         var current = new LinkedHashMap<String, Issue>();
+        var titleIssue = Issue.fromStringRelaxed(title);
         for (var action : solvesActions) {
             var key = action.group(1);
+            if (titleIssue.isPresent() && key.equals(titleIssue.get().shortId())) {
+                continue;
+            }
             if (action.group(2).equals("")) {
                 current.remove(key);
             } else {

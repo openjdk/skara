@@ -133,18 +133,23 @@ public class JEPCommand implements CommandHandler {
         var resolution = jbsIssue.resolution();
 
         // Set the marker and output the result
-        var jepNumber = jbsIssue.properties().get(JEP_NUMBER).asString();
+        var jepNumber = jbsIssue.properties().containsKey(JEP_NUMBER) ? jbsIssue.properties().get(JEP_NUMBER).asString() : "NotAllocated";
         reply.println(String.format(JEP_MARKER, jepNumber, jbsIssue.id(), jbsIssue.title()));
         if ("Targeted".equals(issueStatus) || "Integrated".equals(issueStatus) ||
-            "Completed".equals(issueStatus) || ("Closed".equals(issueStatus) && resolution.isPresent() && "Delivered".equals(resolution.get()))) {
+                "Completed".equals(issueStatus) || ("Closed".equals(issueStatus) && resolution.isPresent() && "Delivered".equals(resolution.get()))) {
             reply.println("The JEP for this pull request, [JEP-" + jepNumber + "](" + jbsIssue.webUrl() + "), has already been targeted.");
             if (labelNames.contains(JEP_LABEL)) {
                 labelsToRemove.add(JEP_LABEL);
             }
         } else {
             // The current issue status may be "Draft", "Submitted", "Candidate", "Proposed to Target", "Proposed to Drop" or "Closed without Delivered"
-            reply.println("This pull request will not be integrated until the [JEP-" + jepNumber
-                    + "](" + jbsIssue.webUrl() + ")" + " has been targeted.");
+            if (jepNumber.equals("NotAllocated")) {
+                reply.println("This pull request will not be integrated until the [JEP " + jbsIssue.id()
+                        + "](" + jbsIssue.webUrl() + ")" + " has been targeted.");
+            } else {
+                reply.println("This pull request will not be integrated until the [JEP-" + jepNumber
+                        + "](" + jbsIssue.webUrl() + ")" + " has been targeted.");
+            }
             if (!labelNames.contains(JEP_LABEL)) {
                 labelsToAdd.add(JEP_LABEL);
             }

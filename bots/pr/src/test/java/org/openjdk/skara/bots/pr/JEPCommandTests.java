@@ -539,4 +539,56 @@ public class JEPCommandTests {
             assertTrue(pr.store().body().contains("- [ ] Change requires a JEP request to be targeted"));
         }
     }
+
+    @Test
+    void testWithoutJEPNumber(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id());
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
+                    Path.of("appendable.txt"), Set.of("issues"), null);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            var mainIssue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
+            var jepIssue = issueProject.createIssue("The jep issue", List.of("Jep body"),
+                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Submitted")));
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", mainIssue.id() + ": " + mainIssue.title());
+
+            // Test the PR bot with jep
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .enableJep(true)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(issuePRMap)
+                    .build();
+            var issueBot = new IssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot), issuePRMap);
+
+            pr.addComment("/jep TEST-2");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(issueBot);
+            assertTrue(pr.store().labelNames().contains(JEP_LABEL));
+            assertLastCommentContains(pr, "pull request will not be integrated until the");
+            assertTrue(pr.store().body().contains("- [ ] Change requires a JEP request to be targeted"));
+
+            // Make the jep issue Targeted
+            jepIssue.setProperty("status", JSON.object().put("name", "Targeted"));
+            jepIssue.setProperty(JEP_NUMBER, JSON.of("123"));
+            TestBotRunner.runPeriodicItems(issueBot);
+            assertFalse(pr.store().labelNames().contains(JEP_LABEL));
+            assertTrue(pr.store().body().contains("- [x] Change requires a JEP request to be targeted"));
+        }
+    }
 }

@@ -136,7 +136,7 @@ class CheckRun {
         if (issue.isPresent()) {
             var issues = new ArrayList<Issue>();
             issues.add(issue.get());
-            issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
+            issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments, pr.title()));
             var map = new LinkedHashMap<Issue, Optional<IssueTrackerIssue>>();
             if (issueProject() != null) {
                 issues.forEach(i -> {
@@ -320,10 +320,10 @@ class CheckRun {
             ret.put("Change requires a JEP request to be targeted", jepHasTargeted);
             if (jepHasTargeted && newLabels.contains("jep")) {
                 log.info("JEP issue " + jepIssue.id() + " found in state " + jepIssueStatus + ", removing JEP label from " + describe(pr));
-                newLabels.remove("jep");
+                newLabels.remove(JEP_LABEL);
             } else if (!jepHasTargeted && !newLabels.contains("jep")) {
                 log.info("JEP issue " + jepIssue.id() + " found in state " + jepIssueStatus + ", adding JEP label to " + describe(pr));
-                newLabels.add("jep");
+                newLabels.add(JEP_LABEL);
             }
         }
         return ret;
@@ -753,6 +753,7 @@ class CheckRun {
                 progressBody.append(" * ");
                 formatIssue(progressBody, jepIssue);
                 progressBody.append(" (**JEP**)");
+                progressBody.append("\n");
             }
             for (var csrIssue : csrIssues) {
                 progressBody.append(" * ");
@@ -761,6 +762,7 @@ class CheckRun {
                 if (isWithdrawnCSR(csrIssue)) {
                     progressBody.append(" (Withdrawn)");
                 }
+                progressBody.append("\n");
             }
 
             // Update the issuePRMap
@@ -1326,9 +1328,20 @@ class CheckRun {
                                       integrationBlockers.isEmpty() &&
                                       !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
             }
+
             if (approvalNeeded()) {
-                updateApprovalNeededComment(additionalProgresses);
+                var readyButMaintainerApproval = true;
+                for (var entry : additionalProgresses.entrySet()) {
+                    if (!entry.getKey().endsWith("needs maintainer approval") && !entry.getValue()) {
+                        readyButMaintainerApproval = false;
+                        break;
+                    }
+                }
+                if (readyButMaintainerApproval) {
+                    postApprovalNeededComment(additionalProgresses);
+                }
             }
+
             updateMergeReadyComment(readyForIntegration, commitMessage, rebasePossible);
             if (readyForIntegration && rebasePossible) {
                 newLabels.add("ready");
@@ -1504,34 +1517,15 @@ class CheckRun {
         return approval != null && approval.needsApproval(pr.targetRef());
     }
 
-    private void updateApprovalNeededComment(Map<String, Boolean> additionalProgresses) {
+    private void postApprovalNeededComment(Map<String, Boolean> additionalProgresses) {
         var existing = findComment(APPROVAL_NEEDED_MARKER);
-        var existingUnapproved = false;
-        for (var entry : additionalProgresses.entrySet()) {
-            if (entry.getKey().endsWith("needs maintainer approval") && !entry.getValue()) {
-                existingUnapproved = true;
-                break;
-            }
-        }
-        StringBuilder messageBuilder = new StringBuilder();
-        if (existingUnapproved) {
-            messageBuilder.append("⚠️  @").append(pr.author().username())
-                    .append(" There are still some issues that have not received maintainer approval.")
-                    .append("\n")
-                    .append("Please follow the instruction here to get maintainer approval: ")
-                    .append("[Requesting push approval for fixes](https://openjdk.org/projects/jdk-updates/approval.html)");
-        } else {
-            messageBuilder.append("@").append(pr.author().username()).append(" All the issues have already got the maintainer approval!");
-        }
-        messageBuilder.append(APPROVAL_NEEDED_MARKER);
-        String message = messageBuilder.toString();
         if (existing.isPresent()) {
-            if (!existing.get().body().equals(message)) {
-                pr.updateComment(existing.get().id(), message);
-            }
-        } else {
-            pr.addComment(message);
+            return;
         }
+        String message = "⚠️  @" + pr.author().username() +
+                " This change is now ready for you to apply for maintainer [approval](" + approval.documentLink() + ")." +
+                APPROVAL_NEEDED_MARKER;
+        pr.addComment(message);
     }
 
 }

@@ -1041,6 +1041,7 @@ public class MailingListNotifierTests {
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             credentials.commitLock(localRepo);
+            CheckableRepository.appendAndCommit(localRepo, "update master branch");
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
