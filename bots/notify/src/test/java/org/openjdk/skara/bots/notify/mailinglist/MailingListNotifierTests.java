@@ -1041,6 +1041,7 @@ public class MailingListNotifierTests {
             var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             credentials.commitLock(localRepo);
+            CheckableRepository.appendAndCommit(localRepo, "update master branch");
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
@@ -1086,9 +1087,7 @@ public class MailingListNotifierTests {
             assertEquals(listAddress, email.sender());
             assertEquals(EmailAddress.from("testauthor", "ta@none.none"), email.author());
             assertEquals(email.recipients(), List.of(listAddress));
-            assertTrue(email.subject().contains("git: test: created branch newbranch1 based on the branch"));
-            assertTrue(email.subject().contains("master") || email.subject().contains("testlock"));
-            assertTrue(email.subject().contains("containing 2 unique commits"));
+            assertTrue(email.subject().contains("git: test: created branch newbranch1 based on the branch master containing 2 unique commits"));
             assertTrue(email.body().contains("12345678: Some fixes"));
             assertTrue(email.hasHeader("extra1"));
             assertEquals("value1", email.headerValue("extra1"));
