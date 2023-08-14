@@ -224,6 +224,22 @@ public class PullRequestBotFactory implements BotFactory {
                 botBuilder.mergeSources(mergeSources);
             }
 
+            if (repo.value().contains("approval")) {
+                var approvalJSON = repo.value().get("approval");
+                String prefix = approvalJSON.contains("prefix") ? approvalJSON.get("prefix").asString() : "";
+                String request = approvalJSON.get("request").asString();
+                String approved = approvalJSON.get("approved").asString();
+                String rejected = approvalJSON.get("rejected").asString();
+                String documentLink = approvalJSON.get("documentLink").asString();
+                Approval approval = new Approval(prefix, request, approved, rejected, documentLink);
+                if (approvalJSON.contains("branches")) {
+                    for (var branch : approvalJSON.get("branches").fields()) {
+                        approval.addBranchPrefix(Pattern.compile(branch.name()), branch.value().get("prefix").asString());
+                    }
+                }
+                botBuilder.approval(approval);
+            }
+
             var prBot = botBuilder.build();
             pullRequestBotMap.put(repository.name(), prBot);
             ret.add(prBot);

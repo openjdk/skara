@@ -70,17 +70,19 @@ class CheckRun {
     private static final String EMPTY_PR_BODY_MARKER = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private static final String FULL_NAME_WARNING_MARKER = "<!-- PullRequestBot full name warning comment -->";
+    private static final String APPROVAL_NEEDED_MARKER = "<!-- PullRequestBot approval needed comment -->";
     private static final Set<String> PRIMARY_TYPES = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final Set<String> newLabels;
     private final boolean reviewCleanBackport;
     private final boolean reviewMerge;
+    private final Approval approval;
 
     private Duration expiresIn;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
                      CensusInstance censusInstance, boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport,
-                     boolean reviewMerge) throws IOException {
+                     boolean reviewMerge, Approval approval) throws IOException {
         this.workItem = workItem;
         this.pr = pr;
         this.localRepo = localRepo;
@@ -94,6 +96,7 @@ class CheckRun {
         this.integrators = integrators;
         this.reviewCleanBackport = reviewCleanBackport;
         this.reviewMerge = reviewMerge;
+        this.approval = approval;
 
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
         checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews,
@@ -103,10 +106,11 @@ class CheckRun {
     }
 
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
-                        List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance,
-                        boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport, boolean reviewMerge) throws IOException {
+                                     List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance,
+                                     boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport, boolean reviewMerge,
+                                     Approval approval) throws IOException {
         var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance,
-                ignoreStaleReviews, integrators, reviewCleanBackport, reviewMerge);
+                ignoreStaleReviews, integrators, reviewCleanBackport, reviewMerge, approval);
         run.checkStatus();
         if (run.expiresIn != null) {
             return Optional.of(Instant.now().plus(run.expiresIn));
@@ -261,9 +265,24 @@ class CheckRun {
     }
 
     // Additional bot-specific progresses that are not handled by JCheck
-    private Map<String, Boolean> botSpecificProgresses(List<IssueTrackerIssue> csrIssueTrackerIssues,
-            IssueTrackerIssue jepIssue, JdkVersion version) {
+    private Map<String, Boolean> botSpecificProgresses(Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap,
+                                                       List<IssueTrackerIssue> csrIssueTrackerIssues,
+                                                       IssueTrackerIssue jepIssue, JdkVersion version) {
         var ret = new HashMap<String, Boolean>();
+
+        if (approvalNeeded()) {
+            for (var issueOpt : regularIssuesMap.values()) {
+                if (issueOpt.isPresent()) {
+                    var issue = issueOpt.get();
+                    var labelNames = issue.labelNames();
+                    if (labelNames.contains(approval.approvedLabel(pr.targetRef()))) {
+                        ret.put("[" + issue.id() + "](" + issue.webUrl() + ") needs maintainer approval", true);
+                    } else {
+                        ret.put("[" + issue.id() + "](" + issue.webUrl() + ") needs maintainer approval", false);
+                    }
+                }
+            }
+        }
 
         var csrIssues = csrIssueTrackerIssues.stream()
                 .filter(issue -> issue.properties().containsKey("issuetype"))
@@ -677,11 +696,25 @@ class CheckRun {
                         if (issueType != null) {
                             progressBody.append(" (**").append(issueType.asString()).append("**");
                             var issuePriority = issueTrackerIssue.get().properties().get("priority");
-                            if (issuePriority == null) {
-                                progressBody.append(")");
-                            } else {
-                                progressBody.append(" - P").append(issuePriority.asString()).append(")");
+                            if (issuePriority != null) {
+                                progressBody.append(" - P").append(issuePriority.asString());
                             }
+                            if (approvalNeeded()) {
+                                String status = "";
+                                String targetRef = pr.targetRef();
+                                var labels = issueTrackerIssue.get().labelNames();
+                                if (labels.contains(approval.rejectedLabel(targetRef))) {
+                                    status = "Rejected";
+                                } else if (labels.contains(approval.approvedLabel(targetRef))) {
+                                    status = "Approved";
+                                } else if (labels.contains(approval.requestedLabel(targetRef))) {
+                                    status = "Requested";
+                                }
+                                if (!status.isEmpty()) {
+                                    progressBody.append(" - ").append(status);
+                                }
+                            }
+                            progressBody.append(")");
                         }
                         if (!relaxedEquals(issueTrackerIssue.get().title(), issue.description())) {
                             progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
@@ -1250,7 +1283,7 @@ class CheckRun {
             var issueToCsrMap = issueToCsrMap(regularIssuesMap, version);
             var csrIssues = issueToCsrMap.values().stream().toList();
             if (needUpdateAdditionalProgresses) {
-                additionalProgresses = botSpecificProgresses(csrIssues, jepIssue, version);
+                additionalProgresses = botSpecificProgresses(regularIssuesMap, csrIssues, jepIssue, version);
             }
 
             // Check the status of csr issues and determine whether to add or remove csr label here
@@ -1287,6 +1320,19 @@ class CheckRun {
                                       !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty() &&
                                       !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
+            }
+
+            if (approvalNeeded()) {
+                var readyButMaintainerApproval = true;
+                for (var entry : additionalProgresses.entrySet()) {
+                    if (!entry.getKey().endsWith("needs maintainer approval") && !entry.getValue()) {
+                        readyButMaintainerApproval = false;
+                        break;
+                    }
+                }
+                if (readyButMaintainerApproval) {
+                    postApprovalNeededComment(additionalProgresses);
+                }
             }
 
             updateMergeReadyComment(readyForIntegration, commitMessage, rebasePossible);
@@ -1458,6 +1504,21 @@ class CheckRun {
 
     private String describe(PullRequest pr) {
         return pr.repository().name() + "#" + pr.id();
+    }
+
+    private boolean approvalNeeded() {
+        return approval != null && approval.needsApproval(pr.targetRef());
+    }
+
+    private void postApprovalNeededComment(Map<String, Boolean> additionalProgresses) {
+        var existing = findComment(APPROVAL_NEEDED_MARKER);
+        if (existing.isPresent()) {
+            return;
+        }
+        String message = "⚠️  @" + pr.author().username() +
+                " This change is now ready for you to apply for maintainer [approval](" + approval.documentLink() + ")." +
+                APPROVAL_NEEDED_MARKER;
+        pr.addComment(message);
     }
 
 }

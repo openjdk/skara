@@ -144,6 +144,16 @@ class PullRequestBotFactoryTest {
                           "reviewMerge": true,
                           "processPR": false,
                           "jcheckMerge": false
+                          "approval": {
+                            "request": "-critical-request",
+                            "approved": "-critical-approved",
+                            "rejected": "-critical-rejected",
+                            "documentLink": "https://example.com",
+                            "branches": {
+                              "jdk20.0.1": { "prefix": "CPU23_04" },
+                              "jdk20.0.2": { "prefix": "CPU23_05" },
+                              }
+                          }
                         }
                       },
                       "forks": {
@@ -226,6 +236,7 @@ class PullRequestBotFactoryTest {
                     .findFirst().orElseThrow();
             assertEquals("PullRequestBot@repo7", pullRequestBot7.toString());
             assertFalse(pullRequestBot7.jcheckMerge());
+            assertEquals("https://example.com", pullRequestBot7.approval().documentLink());
 
             var csrIssueBot1 = (CSRIssueBot) bots.stream()
                     .filter(bot -> bot.toString().equals("CSRIssueBot@TEST"))

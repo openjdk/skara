@@ -65,6 +65,7 @@ public class PullRequestBotBuilder {
     private Set<String> mergeSources = Set.of();
     private boolean enableBackport = true;
     private Map<String, List<PRRecord>> issuePRMap;
+    private Approval approval = null;
 
     PullRequestBotBuilder() {
     }
@@ -239,14 +240,17 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder approval(Approval approval) {
+        this.approval = approval;
+        return this;
+    }
+
     public PullRequestBot build() {
-        return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration,
-                                  externalPullRequestCommands, externalCommitCommands,
-                                  blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
-                                  readyComments, issueProject, ignoreStaleReviews,
-                                  allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
-                                  confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom,
-                                  enableCsr, enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge,
-                                  processPR, processCommit, enableMerge, mergeSources, jcheckMerge, enableBackport, issuePRMap);
+        return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration, externalPullRequestCommands,
+                externalCommitCommands, blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
+                readyComments, issueProject, ignoreStaleReviews, allowedTargetBranches, seedStorage, confOverrideRepo,
+                confOverrideName, confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom, enableCsr,
+                enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge, processPR, processCommit, enableMerge,
+                mergeSources, jcheckMerge, enableBackport, issuePRMap, approval);
     }
 }
