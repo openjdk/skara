@@ -1514,7 +1514,7 @@ class CheckRun {
             return;
         }
         String message = "⚠️  @" + pr.author().username() +
-                " This change is now ready for maintainer [approval](" + approval.documentLink() + ")." +
+                " This change is now ready for you to apply for maintainer [approval](" + approval.documentLink() + ")." +
                 APPROVAL_NEEDED_MARKER;
         pr.addComment(message);
     }
