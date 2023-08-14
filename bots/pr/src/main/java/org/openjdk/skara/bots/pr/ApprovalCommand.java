@@ -78,7 +78,7 @@ public class ApprovalCommand implements CommandHandler {
         var titleIssue = Issue.fromStringRelaxed(pr.title());
         var issues = new ArrayList<String>();
         issues.add(titleIssue.get().shortId());
-        issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), allComments)
+        issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), allComments, pr.title())
                 .stream()
                 .map(Issue::shortId)
                 .toList());
