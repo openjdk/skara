@@ -317,7 +317,8 @@ public class IssueBotTests {
                     .issueProject(issueProject)
                     .censusRepo(censusBuilder.build())
                     .issuePRMap(issuePRMap)
-                    .approval(new Approval("", "jdk17u-fix-request", "jdk17u-fix-yes", "jdk17u-fix-no", "https://example.com"))
+                    .approval(new Approval("", "jdk17u-fix-request", "jdk17u-fix-yes",
+                            "jdk17u-fix-no", "https://example.com", "https://command.com"))
                     .build();
             var issueBot = new IssueBot(issueProject, List.of(author), Map.of(bot.name(), prBot), issuePRMap);
 
@@ -363,7 +364,8 @@ public class IssueBotTests {
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
             Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
-            Approval approval = new Approval("", "-critical-request", "-critical-approved", "-critical-rejected", "https://example.com");
+            Approval approval = new Approval("", "-critical-request", "-critical-approved",
+                    "-critical-rejected", "https://example.com", "https://command.com");
             approval.addBranchPrefix(Pattern.compile("jdk20.0.1"), "CPU23_04");
             approval.addBranchPrefix(Pattern.compile("jdk20.0.2"), "CPU23_05");
 

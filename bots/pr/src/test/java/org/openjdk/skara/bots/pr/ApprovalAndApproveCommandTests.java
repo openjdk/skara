@@ -39,9 +39,10 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.openjdk.skara.bots.common.PullRequestConstants.APPROVAL_LABEL;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
-public class ApprovalCommandTests {
+public class ApprovalAndApproveCommandTests {
     @Test
     void simple(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
@@ -58,7 +59,8 @@ public class ApprovalCommandTests {
                     .addReviewer(reviewer.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
             Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
-            Approval approval = new Approval("", "-critical-request", "-critical-approved", "-critical-rejected", "https://example.com");
+            Approval approval = new Approval("", "-critical-request", "-critical-approved",
+                    "-critical-rejected", "https://example.com", "https://command.com");
             approval.addBranchPrefix(Pattern.compile("jdk20.0.1"), "CPU23_04");
             approval.addBranchPrefix(Pattern.compile("jdk20.0.2"), "CPU23_05");
 
@@ -90,23 +92,23 @@ public class ApprovalCommandTests {
 
             pr.addComment("/approval");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "usage: `/approval <id> [request|cancel] [<text>]`");
-            assertFalse(pr.store().labelNames().contains("approval"));
+            assertLastCommentContains(pr, "usage: `/approval [<id>] (request|cancel) [<text>]`");
+            assertFalse(pr.store().labelNames().contains(APPROVAL_LABEL));
 
             pr.addComment("/approval JDK-1 request");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "Can only request approval for issues in TEST!");
-            assertFalse(pr.store().labelNames().contains("approval"));
+            assertFalse(pr.store().labelNames().contains(APPROVAL_LABEL));
 
-            pr.addComment("/approval 1 request My reason line1\nMy reason line2\nMy reason line3");
+            pr.addComment("/approval request My reason line1\nMy reason line2\nMy reason line3");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "The request has been created successfully!");
+            assertLastCommentContains(pr, "The maintainer approval request has been created successfully! Please wait for maintainers to process this request.");
             TestBotRunner.runPeriodicItems(issueBot);
-            assertTrue(pr.store().labelNames().contains("approval"));
+            assertTrue(pr.store().labelNames().contains(APPROVAL_LABEL));
 
             pr.addComment("/approval 1 request new reason line1\nnew reason line2\nnew reason line3");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "The request has been created successfully!");
+            assertLastCommentContains(pr, "The maintainer approval request has been updated successfully! Please wait for maintainers to process this request.");
             TestBotRunner.runPeriodicItems(issueBot);
             assertTrue(issue.comments().stream().anyMatch(comment -> comment.body().contains("new reason")));
 
@@ -117,17 +119,21 @@ public class ApprovalCommandTests {
 
             reviewerPr.addComment("/approve yes");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "usage: `/approve <id> [yes|no]`");
+            assertLastCommentContains(pr, "The maintainer approval request has been approved!");
 
             reviewerPr.addComment("/approve 1 yes");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "You have successfully approved this request!");
-            assertTrue(pr.store().labelNames().contains("approval"));
+            assertLastCommentContains(pr, "The maintainer approval request has been approved!");
+            assertTrue(pr.store().labelNames().contains(APPROVAL_LABEL));
             assertFalse(pr.store().labelNames().contains("ready"));
 
             TestBotRunner.runPeriodicItems(issueBot);
-            assertFalse(pr.store().labelNames().contains("approval"));
+            assertFalse(pr.store().labelNames().contains(APPROVAL_LABEL));
             assertTrue(pr.store().labelNames().contains("ready"));
+
+            pr.addComment("/approval cancel cancel it");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "The request has been processed by maintainer! Could not cancel the request now.");
         }
     }
 }

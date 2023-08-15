@@ -713,9 +713,9 @@ class CheckRun {
                                     existingRequested = true;
                                 }
                                 if (existingRequested) {
-                                    newLabels.add("approval");
+                                    newLabels.add(APPROVAL_LABEL);
                                 } else {
-                                    newLabels.remove("approval");
+                                    newLabels.remove(APPROVAL_LABEL);
                                 }
                                 if (!status.isEmpty()) {
                                     progressBody.append(" - ").append(status);
@@ -1338,7 +1338,7 @@ class CheckRun {
                     }
                 }
                 if (readyButMaintainerApproval) {
-                    postApprovalNeededComment(additionalProgresses);
+                    postApprovalNeededComment();
                 }
             }
 
@@ -1517,13 +1517,14 @@ class CheckRun {
         return approval != null && approval.needsApproval(pr.targetRef());
     }
 
-    private void postApprovalNeededComment(Map<String, Boolean> additionalProgresses) {
+    private void postApprovalNeededComment() {
         var existing = findComment(APPROVAL_NEEDED_MARKER);
         if (existing.isPresent()) {
             return;
         }
         String message = "⚠️  @" + pr.author().username() +
-                " This change is now ready for you to apply for maintainer [approval](" + approval.documentLink() + ")." +
+                " This change is now ready for you to apply for maintainer [approval](" + approval.documentLink() + ").\n" +
+                "To learn how to apply for approval using the Skara command, please refer to this [link](" + approval.commandLink() + ")." +
                 APPROVAL_NEEDED_MARKER;
         pr.addComment(message);
     }

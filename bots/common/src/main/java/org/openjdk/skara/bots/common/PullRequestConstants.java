@@ -37,6 +37,7 @@ public class PullRequestConstants {
     // LABELS
     public static final String CSR_LABEL = "csr";
     public static final String JEP_LABEL = "jep";
+    public static final String APPROVAL_LABEL = "approval";
 
     // PATTERNS
     public static final Pattern JEP_MARKER_PATTERN = Pattern.compile("<!-- jep: '(.*?)' '(.*?)' '(.*?)' -->");

@@ -30,6 +30,7 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import static org.openjdk.skara.bots.common.CommandNameEnum.approval;
@@ -45,7 +46,7 @@ public class ApprovalCommand implements CommandHandler {
         return approval.name();
     }
 
-    private static final Pattern APPROVAL_ARG_PATTERN = Pattern.compile("(([A-Za-z]+-)?[0-9]+) (request|cancel)(.*?)?", Pattern.MULTILINE | Pattern.DOTALL);
+    private static final Pattern APPROVAL_ARG_PATTERN = Pattern.compile("(([A-Za-z]+-)?[0-9]+)? ?(request|cancel)(.*?)?", Pattern.MULTILINE | Pattern.DOTALL);
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
@@ -56,7 +57,7 @@ public class ApprovalCommand implements CommandHandler {
         var approval = bot.approval();
         var targetRef = pr.targetRef();
         if (approval == null || !approval.needsApproval(targetRef)) {
-            reply.println("No need to apply for maintainer approval");
+            reply.println("No need to apply for maintainer approval!");
             return;
         }
         var argMatcher = APPROVAL_ARG_PATTERN.matcher(command.args());
@@ -69,28 +70,21 @@ public class ApprovalCommand implements CommandHandler {
         String issueId = argMatcher.group(1);
         String option = argMatcher.group(3);
         String message = argMatcher.group(4);
-        Issue issue = new Issue(issueId, null);
+
+        var issueOpt = getIssue(issueId, pr, allComments, reply);
+        if (issueOpt.isEmpty()) {
+            return;
+        }
+        var issue = issueOpt.get();
 
         if (issue.project().isPresent() && !issue.project().get().equalsIgnoreCase(issueProject.name())) {
             reply.print("Can only request approval for issues in " + issueProject.name() + "!");
             return;
         }
-        var titleIssue = Issue.fromStringRelaxed(pr.title());
-        var issues = new ArrayList<String>();
-        issues.add(titleIssue.get().shortId());
-        issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), allComments, pr.title())
-                .stream()
-                .map(Issue::shortId)
-                .toList());
-
-        if (!issues.contains(issue.shortId())) {
-            reply.print("Can only request approval for issues that this pr solves");
-            return;
-        }
 
         var issueTrackerIssueOpt = issueProject.issue(issue.shortId());
         if (issueTrackerIssueOpt.isEmpty()) {
-            reply.print("Can not find " + issue.id() + " in " + issueProject.name());
+            reply.print("Can not find " + issue.id() + " in " + issueProject.name() + ".");
             return;
         }
         var issueTrackerIssue = issueTrackerIssueOpt.get();
@@ -104,27 +98,62 @@ public class ApprovalCommand implements CommandHandler {
                 .filter(comment -> comment.body().contains(prefix))
                 .findFirst();
 
+        var labels = issueTrackerIssue.labelNames();
         if (option.equals("cancel")) {
-            var labels = issueTrackerIssue.labelNames();
             if (labels.contains(approvedLabel) || labels.contains(rejectedLabel)) {
-                reply.print("The request has been processed by maintainer! Could not cancel the request.");
+                reply.print("The request has been processed by maintainer! Could not cancel the request now.");
             } else {
                 issueTrackerIssue.removeLabel(requestLabel);
                 existingComment.ifPresent(issueTrackerIssue::removeComment);
                 reply.print("The request has already been cancelled successfully!");
             }
         } else if (option.equals("request")) {
-            issueTrackerIssue.addLabel(requestLabel);
-            var messageToPost = prefix + ":Request from " + command.user().fullName() + "\n" + message.trim();
-            if (existingComment.isPresent()) {
-                if (!existingComment.get().body().equals(messageToPost)) {
-                    issueTrackerIssue.updateComment(existingComment.get().id(), messageToPost);
-                }
+            if (labels.contains(approvedLabel)) {
+                reply.print("The request has been approved by maintainer!");
+            } else if (labels.contains(rejectedLabel)) {
+                reply.print("The request has been rejected by maintainer!");
             } else {
-                issueTrackerIssue.addComment(messageToPost);
+                issueTrackerIssue.addLabel(requestLabel);
+                var messageToPost = prefix + ":Maintainer Approval Request from " + command.user().fullName() + "\n" + message.trim();
+                if (existingComment.isPresent()) {
+                    if (!existingComment.get().body().equals(messageToPost)) {
+                        issueTrackerIssue.updateComment(existingComment.get().id(), messageToPost);
+                        reply.print("The maintainer approval request has been updated successfully! Please wait for maintainers to process this request.");
+                    }
+                } else {
+                    issueTrackerIssue.addComment(messageToPost);
+                    reply.print("The maintainer approval request has been created successfully! Please wait for maintainers to process this request.");
+                }
             }
-            reply.print("The request has been created successfully!");
         }
+    }
+
+    static Optional<Issue> getIssue(String issueId, PullRequest pr, List<Comment> allComments, PrintWriter reply) {
+        var titleIssue = Issue.fromStringRelaxed(pr.title());
+        var issues = new ArrayList<String>();
+        titleIssue.ifPresent(value -> issues.add(value.shortId()));
+        issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), allComments, pr.title())
+                .stream()
+                .map(Issue::shortId)
+                .toList());
+        // If there is only one issue associated with the pr, then the user don't need to specify the issueID in command
+        if (issueId == null) {
+            if (issues.size() == 1) {
+                issueId = issues.get(0);
+            } else if (issues.size() == 0) {
+                reply.print("There is no issue associated with this pull request.");
+                return Optional.empty();
+            } else {
+                reply.print("There are multiple issues associated with this pull request. Please specify an issue ID in your command.");
+                return Optional.empty();
+            }
+        }
+        Issue issue = new Issue(issueId, null);
+        if (!issues.contains(issue.shortId())) {
+            reply.print("Can only request approval for issues that this pr solves.");
+            return Optional.empty();
+        }
+        return Optional.of(issue);
     }
 
     @Override
@@ -133,6 +162,6 @@ public class ApprovalCommand implements CommandHandler {
     }
 
     private void showHelp(PrintWriter reply) {
-        reply.println("usage: `/approval <id> [request|cancel] [<text>]`");
+        reply.println("usage: `/approval [<id>] (request|cancel) [<text>]`");
     }
 }

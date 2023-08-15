@@ -22,19 +22,16 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
 public class ApproveCommand implements CommandHandler {
 
-    private static final Pattern APPROVE_ARG_PATTERN = Pattern.compile("(([A-Za-z]+-)?[0-9]+) (yes|no)");
+    private static final Pattern APPROVE_ARG_PATTERN = Pattern.compile("(([A-Za-z]+-)?[0-9]+)? ?(yes|no)");
 
     @Override
     public String description() {
@@ -47,7 +44,7 @@ public class ApproveCommand implements CommandHandler {
     }
 
     private void showHelp(PrintWriter reply) {
-        reply.println("usage: `/approve <id> [yes|no]`");
+        reply.println("usage: `/approve [<id>] (yes|no)`");
     }
 
     @Override
@@ -59,7 +56,7 @@ public class ApproveCommand implements CommandHandler {
         var approval = bot.approval();
         var targetRef = pr.targetRef();
         if (approval == null || !approval.needsApproval(targetRef)) {
-            reply.println("Approval is not enabled in this branch");
+            reply.println("This target branch doesn't need maintainer approval.");
             return;
         }
         var argMatcher = APPROVE_ARG_PATTERN.matcher(command.args());
@@ -70,50 +67,35 @@ public class ApproveCommand implements CommandHandler {
         var issueProject = bot.issueProject();
         String issueId = argMatcher.group(1);
         String option = argMatcher.group(3);
-        Issue issue = new Issue(issueId, null);
+
+        var issueOpt = ApprovalCommand.getIssue(issueId, pr, allComments, reply);
+        if (issueOpt.isEmpty()) {
+            return;
+        }
+        var issue = issueOpt.get();
 
         if (issue.project().isPresent() && !issue.project().get().equalsIgnoreCase(issueProject.name())) {
             reply.print("Can only approve issues in " + issueProject.name() + "!");
             return;
         }
 
-        var titleIssue = Issue.fromStringRelaxed(pr.title());
-        var issues = new ArrayList<String>();
-        issues.add(titleIssue.get().shortId());
-        issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), allComments, pr.title())
-                .stream()
-                .map(Issue::shortId)
-                .toList());
-
-        if (!issues.contains(issue.shortId())) {
-            reply.print("Can only approve issues this pr solves");
-            return;
-        }
-
         var issueTrackerIssueOpt = issueProject.issue(issue.shortId());
         if (issueTrackerIssueOpt.isEmpty()) {
-            reply.print("Can not find " + issue.id() + " in " + issueProject.name());
+            reply.print("Can not find " + issue.id() + " in " + issueProject.name() + ".");
             return;
         }
         var issueTrackerIssue = issueTrackerIssueOpt.get();
-        var requestLabel = approval.requestedLabel(targetRef);
         var approvedLabel = approval.approvedLabel(targetRef);
         var rejectedLabel = approval.rejectedLabel(targetRef);
-        var labels = issueTrackerIssue.labelNames();
-
-        if (!labels.contains(requestLabel)) {
-            reply.print("There is no request");
-            return;
-        }
 
         if (option.equals("yes")) {
             issueTrackerIssue.removeLabel(rejectedLabel);
             issueTrackerIssue.addLabel(approvedLabel);
-            reply.print("You have successfully approved this request!");
+            reply.print("The maintainer approval request has been approved!");
         } else if (option.equals("no")) {
             issueTrackerIssue.removeLabel(approvedLabel);
             issueTrackerIssue.addLabel(rejectedLabel);
-            reply.print("You have successfully rejected this request!");
+            reply.print("The maintainer approval request has been rejected!");
         }
     }
 }

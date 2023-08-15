@@ -32,15 +32,17 @@ public class Approval {
     private final String approved;
     private final String rejected;
     private final String documentLink;
+    private final String commandLink;
     private final Map<Pattern, String> branchPrefixes;
 
-    public Approval(String prefix, String request, String approved, String rejected, String documentLink) {
+    public Approval(String prefix, String request, String approved, String rejected, String documentLink, String commandLink) {
         this.prefix = prefix;
         this.request = request;
         this.approved = approved;
         this.rejected = rejected;
         this.branchPrefixes = new HashMap<>();
         this.documentLink = documentLink;
+        this.commandLink = commandLink;
     }
 
     public void addBranchPrefix(Pattern branchPattern, String prefix) {
@@ -61,6 +63,10 @@ public class Approval {
 
     public String documentLink() {
         return documentLink;
+    }
+
+    public String commandLink() {
+        return commandLink;
     }
 
     private String prefixForRef(String targetRef) {
