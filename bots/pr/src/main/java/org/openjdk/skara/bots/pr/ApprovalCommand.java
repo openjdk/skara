@@ -146,7 +146,7 @@ public class ApprovalCommand implements CommandHandler {
                 reply.print("There is no issue associated with this pull request.");
                 return Optional.empty();
             } else {
-                reply.print("There are multiple issues associated with this pull request. Please specify an issue ID in your command.");
+                reply.print("There are multiple issues associated with this pull request, you need to request approval for each one individually.");
                 return Optional.empty();
             }
         }
