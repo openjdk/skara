@@ -149,7 +149,6 @@ class PullRequestBotFactoryTest {
                             "approved": "-critical-approved",
                             "rejected": "-critical-rejected",
                             "documentLink": "https://example.com",
-                            "commandLink": "https://command.com"
                             "branches": {
                               "jdk20.0.1": { "prefix": "CPU23_04" },
                               "jdk20.0.2": { "prefix": "CPU23_05" },

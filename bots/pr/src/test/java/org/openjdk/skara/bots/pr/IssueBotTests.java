@@ -407,8 +407,10 @@ public class IssueBotTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().labelNames().contains("ready"));
             assertTrue(pr.store().body().contains("[TEST-1](http://localhost/project/testTEST-1) needs maintainer approval"));
-            assertEquals("⚠️  @user1 This change is now ready for you to apply for maintainer [approval](https://example.com)." +
-                            "\nTo learn how to apply for approval using the Skara command, please refer to this [link](https://command.com).<!-- PullRequestBot approval needed comment -->"
+            assertEquals("⚠️  @user1 This change is now ready for you to apply for maintainer [approval](https://example.com). " +
+                            "This can be done directly in each associated issue or by using the " +
+                            "[/approval](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/approval) command" +
+                            "<!-- PullRequestBot approval needed comment -->"
                     , pr.store().comments().get(1).body());
 
             issue.addLabel("CPU23_04-critical-request");
@@ -418,8 +420,11 @@ public class IssueBotTests {
             issue.addLabel("CPU23_04-critical-approved");
             TestBotRunner.runPeriodicItems(issueBot);
             assertTrue(pr.store().body().contains("Approved"));
-            assertEquals("⚠️  @user1 This change is now ready for you to apply for maintainer [approval](https://example.com)." +
-                            "\nTo learn how to apply for approval using the Skara command, please refer to this [link](https://command.com).<!-- PullRequestBot approval needed comment -->"
+            assertTrue(pr.store().body().contains("[TEST-1](http://localhost/project/testTEST-1) needs maintainer approval"));
+            assertEquals("⚠️  @user1 This change is now ready for you to apply for maintainer [approval](https://example.com). " +
+                            "This can be done directly in each associated issue or by using the " +
+                            "[/approval](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/approval) command" +
+                            "<!-- PullRequestBot approval needed comment -->"
                     , pr.store().comments().get(1).body());
         }
     }
