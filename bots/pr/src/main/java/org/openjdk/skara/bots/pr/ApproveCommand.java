@@ -75,7 +75,7 @@ public class ApproveCommand implements CommandHandler {
         var issue = issueOpt.get();
 
         if (issue.project().isPresent() && !issue.project().get().equalsIgnoreCase(issueProject.name())) {
-            reply.print("Can only approve issues in " + issueProject.name() + "!");
+            reply.print("Can only approve issues in the " + issueProject.name() + " project.");
             return;
         }
 
