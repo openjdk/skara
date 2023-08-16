@@ -95,7 +95,7 @@ public class ApproveCommand implements CommandHandler {
         } else if (option.equals("no")) {
             issueTrackerIssue.removeLabel(approvedLabel);
             issueTrackerIssue.addLabel(rejectedLabel);
-            reply.print("The maintainer approval request has been rejected!");
+            reply.print("The approval request has been rejected.");
         }
     }
 }
