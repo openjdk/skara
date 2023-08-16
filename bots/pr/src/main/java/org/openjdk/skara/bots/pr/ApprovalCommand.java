@@ -101,7 +101,7 @@ public class ApprovalCommand implements CommandHandler {
         var labels = issueTrackerIssue.labelNames();
         if (option.equals("cancel")) {
             if (labels.contains(approvedLabel) || labels.contains(rejectedLabel)) {
-                reply.print("The request has been processed by maintainer! Could not cancel the request now.");
+                reply.print("The request has already been handled by a maintainer and can no longer be canceled.");
             } else {
                 issueTrackerIssue.removeLabel(requestLabel);
                 existingComment.ifPresent(issueTrackerIssue::removeComment);
