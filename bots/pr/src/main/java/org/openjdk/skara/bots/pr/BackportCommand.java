@@ -99,8 +99,18 @@ public class BackportCommand implements CommandHandler {
 
         if (parts[0].equals("disable")) {
             // Remove label
-            var targetRepoName = parts[1];
-            var targetBranchName = parts.length == 3 ? parts[2] : "master";
+            var targetRepo = getTargetRepo(bot, parts[1], reply);
+            if (targetRepo == null) {
+                return;
+            }
+            var targetRepoName = targetRepo.name();
+
+            var targetBranch = getTargetBranch(parts.length == 3 ? parts[2] : "master", targetRepo, reply);
+            if (targetBranch == null) {
+                return;
+            }
+            var targetBranchName = targetBranch.name();
+
             var backportLabel = generateBackportLabel(targetRepoName, targetBranchName);
             if (pr.labelNames().contains(backportLabel)) {
                 labelsToRemove.add(backportLabel);
@@ -110,14 +120,14 @@ public class BackportCommand implements CommandHandler {
             }
         } else {
             // Get target repo
-            var targetRepo = getTargetRepo(bot, parts, reply);
+            var targetRepo = getTargetRepo(bot, parts[0], reply);
             if (targetRepo == null) {
                 return;
             }
             var targetRepoName = targetRepo.name();
 
             // Get target branch
-            var targetBranch = getTargetBranch(parts, targetRepo, reply);
+            var targetBranch = getTargetBranch(parts.length == 2 ? parts[1] : "master", targetRepo, reply);
             if (targetBranch == null) {
                 return;
             }
@@ -146,9 +156,9 @@ public class BackportCommand implements CommandHandler {
         return "backport=" + targetRepo + ":" + targetBranchName;
     }
 
-    private HostedRepository getTargetRepo(PullRequestBot bot, String[] parts, PrintWriter reply) {
+    private HostedRepository getTargetRepo(PullRequestBot bot, String repoName, PrintWriter reply) {
         var forge = bot.repo().forge();
-        var repoNameArg = parts[0].replace("http://", "")
+        var repoNameArg = repoName.replace("http://", "")
                 .replace("https://", "")
                 .replace(forge.hostname() + "/", "");
         // If the arg is given with a namespace prefix, look for an exact match,
@@ -172,8 +182,7 @@ public class BackportCommand implements CommandHandler {
         return potentialTargetRepo.get();
     }
 
-    private Branch getTargetBranch(String[] parts, HostedRepository targetRepo, PrintWriter reply) {
-        var targetBranchName = parts.length == 2 ? parts[1] : "master";
+    private Branch getTargetBranch(String targetBranchName, HostedRepository targetRepo, PrintWriter reply) {
         var targetBranches = targetRepo.branches();
         if (targetBranches.stream().noneMatch(b -> b.name().equals(targetBranchName))) {
             reply.println("The target branch `" + targetBranchName + "` does not exist");
@@ -184,7 +193,7 @@ public class BackportCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequestBot bot, HostedCommit commit, LimitedCensusInstance censusInstance,
-            ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+                       ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (censusInstance.contributor(command.user()).isEmpty() && !command.user().equals(bot.repo().forge().currentUser())) {
             reply.println(USER_INVALID_WARNING);
             return;
@@ -203,7 +212,7 @@ public class BackportCommand implements CommandHandler {
         }
 
         // Get target repo
-        var targetRepo = getTargetRepo(bot, parts, reply);
+        var targetRepo = getTargetRepo(bot, parts[0], reply);
         if (targetRepo == null) {
             return;
         }
@@ -211,7 +220,7 @@ public class BackportCommand implements CommandHandler {
         var fork = bot.forks().get(targetRepo.name());
 
         // Get target branch
-        var targetBranch = getTargetBranch(parts, targetRepo, reply);
+        var targetBranch = getTargetBranch(parts.length == 2 ? parts[1] : "master", targetRepo, reply);
         if (targetBranch == null) {
             return;
         }
