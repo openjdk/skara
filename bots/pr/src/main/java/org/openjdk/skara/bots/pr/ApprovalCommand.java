@@ -114,7 +114,7 @@ public class ApprovalCommand implements CommandHandler {
                 reply.print("Approval has already been requested and rejected.");
             } else {
                 issueTrackerIssue.addLabel(requestLabel);
-                var messageToPost = prefix + ":Maintainer Approval Request from " + command.user().fullName() + "\n" + message.trim();
+                var messageToPost = prefix + " Approval Request from " + command.user().fullName() + "\n" + message.trim();
                 if (existingComment.isPresent()) {
                     if (!existingComment.get().body().equals(messageToPost)) {
                         issueTrackerIssue.updateComment(existingComment.get().id(), messageToPost);
