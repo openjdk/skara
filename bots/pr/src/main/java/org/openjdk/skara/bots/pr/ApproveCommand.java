@@ -50,7 +50,7 @@ public class ApproveCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!bot.integrators().contains(command.user().username())) {
-            reply.println("Only integrators of this repo are allowed to issue the `/approve` command.");
+            reply.println("Only integrators for this repository are allowed to issue the `/approve` command.");
         }
 
         var approval = bot.approval();
