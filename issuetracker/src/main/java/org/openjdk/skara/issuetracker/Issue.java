@@ -207,4 +207,6 @@ public interface Issue {
     void setAssignees(List<HostUser> assignees);
 
     Optional<HostUser> closedBy();
+
+    URI commentUrl(Comment comment);
 }

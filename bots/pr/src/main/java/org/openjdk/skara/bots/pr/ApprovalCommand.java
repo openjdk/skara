@@ -56,8 +56,12 @@ public class ApprovalCommand implements CommandHandler {
         }
         var approval = bot.approval();
         var targetRef = pr.targetRef();
-        if (approval == null || !approval.needsApproval(targetRef)) {
-            reply.println("No need to apply for maintainer approval!");
+        if (approval == null) {
+            reply.println("Changes in this repository do not require maintainer approval.");
+            return;
+        }
+        if (!approval.needsApproval(targetRef)) {
+            reply.println("Changes to branch " + pr.targetRef() + " do not require maintainer approval");
             return;
         }
         var argMatcher = APPROVAL_ARG_PATTERN.matcher(command.args());
@@ -78,13 +82,13 @@ public class ApprovalCommand implements CommandHandler {
         var issue = issueOpt.get();
 
         if (issue.project().isPresent() && !issue.project().get().equalsIgnoreCase(issueProject.name())) {
-            reply.print("Approval can only be request for issues in the " + issueProject.name() + " project.");
+            reply.println("Approval can only be request for issues in the " + issueProject.name() + " project.");
             return;
         }
 
         var issueTrackerIssueOpt = issueProject.issue(issue.shortId());
         if (issueTrackerIssueOpt.isEmpty()) {
-            reply.print("Can not find " + issue.id() + " in the " + issueProject.name() + " project.");
+            reply.println("Can not find " + issue.id() + " in the " + issueProject.name() + " project.");
             return;
         }
         var issueTrackerIssue = issueTrackerIssueOpt.get();
@@ -95,42 +99,42 @@ public class ApprovalCommand implements CommandHandler {
         var comments = issueTrackerIssue.comments();
         var existingComment = comments.stream()
                 .filter(comment -> comment.author().equals(issueProject.issueTracker().currentUser()))
-                .filter(comment -> comment.body().contains(prefix))
+                .filter(comment -> comment.body().startsWith(prefix))
                 .findFirst();
 
         var labels = issueTrackerIssue.labelNames();
         if (option.equals("cancel")) {
             if (labels.contains(approvedLabel) || labels.contains(rejectedLabel)) {
-                reply.print("The request has already been handled by a maintainer and can no longer be canceled.");
+                reply.println("The request has already been handled by a maintainer and can no longer be canceled.");
             } else {
                 issueTrackerIssue.removeLabel(requestLabel);
                 existingComment.ifPresent(issueTrackerIssue::removeComment);
-                reply.print("The approval request has been cancelled successfully.");
+                reply.println("The approval request has been cancelled successfully.");
             }
         } else if (option.equals("request")) {
             if (labels.contains(approvedLabel)) {
-                reply.print("Approval has already been requested and approved.");
+                reply.println("Approval has already been requested and approved.");
             } else if (labels.contains(rejectedLabel)) {
-                reply.print("Approval has already been requested and rejected.");
+                reply.println("Approval has already been requested and rejected.");
             } else {
-                issueTrackerIssue.addLabel(requestLabel);
                 var messageToPost = prefix + " Approval Request from " + command.user().fullName() + "\n" + message.trim();
                 if (existingComment.isPresent()) {
                     if (!existingComment.get().body().equals(messageToPost)) {
                         issueTrackerIssue.updateComment(existingComment.get().id(), messageToPost);
-                        reply.print("The approval request has been updated successfully.");
+                        reply.println("The approval request has been updated successfully.");
                     } else {
-                        reply.print("The approval request was already up to date.");
+                        reply.println("The approval request was already up to date.");
                     }
                 } else {
-                    issueTrackerIssue.addComment(messageToPost);
-                    reply.print("The maintainer approval request has been created successfully! Please wait for maintainers to process this request.");
+                    Comment comment = issueTrackerIssue.addComment(messageToPost);
+                    reply.println("The approval [request](" + issueTrackerIssue.commentUrl(comment) + ") has been created successfully.");
                 }
+                issueTrackerIssue.addLabel(requestLabel);
             }
         }
     }
 
-    static Optional<Issue> getIssue(String issueId, PullRequest pr, List<Comment> allComments, PrintWriter reply) {
+    private Optional<Issue> getIssue(String issueId, PullRequest pr, List<Comment> allComments, PrintWriter reply) {
         var titleIssue = Issue.fromStringRelaxed(pr.title());
         var issues = new ArrayList<String>();
         titleIssue.ifPresent(value -> issues.add(value.shortId()));
@@ -143,16 +147,16 @@ public class ApprovalCommand implements CommandHandler {
             if (issues.size() == 1) {
                 issueId = issues.get(0);
             } else if (issues.size() == 0) {
-                reply.print("There is no issue associated with this pull request.");
+                reply.println("There is no issue associated with this pull request.");
                 return Optional.empty();
             } else {
-                reply.print("There are multiple issues associated with this pull request, you need to request approval for each one individually.");
+                reply.println("There are multiple issues associated with this pull request, you need to request approval for each one individually.");
                 return Optional.empty();
             }
         }
         Issue issue = new Issue(issueId, null);
         if (!issues.contains(issue.shortId())) {
-            reply.print("Approval can only be requested for issues that this pull request solves.");
+            reply.println("Approval can only be requested for issues that this pull request solves.");
             return Optional.empty();
         }
         return Optional.of(issue);

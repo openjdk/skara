@@ -231,8 +231,7 @@ public class PullRequestBotFactory implements BotFactory {
                 String approved = approvalJSON.get("approved").asString();
                 String rejected = approvalJSON.get("rejected").asString();
                 String documentLink = approvalJSON.get("documentLink").asString();
-                String commandLink = approvalJSON.get("commandLink").asString();
-                Approval approval = new Approval(prefix, request, approved, rejected, documentLink, commandLink);
+                Approval approval = new Approval(prefix, request, approved, rejected, documentLink);
                 if (approvalJSON.contains("branches")) {
                     for (var branch : approvalJSON.get("branches").fields()) {
                         approval.addBranchPrefix(Pattern.compile(branch.name()), branch.value().get("prefix").asString());
