@@ -105,7 +105,7 @@ public class ApprovalCommand implements CommandHandler {
             } else {
                 issueTrackerIssue.removeLabel(requestLabel);
                 existingComment.ifPresent(issueTrackerIssue::removeComment);
-                reply.print("The request has already been cancelled successfully!");
+                reply.print("The approval request has been cancelled successfully.");
             }
         } else if (option.equals("request")) {
             if (labels.contains(approvedLabel)) {
