@@ -111,7 +111,7 @@ public class ApprovalCommand implements CommandHandler {
             if (labels.contains(approvedLabel)) {
                 reply.print("Approval has already been requested and approved.");
             } else if (labels.contains(rejectedLabel)) {
-                reply.print("The request has been rejected by maintainer!");
+                reply.print("Approval has already been requested and rejected.");
             } else {
                 issueTrackerIssue.addLabel(requestLabel);
                 var messageToPost = prefix + ":Maintainer Approval Request from " + command.user().fullName() + "\n" + message.trim();
