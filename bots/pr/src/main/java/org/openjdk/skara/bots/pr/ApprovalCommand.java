@@ -152,7 +152,7 @@ public class ApprovalCommand implements CommandHandler {
         }
         Issue issue = new Issue(issueId, null);
         if (!issues.contains(issue.shortId())) {
-            reply.print("Can only request approval for issues that this pr solves.");
+            reply.print("Approval can only be requested for issues that this pull request solves.");
             return Optional.empty();
         }
         return Optional.of(issue);
