@@ -119,7 +119,7 @@ public class ApprovalCommand implements CommandHandler {
                     if (!existingComment.get().body().equals(messageToPost)) {
                         issueTrackerIssue.updateComment(existingComment.get().id(), messageToPost);
                         reply.print("The approval request has been updated successfully.");
-                    } else{
+                    } else {
                         reply.print("The approval request was already up to date.");
                     }
                 } else {
