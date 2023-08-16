@@ -109,7 +109,7 @@ public class ApprovalCommand implements CommandHandler {
             }
         } else if (option.equals("request")) {
             if (labels.contains(approvedLabel)) {
-                reply.print("The request has been approved by maintainer!");
+                reply.print("Approval has already been requested and approved.");
             } else if (labels.contains(rejectedLabel)) {
                 reply.print("The request has been rejected by maintainer!");
             } else {
