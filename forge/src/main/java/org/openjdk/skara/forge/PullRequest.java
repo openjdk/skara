@@ -156,8 +156,6 @@ public interface PullRequest extends Issue {
      */
     URI changeUrl(Hash base);
 
-    URI commentUrl(Comment comment);
-
     URI reviewCommentUrl(ReviewComment reviewComment);
 
     URI reviewUrl(Review review);

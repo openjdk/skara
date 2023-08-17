@@ -31,20 +31,23 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ApprovalTests {
     @Test
     void simple() {
-        Approval approval = new Approval("", "jdk17u-fix-request", "jdk17u-fix-yes", "jdk17u-fix-no", "https://example.com");
+        Approval approval = new Approval("", "jdk17u-fix-request", "jdk17u-fix-yes",
+                "jdk17u-fix-no", "https://example.com");
         assertEquals("jdk17u-fix-request", approval.requestedLabel("master"));
         assertEquals("jdk17u-fix-yes", approval.approvedLabel("master"));
         assertEquals("jdk17u-fix-no", approval.rejectedLabel("master"));
         assertEquals("https://example.com", approval.documentLink());
         assertTrue(approval.needsApproval("master"));
 
-        approval = new Approval("jdk17u-fix-", "request", "yes", "no", "https://example.com");
+        approval = new Approval("jdk17u-fix-", "request", "yes", "no",
+                "https://example.com");
         assertEquals("jdk17u-fix-request", approval.requestedLabel("master"));
         assertEquals("jdk17u-fix-yes", approval.approvedLabel("master"));
         assertEquals("jdk17u-fix-no", approval.rejectedLabel("master"));
         assertTrue(approval.needsApproval("master"));
 
-        approval = new Approval("", "-critical-request", "-critical-approved", "-critical-rejected", "https://example.com");
+        approval = new Approval("", "-critical-request", "-critical-approved",
+                "-critical-rejected", "https://example.com");
         approval.addBranchPrefix(Pattern.compile("jdk20.0.1"), "CPU23_04");
         approval.addBranchPrefix(Pattern.compile("jdk20.0.2"), "CPU23_05");
         assertEquals("CPU23_04-critical-request", approval.requestedLabel("jdk20.0.1"));

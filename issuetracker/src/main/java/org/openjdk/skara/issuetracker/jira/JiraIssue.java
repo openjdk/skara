@@ -169,6 +169,11 @@ public class JiraIssue implements IssueTrackerIssue {
     }
 
     @Override
+    public URI commentUrl(Comment comment) {
+        return URIBuilder.base(webUrl()).appendPath("?focusedCommentId=" + comment.id()).build();
+    }
+
+    @Override
     public ZonedDateTime createdAt() {
         return ZonedDateTime.parse(json.get("fields").get("created").asString(), dateFormat);
     }

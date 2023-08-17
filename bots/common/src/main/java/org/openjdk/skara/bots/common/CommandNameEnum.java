@@ -45,7 +45,9 @@ public enum CommandNameEnum {
     clean,
     open,
     backport,
-    tag;
+    tag,
+    approval(true),
+    approve;
 
     private boolean isMultiLine = false;
 

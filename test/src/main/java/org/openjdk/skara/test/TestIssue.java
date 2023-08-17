@@ -141,6 +141,11 @@ public class TestIssue implements Issue {
     }
 
     @Override
+    public URI commentUrl(Comment comment) {
+        return URIBuilder.base(webUrl()).appendPath("?focusedCommentId=" + comment.id()).build();
+    }
+
+    @Override
     public ZonedDateTime createdAt() {
         return store.created();
     }

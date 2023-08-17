@@ -678,6 +678,9 @@ class CheckRun {
                 progressBody.append("s");
             }
             progressBody.append("\n");
+
+            var requestPresent = false;
+
             for (var issueEntry : regularIssuesMap.entrySet()) {
                 var issue = issueEntry.getKey();
                 progressBody.append(" * ");
@@ -709,6 +712,7 @@ class CheckRun {
                                     status = "Approved";
                                 } else if (labels.contains(approval.requestedLabel(targetRef))) {
                                     status = "Requested";
+                                    requestPresent = true;
                                 }
                                 if (!status.isEmpty()) {
                                     progressBody.append(" - ").append(status);
@@ -740,6 +744,12 @@ class CheckRun {
                     }
                 }
                 progressBody.append("\n");
+            }
+
+            if (requestPresent) {
+                newLabels.add(APPROVAL_LABEL);
+            } else {
+                newLabels.remove(APPROVAL_LABEL);
             }
             if (jepIssue != null) {
                 currentIssues.add(jepIssue.id());
@@ -1331,7 +1341,7 @@ class CheckRun {
                     }
                 }
                 if (readyButMaintainerApproval) {
-                    postApprovalNeededComment(additionalProgresses);
+                    postApprovalNeededComment();
                 }
             }
 
@@ -1510,13 +1520,16 @@ class CheckRun {
         return approval != null && approval.needsApproval(pr.targetRef());
     }
 
-    private void postApprovalNeededComment(Map<String, Boolean> additionalProgresses) {
+    private void postApprovalNeededComment() {
         var existing = findComment(APPROVAL_NEEDED_MARKER);
         if (existing.isPresent()) {
             return;
         }
         String message = "⚠️  @" + pr.author().username() +
-                " This change is now ready for you to apply for maintainer [approval](" + approval.documentLink() + ")." +
+                " This change is now ready for you to apply for maintainer [approval](" + approval.documentLink() + "). " +
+                "This can be done directly in each associated issue or by using the " +
+                "[/approval](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/approval) " +
+                "command." +
                 APPROVAL_NEEDED_MARKER;
         pr.addComment(message);
     }
