@@ -1526,7 +1526,7 @@ class CheckRun {
                 " This change is now ready for you to apply for maintainer [approval](" + approval.documentLink() + "). " +
                 "This can be done directly in each associated issue or by using the " +
                 "[/approval](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/approval) " +
-                "command" +
+                "command." +
                 APPROVAL_NEEDED_MARKER;
         pr.addComment(message);
     }
