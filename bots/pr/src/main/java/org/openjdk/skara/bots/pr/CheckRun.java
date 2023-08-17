@@ -678,6 +678,9 @@ class CheckRun {
                 progressBody.append("s");
             }
             progressBody.append("\n");
+
+            var existingRequested = false;
+
             for (var issueEntry : regularIssuesMap.entrySet()) {
                 var issue = issueEntry.getKey();
                 progressBody.append(" * ");
@@ -702,7 +705,6 @@ class CheckRun {
                             if (approvalNeeded()) {
                                 String status = "";
                                 String targetRef = pr.targetRef();
-                                var existingRequested = false;
                                 var labels = issueTrackerIssue.get().labelNames();
                                 if (labels.contains(approval.rejectedLabel(targetRef))) {
                                     status = "Rejected";
@@ -711,11 +713,6 @@ class CheckRun {
                                 } else if (labels.contains(approval.requestedLabel(targetRef))) {
                                     status = "Requested";
                                     existingRequested = true;
-                                }
-                                if (existingRequested) {
-                                    newLabels.add(APPROVAL_LABEL);
-                                } else {
-                                    newLabels.remove(APPROVAL_LABEL);
                                 }
                                 if (!status.isEmpty()) {
                                     progressBody.append(" - ").append(status);
@@ -747,6 +744,12 @@ class CheckRun {
                     }
                 }
                 progressBody.append("\n");
+            }
+
+            if (existingRequested) {
+                newLabels.add(APPROVAL_LABEL);
+            } else {
+                newLabels.remove(APPROVAL_LABEL);
             }
             if (jepIssue != null) {
                 currentIssues.add(jepIssue.id());
