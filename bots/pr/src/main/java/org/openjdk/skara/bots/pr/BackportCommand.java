@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 import java.time.format.DateTimeFormatter;
 
 import static org.openjdk.skara.bots.common.CommandNameEnum.backport;
+import static org.openjdk.skara.bots.common.CommandNameEnum.commandNamesSepByDelim;
 
 public class BackportCommand implements CommandHandler {
     private void showHelp(PrintWriter reply) {
@@ -105,7 +106,7 @@ public class BackportCommand implements CommandHandler {
             }
             var targetRepoName = targetRepo.name();
 
-            var targetBranch = getTargetBranch(parts.length == 3 ? parts[2] : "master", targetRepo, reply);
+            var targetBranch = getTargetBranch(parts, 2, targetRepo, reply);
             if (targetBranch == null) {
                 return;
             }
@@ -127,7 +128,7 @@ public class BackportCommand implements CommandHandler {
             var targetRepoName = targetRepo.name();
 
             // Get target branch
-            var targetBranch = getTargetBranch(parts.length == 2 ? parts[1] : "master", targetRepo, reply);
+            var targetBranch = getTargetBranch(parts, 1, targetRepo, reply);
             if (targetBranch == null) {
                 return;
             }
@@ -182,7 +183,8 @@ public class BackportCommand implements CommandHandler {
         return potentialTargetRepo.get();
     }
 
-    private Branch getTargetBranch(String targetBranchName, HostedRepository targetRepo, PrintWriter reply) {
+    private Branch getTargetBranch(String[] parts, int index, HostedRepository targetRepo, PrintWriter reply) {
+        var targetBranchName = parts.length == index + 1 ? parts[index] : "master";
         var targetBranches = targetRepo.branches();
         if (targetBranches.stream().noneMatch(b -> b.name().equals(targetBranchName))) {
             reply.println("The target branch `" + targetBranchName + "` does not exist");
@@ -220,7 +222,7 @@ public class BackportCommand implements CommandHandler {
         var fork = bot.forks().get(targetRepo.name());
 
         // Get target branch
-        var targetBranch = getTargetBranch(parts.length == 2 ? parts[1] : "master", targetRepo, reply);
+        var targetBranch = getTargetBranch(parts, 1, targetRepo, reply);
         if (targetBranch == null) {
             return;
         }
