@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
 import java.time.format.DateTimeFormatter;
 
 import static org.openjdk.skara.bots.common.CommandNameEnum.backport;
-import static org.openjdk.skara.bots.common.CommandNameEnum.commandNamesSepByDelim;
 
 public class BackportCommand implements CommandHandler {
     private void showHelp(PrintWriter reply) {
