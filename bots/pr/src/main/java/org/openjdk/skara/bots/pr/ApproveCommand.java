@@ -93,6 +93,7 @@ public class ApproveCommand implements CommandHandler {
                 reply.println("Can not find " + issue.id() + " in the " + issueProject.name() + " project.");
                 continue;
             }
+
             var issueTrackerIssue = issueTrackerIssueOpt.get();
             var approvedLabel = approval.approvedLabel(targetRef);
             var rejectedLabel = approval.rejectedLabel(targetRef);
@@ -118,27 +119,28 @@ public class ApproveCommand implements CommandHandler {
 
     private List<Issue> getIssues(String issueId, PullRequest pr, List<Comment> allComments, PrintWriter reply) {
         var titleIssue = Issue.fromStringRelaxed(pr.title());
-        var issues = new ArrayList<String>();
+        var issueIds = new ArrayList<String>();
+        titleIssue.ifPresent(value -> issueIds.add(value.shortId()));
         List<Issue> ret = new ArrayList<>();
-        titleIssue.ifPresent(value -> issues.add(value.shortId()));
-        issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), allComments, pr.title())
+        issueIds.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), allComments, pr.title())
                 .stream()
                 .map(Issue::shortId)
                 .toList());
+
         if (issueId != null) {
             var issue = new Issue(issueId, null);
-            if (issues.contains(issue.shortId())) {
+            if (issueIds.contains(issue.shortId())) {
                 ret.add(issue);
             } else {
                 reply.println("You can only handle approval request in issues that this pull request solves.");
             }
             // If issueId is not specified, then handle all the issues associated with this pull request
         } else {
-            if (issues.size() == 0) {
+            if (issueIds.size() == 0) {
                 reply.println("There is no issue associated with this pull request.");
             } else {
-                ret.addAll(issues.stream()
-                        .map(issue -> new Issue(issue, null))
+                ret.addAll(issueIds.stream()
+                        .map(id -> new Issue(id, null))
                         .toList());
             }
         }

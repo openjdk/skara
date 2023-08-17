@@ -120,8 +120,8 @@ public class ApprovalCommand implements CommandHandler {
                 var messageToPost = prefix + " Approval Request from " + command.user().fullName() + "\n" + message.trim();
                 if (existingComment.isPresent()) {
                     if (!existingComment.get().body().equals(messageToPost)) {
-                        issueTrackerIssue.updateComment(existingComment.get().id(), messageToPost);
-                        reply.println("The approval request has been updated successfully.");
+                        Comment comment = issueTrackerIssue.updateComment(existingComment.get().id(), messageToPost);
+                        reply.println("The approval [request](" + issueTrackerIssue.commentUrl(comment) + ") has been updated successfully.");
                     } else {
                         reply.println("The approval request was already up to date.");
                     }

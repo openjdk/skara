@@ -120,7 +120,7 @@ public class ApprovalAndApproveCommandTests {
 
             pr.addComment("/approval 1 request new reason line1\nnew reason line2\nnew reason line3");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "The approval request has been updated successfully.");
+            assertLastCommentContains(pr, "The approval [request](http://localhost/project/testTEST-1?focusedCommentId=0) has been updated successfully.");
             TestBotRunner.runPeriodicItems(issueBot);
             assertTrue(issue.comments().stream().anyMatch(comment -> comment.body().contains("new reason")));
 
