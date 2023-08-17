@@ -132,7 +132,7 @@ public class ApproveCommand implements CommandHandler {
             if (issueIds.contains(issue.shortId())) {
                 ret.add(issue);
             } else {
-                reply.println("You can only handle approval request for issues that this pull request solves.");
+                reply.println("You can only handle approval requests for issues that this pull request solves.");
             }
             // If issueId is not specified, then handle all the issues associated with this pull request
         } else {
