@@ -679,7 +679,7 @@ class CheckRun {
             }
             progressBody.append("\n");
 
-            var existingRequested = false;
+            var requestPresent = false;
 
             for (var issueEntry : regularIssuesMap.entrySet()) {
                 var issue = issueEntry.getKey();
@@ -712,7 +712,7 @@ class CheckRun {
                                     status = "Approved";
                                 } else if (labels.contains(approval.requestedLabel(targetRef))) {
                                     status = "Requested";
-                                    existingRequested = true;
+                                    requestPresent = true;
                                 }
                                 if (!status.isEmpty()) {
                                     progressBody.append(" - ").append(status);
@@ -746,7 +746,7 @@ class CheckRun {
                 progressBody.append("\n");
             }
 
-            if (existingRequested) {
+            if (requestPresent) {
                 newLabels.add(APPROVAL_LABEL);
             } else {
                 newLabels.remove(APPROVAL_LABEL);
