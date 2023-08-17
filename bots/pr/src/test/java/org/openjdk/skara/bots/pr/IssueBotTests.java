@@ -409,7 +409,7 @@ public class IssueBotTests {
             assertTrue(pr.store().body().contains("[TEST-1](http://localhost/project/testTEST-1) needs maintainer approval"));
             assertEquals("⚠️  @user1 This change is now ready for you to apply for maintainer [approval](https://example.com). " +
                             "This can be done directly in each associated issue or by using the " +
-                            "[/approval](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/approval) command" +
+                            "[/approval](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/approval) command." +
                             "<!-- PullRequestBot approval needed comment -->"
                     , pr.store().comments().get(1).body());
 
@@ -423,7 +423,7 @@ public class IssueBotTests {
             assertTrue(pr.store().body().contains("[TEST-1](http://localhost/project/testTEST-1) needs maintainer approval"));
             assertEquals("⚠️  @user1 This change is now ready for you to apply for maintainer [approval](https://example.com). " +
                             "This can be done directly in each associated issue or by using the " +
-                            "[/approval](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/approval) command" +
+                            "[/approval](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/approval) command." +
                             "<!-- PullRequestBot approval needed comment -->"
                     , pr.store().comments().get(1).body());
         }

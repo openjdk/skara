@@ -97,7 +97,7 @@ public class ApprovalAndApproveCommandTests {
 
             pr.addComment("/approval JDK-1 request");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "Approval can only be request for issues in the TEST project.");
+            assertLastCommentContains(pr, "Approval can only be requested for issues in the TEST project.");
             assertFalse(pr.store().labelNames().contains(APPROVAL_LABEL));
 
             pr.addComment("/approval request My reason line1\nMy reason line2\nMy reason line3");
@@ -126,7 +126,7 @@ public class ApprovalAndApproveCommandTests {
 
             pr.addComment("/approval 1 request new reason line1\nnew reason line2\nnew reason line3");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "The approval request was already up to date.");
+            assertLastCommentContains(pr, "The approval [request](http://localhost/project/testTEST-1?focusedCommentId=0) was already up to date.");
 
             var reviewerPr = reviewer.pullRequest(pr.id());
             reviewerPr.addReview(Review.Verdict.APPROVED, "LGTM");
