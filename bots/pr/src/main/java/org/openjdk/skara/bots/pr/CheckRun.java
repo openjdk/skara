@@ -1332,7 +1332,7 @@ class CheckRun {
                                       !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
             }
 
-            if (approvalNeeded()) {
+            if (approvalNeeded() && visitor.messages().isEmpty()) {
                 var readyButMaintainerApproval = true;
                 for (var entry : additionalProgresses.entrySet()) {
                     if (!entry.getKey().endsWith("needs maintainer approval") && !entry.getValue()) {
