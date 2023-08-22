@@ -806,6 +806,15 @@ public class HgRepository implements Repository {
         return mergeBase(ancestor, descendant).equals(ancestor);
     }
 
+    /**
+     * Check if either a is an ancestor of b, or b is an ancestor of a.
+     * @return true if a and b are related
+     */
+    private boolean isRelated(Hash a, Hash b) throws IOException {
+        var base = mergeBase(a, b);
+        return base.equals(a) || base.equals(b);
+    }
+
     @Override
     public void rebase(Hash hash, String committerName, String committerEmail) throws IOException {
         var current = currentBranch().orElseThrow(() ->
@@ -1079,7 +1088,7 @@ public class HgRepository implements Repository {
         if (ff == FastForward.ONLY) {
             cmd = update;
         } else if (ff == FastForward.DISABLE) {
-            if (isAncestor(head, other)) {
+            if (isRelated(head, other)) {
                 cmd = debugsetparents;
             } else {
                 cmd = merge;
@@ -1087,6 +1096,8 @@ public class HgRepository implements Repository {
         } else if (ff == FastForward.AUTO) {
             if (isAncestor(head, other)) {
                 cmd = update;
+            } else if (isAncestor(other, head)) {
+                return;
             } else {
                 cmd = merge;
             }
