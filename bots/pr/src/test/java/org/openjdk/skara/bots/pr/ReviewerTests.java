@@ -526,6 +526,20 @@ class ReviewerTests {
             assertLastCommentContains(pr, "Reviewer `integrationreviewer1` successfully removed");
             assertLastCommentContains(pr, "Reviewer `integrationcommitter3` successfully removed");
 
+            pr.addComment("/reviewer credit integrationreviewer2");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr,
+                    "Reviewer `integrationreviewer2` has already made an authenticated review of this PR, " +
+                            "and does not need to be credited manually.");
+
+            var reviewPr = integrator.pullRequest(pr.id());
+            reviewPr.addReview(Review.Verdict.NONE, "My comments");
+            pr.addComment("/reviewer credit integrationreviewer1");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr,
+                    "Reviewer `integrationreviewer1` has already made an authenticated review of this PR, " +
+                            "but did not approve it. Manually crediting them is not allowed.");
+
             // Check the PR body
             assertFalse(pr.store().body().contains(" * Generated Reviewer 1 - **Reviewer**"));
             assertFalse(pr.store().body().contains(" * Generated Committer 3 - Committer"));
