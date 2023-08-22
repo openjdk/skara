@@ -1319,28 +1319,23 @@ class CheckRun {
             var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace(), original.map(Commit::hash).orElse(null));
             var commit = localRepo.lookup(amendedHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
-            var readyForIntegration = readyForReview &&
-                                      visitor.messages().isEmpty() &&
-                                      !additionalProgresses.containsValue(false) &&
-                                      integrationBlockers.isEmpty() &&
-                                      !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
-            if (!reviewNeeded) {
-                // Reviews are not needed for clean backports unless this repo is configured with reviewCleanBackport enabled
-                readyForIntegration = readyForReview &&
-                                      !additionalProgresses.containsValue(false) &&
-                                      integrationBlockers.isEmpty() &&
-                                      !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
-            }
 
-            if (approvalNeeded()) {
-                var readyButMaintainerApproval = true;
+            var readyToPostApprovalNeededComment = readyForReview &&
+                    (!reviewNeeded || visitor.messages().isEmpty()) &&
+                    integrationBlockers.isEmpty() &&
+                    !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
+
+            var readyForIntegration = readyToPostApprovalNeededComment &&
+                    !additionalProgresses.containsValue(false);
+
+            if (approvalNeeded() && readyToPostApprovalNeededComment) {
                 for (var entry : additionalProgresses.entrySet()) {
                     if (!entry.getKey().endsWith("needs maintainer approval") && !entry.getValue()) {
-                        readyButMaintainerApproval = false;
+                        readyToPostApprovalNeededComment = false;
                         break;
                     }
                 }
-                if (readyButMaintainerApproval) {
+                if (readyToPostApprovalNeededComment) {
                     postApprovalNeededComment();
                 }
             }

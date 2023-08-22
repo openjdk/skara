@@ -404,6 +404,7 @@ public class IssueBotTests {
             assertTrue(pr.store().labelNames().contains("ready"));
 
             pr.setTargetRef("jdk20.0.1");
+            reviewerPr.addReview(Review.Verdict.APPROVED, "Looks good");
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().labelNames().contains("ready"));
             assertTrue(pr.store().body().contains("[TEST-1](http://localhost/project/testTEST-1) needs maintainer approval"));
