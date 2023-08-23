@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.census.Contributor;
+import org.openjdk.skara.census.Namespace;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
 
@@ -101,7 +102,11 @@ public class ReviewerCommand implements CommandHandler {
                     reply.println(Reviewers.addReviewerMarker(reviewer));
                     reply.println("Reviewer `" + reviewer.username() + "` successfully credited.");
                 } else {
-                    reply.println("Reviewer `" + reviewer.username() + "` has already made an authenticated review of this PR, and does not need to be credited manually.");
+                    if (hasMadeAuthenticatedApproveReview(pr.reviews(), reviewer, namespace)) {
+                        reply.println("Reviewer `" + reviewer.username() + "` has already made an authenticated review of this PR, and does not need to be credited manually.");
+                    } else {
+                        reply.println("Reviewer `" + reviewer.username() + "` has already made an authenticated review of this PR, but did not approve it. Manually crediting them is not allowed.");
+                    }
                 }
             }
         } else if (action.equals("remove")) {
@@ -129,6 +134,12 @@ public class ReviewerCommand implements CommandHandler {
                 }
             }
         }
+    }
+
+    private boolean hasMadeAuthenticatedApproveReview(List<Review> reviews, Contributor reviewer, Namespace namespace) {
+        return reviews.stream()
+                .filter(review -> review.verdict().equals(Review.Verdict.APPROVED))
+                .anyMatch(review -> namespace.get(review.reviewer().id()).username().equals(reviewer.username()));
     }
 
     @Override
