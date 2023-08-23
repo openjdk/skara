@@ -413,6 +413,72 @@ class GitToHgConverterTests {
         }
     }
 
+    /**
+     * Test converting a merge commit where the first parent is an ancestor of the second parent
+     */
+    @Test
+    void convertMergeOfDescendant() throws IOException {
+        try (var hgRoot = new TemporaryDirectory();
+             var gitRoot = new TemporaryDirectory()) {
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
+            var readme = gitRoot.path().resolve("README.md");
+
+            Files.writeString(readme, "First line");
+            gitRepo.add(readme);
+            var first = gitRepo.commit("First line", "Foo Bar", "foo@openjdk.org");
+
+            var otherBranch = gitRepo.branch(first, "other");
+            gitRepo.checkout(otherBranch);
+
+            Files.writeString(readme, "Second line\n", StandardOpenOption.APPEND);
+            gitRepo.add(readme);
+            gitRepo.commit("Second line on other branch", "Foo Bar", "foo@openjdk.org");
+
+            gitRepo.checkout(gitRepo.defaultBranch(), false);
+
+            gitRepo.merge(otherBranch, Repository.FastForward.DISABLE);
+            gitRepo.commit("Merge", "Foo Bar", "foo@openjdk.org");
+
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
+            var converter = new GitToHgConverter();
+            var marks = converter.convert(gitRepo, hgRepo);
+            assertReposEquals(marks, gitRepo, hgRepo);
+        }
+    }
+
+    /**
+     * Test converting a merge commit where the second parent is an ancestor of the first parent
+     */
+    @Test
+    void convertMergeOfAncestor() throws IOException {
+        try (var hgRoot = new TemporaryDirectory();
+             var gitRoot = new TemporaryDirectory()) {
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
+            var readme = gitRoot.path().resolve("README.md");
+
+            Files.writeString(readme, "First line");
+            gitRepo.add(readme);
+            var first = gitRepo.commit("First line", "Foo Bar", "foo@openjdk.org");
+
+            var otherBranch = gitRepo.branch(first, "other");
+            gitRepo.checkout(otherBranch);
+
+            Files.writeString(readme, "Second line\n", StandardOpenOption.APPEND);
+            gitRepo.add(readme);
+            var otherBranchHead = gitRepo.commit("Second line on other branch", "Foo Bar", "foo@openjdk.org");
+
+            var merge = gitRepo.commit("Merge", "Foo Bar", "foo@openjdk.org", null, "Foo Bar", "" +
+                    "foo@openjdk.org", null, List.of(otherBranchHead, first), gitRepo.tree(otherBranchHead));
+            gitRepo.checkout(gitRepo.defaultBranch());
+            gitRepo.reset(merge, true);
+
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
+            var converter = new GitToHgConverter();
+            var marks = converter.convert(gitRepo, hgRepo);
+            assertReposEquals(marks, gitRepo, hgRepo);
+        }
+    }
+
     private void cloneAndConvertAndVerify(String repo) throws IOException {
         try (var hgRoot = new TemporaryDirectory(false);
              var gitRoot = new TemporaryDirectory(false)) {
