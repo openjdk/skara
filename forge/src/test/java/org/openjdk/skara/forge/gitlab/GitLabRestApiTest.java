@@ -53,7 +53,7 @@ public class GitLabRestApiTest {
         var token = settings.getProperty("gitlab.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
 
@@ -69,7 +69,7 @@ public class GitLabRestApiTest {
         var token = settings.getProperty("gitlab.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
 
@@ -89,7 +89,7 @@ public class GitLabRestApiTest {
         var token = settings.getProperty("gitlab.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
 
@@ -119,7 +119,7 @@ public class GitLabRestApiTest {
         var token = settings.getProperty("gitlab.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
 
@@ -141,7 +141,7 @@ public class GitLabRestApiTest {
         var token = settings.getProperty("gitlab.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var branch = new Branch(settings.getProperty("gitlab.repository.branch"));
 
@@ -157,7 +157,7 @@ public class GitLabRestApiTest {
         var token = settings.getProperty("gitlab.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var branch = new Branch(settings.getProperty("gitlab.repository.branch"));
 
@@ -198,7 +198,7 @@ public class GitLabRestApiTest {
         var token = settings.getProperty("gitlab.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var branchName = "pr/4711";
 
@@ -227,7 +227,7 @@ public class GitLabRestApiTest {
         var token = settings.getProperty("gitlab.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
 
@@ -242,7 +242,7 @@ public class GitLabRestApiTest {
         var token = settings.getProperty("gitlab.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
 
         var gitLabMergeRequest = gitLabRepo.createPullRequest(gitLabRepo, settings.getProperty("gitlab.targetRef"),
@@ -263,7 +263,7 @@ public class GitLabRestApiTest {
         var token = settings.getProperty("gitlab.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
 
@@ -285,7 +285,7 @@ public class GitLabRestApiTest {
         var token = settings.getProperty("gitlab.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
 
         gitLabRepo.deleteDeployKeys(Duration.ofHours(24));
@@ -298,7 +298,7 @@ public class GitLabRestApiTest {
         var token = settings.getProperty("gitlab.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
 
         var expiredDeployKeys = gitLabRepo.deployKeyTitles(Duration.ofMinutes(5));

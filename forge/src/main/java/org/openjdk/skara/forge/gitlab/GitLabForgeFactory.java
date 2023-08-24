@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,9 +23,9 @@
 package org.openjdk.skara.forge.gitlab;
 
 import java.net.URI;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.forge.ForgeFactory;
 import org.openjdk.skara.forge.internal.ForgeUtils;
@@ -50,12 +50,12 @@ public class GitLabForgeFactory implements ForgeFactory {
         if (configuration != null && configuration.contains("name")) {
             name = configuration.get("name").asString();
         }
-        Set<String> groups = new HashSet<>();
+        List<String> groups = List.of();
         if (configuration != null && configuration.contains("groups")) {
             groups = configuration.get("groups")
                                   .stream()
                                   .map(JSONValue::asString)
-                                  .collect(Collectors.toSet());
+                                  .toList();
         }
         var useSsh = false;
         if (configuration != null && configuration.contains("sshkey") && credential != null) {

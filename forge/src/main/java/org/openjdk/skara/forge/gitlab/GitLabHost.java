@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -43,11 +43,11 @@ public class GitLabHost implements Forge {
     private final Credential pat;
     private final RestRequest request;
     private final Logger log = Logger.getLogger("org.openjdk.skara.forge.gitlab");
-    private final Set<String> groups;
+    private final List<String> groups;
 
     private HostUser cachedCurrentUser = null;
 
-    public GitLabHost(String name, URI uri, boolean useSsh, Credential pat, Set<String> groups) {
+    public GitLabHost(String name, URI uri, boolean useSsh, Credential pat, List<String> groups) {
         this.name = name;
         this.uri = uri;
         this.useSsh = useSsh;
@@ -60,7 +60,7 @@ public class GitLabHost implements Forge {
         request = new RestRequest(baseApi, pat.username(), (r) -> Arrays.asList("Private-Token", pat.password()));
     }
 
-    GitLabHost(String name, URI uri, boolean useSsh, Set<String> groups) {
+    GitLabHost(String name, URI uri, boolean useSsh, List<String> groups) {
         this.name = name;
         this.uri = uri;
         this.useSsh = useSsh;
