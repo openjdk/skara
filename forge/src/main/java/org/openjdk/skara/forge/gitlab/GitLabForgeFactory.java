@@ -50,7 +50,7 @@ public class GitLabForgeFactory implements ForgeFactory {
         if (configuration != null && configuration.contains("name")) {
             name = configuration.get("name").asString();
         }
-        List<String> groups = new ArrayList<>();
+        List<String> groups = List.of();
         if (configuration != null && configuration.contains("groups")) {
             groups = configuration.get("groups")
                                   .stream()
