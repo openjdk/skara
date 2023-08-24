@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -80,7 +81,7 @@ public class ManualForgeTests {
         var pat = settings.getProperty("gitlab.pat");
         var credential = new Credential(user, pat);
 
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
 
         var repo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
 
