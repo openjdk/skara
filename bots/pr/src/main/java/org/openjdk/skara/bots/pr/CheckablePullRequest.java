@@ -178,6 +178,11 @@ public class CheckablePullRequest {
             committer = author;
         }
 
+        var authorSet = Authors.author(pr.repository().forge().currentUser(), pr.comments());
+        if (authorSet.isPresent()) {
+            author = new Author(authorSet.get().fullName().orElse(""), authorSet.get().address());
+        }
+
         var activeReviews = filterActiveReviews(pr.reviews(), pr.targetRef());
         var commitMessage = commitMessage(finalHead, activeReviews, namespace, false, original);
         return PullRequestUtils.createCommit(pr, localRepo, finalHead, author, committer, commitMessage);

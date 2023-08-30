@@ -47,7 +47,8 @@ public enum CommandNameEnum {
     backport,
     tag,
     approval(true),
-    approve;
+    approve,
+    author;
 
     private boolean isMultiLine = false;
 

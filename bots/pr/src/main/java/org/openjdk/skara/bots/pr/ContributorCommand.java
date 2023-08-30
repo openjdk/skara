@@ -47,7 +47,7 @@ public class ContributorCommand implements CommandHandler {
                 "For other contributors you need to supply the full name and email address.");
     }
 
-    private Optional<EmailAddress> parseUser(String user, PullRequest pr, CensusInstance censusInstance, PrintWriter reply) {
+    public static Optional<EmailAddress> parseUser(String user, PullRequest pr, CensusInstance censusInstance, PrintWriter reply) {
         user = user.strip();
         if (user.isEmpty()) {
             reply.println("Username parameter is empty.");

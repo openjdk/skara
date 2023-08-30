@@ -65,7 +65,8 @@ public class CommandExtractor {
             Map.entry(backport.name(), new BackportCommand()),
             Map.entry(tag.name(), new TagCommand()),
             Map.entry(approval.name(), new ApprovalCommand()),
-            Map.entry(approve.name(), new ApproveCommand())
+            Map.entry(approve.name(), new ApproveCommand()),
+            Map.entry(author.name(), new AuthorCommand())
     );
 
     static class HelpCommand implements CommandHandler {
