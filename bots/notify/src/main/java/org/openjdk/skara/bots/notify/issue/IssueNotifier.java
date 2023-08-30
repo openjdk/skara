@@ -473,25 +473,20 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     }
 
     private boolean tagVersionMatchesFixVersion(JdkVersion fixVersion, JdkVersion tagVersion) {
-        if (fixVersion.equals(tagVersion)) {
+        // If the fix version has an opt string, check if it should be ignored, otherwise
+        // return false if it's not equal.
+        if (fixVersion.opt().isPresent() && !tagIgnoreOpt.contains(fixVersion.opt().get())
+                && !fixVersion.opt().equals(tagVersion.opt())) {
+            return false;
+        }
+        // At this point, if all the components are equal, we have a match
+        if (fixVersion.components().equals(tagVersion.components())) {
             return true;
         }
-        // If the fix version has an opt string that should be ignored, compare just the version
-        // component parts.
-        if (fixVersion.opt().isPresent()) {
-            if (tagIgnoreOpt.contains(fixVersion.opt().get())
-                    && fixVersion.components().equals(tagVersion.components())) {
-                return true;
-            }
-            // If the opt strings shouldn't be ignored, break early if they aren't matching
-            if (!fixVersion.opt().equals(tagVersion.opt())) {
-                return false;
-            }
-        }
-
+        // The fixVersion may have a prefix consisting of only lower case letters in the
+        // first component that is not present in the tagVersion.
+        // e.g. 'openjdk8u342' vs '8u342'
         if (!tagMatchPrefix) {
-            // The fixVersion may have a prefix in the first component that is not present
-            // in the tagVersion. e.g. 'openjdk8u342' vs '8u342'
             var fixComponents = fixVersion.components();
             var tagComponents = tagVersion.components();
             // Check that the rest of the components are equal
@@ -499,7 +494,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                     && fixComponents.subList(1, fixComponents.size()).equals(tagComponents.subList(1, tagComponents.size()))) {
                 var fixFirst = fixComponents.get(0);
                 var tagFirst = tagComponents.get(0);
-                // Check if the first fixVersion component has a prefix consisting of only lower case letters
+                // Check if the first fixVersion component without the prefix matches
                 return fixFirst.matches("[a-z]+" + tagFirst);
             }
         }

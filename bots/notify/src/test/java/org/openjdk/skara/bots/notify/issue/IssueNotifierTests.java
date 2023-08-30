@@ -981,6 +981,52 @@ public class IssueNotifierTests {
     }
 
     @Test
+    void testTagIgnorePrefixAndOpt(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.authenticatedUrl());
+
+            var issueProject = credentials.getIssueProject();
+            var storageFolder = tempFolder.path().resolve("storage");
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object()
+                            .put("master", "foo16-bar"))
+                    .put("buildname", "team")
+                    .put("tag", JSON.object().put("ignoreopt", JSON.array().add("bar")));
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+
+            // Initialize history
+            var current = localRepo.resolve("master").orElseThrow();
+            localRepo.push(current, repo.authenticatedUrl(), "other");
+            localRepo.tag(current, "jdk-16+9", "First tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            issue.setProperty("fixVersions", JSON.of("foo16-bar"));
+            issue.setState(RESOLVED);
+            issue.setProperty(RESOLVED_IN_BUILD, JSON.of("master"));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
+
+            // Tag it
+            localRepo.tag(editHash, "16+1", "Second tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The build should now be updated
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals("b01", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
+        }
+    }
+
+    @Test
     void testIssueBuildAfterTagOpenjdk8u(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
