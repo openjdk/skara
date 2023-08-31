@@ -76,7 +76,7 @@ public class AuthorCommandTests {
             // The bot should reply with a success message
             assertLastCommentContains(pr, "Author of this pull request has been set to `Test Person <test@test.test>` successfully.");
 
-            // Remove it again
+            // Remove it
             pr.addComment("/author remove Test Person <test@test.test>");
             TestBotRunner.runPeriodicItems(prBot);
 
@@ -90,8 +90,15 @@ public class AuthorCommandTests {
             // The bot should reply with an error message
             assertLastCommentContains(pr, "There is no author set in this pull request.");
 
+            // Remove something that isn't there
+            pr.addComment("/author remove");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with an error message
+            assertLastCommentContains(pr, "There is no author set in this pull request.");
+
             // Now add someone back again
-            pr.addComment("/author set Test Person <test@test.test>");
+            pr.addComment("/author Test Person <test@test.test>");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message

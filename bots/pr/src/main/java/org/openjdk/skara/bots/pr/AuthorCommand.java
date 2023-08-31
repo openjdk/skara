@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
 
@@ -32,14 +33,17 @@ import java.util.regex.Pattern;
 import static org.openjdk.skara.bots.common.CommandNameEnum.author;
 
 public class AuthorCommand implements CommandHandler {
-    private static final Pattern COMMAND_PATTERN = Pattern.compile("^(set|remove)\\s+(.+)$");
+    private static final Pattern COMMAND_PATTERN = Pattern.compile("^(set|remove)?\\s*(.+)?$");
 
     private void showHelp(PrintWriter reply) {
-        reply.println("Syntax: `/author (set|remove) [@user | openjdk-user | Full Name <email@address>]`. For example:");
+        reply.println("Syntax: `/author [set|remove] [@user | openjdk-user | Full Name <email@address>]`. For example:");
         reply.println();
         reply.println(" * `/author set @openjdk-bot`");
         reply.println(" * `/author set duke`");
         reply.println(" * `/author set J. Duke <duke@openjdk.org>`");
+        reply.println(" * `/author @openjdk-bot`");
+        reply.println(" * `/author remove @openjdk-bot`");
+        reply.println(" * `/author remove`");
         reply.println();
         reply.println("User names can only be used for users in the census associated with this repository. " +
                 "For other authors you need to supply the full name and email address.");
@@ -52,10 +56,10 @@ public class AuthorCommand implements CommandHandler {
             return;
         }
 
-        if (censusInstance.isCommitter(pr.author())) {
-            reply.println("Only committers in this [project](https://openjdk.org/census#" + censusInstance.project().name() + ") are allowed to issue the `author` command.");
-            return;
-        }
+//        if (!censusInstance.isCommitter(pr.author())) {
+//            reply.println("Only committers in this [project](https://openjdk.org/census#" + censusInstance.project().name() + ") are allowed to issue the `author` command.");
+//            return;
+//        }
 
         var matcher = COMMAND_PATTERN.matcher(command.args());
         if (!matcher.matches()) {
@@ -63,21 +67,43 @@ public class AuthorCommand implements CommandHandler {
             return;
         }
 
-        var author = ContributorCommand.parseUser(matcher.group(2), pr, censusInstance, reply);
-        if (author.isEmpty()) {
-            reply.println();
-            showHelp(reply);
-            return;
+        String option = matcher.group(1);
+        if (option == null) {
+            option = "set";
         }
 
-        switch (matcher.group(1)) {
+        String authorArg = matcher.group(2);
+
+        switch (option) {
             case "set": {
+                if (authorArg == null) {
+                    reply.println();
+                    showHelp(reply);
+                    return;
+                }
+                var author = ContributorCommand.parseUser(authorArg, pr, censusInstance, reply);
+                if (author.isEmpty()) {
+                    reply.println();
+                    showHelp(reply);
+                    return;
+                }
                 reply.println(Authors.setAuthorMarker(author.get()));
                 reply.println("Author of this pull request has been set to `" + author.get() + "` successfully.");
                 break;
             }
             case "remove": {
                 var currAuthor = Authors.author(pr.repository().forge().currentUser(), allComments);
+                Optional<EmailAddress> author;
+                if (authorArg == null) {
+                    author = currAuthor;
+                } else {
+                    author = ContributorCommand.parseUser(authorArg, pr, censusInstance, reply);
+                    if (author.isEmpty()) {
+                        reply.println();
+                        showHelp(reply);
+                        return;
+                    }
+                }
                 if (currAuthor.isEmpty()) {
                     reply.println("There is no author set in this pull request.");
                 } else {
