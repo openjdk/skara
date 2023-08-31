@@ -29,10 +29,10 @@ jobs:
     steps:
       - name: Determine target project name (fork source)
         id: upstream_repo
-        uses: actions/github-script@v3
+        uses: actions/github-script@v6
         with:
           result-encoding: string
-          script: "return (await github.repos.get( {owner: context.repo.owner, repo: context.repo.repo })).data.source.name"
+          script: "return (await github.rest.repos.get( {owner: context.repo.owner, repo: context.repo.repo })).data.source.name"
 
       - name: Check if submit tests should actually run
         id: check_submit
