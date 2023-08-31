@@ -56,10 +56,10 @@ public class AuthorCommand implements CommandHandler {
             return;
         }
 
-//        if (!censusInstance.isCommitter(pr.author())) {
-//            reply.println("Only committers in this [project](https://openjdk.org/census#" + censusInstance.project().name() + ") are allowed to issue the `author` command.");
-//            return;
-//        }
+        if (!censusInstance.isCommitter(pr.author())) {
+            reply.println("Only committers in this [project](https://openjdk.org/census#" + censusInstance.project().name() + ") are allowed to issue the `author` command.");
+            return;
+        }
 
         var matcher = COMMAND_PATTERN.matcher(command.args());
         if (!matcher.matches()) {
