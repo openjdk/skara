@@ -57,7 +57,7 @@ public class AuthorCommand implements CommandHandler {
         }
 
         if (!censusInstance.isCommitter(pr.author())) {
-            reply.println("Only committers in this [project](https://openjdk.org/census#" + censusInstance.project().name() + ") are allowed to issue the `author` command.");
+            reply.println("Only [Committers](https://openjdk.org/bylaws#committer) are allowed to issue the `author` command.");
             return;
         }
 
