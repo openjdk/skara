@@ -1242,7 +1242,7 @@ class CheckRun {
             try {
                 // Do not pass eventual original commit even for backports since it will cause
                 // the reviewer check to be ignored.
-                localHash = checkablePullRequest.commit(commitHash, censusInstance.namespace(), censusDomain, null, null);
+                localHash = checkablePullRequest.commit(commitHash, censusInstance.namespace(), censusDomain, null, null, comments);
             } catch (CommitFailure e) {
                 additionalErrors = List.of(e.getMessage());
                 localHash = baseHash;

@@ -74,43 +74,45 @@ public class AuthorCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(pr, "Author of this pull request has been set to `Test Person <test@test.test>` successfully.");
+            assertLastCommentContains(pr, "Setting overriding author to `Test Person <test@test.test>`. " +
+                    "When this pull request is integrated, the overriding author will be used in the commit.");
 
             // Remove it
             pr.addComment("/author remove Test Person <test@test.test>");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(pr, "Author `Test Person <test@test.test>` successfully removed.");
+            assertLastCommentContains(pr, "Overriding author `Test Person <test@test.test>` was successfully removed. " +
+                    "When this pull request is integrated, the pull request author will be the author of the commit.");
 
             // Remove something that isn't there
             pr.addComment("/author remove Test Person 2 <test2@test.test>");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with an error message
-            assertLastCommentContains(pr, "There is no author set in this pull request.");
+            assertLastCommentContains(pr, "There is no overriding author set in this pull request.");
 
             // Remove something that isn't there
             pr.addComment("/author remove");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with an error message
-            assertLastCommentContains(pr, "There is no author set in this pull request.");
+            assertLastCommentContains(pr, "There is no overriding author set in this pull request.");
 
             // Now add someone back again
             pr.addComment("/author Test Person <test@test.test>");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(pr, "Author of this pull request has been set to `Test Person <test@test.test>` successfully.");
+            assertLastCommentContains(pr, "Setting overriding author to `Test Person <test@test.test>`. " +
+                    "When this pull request is integrated, the overriding author will be used in the commit.");
 
             // Remove something that isn't there
             pr.addComment("/author remove Test Person 2 <test2@test.test>");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with an error message
-            assertLastCommentContains(pr, "@user1 `Test Person 2 <test2@test.test>` was not set to this pull request's author.");
-            assertLastCommentContains(pr, "Current author of this pull request is set to: `Test Person <test@test.test>`");
+            assertLastCommentContains(pr, "Cannot remove `Test Person 2 <test2@test.test>`, the overriding author is currently set to: `Test Person <test@test.test>`");
 
             // Approve it as another user
             var approvalPr = integrator.pullRequest(pr.id());

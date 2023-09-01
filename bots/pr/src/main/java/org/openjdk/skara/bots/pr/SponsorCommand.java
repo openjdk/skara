@@ -122,7 +122,7 @@ public class SponsorCommand implements CommandHandler {
 
             var original = checkablePr.findOriginalBackportHash();
             var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(),
-                    command.user().id(), original);
+                    command.user().id(), original, allComments);
 
             if (IntegrateCommand.runJcheck(pr, censusInstance, allComments, reply, localRepo, checkablePr, localHash, bot.reviewMerge())) {
                 return;

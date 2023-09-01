@@ -221,7 +221,7 @@ public class IntegrateCommand implements CommandHandler {
                 committerId = command.user().id();
             }
             var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(),
-                    censusInstance.configuration().census().domain(), committerId, original);
+                    censusInstance.configuration().census().domain(), committerId, original, allComments);
             if (runJcheck(pr, censusInstance, allComments, reply, localRepo, checkablePr, localHash, bot.reviewMerge())) {
                 return;
             }

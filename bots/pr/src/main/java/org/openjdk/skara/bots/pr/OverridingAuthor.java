@@ -29,7 +29,7 @@ import org.openjdk.skara.issuetracker.Comment;
 import java.util.*;
 import java.util.regex.*;
 
-class Authors {
+class OverridingAuthor {
     private static final String SET_MARKER = "<!-- set author: '%s' -->";
     private static final String REMOVE_MARKER = "<!-- remove author: '%s' -->";
     private static final Pattern MARKER_PATTERN = Pattern.compile("<!-- (set|remove) author: '(.*?)' -->");

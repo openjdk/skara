@@ -26,6 +26,7 @@ import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.census.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.jcheck.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
@@ -155,7 +156,7 @@ public class CheckablePullRequest {
         return List.copyOf(reviewPerUser.values());
     }
 
-    Hash commit(Hash finalHead, Namespace namespace, String censusDomain, String sponsorId, Hash original) throws IOException, CommitFailure {
+    Hash commit(Hash finalHead, Namespace namespace, String censusDomain, String sponsorId, Hash original, List<Comment> comments) throws IOException, CommitFailure {
         Author committer;
         Author author;
         var contributor = namespace.get(pr.author().id());
@@ -178,9 +179,9 @@ public class CheckablePullRequest {
             committer = author;
         }
 
-        var overridingAuthor = Authors.author(pr.repository().forge().currentUser(), pr.comments());
-        if (authorSet.isPresent()) {
-            author = new Author(authorSet.get().fullName().orElse(""), authorSet.get().address());
+        var overridingAuthor = OverridingAuthor.author(pr.repository().forge().currentUser(), comments);
+        if (overridingAuthor.isPresent()) {
+            author = new Author(overridingAuthor.get().fullName().orElse(""), overridingAuthor.get().address());
         }
 
         var activeReviews = filterActiveReviews(pr.reviews(), pr.targetRef());

@@ -87,12 +87,12 @@ public class AuthorCommand implements CommandHandler {
                     showHelp(reply);
                     return;
                 }
-                reply.println(Authors.setAuthorMarker(author.get()));
+                reply.println(OverridingAuthor.setAuthorMarker(author.get()));
                 reply.println("Setting overriding author to `" + author.get() + "`. When this pull request is integrated, the overriding author will be used in the commit.");
                 break;
             }
             case "remove": {
-                var currAuthor = Authors.author(pr.repository().forge().currentUser(), allComments);
+                var currAuthor = OverridingAuthor.author(pr.repository().forge().currentUser(), allComments);
                 Optional<EmailAddress> author;
                 if (authorArg == null) {
                     author = currAuthor;
@@ -105,10 +105,10 @@ public class AuthorCommand implements CommandHandler {
                     }
                 }
                 if (currAuthor.isEmpty()) {
-                    reply.println("There is no author set in this pull request.");
+                    reply.println("There is no overriding author set in this pull request.");
                 } else {
                     if (currAuthor.get().equals(author.get())) {
-                        reply.println(Authors.removeAuthorMarker(author.get()));
+                        reply.println(OverridingAuthor.removeAuthorMarker(author.get()));
                         reply.println("Overriding author `" + author.get() + "` was successfully removed. When this pull request is integrated, the pull request author will be the author of the commit.");
                     } else {
                         reply.println("Cannot remove `" + author.get() + "`, the overriding author is currently set to: `" + currAuthor.get() + "`");
