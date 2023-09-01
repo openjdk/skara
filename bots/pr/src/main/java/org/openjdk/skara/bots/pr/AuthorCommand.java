@@ -109,7 +109,7 @@ public class AuthorCommand implements CommandHandler {
                 } else {
                     if (currAuthor.get().equals(author.get())) {
                         reply.println(OverridingAuthor.removeAuthorMarker(author.get()));
-                        reply.println("Overriding author `" + author.get() + "` was successfully removed. When this pull request is integrated, the pull request author will be the author of the commit.");
+                        reply.println("Overriding author `" + author.get() + "` was successfully removed. When this pull request is integrated, the pull request author will be used as the author of the commit.");
                     } else {
                         reply.println("Cannot remove `" + author.get() + "`, the overriding author is currently set to: `" + currAuthor.get() + "`");
                     }
