@@ -97,9 +97,10 @@ public class SponsorCommand implements CommandHandler {
 
             var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchArea);
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
-                                                       bot.confOverrideRepository().orElse(null),
-                                                       bot.confOverrideName(),
-                                                       bot.confOverrideRef());
+                    bot.confOverrideRepository().orElse(null),
+                    bot.confOverrideName(),
+                    bot.confOverrideRef(),
+                    allComments);
 
             // Validate the target hash if requested
             if (!command.args().isBlank()) {
@@ -120,16 +121,16 @@ public class SponsorCommand implements CommandHandler {
                 return;
             }
 
-            var original = checkablePr.findOriginalBackportHash(allComments);
+            var original = checkablePr.findOriginalBackportHash();
             var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(),
-                    command.user().id(), original, allComments);
+                    command.user().id(), original);
 
             if (IntegrateCommand.runJcheck(pr, censusInstance, allComments, reply, localRepo, checkablePr, localHash, bot.reviewMerge())) {
                 return;
             }
 
             if (!localHash.equals(checkablePr.targetHash())) {
-                var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original, allComments);
+                var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 IntegrateCommand.addPrePushComment(pr, amendedHash, rebaseMessage.toString());
                 localRepo.push(amendedHash, pr.repository().authenticatedUrl(), pr.targetRef());
                 markIntegratedAndClosed(pr, amendedHash, reply, allComments);

@@ -46,12 +46,14 @@ public class CheckablePullRequest {
     private final Repository localRepo;
     private final boolean ignoreStaleReviews;
     private final List<String> confOverride;
+    private final List<Comment> comments;
 
     CheckablePullRequest(PullRequest pr, Repository localRepo, boolean ignoreStaleReviews,
-            HostedRepository jcheckRepo, String jcheckName, String jcheckRef) {
+            HostedRepository jcheckRepo, String jcheckName, String jcheckRef, List<Comment> comments) {
         this.pr = pr;
         this.localRepo = localRepo;
         this.ignoreStaleReviews = ignoreStaleReviews;
+        this.comments = comments;
 
         if (jcheckRepo != null) {
             confOverride = jcheckRepo.fileContents(jcheckName, jcheckRef).orElseThrow(
@@ -62,7 +64,7 @@ public class CheckablePullRequest {
         }
     }
 
-    private String commitMessage(Hash head, List<Review> activeReviews, Namespace namespace, boolean manualReviewers, Hash original, List<Comment> comments) throws IOException {
+    private String commitMessage(Hash head, List<Review> activeReviews, Namespace namespace, boolean manualReviewers, Hash original) throws IOException {
         var eligibleReviews = activeReviews.stream()
                                            // Reviews without a hash are never valid as they referred to no longer
                                            // existing commits.
@@ -155,7 +157,7 @@ public class CheckablePullRequest {
         return List.copyOf(reviewPerUser.values());
     }
 
-    Hash commit(Hash finalHead, Namespace namespace, String censusDomain, String sponsorId, Hash original, List<Comment> comments) throws IOException, CommitFailure {
+    Hash commit(Hash finalHead, Namespace namespace, String censusDomain, String sponsorId, Hash original) throws IOException, CommitFailure {
         Author committer;
         Author author;
         var contributor = namespace.get(pr.author().id());
@@ -184,14 +186,14 @@ public class CheckablePullRequest {
         }
 
         var activeReviews = filterActiveReviews(pr.reviews(), pr.targetRef());
-        var commitMessage = commitMessage(finalHead, activeReviews, namespace, false, original, comments);
+        var commitMessage = commitMessage(finalHead, activeReviews, namespace, false, original);
         return PullRequestUtils.createCommit(pr, localRepo, finalHead, author, committer, commitMessage);
     }
 
-    Hash amendManualReviewers(Hash commit, Namespace namespace, Hash original, List<Comment> comments) throws IOException {
+    Hash amendManualReviewers(Hash commit, Namespace namespace, Hash original) throws IOException {
         var activeReviews = filterActiveReviews(pr.reviews(), pr.targetRef());
-        var originalCommitMessage = commitMessage(commit, activeReviews, namespace, false, original, comments);
-        var amendedCommitMessage = commitMessage(commit, activeReviews, namespace, true, original, comments);
+        var originalCommitMessage = commitMessage(commit, activeReviews, namespace, false, original);
+        var amendedCommitMessage = commitMessage(commit, activeReviews, namespace, true, original);
 
         if (originalCommitMessage.equals(amendedCommitMessage)) {
             return commit;
@@ -293,7 +295,7 @@ public class CheckablePullRequest {
         }
     }
 
-    Hash findOriginalBackportHash(List<Comment> comments) {
+    Hash findOriginalBackportHash() {
         return findOriginalBackportHash(pr, comments);
     }
 

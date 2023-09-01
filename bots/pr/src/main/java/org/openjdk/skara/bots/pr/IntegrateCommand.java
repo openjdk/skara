@@ -194,9 +194,10 @@ public class IntegrateCommand implements CommandHandler {
 
             Repository localRepo = materializeLocalRepo(bot, pr, scratchArea);
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
-                                                       bot.confOverrideRepository().orElse(null),
-                                                       bot.confOverrideName(),
-                                                       bot.confOverrideRef());
+                    bot.confOverrideRepository().orElse(null),
+                    bot.confOverrideName(),
+                    bot.confOverrideRef(),
+                    allComments);
 
             if (targetHash != null && !checkablePr.targetHash().equals(targetHash)) {
                 reply.print("The head of the target branch is no longer at the requested hash " + targetHash);
@@ -213,7 +214,7 @@ public class IntegrateCommand implements CommandHandler {
                 return;
             }
 
-            var original = checkablePr.findOriginalBackportHash(allComments);
+            var original = checkablePr.findOriginalBackportHash();
             // If someone other than the author or the bot issued the /integrate command, then that person
             // should be set as sponsor/integrator. Otherwise pass null to use the default author.
             String committerId = null;
@@ -221,7 +222,7 @@ public class IntegrateCommand implements CommandHandler {
                 committerId = command.user().id();
             }
             var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(),
-                    censusInstance.configuration().census().domain(), committerId, original, allComments);
+                    censusInstance.configuration().census().domain(), committerId, original);
             if (runJcheck(pr, censusInstance, allComments, reply, localRepo, checkablePr, localHash, bot.reviewMerge())) {
                 return;
             }
@@ -239,7 +240,7 @@ public class IntegrateCommand implements CommandHandler {
 
             // Rebase and push it!
             if (!localHash.equals(checkablePr.targetHash())) {
-                var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original, allComments);
+                var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 addPrePushComment(pr, amendedHash, rebaseMessage.toString());
                 localRepo.push(amendedHash, pr.repository().authenticatedUrl(), pr.targetRef());
                 markIntegratedAndClosed(pr, amendedHash, reply, allComments);

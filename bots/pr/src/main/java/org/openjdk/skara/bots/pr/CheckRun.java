@@ -100,9 +100,10 @@ class CheckRun {
 
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
         checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews,
-                                                        workItem.bot.confOverrideRepository().orElse(null),
-                                                        workItem.bot.confOverrideName(),
-                                                        workItem.bot.confOverrideRef());
+                workItem.bot.confOverrideRepository().orElse(null),
+                workItem.bot.confOverrideName(),
+                workItem.bot.confOverrideRef(),
+                comments);
     }
 
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
@@ -465,7 +466,7 @@ class CheckRun {
     }
 
     private Optional<HostedCommit> backportedFrom() {
-        var hash = checkablePullRequest.findOriginalBackportHash(comments);
+        var hash = checkablePullRequest.findOriginalBackportHash();
         if (hash == null) {
             return Optional.empty();
         }
@@ -1242,7 +1243,7 @@ class CheckRun {
             try {
                 // Do not pass eventual original commit even for backports since it will cause
                 // the reviewer check to be ignored.
-                localHash = checkablePullRequest.commit(commitHash, censusInstance.namespace(), censusDomain, null, null, comments);
+                localHash = checkablePullRequest.commit(commitHash, censusInstance.namespace(), censusDomain, null, null);
             } catch (CommitFailure e) {
                 additionalErrors = List.of(e.getMessage());
                 localHash = baseHash;
@@ -1316,7 +1317,7 @@ class CheckRun {
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
 
-            var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace(), original.map(Commit::hash).orElse(null), comments);
+            var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace(), original.map(Commit::hash).orElse(null));
             var commit = localRepo.lookup(amendedHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
 
