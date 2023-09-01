@@ -83,21 +83,21 @@ public class AuthorCommandTests {
 
             // The bot should reply with a success message
             assertLastCommentContains(pr, "Overriding author `Test Person <test@test.test>` was successfully removed. " +
-                    "When this pull request is integrated, the pull request author will be the author of the commit.");
+                    "When this pull request is integrated, the pull request author will be used as the author of the commit.");
 
             // Remove something that isn't there
             pr.addComment("/author remove Test Person 2 <test2@test.test>");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with an error message
-            assertLastCommentContains(pr, "There is no overriding author set in this pull request.");
+            assertLastCommentContains(pr, "There is no overriding author set for this pull request.");
 
             // Remove something that isn't there
             pr.addComment("/author remove");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with an error message
-            assertLastCommentContains(pr, "There is no overriding author set in this pull request.");
+            assertLastCommentContains(pr, "There is no overriding author set for this pull request.");
 
             // Now add someone back again
             pr.addComment("/author Test Person <test@test.test>");
