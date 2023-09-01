@@ -122,7 +122,7 @@ public class AuthorCommand implements CommandHandler {
 
     @Override
     public String description() {
-        return "sets or removes author for a PR";
+        return "sets an overriding author used in the final commit when the PR is integrated";
     }
 
     @Override
