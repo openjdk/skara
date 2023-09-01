@@ -88,7 +88,7 @@ public class AuthorCommand implements CommandHandler {
                     return;
                 }
                 reply.println(Authors.setAuthorMarker(author.get()));
-                reply.println("Author of this pull request has been set to `" + author.get() + "` successfully.");
+                reply.println("Setting overriding author to `" + author.get() + "`. When this pull request is integrated, the overriding author will be used in the commit.");
                 break;
             }
             case "remove": {
