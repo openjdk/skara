@@ -121,7 +121,7 @@ public class AuthorCommand implements CommandHandler {
 
     @Override
     public String description() {
-        return "sets an overriding author used in the final commit when the PR is integrated";
+        return "sets an overriding author to be used in the commit when the PR is integrated";
     }
 
     @Override
