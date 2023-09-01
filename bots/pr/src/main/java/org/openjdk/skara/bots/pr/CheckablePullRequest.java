@@ -178,7 +178,7 @@ public class CheckablePullRequest {
             committer = author;
         }
 
-        var authorSet = Authors.author(pr.repository().forge().currentUser(), pr.comments());
+        var overridingAuthor = Authors.author(pr.repository().forge().currentUser(), pr.comments());
         if (authorSet.isPresent()) {
             author = new Author(authorSet.get().fullName().orElse(""), authorSet.get().address());
         }
