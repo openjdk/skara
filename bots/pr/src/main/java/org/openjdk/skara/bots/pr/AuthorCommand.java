@@ -105,7 +105,7 @@ public class AuthorCommand implements CommandHandler {
                     }
                 }
                 if (currAuthor.isEmpty()) {
-                    reply.println("There is no overriding author set in this pull request.");
+                    reply.println("There is no overriding author set for this pull request.");
                 } else {
                     if (currAuthor.get().equals(author.get())) {
                         reply.println(OverridingAuthor.removeAuthorMarker(author.get()));
