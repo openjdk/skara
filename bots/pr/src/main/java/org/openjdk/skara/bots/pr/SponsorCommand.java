@@ -120,7 +120,7 @@ public class SponsorCommand implements CommandHandler {
                 return;
             }
 
-            var original = checkablePr.findOriginalBackportHash();
+            var original = checkablePr.findOriginalBackportHash(allComments);
             var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(),
                     command.user().id(), original, allComments);
 
@@ -129,7 +129,7 @@ public class SponsorCommand implements CommandHandler {
             }
 
             if (!localHash.equals(checkablePr.targetHash())) {
-                var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
+                var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original, allComments);
                 IntegrateCommand.addPrePushComment(pr, amendedHash, rebaseMessage.toString());
                 localRepo.push(amendedHash, pr.repository().authenticatedUrl(), pr.targetRef());
                 markIntegratedAndClosed(pr, amendedHash, reply, allComments);

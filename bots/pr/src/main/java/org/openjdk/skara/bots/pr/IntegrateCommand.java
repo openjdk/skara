@@ -213,7 +213,7 @@ public class IntegrateCommand implements CommandHandler {
                 return;
             }
 
-            var original = checkablePr.findOriginalBackportHash();
+            var original = checkablePr.findOriginalBackportHash(allComments);
             // If someone other than the author or the bot issued the /integrate command, then that person
             // should be set as sponsor/integrator. Otherwise pass null to use the default author.
             String committerId = null;
@@ -239,7 +239,7 @@ public class IntegrateCommand implements CommandHandler {
 
             // Rebase and push it!
             if (!localHash.equals(checkablePr.targetHash())) {
-                var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
+                var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original, allComments);
                 addPrePushComment(pr, amendedHash, rebaseMessage.toString());
                 localRepo.push(amendedHash, pr.repository().authenticatedUrl(), pr.targetRef());
                 markIntegratedAndClosed(pr, amendedHash, reply, allComments);

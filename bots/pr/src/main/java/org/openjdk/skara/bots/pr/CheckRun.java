@@ -465,7 +465,7 @@ class CheckRun {
     }
 
     private Optional<HostedCommit> backportedFrom() {
-        var hash = checkablePullRequest.findOriginalBackportHash();
+        var hash = checkablePullRequest.findOriginalBackportHash(comments);
         if (hash == null) {
             return Optional.empty();
         }
@@ -1316,7 +1316,7 @@ class CheckRun {
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
 
-            var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace(), original.map(Commit::hash).orElse(null));
+            var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace(), original.map(Commit::hash).orElse(null), comments);
             var commit = localRepo.lookup(amendedHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
 

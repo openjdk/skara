@@ -62,7 +62,7 @@ public class CheckablePullRequest {
         }
     }
 
-    private String commitMessage(Hash head, List<Review> activeReviews, Namespace namespace, boolean manualReviewers, Hash original) throws IOException {
+    private String commitMessage(Hash head, List<Review> activeReviews, Namespace namespace, boolean manualReviewers, Hash original, List<Comment> comments) throws IOException {
         var eligibleReviews = activeReviews.stream()
                                            // Reviews without a hash are never valid as they referred to no longer
                                            // existing commits.
@@ -72,7 +72,6 @@ public class CheckablePullRequest {
                                            .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                                            .collect(Collectors.toList());
         var reviewers = reviewerNames(eligibleReviews, namespace);
-        var comments = pr.comments();
         var currentUser = pr.repository().forge().currentUser();
 
         if (manualReviewers) {
@@ -185,14 +184,14 @@ public class CheckablePullRequest {
         }
 
         var activeReviews = filterActiveReviews(pr.reviews(), pr.targetRef());
-        var commitMessage = commitMessage(finalHead, activeReviews, namespace, false, original);
+        var commitMessage = commitMessage(finalHead, activeReviews, namespace, false, original, comments);
         return PullRequestUtils.createCommit(pr, localRepo, finalHead, author, committer, commitMessage);
     }
 
-    Hash amendManualReviewers(Hash commit, Namespace namespace, Hash original) throws IOException {
+    Hash amendManualReviewers(Hash commit, Namespace namespace, Hash original, List<Comment> comments) throws IOException {
         var activeReviews = filterActiveReviews(pr.reviews(), pr.targetRef());
-        var originalCommitMessage = commitMessage(commit, activeReviews, namespace, false, original);
-        var amendedCommitMessage = commitMessage(commit, activeReviews, namespace, true, original);
+        var originalCommitMessage = commitMessage(commit, activeReviews, namespace, false, original, comments);
+        var amendedCommitMessage = commitMessage(commit, activeReviews, namespace, true, original, comments);
 
         if (originalCommitMessage.equals(amendedCommitMessage)) {
             return commit;
@@ -294,13 +293,13 @@ public class CheckablePullRequest {
         }
     }
 
-    Hash findOriginalBackportHash() {
-        return findOriginalBackportHash(pr);
+    Hash findOriginalBackportHash(List<Comment> comments) {
+        return findOriginalBackportHash(pr, comments);
     }
 
-    static Hash findOriginalBackportHash(PullRequest pr) {
+    static Hash findOriginalBackportHash(PullRequest pr, List<Comment> comments) {
         var botUser = pr.repository().forge().currentUser();
-        return pr.comments()
+        return comments
                 .stream()
                 .filter(c -> c.author().equals(botUser))
                 .flatMap(c -> Stream.of(c.body().split("\n")))
