@@ -52,7 +52,7 @@ public class AuthorCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!command.user().equals(pr.author())) {
-            reply.println("Only the author (@" + pr.author().username() + ") is allowed to issue the `author` command.");
+            reply.println("Only the pull request author (@" + pr.author().username() + ") is allowed to issue the `author` command.");
             return;
         }
 
