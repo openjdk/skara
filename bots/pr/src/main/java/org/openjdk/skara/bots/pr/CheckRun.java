@@ -100,9 +100,10 @@ class CheckRun {
 
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
         checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews,
-                                                        workItem.bot.confOverrideRepository().orElse(null),
-                                                        workItem.bot.confOverrideName(),
-                                                        workItem.bot.confOverrideRef());
+                workItem.bot.confOverrideRepository().orElse(null),
+                workItem.bot.confOverrideName(),
+                workItem.bot.confOverrideRef(),
+                comments);
     }
 
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,

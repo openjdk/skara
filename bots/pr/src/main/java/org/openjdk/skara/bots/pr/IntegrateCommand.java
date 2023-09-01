@@ -194,9 +194,10 @@ public class IntegrateCommand implements CommandHandler {
 
             Repository localRepo = materializeLocalRepo(bot, pr, scratchArea);
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
-                                                       bot.confOverrideRepository().orElse(null),
-                                                       bot.confOverrideName(),
-                                                       bot.confOverrideRef());
+                    bot.confOverrideRepository().orElse(null),
+                    bot.confOverrideName(),
+                    bot.confOverrideRef(),
+                    allComments);
 
             if (targetHash != null && !checkablePr.targetHash().equals(targetHash)) {
                 reply.print("The head of the target branch is no longer at the requested hash " + targetHash);

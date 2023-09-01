@@ -26,6 +26,7 @@ import org.openjdk.skara.bots.common.SolvesTracker;
 import org.openjdk.skara.census.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.jcheck.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
@@ -45,12 +46,14 @@ public class CheckablePullRequest {
     private final Repository localRepo;
     private final boolean ignoreStaleReviews;
     private final List<String> confOverride;
+    private final List<Comment> comments;
 
     CheckablePullRequest(PullRequest pr, Repository localRepo, boolean ignoreStaleReviews,
-            HostedRepository jcheckRepo, String jcheckName, String jcheckRef) {
+            HostedRepository jcheckRepo, String jcheckName, String jcheckRef, List<Comment> comments) {
         this.pr = pr;
         this.localRepo = localRepo;
         this.ignoreStaleReviews = ignoreStaleReviews;
+        this.comments = comments;
 
         if (jcheckRepo != null) {
             confOverride = jcheckRepo.fileContents(jcheckName, jcheckRef).orElseThrow(
@@ -71,7 +74,6 @@ public class CheckablePullRequest {
                                            .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                                            .collect(Collectors.toList());
         var reviewers = reviewerNames(eligibleReviews, namespace);
-        var comments = pr.comments();
         var currentUser = pr.repository().forge().currentUser();
 
         if (manualReviewers) {
@@ -176,6 +178,11 @@ public class CheckablePullRequest {
             committer = new Author(sponsorContributor.fullName().orElseThrow(), sponsorContributor.username() + "@" + censusDomain);
         } else {
             committer = author;
+        }
+
+        var overridingAuthor = OverridingAuthor.author(pr.repository().forge().currentUser(), comments);
+        if (overridingAuthor.isPresent()) {
+            author = new Author(overridingAuthor.get().fullName().orElse(""), overridingAuthor.get().address());
         }
 
         var activeReviews = filterActiveReviews(pr.reviews(), pr.targetRef());
@@ -289,12 +296,12 @@ public class CheckablePullRequest {
     }
 
     Hash findOriginalBackportHash() {
-        return findOriginalBackportHash(pr);
+        return findOriginalBackportHash(pr, comments);
     }
 
-    static Hash findOriginalBackportHash(PullRequest pr) {
+    static Hash findOriginalBackportHash(PullRequest pr, List<Comment> comments) {
         var botUser = pr.repository().forge().currentUser();
-        return pr.comments()
+        return comments
                 .stream()
                 .filter(c -> c.author().equals(botUser))
                 .flatMap(c -> Stream.of(c.body().split("\n")))

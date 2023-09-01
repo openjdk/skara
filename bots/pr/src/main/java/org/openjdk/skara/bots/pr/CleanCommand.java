@@ -58,7 +58,7 @@ public class CleanCommand implements CommandHandler {
             return;
         }
 
-        if (!pr.labelNames().contains("backport") || CheckablePullRequest.findOriginalBackportHash(pr) == null) {
+        if (!pr.labelNames().contains("backport") || CheckablePullRequest.findOriginalBackportHash(pr, allComments) == null) {
             reply.println("Can only mark [backport pull requests]" +
                     "(https://wiki.openjdk.org/display/SKARA/Backports#Backports-BackportPullRequests)," +
                     " with an original hash, as clean");

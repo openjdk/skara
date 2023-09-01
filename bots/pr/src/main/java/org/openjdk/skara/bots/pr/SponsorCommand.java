@@ -97,9 +97,10 @@ public class SponsorCommand implements CommandHandler {
 
             var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchArea);
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
-                                                       bot.confOverrideRepository().orElse(null),
-                                                       bot.confOverrideName(),
-                                                       bot.confOverrideRef());
+                    bot.confOverrideRepository().orElse(null),
+                    bot.confOverrideName(),
+                    bot.confOverrideRef(),
+                    allComments);
 
             // Validate the target hash if requested
             if (!command.args().isBlank()) {
