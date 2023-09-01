@@ -111,8 +111,7 @@ public class AuthorCommand implements CommandHandler {
                         reply.println(Authors.removeAuthorMarker(author.get()));
                         reply.println("Overriding author `" + author.get() + "` was successfully removed. When this pull request is integrated, the pull request author will be the author of the commit.");
                     } else {
-                        reply.println("`" + author.get() + "` was not set to this pull request's author.");
-                        reply.println("Current author of this pull request is set to: `" + currAuthor.get() + "`");
+                        reply.println("Cannot remove `" + author.get() + "`, the overriding author is currently set to: `" + currAuthor.get() + "`");
                     }
                 }
                 break;
