@@ -96,7 +96,7 @@ class IssueBot implements Bot {
                     // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
                     // best we can do.
                     .map(pr -> new CheckWorkItem(pullRequestBotMap.get(pr.repository().name()), pr.id(),
-                            e -> poller.retryIssue(issue), issue.updatedAt(), true, false, true))
+                            e -> poller.retryIssue(issue), issue.updatedAt(), true, false, true, false))
                     .forEach(items::add);
         }
         poller.lastBatchHandled();

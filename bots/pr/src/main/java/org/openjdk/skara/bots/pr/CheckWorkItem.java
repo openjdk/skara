@@ -66,27 +66,15 @@ class CheckWorkItem extends PullRequestWorkItem {
 
     private final boolean forceUpdate;
     private final boolean spawnedFromIssueBot;
+    private final boolean initialRun;
     private final Map<String, Optional<IssueTrackerIssue>> issues = new HashMap<>();
 
     CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
-                  boolean needsReadyCheck, boolean forceUpdate) {
-        super(bot, prId, errorHandler, triggerUpdatedAt, needsReadyCheck);
-        this.forceUpdate = forceUpdate;
-        this.spawnedFromIssueBot = false;
-    }
-
-    CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
-                  boolean needsReadyCheck, boolean forceUpdate, boolean spawnedFromIssueBot) {
+                  boolean needsReadyCheck, boolean forceUpdate, boolean spawnedFromIssueBot, boolean initialRun) {
         super(bot, prId, errorHandler, triggerUpdatedAt, needsReadyCheck);
         this.forceUpdate = forceUpdate;
         this.spawnedFromIssueBot = spawnedFromIssueBot;
-    }
-
-    CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
-                  boolean needsReadyCheck) {
-        super(bot, prId, errorHandler, triggerUpdatedAt, needsReadyCheck);
-        this.forceUpdate = false;
-        this.spawnedFromIssueBot = false;
+        this.initialRun = initialRun;
     }
 
     private String encodeReviewer(HostUser reviewer, CensusInstance censusInstance) {
@@ -223,50 +211,54 @@ class CheckWorkItem extends PullRequestWorkItem {
                 String previousPRMetadata = substrings[0];
                 String previousIssueMetadata = (substrings.length > 1) ? substrings[1] : "";
 
-                // triggered by issue update
-                if (spawnedFromIssueBot) {
+                // triggered by issue update or initial run when bot restarts
+                if (initialRun || spawnedFromIssueBot) {
                     var currIssueMetadata = getIssueMetadata(pr.body());
                     if (expiresAt != null) {
                         if (previousIssueMetadata.equals(currIssueMetadata) && expiresAt.isAfter(Instant.now())) {
                             log.finer("[Issue]Metadata with expiration time is still valid, not checking again");
-                            return true;
                         } else {
                             log.finer("[Issue]Metadata expiration time has expired - checking again");
+                            return false;
                         }
                     } else {
                         if (previousIssueMetadata.equals(currIssueMetadata)) {
                             log.fine("[Issue]No activity since last check, not checking again.");
-                            return true;
                         } else {
                             log.fine("[Issue]Previous metadata: " + previousIssueMetadata + " - current: " + currIssueMetadata);
+                            return false;
                         }
                     }
                     // triggered by pr updates
-                } else {
+                }
+                if (!spawnedFromIssueBot) {
                     var currPRMetadata = getPRMetadata(censusInstance, pr.title(), pr.body(), comments, reviews,
                             labels, pr.targetRef(), pr.isDraft());
                     if (expiresAt != null) {
                         if (previousPRMetadata.equals(currPRMetadata) && expiresAt.isAfter(Instant.now())) {
                             log.finer("[PR]Metadata with expiration time is still valid, not checking again");
-                            return true;
                         } else {
                             log.finer("[PR]Metadata expiration time has expired - checking again");
+                            return false;
                         }
                     } else {
                         if (previousPRMetadata.equals(currPRMetadata)) {
                             log.fine("[PR]No activity since last check, not checking again.");
-                            return true;
                         } else {
                             log.fine("[PR]Previous metadata: " + previousPRMetadata + " - current: " + currPRMetadata);
+                            return false;
                         }
                     }
                 }
             } else {
                 log.info("Check in progress was never finished - checking again");
+                return false;
             }
+        } else {
+            return false;
         }
 
-        return false;
+        return true;
     }
 
     /**
@@ -518,7 +510,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     comment.add(text);
                     pr.addComment(String.join("\n", comment));
                     pr.addLabel("backport");
-                    return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
+                    return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false, false, false, false));
                 } else {
                     var botUser = pr.repository().forge().currentUser();
                     var text = "<!-- backport error -->\n" +
@@ -557,14 +549,14 @@ class CheckWorkItem extends PullRequestWorkItem {
                 var comment = pr.addComment(text);
                 pr.addLabel("backport");
                 logLatency("Time from PR updated to backport comment posted ", comment.createdAt(), log);
-                return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
+                return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false, false, false, false));
             }
 
             // If the title needs updating, we run the check again
             if (updateTitle()) {
                 var updatedPr = bot.repo().pullRequest(prId);
                 logLatency("Time from PR updated to title corrected ", updatedPr.updatedAt(), log);
-                return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false));
+                return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false, false, false, false));
             }
 
             // Check force push
