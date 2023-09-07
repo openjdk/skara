@@ -25,6 +25,7 @@ package org.openjdk.skara.vcs;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class DiffComparator {
     public static boolean areFuzzyEqual(Diff a, Diff b) {
@@ -63,8 +64,20 @@ public class DiffComparator {
     }
 
     private static boolean areFuzzyEqual(Patch a, Patch b) {
-        var aHunks = a.asTextualPatch().hunks();
-        var bHunks = b.asTextualPatch().hunks();
+        Pattern copyRightPattern = Pattern.compile("""
+                -(.)*Copyright \\(c\\) (?:\\d|\\s|,)* Oracle and/or its affiliates\\. All rights reserved\\.
+                \\+(.)*Copyright \\(c\\) (?:\\d|\\s|,)* Oracle and/or its affiliates\\. All rights reserved\\.
+                """);
+
+        var aHunks = a.asTextualPatch().hunks()
+                .stream()
+                .filter(hunk -> !copyRightPattern.matcher(hunk.toString()).find())
+                .toList();
+        var bHunks = b.asTextualPatch().hunks()
+                .stream()
+                .filter(hunk -> !copyRightPattern.matcher(hunk.toString()).find())
+                .toList();
+
         if (aHunks.size() != bHunks.size()) {
             return false;
         }
