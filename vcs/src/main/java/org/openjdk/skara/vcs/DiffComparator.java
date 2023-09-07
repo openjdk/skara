@@ -64,18 +64,18 @@ public class DiffComparator {
     }
 
     private static boolean areFuzzyEqual(Patch a, Patch b) {
-        Pattern copyRightPattern = Pattern.compile("""
+        Pattern copyrightPattern = Pattern.compile("""
                 -(.)*Copyright \\(c\\) (?:\\d|\\s|,)* Oracle and/or its affiliates\\. All rights reserved\\.
                 \\+(.)*Copyright \\(c\\) (?:\\d|\\s|,)* Oracle and/or its affiliates\\. All rights reserved\\.
                 """);
 
         var aHunks = a.asTextualPatch().hunks()
                 .stream()
-                .filter(hunk -> !copyRightPattern.matcher(hunk.toString()).find())
+                .filter(hunk -> !copyrightPattern.matcher(hunk.toString()).find())
                 .toList();
         var bHunks = b.asTextualPatch().hunks()
                 .stream()
-                .filter(hunk -> !copyRightPattern.matcher(hunk.toString()).find())
+                .filter(hunk -> !copyrightPattern.matcher(hunk.toString()).find())
                 .toList();
 
         if (aHunks.size() != bHunks.size()) {
