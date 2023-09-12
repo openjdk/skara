@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,12 +22,16 @@
  */
 package org.openjdk.skara.vcs;
 
-import java.io.*;
-import java.nio.file.*;
 import java.util.*;
 import java.util.regex.Pattern;
 
 public class DiffComparator {
+
+    private static final Pattern COPYRIGHT_PATTERN = Pattern.compile("""
+            -(.)*Copyright \\(c\\) (?:\\d|\\s|,)* Oracle and/or its affiliates\\. All rights reserved\\.
+            \\+(.)*Copyright \\(c\\) (?:\\d|\\s|,)* Oracle and/or its affiliates\\. All rights reserved\\.
+            """);
+
     public static boolean areFuzzyEqual(Diff a, Diff b) {
         var aPatches = new HashMap<String, Patch>();
         for (var patch : a.patches()) {
@@ -64,18 +68,13 @@ public class DiffComparator {
     }
 
     private static boolean areFuzzyEqual(Patch a, Patch b) {
-        Pattern copyrightPattern = Pattern.compile("""
-                -(.)*Copyright \\(c\\) (?:\\d|\\s|,)* Oracle and/or its affiliates\\. All rights reserved\\.
-                \\+(.)*Copyright \\(c\\) (?:\\d|\\s|,)* Oracle and/or its affiliates\\. All rights reserved\\.
-                """);
-
         var aHunks = a.asTextualPatch().hunks()
                 .stream()
-                .filter(hunk -> !copyrightPattern.matcher(hunk.toString()).find())
+                .filter(hunk -> !COPYRIGHT_PATTERN.matcher(hunk.toString()).find())
                 .toList();
         var bHunks = b.asTextualPatch().hunks()
                 .stream()
-                .filter(hunk -> !copyrightPattern.matcher(hunk.toString()).find())
+                .filter(hunk -> !COPYRIGHT_PATTERN.matcher(hunk.toString()).find())
                 .toList();
 
         if (aHunks.size() != bHunks.size()) {

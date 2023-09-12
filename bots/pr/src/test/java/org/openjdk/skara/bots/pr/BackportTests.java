@@ -1922,4 +1922,118 @@ class BackportTests {
             assertFalse(pr.store().labelNames().contains("ready"));
         }
     }
+
+    @Test
+    void cleanBackportWithCopyrightUpdate(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory(false)) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(integrator.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+
+            // Initialize master branch
+            var newFile = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile, """
+                    /*
+                     * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+                     * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+                     */
+                     
+                     Line1
+                     Line2
+                     """);
+            localRepo.add(newFile);
+            var updateHash = localRepo.commit("initial", "Test", "test@test.test");
+            localRepo.push(updateHash, author.authenticatedUrl(), "master", true);
+
+            // Initialize release branch
+            var releaseBranch = localRepo.branch(masterHash, "release");
+            localRepo.checkout(releaseBranch);
+            newFile = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile, """
+                    /*
+                     * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+                     * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+                     */
+                     
+                     Line1
+                     Line2
+                     """);
+            localRepo.add(newFile);
+            var releaseHash = localRepo.commit("initial", "Test", "test@test.test");
+            localRepo.push(releaseHash, author.authenticatedUrl(), "refs/heads/release", true);
+
+            // Update release branch
+            newFile = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile, """
+                    /*
+                     * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+                     * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+                     */
+                     
+                     Line1
+                     Line2
+                     Line3
+                     """);
+            localRepo.add(newFile);
+            var issue1 = credentials.createIssue(issues, "An issue");
+            var issue1Number = issue1.id().split("-")[1];
+            var originalMessage = issue1Number + ": An issue\n" +
+                    "\n" +
+                    "Reviewed-by: integrationreviewer2";
+            var updateReleaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
+            localRepo.push(updateReleaseHash, author.authenticatedUrl(), "refs/heads/release", true);
+
+
+            // "backport" the new file to the master branch
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(updateHash, "edit");
+            localRepo.checkout(editBranch);
+            var newFile2 = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile, """
+                    /*
+                     * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+                     * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+                     */
+                     
+                     Line1
+                     Line2
+                     Line3
+                     """);
+            localRepo.add(newFile2);
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + updateReleaseHash.hex(), List.of());
+
+            // The bot should reply with a backport message
+            TestBotRunner.runPeriodicItems(bot);
+            var comments = pr.comments();
+            var backportComment = comments.get(0).body();
+            assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
+            assertTrue(backportComment.contains("<!-- backport " + updateReleaseHash.hex() + " -->"));
+            assertEquals(issue1Number + ": An issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
+            assertFalse(pr.store().body().contains(ReviewersCheck.DESCRIPTION), "Reviewer requirement found in pr body");
+            assertFalse(pr.store().body().contains(CheckRun.MSG_EMPTY_BODY), "Body not empty requirement found in pr body");
+
+            // The bot should have added the "clean" label
+            assertTrue(pr.store().labelNames().contains("clean"));
+        }
+    }
 }
