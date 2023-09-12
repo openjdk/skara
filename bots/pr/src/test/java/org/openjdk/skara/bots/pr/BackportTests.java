@@ -1954,7 +1954,6 @@ class BackportTests {
                      * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
                      * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
                      */
-                     
                      Line1
                      Line2
                      """);
@@ -1971,7 +1970,6 @@ class BackportTests {
                      * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
                      * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
                      */
-                     
                      Line1
                      Line2
                      """);
@@ -1986,7 +1984,6 @@ class BackportTests {
                      * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
                      * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
                      */
-                     
                      Line1
                      Line2
                      Line3
@@ -2011,7 +2008,6 @@ class BackportTests {
                      * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
                      * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
                      */
-                     
                      Line1
                      Line2
                      Line3
