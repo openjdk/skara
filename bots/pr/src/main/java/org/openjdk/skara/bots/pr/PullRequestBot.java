@@ -151,7 +151,11 @@ class PullRequestBot implements Bot {
 
         for (var pr : pullRequests) {
             if (pr.state() == Issue.State.OPEN) {
-                ret.add(new CheckWorkItem(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt(), true, false, false, initialRun));
+                if (initialRun) {
+                    ret.add(CheckWorkItem.fromInitialRunOfPRBot(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt()));
+                } else {
+                    ret.add(CheckWorkItem.fromPRBot(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt()));
+                }
             } else {
                 // Closed PR's do not need to be checked
                 ret.add(new PullRequestCommandWorkItem(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt(), true));

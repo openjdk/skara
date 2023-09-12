@@ -69,12 +69,47 @@ class CheckWorkItem extends PullRequestWorkItem {
     private final boolean initialRun;
     private final Map<String, Optional<IssueTrackerIssue>> issues = new HashMap<>();
 
-    CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
-                  boolean needsReadyCheck, boolean forceUpdate, boolean spawnedFromIssueBot, boolean initialRun) {
+    private CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
+                          boolean needsReadyCheck, boolean forceUpdate, boolean spawnedFromIssueBot, boolean initialRun) {
         super(bot, prId, errorHandler, triggerUpdatedAt, needsReadyCheck);
         this.forceUpdate = forceUpdate;
         this.spawnedFromIssueBot = spawnedFromIssueBot;
         this.initialRun = initialRun;
+    }
+
+    /**
+     * Create CheckWorkItem spawned from CSRIssueWorkItem
+     */
+    public static CheckWorkItem fromCSRIssue(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt) {
+        return new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, true, true, false, false);
+    }
+
+    /**
+     * Create CheckWorkItem spawned from initial run of PullRequestBot
+     */
+    public static CheckWorkItem fromInitialRunOfPRBot(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt) {
+        return new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, true, false, false, true);
+    }
+
+    /**
+     * Create CheckWorkItem spawned from PullRequestBot
+     */
+    public static CheckWorkItem fromPRBot(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt) {
+        return new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, true, false, false, false);
+    }
+
+    /**
+     * Create CheckWorkItem spawned from IssueBot
+     */
+    public static CheckWorkItem fromIssueBot(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt) {
+        return new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, true, false, true, false);
+    }
+
+    /**
+     * Create Normal CheckWorkItem
+     */
+    public static CheckWorkItem normal(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt) {
+        return new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false, false, false, false);
     }
 
     private String encodeReviewer(HostUser reviewer, CensusInstance censusInstance) {
@@ -229,8 +264,8 @@ class CheckWorkItem extends PullRequestWorkItem {
                             return false;
                         }
                     }
-                    // triggered by pr updates
                 }
+                // triggered by pr updates
                 if (!spawnedFromIssueBot) {
                     var currPRMetadata = getPRMetadata(censusInstance, pr.title(), pr.body(), comments, reviews,
                             labels, pr.targetRef(), pr.isDraft());
@@ -510,7 +545,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     comment.add(text);
                     pr.addComment(String.join("\n", comment));
                     pr.addLabel("backport");
-                    return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false, false, false, false));
+                    return List.of(CheckWorkItem.normal(bot, prId, errorHandler, triggerUpdatedAt));
                 } else {
                     var botUser = pr.repository().forge().currentUser();
                     var text = "<!-- backport error -->\n" +
@@ -549,14 +584,14 @@ class CheckWorkItem extends PullRequestWorkItem {
                 var comment = pr.addComment(text);
                 pr.addLabel("backport");
                 logLatency("Time from PR updated to backport comment posted ", comment.createdAt(), log);
-                return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false, false, false, false));
+                return List.of(CheckWorkItem.normal(bot, prId, errorHandler, triggerUpdatedAt));
             }
 
             // If the title needs updating, we run the check again
             if (updateTitle()) {
                 var updatedPr = bot.repo().pullRequest(prId);
                 logLatency("Time from PR updated to title corrected ", updatedPr.updatedAt(), log);
-                return List.of(new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false, false, false, false));
+                return List.of(CheckWorkItem.normal(bot, prId, errorHandler, triggerUpdatedAt));
             }
 
             // Check force push
