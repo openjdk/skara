@@ -108,7 +108,7 @@ class CheckWorkItem extends PullRequestWorkItem {
     /**
      * Create Normal CheckWorkItem
      */
-    public static CheckWorkItem normal(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt) {
+    public static CheckWorkItem fromWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt) {
         return new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false, false, false, false);
     }
 
@@ -545,7 +545,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     comment.add(text);
                     pr.addComment(String.join("\n", comment));
                     pr.addLabel("backport");
-                    return List.of(CheckWorkItem.normal(bot, prId, errorHandler, triggerUpdatedAt));
+                    return List.of(CheckWorkItem.fromWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
                 } else {
                     var botUser = pr.repository().forge().currentUser();
                     var text = "<!-- backport error -->\n" +
@@ -584,14 +584,14 @@ class CheckWorkItem extends PullRequestWorkItem {
                 var comment = pr.addComment(text);
                 pr.addLabel("backport");
                 logLatency("Time from PR updated to backport comment posted ", comment.createdAt(), log);
-                return List.of(CheckWorkItem.normal(bot, prId, errorHandler, triggerUpdatedAt));
+                return List.of(CheckWorkItem.fromWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
             }
 
             // If the title needs updating, we run the check again
             if (updateTitle()) {
                 var updatedPr = bot.repo().pullRequest(prId);
                 logLatency("Time from PR updated to title corrected ", updatedPr.updatedAt(), log);
-                return List.of(CheckWorkItem.normal(bot, prId, errorHandler, triggerUpdatedAt));
+                return List.of(CheckWorkItem.fromWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
             }
 
             // Check force push
