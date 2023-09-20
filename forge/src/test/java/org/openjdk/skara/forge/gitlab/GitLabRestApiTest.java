@@ -30,12 +30,12 @@ import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.test.ManualTestSettings;
 import org.openjdk.skara.test.TemporaryDirectory;
 import org.openjdk.skara.vcs.Branch;
+import org.openjdk.skara.vcs.DiffComparator;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
-import java.util.Set;
 import org.openjdk.skara.vcs.git.GitRepository;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -267,7 +267,6 @@ public class GitLabRestApiTest {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
 
-        System.out.println(gitLabMergeRequest.webUrl());
         var comment = gitLabMergeRequest.comments().get(0);
         assertEquals(settings.getProperty("comment_html_url"), gitLabMergeRequest.commentUrl(comment).toString());
 
@@ -303,5 +302,23 @@ public class GitLabRestApiTest {
 
         var expiredDeployKeys = gitLabRepo.deployKeyTitles(Duration.ofMinutes(5));
         assertTrue(expiredDeployKeys.contains("test1"));
+    }
+
+    @Test
+    void testBackportCleanIgnoreCopyRight() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var username = settings.getProperty("gitlab.user");
+        var token = settings.getProperty("gitlab.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of(settings.getProperty("gitlab.group").split(",")));
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
+
+        var pr = gitLabRepo.pullRequest(settings.getProperty("gitlab.prId"));
+        var commit = pr.repository().forge().search(new Hash(settings.getProperty("gitlab.commitHash")), true);
+        var backportDiff = commit.get().parentDiffs().get(0);
+        var prDiff = pr.diff();
+        var isClean = DiffComparator.areFuzzyEqual(backportDiff, prDiff);
+        assertTrue(isClean);
     }
 }
