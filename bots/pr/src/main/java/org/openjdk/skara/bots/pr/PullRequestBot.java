@@ -78,6 +78,7 @@ class PullRequestBot implements Bot {
     private final Map<String, String> jCheckConfMap = new HashMap<>();
     private final Map<String, Set<String>> targetRefPRMap = new HashMap<>();
     private final Approval approval;
+    private boolean initialRun = true;
 
     private Instant lastFullUpdate;
 
@@ -150,12 +151,18 @@ class PullRequestBot implements Bot {
 
         for (var pr : pullRequests) {
             if (pr.state() == Issue.State.OPEN) {
-                ret.add(new CheckWorkItem(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt(), true));
+                if (initialRun) {
+                    ret.add(CheckWorkItem.fromInitialRunOfPRBot(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt()));
+                } else {
+                    ret.add(CheckWorkItem.fromPRBot(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt()));
+                }
             } else {
                 // Closed PR's do not need to be checked
                 ret.add(new PullRequestCommandWorkItem(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt(), true));
             }
         }
+
+        initialRun = false;
 
         return ret;
     }
