@@ -257,6 +257,9 @@ public class PullRequestBotFactory implements BotFactory {
                     issueProjectToIssuePRMapMap.get(issueProject)));
         }
 
+        // Reverse the list to make sure IssueBots would be run first
+        Collections.reverse(ret);
+
         return ret;
     }
 }
