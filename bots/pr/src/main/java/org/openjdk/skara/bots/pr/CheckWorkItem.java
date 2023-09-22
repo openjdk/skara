@@ -69,6 +69,17 @@ class CheckWorkItem extends PullRequestWorkItem {
     private final boolean initialRun;
     private final Map<String, Optional<IssueTrackerIssue>> issues = new HashMap<>();
 
+    @Override
+    public boolean replaces(WorkItem other) {
+        if (!other.getClass().equals(this.getClass())) {
+            return false;
+        }
+        var otherCheckWorkItem = (CheckWorkItem) other;
+        return !concurrentWith(other) && this.forceUpdate == otherCheckWorkItem.forceUpdate
+                && this.initialRun == otherCheckWorkItem.initialRun
+                && this.spawnedFromIssueBot == otherCheckWorkItem.spawnedFromIssueBot;
+    }
+
     private CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt,
                           boolean needsReadyCheck, boolean forceUpdate, boolean spawnedFromIssueBot, boolean initialRun) {
         super(bot, prId, errorHandler, triggerUpdatedAt, needsReadyCheck);
