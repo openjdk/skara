@@ -94,6 +94,7 @@ public class TagCommand implements CommandHandler {
             var localRepo = bot.hostedRepositoryPool()
                                .orElseThrow(() -> new IllegalStateException("Missing repository pool for PR bot"))
                                .materialize(bot.repo(), localRepoDir);
+            localRepo.fetchAll(bot.repo().authenticatedUrl());
 
             var existingTagNames = localRepo.tags().stream().map(Tag::name).collect(Collectors.toSet());
             if (existingTagNames.contains(tagName)) {
