@@ -408,7 +408,12 @@ class CheckRun {
         }
     }
 
-    private boolean updateReadyForReview(PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
+    private boolean updateReadyForReview(PullRequestCheckIssueVisitor visitor, List<String> additionalErrors, Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap) {
+        // All the issues must be accessible
+        if (issueProject() != null && regularIssuesMap.values().stream().anyMatch(Optional::isEmpty)) {
+            return false;
+        }
+
         // Additional errors are not allowed
         if (!additionalErrors.isEmpty()) {
             newLabels.remove("rfr");
@@ -1301,7 +1306,7 @@ class CheckRun {
             updateCSRLabel(version, issueToCsrMap);
 
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
-            var readyForReview = updateReadyForReview(visitor, additionalErrors);
+            var readyForReview = updateReadyForReview(visitor, additionalErrors, regularIssuesMap);
 
             var integrationBlockers = botSpecificIntegrationBlockers(regularIssuesMap);
             integrationBlockers.addAll(secondJCheckMessage);
