@@ -76,7 +76,6 @@ class CheckRun {
     private final boolean reviewCleanBackport;
     private final boolean reviewMerge;
     private final Approval approval;
-    private boolean allIssuesAccessible = true;
 
     private Duration expiresIn;
 
@@ -145,7 +144,6 @@ class CheckRun {
                     var issueTrackerIssue = workItem.issueTrackerIssue(i.shortId());
                     if (issueTrackerIssue.isEmpty()) {
                         log.info("Failed to retrieve issue " + i.id());
-                        allIssuesAccessible = false;
                         setExpiration(Duration.ofMinutes(10));
                     }
                     map.put(i, issueTrackerIssue);
@@ -410,9 +408,9 @@ class CheckRun {
         }
     }
 
-    private boolean updateReadyForReview(PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
+    private boolean updateReadyForReview(PullRequestCheckIssueVisitor visitor, List<String> additionalErrors, Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap) {
         // All the issues must be accessible
-        if (!allIssuesAccessible) {
+        if (issueProject() != null && regularIssuesMap.values().stream().anyMatch(Optional::isEmpty)) {
             return false;
         }
 
@@ -1308,7 +1306,7 @@ class CheckRun {
             updateCSRLabel(version, issueToCsrMap);
 
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
-            var readyForReview = updateReadyForReview(visitor, additionalErrors);
+            var readyForReview = updateReadyForReview(visitor, additionalErrors, regularIssuesMap);
 
             var integrationBlockers = botSpecificIntegrationBlockers(regularIssuesMap);
             integrationBlockers.addAll(secondJCheckMessage);
