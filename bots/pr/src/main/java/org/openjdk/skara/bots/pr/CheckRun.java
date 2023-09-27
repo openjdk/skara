@@ -76,6 +76,7 @@ class CheckRun {
     private final boolean reviewCleanBackport;
     private final boolean reviewMerge;
     private final Approval approval;
+    private final String realTargetRef;
 
     private Duration expiresIn;
 
@@ -104,6 +105,7 @@ class CheckRun {
                 workItem.bot.confOverrideName(),
                 workItem.bot.confOverrideRef(),
                 comments);
+        realTargetRef = ApprovalCommand.realTargetRef(pr);
     }
 
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
@@ -710,13 +712,12 @@ class CheckRun {
                             }
                             if (approvalNeeded()) {
                                 String status = "";
-                                String targetRef = pr.targetRef();
                                 var labels = issueTrackerIssue.get().labelNames();
-                                if (labels.contains(approval.rejectedLabel(targetRef))) {
+                                if (labels.contains(approval.rejectedLabel(realTargetRef))) {
                                     status = "Rejected";
-                                } else if (labels.contains(approval.approvedLabel(targetRef))) {
+                                } else if (labels.contains(approval.approvedLabel(realTargetRef))) {
                                     status = "Approved";
-                                } else if (labels.contains(approval.requestedLabel(targetRef))) {
+                                } else if (labels.contains(approval.requestedLabel(realTargetRef))) {
                                     status = "Requested";
                                     requestPresent = true;
                                 }
@@ -1518,7 +1519,7 @@ class CheckRun {
     }
 
     private boolean approvalNeeded() {
-        return approval != null && approval.needsApproval(pr.targetRef());
+        return approval != null && approval.needsApproval(realTargetRef);
     }
 
     private void postApprovalNeededComment() {

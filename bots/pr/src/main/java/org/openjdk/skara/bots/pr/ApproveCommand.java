@@ -59,7 +59,7 @@ public class ApproveCommand implements CommandHandler {
         }
 
         var approval = bot.approval();
-        var targetRef = pr.targetRef();
+        var targetRef = ApprovalCommand.realTargetRef(pr);
         if (approval == null) {
             reply.println("Changes in this repository do not require maintainer approval.");
             return;

@@ -48,6 +48,8 @@ public class ApprovalCommand implements CommandHandler {
 
     private static final Pattern APPROVAL_ARG_PATTERN = Pattern.compile("(([A-Za-z]+-)?[0-9]+)? ?(request|cancel)(.*?)?", Pattern.MULTILINE | Pattern.DOTALL);
 
+    private static final Pattern PRE_INTEGRATE_BRANCH_PATTERN = Pattern.compile("pr/(\\d+)");
+
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!command.user().equals(pr.author())) {
@@ -55,13 +57,13 @@ public class ApprovalCommand implements CommandHandler {
             return;
         }
         var approval = bot.approval();
-        var targetRef = pr.targetRef();
+        var targetRef = realTargetRef(pr);
         if (approval == null) {
             reply.println("Changes in this repository do not require maintainer approval.");
             return;
         }
         if (!approval.needsApproval(targetRef)) {
-            reply.println("Changes to branch " + pr.targetRef() + " do not require maintainer approval");
+            reply.println("Changes to branch " + targetRef + " do not require maintainer approval");
             return;
         }
         var argMatcher = APPROVAL_ARG_PATTERN.matcher(command.args());
@@ -169,5 +171,16 @@ public class ApprovalCommand implements CommandHandler {
 
     private void showHelp(PrintWriter reply) {
         reply.println("usage: `/approval [<id>] (request|cancel) [<text>]`");
+    }
+
+    public static String realTargetRef(PullRequest pr) {
+        var targetRef = pr.targetRef();
+        var matcher = PRE_INTEGRATE_BRANCH_PATTERN.matcher(targetRef);
+        if (!matcher.matches()) {
+            return targetRef;
+        }
+        String id = matcher.group(1);
+        var dependentPR = pr.repository().pullRequest(id);
+        return realTargetRef(dependentPR);
     }
 }
