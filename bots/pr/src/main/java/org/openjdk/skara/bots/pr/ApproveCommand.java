@@ -65,7 +65,7 @@ public class ApproveCommand implements CommandHandler {
             return;
         }
         if (!approval.needsApproval(targetRef)) {
-            reply.println("Changes to branch " + pr.targetRef() + " do not require maintainer approval");
+            reply.println("Changes to branch " + targetRef + " do not require maintainer approval");
             return;
         }
         var argMatcher = APPROVE_ARG_PATTERN.matcher(command.args());
