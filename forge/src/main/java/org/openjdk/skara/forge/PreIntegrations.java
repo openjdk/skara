@@ -62,9 +62,6 @@ public class PreIntegrations {
 
     public static String realTargetRef(PullRequest pr) {
         Optional<String> idOpt = dependentPullRequestId(pr);
-        if (idOpt.isEmpty()) {
-            return pr.targetRef();
-        }
-        return realTargetRef(pr.repository().pullRequest(idOpt.get()));
+        return idOpt.isEmpty() ? pr.targetRef() : realTargetRef(pr.repository().pullRequest(idOpt.get()));
     }
 }
