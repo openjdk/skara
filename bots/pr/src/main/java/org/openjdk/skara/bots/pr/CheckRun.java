@@ -76,9 +76,10 @@ class CheckRun {
     private final boolean reviewCleanBackport;
     private final boolean reviewMerge;
     private final Approval approval;
-    private final String realTargetRef;
 
     private Duration expiresIn;
+    // Only set if approval is configured for the repo
+    private String realTargetRef;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
@@ -105,7 +106,6 @@ class CheckRun {
                 workItem.bot.confOverrideName(),
                 workItem.bot.confOverrideRef(),
                 comments);
-        realTargetRef = ApprovalCommand.realTargetRef(pr);
     }
 
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
@@ -1519,7 +1519,13 @@ class CheckRun {
     }
 
     private boolean approvalNeeded() {
-        return approval != null && approval.needsApproval(realTargetRef);
+        if (approval != null) {
+            if (realTargetRef == null) {
+                realTargetRef = PreIntegrations.realTargetRef(pr);
+            }
+            return approval.needsApproval(realTargetRef);
+        }
+        return false;
     }
 
     private void postApprovalNeededComment() {

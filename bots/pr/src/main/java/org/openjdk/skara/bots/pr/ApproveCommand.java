@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bots.common.SolvesTracker;
+import org.openjdk.skara.forge.PreIntegrations;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.openjdk.Issue;
@@ -30,7 +31,6 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.regex.Pattern;
 
 public class ApproveCommand implements CommandHandler {
@@ -59,7 +59,7 @@ public class ApproveCommand implements CommandHandler {
         }
 
         var approval = bot.approval();
-        var targetRef = ApprovalCommand.realTargetRef(pr);
+        var targetRef = PreIntegrations.realTargetRef(pr);
         if (approval == null) {
             reply.println("Changes in this repository do not require maintainer approval.");
             return;
