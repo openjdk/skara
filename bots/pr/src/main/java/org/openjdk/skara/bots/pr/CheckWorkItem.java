@@ -214,6 +214,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                             issueData.append(properties.get("issuetype").asString());
                         }
                         if (bot.approval() != null && bot.approval().needsApproval(pr.targetRef())) {
+                            issueData.append("approval");
                             issueData.append(String.join("", issue.labelNames()));
                         }
                         return issueData;
