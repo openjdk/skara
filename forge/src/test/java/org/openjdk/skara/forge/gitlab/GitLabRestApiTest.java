@@ -22,6 +22,9 @@
  */
 package org.openjdk.skara.forge.gitlab;
 
+import java.nio.file.Path;
+import java.time.ZonedDateTime;
+import java.util.Set;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.host.Credential;
@@ -320,5 +323,39 @@ public class GitLabRestApiTest {
         var prDiff = pr.diff();
         var isClean = DiffComparator.areFuzzyEqual(backportDiff, prDiff);
         assertTrue(isClean);
+    }
+
+    @Test
+    void testCommitComments() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var username = settings.getProperty("gitlab.user");
+        var token = settings.getProperty("gitlab.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("commit.comments.gitlab.repository")).orElseThrow();
+        var commitHash = new Hash(settings.getProperty("commit.comments.hash"));
+
+        var comments = gitLabRepo.commitComments(commitHash);
+
+        assertFalse(comments.isEmpty());
+    }
+
+    @Test
+    void testRecentCommitComments() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var username = settings.getProperty("gitlab.user");
+        var token = settings.getProperty("gitlab.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("commit.comments.gitlab.repository")).orElseThrow();
+
+        var localRepo = GitRepository.get(Path.of(settings.getProperty("commit.comments.local.repository"))).orElseThrow();
+
+        var comments = gitLabRepo.recentCommitComments(localRepo, Set.of(), List.of(new Branch("master")),
+                ZonedDateTime.now().minus(Duration.ofDays(4)));
+
+        assertFalse(comments.isEmpty());
     }
 }

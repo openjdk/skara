@@ -219,11 +219,28 @@ public class ApprovalAndApproveCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "JDK-1: Can only approve issues in the TEST project.");
 
-            pr.addComment("/approval 1 request my reason");
-            pr.addComment("/approval 2 request my reason");
+            pr.addComment("/approval request my reason");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(issueBot);
-            assertLastCommentContains(pr, "The approval [request](http://localhost/project/testTEST-2?focusedCommentId=0) has been created successfully.");
+            assertLastCommentContains(pr, "1: The approval [request](http://localhost/project/testTEST-1?focusedCommentId=0) has been created successfully.");
+            assertLastCommentContains(pr, "2: The approval [request](http://localhost/project/testTEST-2?focusedCommentId=0) has been created successfully.");
+
+            pr.addComment("/approval cancel");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(issueBot);
+            assertLastCommentContains(pr, "1: The approval request has been cancelled successfully.");
+            assertLastCommentContains(pr, "2: The approval request has been cancelled successfully.");
+
+            pr.addComment("/approval 1 request my reason for 1");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(issueBot);
+            assertLastCommentContains(pr, "1: The approval [request](http://localhost/project/testTEST-1?focusedCommentId=0) has been created successfully.");
+
+            pr.addComment("/approval request my reason");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(issueBot);
+            assertLastCommentContains(pr, "1: The approval [request](http://localhost/project/testTEST-1?focusedCommentId=0) has been updated successfully.");
+            assertLastCommentContains(pr, "2: The approval [request](http://localhost/project/testTEST-2?focusedCommentId=0) has been created successfully.");
 
             reviewerPr.addComment("/approve 1 no");
             TestBotRunner.runPeriodicItems(prBot);
