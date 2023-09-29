@@ -117,7 +117,7 @@ public class ApproveCommand implements CommandHandler {
         }
     }
 
-    public static List<Issue> getIssues(String issueId, PullRequest pr, List<Comment> allComments, PrintWriter reply) {
+    static List<Issue> getIssues(String issueId, PullRequest pr, List<Comment> allComments, PrintWriter reply) {
         var titleIssue = Issue.fromStringRelaxed(pr.title());
         var issueIds = new ArrayList<String>();
         titleIssue.ifPresent(value -> issueIds.add(value.shortId()));
@@ -132,7 +132,7 @@ public class ApproveCommand implements CommandHandler {
             if (issueIds.contains(issue.shortId())) {
                 ret.add(issue);
             } else {
-                reply.println(issueId + " is not associated with this pull request.");
+                reply.println("This issue is not associated with this pull request.");
             }
             // If issueId is not specified, then handle all the issues associated with this pull request
         } else {
