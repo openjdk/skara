@@ -3057,4 +3057,64 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(prBot);
         }
     }
+
+    @Test
+    void maintainerApprovalWithDependentPR(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
+            issue.setProperty("priority", JSON.of("4"));
+            var issue2 = issueProject.createIssue("This is an issue2", List.of(), Map.of());
+            issue2.setProperty("issuetype", JSON.of("Bug"));
+            issue2.setProperty("priority", JSON.of("4"));
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            Approval approval = new Approval("", "-critical-request", "-critical-approved",
+                    "-critical-rejected", "https://example.com");
+            approval.addBranchPrefix(Pattern.compile("jdk20.0.1"), "CPU23_04");
+            approval.addBranchPrefix(Pattern.compile("jdk20.0.2"), "CPU23_05");
+
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(issuePRMap)
+                    .approval(approval)
+                    .integrators(Set.of(reviewer.forge().currentUser().username()))
+                    .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "jdk20.0.1", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+
+            var pr = credentials.createPullRequest(author, "jdk20.0.1", "edit", issue.id() + ": This is an issue");
+
+            TestBotRunner.runPeriodicItems(prBot);
+            assertFalse(pr.store().labelNames().contains("ready"));
+
+            localRepo.push(editHash, author.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr), true);
+
+            var followUp = CheckableRepository.appendAndCommit(localRepo, "Follow-up work", "Follow-up change");
+            localRepo.push(followUp, author.authenticatedUrl(), "followup", true);
+            var followUpPr = credentials.createPullRequest(author, PreIntegrations.preIntegrateBranch(pr), "followup", issue2.id());
+            TestBotRunner.runPeriodicItems(prBot);
+
+            assertTrue(followUpPr.store().body().contains("needs maintainer approval"));
+        }
+    }
 }

@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.forge.PreIntegrations;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
 
@@ -52,13 +53,13 @@ public class ApprovalCommand implements CommandHandler {
             return;
         }
         var approval = bot.approval();
-        var targetRef = pr.targetRef();
+        var targetRef = PreIntegrations.realTargetRef(pr);
         if (approval == null) {
             reply.println("Changes in this repository do not require maintainer approval.");
             return;
         }
         if (!approval.needsApproval(targetRef)) {
-            reply.println("Changes to branch " + pr.targetRef() + " do not require maintainer approval");
+            reply.println("Changes to branch " + targetRef + " do not require maintainer approval");
             return;
         }
         var argMatcher = APPROVAL_ARG_PATTERN.matcher(command.args());
