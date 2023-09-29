@@ -86,7 +86,7 @@ public class ApprovalCommand implements CommandHandler {
 
             var issueTrackerIssueOpt = issueProject.issue(issue.shortId());
             if (issueTrackerIssueOpt.isEmpty()) {
-                reply.println("Can not find " + issue.id() + " in the " + issueProject.name() + " project.");
+                reply.println("Can not be found in the " + issueProject.name() + " project.");
                 continue;
             }
             var issueTrackerIssue = issueTrackerIssueOpt.get();
