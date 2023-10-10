@@ -131,7 +131,7 @@ public class Execution implements AutoCloseable {
 
     private void startProcess() throws IOException {
         cmd = String.join(" ", processBuilder.command());
-        log.finer("Executing '" + cmd + "'");
+        log.finer("Executing '" + cmd + "' in " + processBuilder.directory());
 
         prepareRedirects();
 
@@ -142,7 +142,8 @@ public class Execution implements AutoCloseable {
     private void waitForProcess() throws IOException, InterruptedException {
         var terminated = this.process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
         var duration = Duration.between(startTime, Instant.now());
-        log.log(Level.FINE, "Executing '" + String.join(" ", processBuilder.command()) + " took " + duration, duration);
+        log.log(Level.FINE, "Executing '" + String.join(" ", processBuilder.command())
+                + "' in " + processBuilder.directory() + " took " + duration, duration);
         if (!terminated) {
             log.warning("Command '" + cmd + "' didn't finish in " + timeout + ", attempting to terminate...");
             this.process.destroyForcibly().waitFor();
