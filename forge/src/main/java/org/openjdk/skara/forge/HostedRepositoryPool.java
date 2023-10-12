@@ -122,7 +122,9 @@ public class HostedRepositoryPool {
             }
             Repository.clone(remote, tmpClonePath, bare, seed);
             Files.move(tmpClonePath, path);
-            healthySet.add(path);
+            if (Repository.get(path).isPresent()) {
+                healthySet.add(path);
+            }
             return Repository.get(path).orElseThrow();
         }
 
