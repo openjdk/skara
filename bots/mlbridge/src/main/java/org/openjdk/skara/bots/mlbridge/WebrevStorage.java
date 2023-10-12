@@ -322,26 +322,45 @@ class WebrevStorage {
             throw new UncheckedIOException(e);
         }
     }
-
     interface WebrevGenerator {
         WebrevDescription generate(Hash base, Hash head, String identifier, WebrevDescription.Type type);
 
         WebrevDescription generate(Diff diff, String identifier, WebrevDescription.Type type, String description);
     }
 
-    WebrevGenerator generator(PullRequest pr, Repository localRepository, Path scratchPath, HostedRepositoryPool hostedRepositoryPool) throws IOException {
-        var jsonLocalStorage = jsonStorage == null ? null : hostedRepositoryPool.checkout(jsonStorage, storageRef, scratchPath);
-        var htmlLocalStorage = htmlStorage == null ? null : hostedRepositoryPool.checkout(htmlStorage, storageRef, scratchPath);
+    WebrevGenerator generator(PullRequest pr, Repository localRepository, Path scratchPath, HostedRepositoryPool hostedRepositoryPool) {
 
         return new WebrevGenerator() {
+            Repository jsonLocalStorage = null;
+            Repository htmlLocalStorage = null;
+
+            private void initializeLocalStorage() {
+                if (jsonLocalStorage == null && !(jsonStorage == null)) {
+                    try {
+                        jsonLocalStorage = hostedRepositoryPool.checkout(jsonStorage, storageRef, scratchPath);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                if (htmlLocalStorage == null && !(htmlStorage == null)) {
+                    try {
+                        htmlLocalStorage = hostedRepositoryPool.checkout(htmlStorage, storageRef, scratchPath);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+
             @Override
             public WebrevDescription generate(Hash base, Hash head, String identifier, WebrevDescription.Type type) {
+                initializeLocalStorage();
                 var uri = createAndArchive(pr, localRepository, scratchPath, null, base, head, identifier, jsonLocalStorage, htmlLocalStorage);
                 return new WebrevDescription(uri, type);
             }
 
             @Override
             public WebrevDescription generate(Diff diff, String identifier, WebrevDescription.Type type, String description) {
+                initializeLocalStorage();
                 var uri = createAndArchive(pr, localRepository, scratchPath, diff, diff.from(), diff.to(), identifier, jsonLocalStorage, htmlLocalStorage);
                 return new WebrevDescription(uri, type, description);
             }
