@@ -182,7 +182,7 @@ class PullRequestBot implements Bot {
                 var targetRef = pr.targetRef();
                 var prId = pr.id();
                 if (pr.isOpen()) {
-                    targetRefPRMap.keySet().forEach(key -> targetRefPRMap.get(key).remove(prId));
+                    targetRefPRMap.values().forEach(s -> s.remove(prId));
                     targetRefPRMap.computeIfAbsent(targetRef, key -> new HashSet<>()).add(prId);
                 } else {
                     if (targetRefPRMap.containsKey(targetRef)) {
