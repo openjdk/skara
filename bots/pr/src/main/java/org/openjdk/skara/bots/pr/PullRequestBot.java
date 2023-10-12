@@ -182,6 +182,7 @@ class PullRequestBot implements Bot {
                 var targetRef = pr.targetRef();
                 var prId = pr.id();
                 if (pr.isOpen()) {
+                    targetRefPRMap.keySet().forEach(key -> targetRefPRMap.get(key).remove(prId));
                     targetRefPRMap.computeIfAbsent(targetRef, key -> new HashSet<>()).add(prId);
                 } else {
                     if (targetRefPRMap.containsKey(targetRef)) {
@@ -189,6 +190,11 @@ class PullRequestBot implements Bot {
                     }
                 }
             }
+
+            var keysToRemove = targetRefPRMap.keySet().stream()
+                    .filter(key -> targetRefPRMap.get(key).isEmpty())
+                    .toList();
+            keysToRemove.forEach(targetRefPRMap::remove);
 
             var jCheckConfUpdateRelatedPRs = getJCheckConfUpdateRelatedPRs();
             // Filter out duplicate prs
