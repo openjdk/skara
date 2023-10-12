@@ -25,6 +25,7 @@ package org.openjdk.skara.bot;
 import org.openjdk.skara.ci.ContinuousIntegration;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.issuetracker.IssueProject;
+import org.openjdk.skara.issuetracker.IssueTracker;
 import org.openjdk.skara.json.JSONObject;
 
 import java.nio.file.Path;
@@ -44,11 +45,18 @@ public interface BotConfiguration {
     HostedRepository repository(String name);
 
     /**
-     * Configuration-specific name mapped to a IssueProject.
+     * Configuration-specific name mapped to an IssueProject.
      * @param name
      * @return
      */
     IssueProject issueProject(String name);
+
+    /**
+     * Configuration-specific name mapped to an IssueTracker.
+     * @param name
+     * @return
+     */
+    IssueTracker issueTracker(String name);
 
     /**
      * Configuration-specific name mapped to a ContinuousIntegration.

@@ -76,6 +76,12 @@ public class CensusBuilder {
         return this;
     }
 
+    public CensusBuilder addAuthor(String id, String name) {
+        authors.add(new User(id, name, "Generated Author " + userIndex, "author"));
+        userIndex++;
+        return this;
+    }
+
     public CensusBuilder addCommitter(String id) {
         committers.add(new User(id,
                                 "integrationcommitter" + userIndex,

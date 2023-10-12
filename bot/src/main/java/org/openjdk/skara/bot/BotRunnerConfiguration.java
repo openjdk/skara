@@ -267,6 +267,14 @@ public class BotRunnerConfiguration {
             }
 
             @Override
+            public IssueTracker issueTracker(String name) {
+                if (!issueHosts.containsKey(name)) {
+                    throw new RuntimeException("Couldn't find issue tracker with name: " + name);
+                }
+                return issueHosts.get(name);
+            }
+
+            @Override
             public IssueProject issueProject(String name) {
                 try {
                     return parseIssueProjectEntry(name);

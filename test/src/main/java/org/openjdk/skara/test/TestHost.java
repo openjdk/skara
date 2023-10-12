@@ -293,4 +293,9 @@ public class TestHost implements Forge, IssueTracker {
     public Duration timeStampQueryPrecision() {
         return timeStampQueryPrecision;
     }
+
+    public void setUsers(List<HostUser> newUsers) {
+        data.users.clear();
+        data.users.addAll(newUsers);
+    }
 }

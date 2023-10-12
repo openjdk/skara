@@ -31,6 +31,7 @@ public class HostUser {
     private String username;
     private String fullName;
     private String email;
+    private boolean active;
     private boolean hasUpdated;
     private final Supplier<HostUser> supplier;
 
@@ -39,6 +40,7 @@ public class HostUser {
         private String username;
         private String fullName;
         private String email;
+        private boolean active = true;
         private Supplier<HostUser> supplier;
 
         public Builder id(int id) {
@@ -66,21 +68,27 @@ public class HostUser {
             return this;
         }
 
+        public Builder active(boolean active) {
+            this.active = active;
+            return this;
+        }
+
         public Builder supplier(Supplier<HostUser> supplier) {
             this.supplier = supplier;
             return this;
         }
 
         public HostUser build() {
-            return new HostUser(id, username, fullName, email, supplier);
+            return new HostUser(id, username, fullName, email, active, supplier);
         }
     }
 
-    private HostUser(String id, String username, String fullName, String email, Supplier<HostUser> supplier) {
+    private HostUser(String id, String username, String fullName, String email, boolean active, Supplier<HostUser> supplier) {
         this.id = id;
         this.username = username;
         this.fullName = fullName;
         this.email = email;
+        this.active = active;
         this.hasUpdated = false;
         this.supplier = supplier;
     }
@@ -91,6 +99,10 @@ public class HostUser {
 
     public static HostUser create(String id, String username, String fullName) {
         return builder().id(id).username(username).fullName(fullName).build();
+    }
+
+    public static HostUser create(String id, String username, String fullName, boolean active) {
+        return builder().id(id).username(username).fullName(fullName).active(active).build();
     }
 
     public static HostUser create(int id, String username, String fullName) {
@@ -124,6 +136,7 @@ public class HostUser {
         username = result.username;
         fullName = result.fullName;
         email = result.email;
+        active = result.active;
         hasUpdated = true;
     }
 
@@ -153,6 +166,10 @@ public class HostUser {
             update();
         }
         return Optional.ofNullable(email);
+    }
+
+    public boolean active() {
+        return active;
     }
 
     @Override
