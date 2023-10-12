@@ -335,19 +335,15 @@ class WebrevStorage {
             Repository htmlLocalStorage = null;
 
             private void initializeLocalStorage() {
-                if (jsonLocalStorage == null && !(jsonStorage == null)) {
-                    try {
+                try {
+                    if (jsonLocalStorage == null && !(jsonStorage == null)) {
                         jsonLocalStorage = hostedRepositoryPool.checkout(jsonStorage, storageRef, scratchPath);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
                     }
-                }
-                if (htmlLocalStorage == null && !(htmlStorage == null)) {
-                    try {
+                    if (htmlLocalStorage == null && !(htmlStorage == null)) {
                         htmlLocalStorage = hostedRepositoryPool.checkout(htmlStorage, storageRef, scratchPath);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
                     }
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
                 }
             }
 
