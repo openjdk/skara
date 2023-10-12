@@ -398,7 +398,7 @@ class ArchiveWorkItem implements WorkItem {
                 archiver.addReviewComment(reviewComment);
             }
 
-            var webrevGenerator = bot.webrevStorage().generator(pr, localRepo, webrevPath);
+            var webrevGenerator = bot.webrevStorage().generator(pr, localRepo, webrevPath, hostedRepositoryPool);
             var newMails = archiver.generateNewEmails(sentMails, bot.cooldown(), localRepo, bot.issueTracker(), jbs.toUpperCase(), webrevGenerator,
                                                       (index, webrevs) -> updateWebrevComment(comments, index, webrevs),
                                                       user -> getAuthorAddress(census, user),
