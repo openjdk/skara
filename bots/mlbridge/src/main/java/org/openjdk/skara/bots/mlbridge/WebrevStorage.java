@@ -284,18 +284,19 @@ class WebrevStorage {
         throw new RuntimeException("No success response from " + uri + " within " + timeout);
     }
 
-    private URI createAndArchive(PullRequest pr, Repository localRepository, Path scratchPath, Diff diff, Hash base, Hash head, String identifier,
+    private URI createAndArchive(PullRequest pr, Repository localRepository, Path jsonScratchPath, Path htmlScratchPath,
+                                 Diff diff, Hash base, Hash head, String identifier,
                                  Repository jsonLocalStorage, Repository htmlLocalStorage) {
         try {
             if (!generateHTML && !generateJSON) {
                 return null;
             }
             var relativeFolder = baseFolder.resolve(String.format("%s/%s", pr.id(), identifier));
-            var outputFolder = scratchPath.resolve(relativeFolder);
             var placeholder = generatePlaceholder(pr, base, head);
             URI uri = null;
 
             if (generateJSON) {
+                var outputFolder = jsonScratchPath.resolve(relativeFolder);
                 if (Files.exists(outputFolder)) {
                     clearDirectory(outputFolder);
                 }
@@ -307,6 +308,7 @@ class WebrevStorage {
                 uri = URI.create(baseUri.toString() + "?repo=" + repoName + "&pr=" + pr.id() + "&range=" + identifier);
             }
             if (generateHTML) {
+                var outputFolder = htmlScratchPath.resolve(relativeFolder);
                 if (Files.exists(outputFolder)) {
                     clearDirectory(outputFolder);
                 }
@@ -328,7 +330,8 @@ class WebrevStorage {
         WebrevDescription generate(Diff diff, String identifier, WebrevDescription.Type type, String description);
     }
 
-    WebrevGenerator generator(PullRequest pr, Repository localRepository, Path scratchPath, HostedRepositoryPool hostedRepositoryPool) {
+    WebrevGenerator generator(PullRequest pr, Repository localRepository, Path jsonScratchPath, Path htmlScratchPath,
+                              HostedRepositoryPool hostedRepositoryPool) {
 
         return new WebrevGenerator() {
             Repository jsonLocalStorage = null;
@@ -336,11 +339,11 @@ class WebrevStorage {
 
             private void initializeLocalStorage() {
                 try {
-                    if (jsonLocalStorage == null && !(jsonStorage == null)) {
-                        jsonLocalStorage = hostedRepositoryPool.checkout(jsonStorage, storageRef, scratchPath);
+                    if (generateJSON && jsonLocalStorage == null && !(jsonStorage == null)) {
+                        jsonLocalStorage = hostedRepositoryPool.checkout(jsonStorage, storageRef, jsonScratchPath);
                     }
-                    if (htmlLocalStorage == null && !(htmlStorage == null)) {
-                        htmlLocalStorage = hostedRepositoryPool.checkout(htmlStorage, storageRef, scratchPath);
+                    if (generateHTML && htmlLocalStorage == null && !(htmlStorage == null)) {
+                        htmlLocalStorage = hostedRepositoryPool.checkout(htmlStorage, storageRef, htmlScratchPath);
                     }
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
@@ -350,14 +353,14 @@ class WebrevStorage {
             @Override
             public WebrevDescription generate(Hash base, Hash head, String identifier, WebrevDescription.Type type) {
                 initializeLocalStorage();
-                var uri = createAndArchive(pr, localRepository, scratchPath, null, base, head, identifier, jsonLocalStorage, htmlLocalStorage);
+                var uri = createAndArchive(pr, localRepository, jsonScratchPath, htmlScratchPath, null, base, head, identifier, jsonLocalStorage, htmlLocalStorage);
                 return new WebrevDescription(uri, type);
             }
 
             @Override
             public WebrevDescription generate(Diff diff, String identifier, WebrevDescription.Type type, String description) {
                 initializeLocalStorage();
-                var uri = createAndArchive(pr, localRepository, scratchPath, diff, diff.from(), diff.to(), identifier, jsonLocalStorage, htmlLocalStorage);
+                var uri = createAndArchive(pr, localRepository, jsonScratchPath, htmlScratchPath, diff, diff.from(), diff.to(), identifier, jsonLocalStorage, htmlLocalStorage);
                 return new WebrevDescription(uri, type, description);
             }
         };
