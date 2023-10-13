@@ -284,7 +284,8 @@ class WebrevStorage {
         throw new RuntimeException("No success response from " + uri + " within " + timeout);
     }
 
-    private URI createAndArchive(PullRequest pr, Repository localRepository, Path scratchPath, Diff diff, Hash base, Hash head, String identifier) {
+    private URI createAndArchive(PullRequest pr, Repository localRepository, Path scratchPath, Diff diff, Hash base, Hash head, String identifier,
+                                 Repository jsonLocalStorage, Repository htmlLocalStorage) {
         try {
             if (!generateHTML && !generateJSON) {
                 return null;
@@ -295,8 +296,6 @@ class WebrevStorage {
             URI uri = null;
 
             if (generateJSON) {
-                var jsonLocalStorage = Repository.materialize(scratchPath, jsonStorage.authenticatedUrl(),
-                                                              "+" + storageRef + ":mlbridge_webrevs");
                 if (Files.exists(outputFolder)) {
                     clearDirectory(outputFolder);
                 }
@@ -308,8 +307,6 @@ class WebrevStorage {
                 uri = URI.create(baseUri.toString() + "?repo=" + repoName + "&pr=" + pr.id() + "&range=" + identifier);
             }
             if (generateHTML) {
-                var htmlLocalStorage = Repository.materialize(scratchPath, htmlStorage.authenticatedUrl(),
-                                                              "+" + storageRef + ":mlbridge_webrevs");
                 if (Files.exists(outputFolder)) {
                     clearDirectory(outputFolder);
                 }
@@ -325,23 +322,42 @@ class WebrevStorage {
             throw new UncheckedIOException(e);
         }
     }
-
     interface WebrevGenerator {
         WebrevDescription generate(Hash base, Hash head, String identifier, WebrevDescription.Type type);
+
         WebrevDescription generate(Diff diff, String identifier, WebrevDescription.Type type, String description);
     }
 
-    WebrevGenerator generator(PullRequest pr, Repository localRepository, Path scratchPath) {
+    WebrevGenerator generator(PullRequest pr, Repository localRepository, Path scratchPath, HostedRepositoryPool hostedRepositoryPool) {
+
         return new WebrevGenerator() {
+            Repository jsonLocalStorage = null;
+            Repository htmlLocalStorage = null;
+
+            private void initializeLocalStorage() {
+                try {
+                    if (jsonLocalStorage == null && !(jsonStorage == null)) {
+                        jsonLocalStorage = hostedRepositoryPool.checkout(jsonStorage, storageRef, scratchPath);
+                    }
+                    if (htmlLocalStorage == null && !(htmlStorage == null)) {
+                        htmlLocalStorage = hostedRepositoryPool.checkout(htmlStorage, storageRef, scratchPath);
+                    }
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            }
+
             @Override
             public WebrevDescription generate(Hash base, Hash head, String identifier, WebrevDescription.Type type) {
-                var uri = createAndArchive(pr, localRepository, scratchPath, null, base, head, identifier);
+                initializeLocalStorage();
+                var uri = createAndArchive(pr, localRepository, scratchPath, null, base, head, identifier, jsonLocalStorage, htmlLocalStorage);
                 return new WebrevDescription(uri, type);
             }
 
             @Override
             public WebrevDescription generate(Diff diff, String identifier, WebrevDescription.Type type, String description) {
-                var uri = createAndArchive(pr, localRepository, scratchPath, diff, diff.from(), diff.to(), identifier);
+                initializeLocalStorage();
+                var uri = createAndArchive(pr, localRepository, scratchPath, diff, diff.from(), diff.to(), identifier, jsonLocalStorage, htmlLocalStorage);
                 return new WebrevDescription(uri, type, description);
             }
         };

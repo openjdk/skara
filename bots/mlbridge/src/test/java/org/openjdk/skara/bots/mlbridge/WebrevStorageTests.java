@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.forge.HostedRepositoryPool;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.*;
 
@@ -70,7 +71,8 @@ class WebrevStorageTests {
             var prFolder = tempFolder.path().resolve("pr");
             var prRepo = Repository.materialize(prFolder, pr.repository().authenticatedUrl(), "edit");
             var scratchFolder = tempFolder.path().resolve("scratch");
-            var generator = storage.generator(pr, prRepo, scratchFolder);
+            var seedPath = tempFolder.path().resolve("seed");
+            var generator = storage.generator(pr, prRepo, scratchFolder, new HostedRepositoryPool(seedPath));
             generator.generate(masterHash, editHash, "00", WebrevDescription.Type.FULL);
 
             // Check that the web link has been verified now and followed the redirect
@@ -123,7 +125,8 @@ class WebrevStorageTests {
             var prFolder = tempFolder.path().resolve("pr");
             var prRepo = Repository.materialize(prFolder, pr.repository().authenticatedUrl(), "edit");
             var scratchFolder = tempFolder.path().resolve("scratch");
-            var generator = storage.generator(pr, prRepo, scratchFolder);
+            var seedPath = tempFolder.path().resolve("seed");
+            var generator = storage.generator(pr, prRepo, scratchFolder, new HostedRepositoryPool(seedPath));
             generator.generate(masterHash, editHash, "00", WebrevDescription.Type.FULL);
 
             // Update the local repository and check that the webrev has been generated
@@ -207,7 +210,8 @@ class WebrevStorageTests {
             var prRepo = Repository.materialize(prFolder, pr.repository().authenticatedUrl(), "edit");
             var scratchFolder = tempFolder.path().resolve("scratch");
             var generatorProgressMarker = scratchFolder.resolve("test/" + pr.id() + "/00/nanoduke.ico");
-            var generator = storage.generator(pr, prRepo, scratchFolder);
+            var seedPath = tempFolder.path().resolve("seed");
+            var generator = storage.generator(pr, prRepo, scratchFolder, new HostedRepositoryPool(seedPath));
 
             // Commit something during generation
             var interceptFolder = tempFolder.path().resolve("intercept");
