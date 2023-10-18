@@ -233,7 +233,9 @@ public class GitSkara {
                 commands.get(command).main(commandArgs);
             } catch (UncheckedRestException e) {
                 if (e.getStatusCode() == 401) {
-                    System.err.println("Unauthorized: You do not have access to this resource.");
+                    System.err.println("Unauthorized: You do not have access to " + e.getRequest().uri().toString());
+                    System.err.println("Please see the page below to correctly configure your personal access token.");
+                    System.err.println("https://wiki.openjdk.org/display/SKARA/CLI+Tools#CLITools-PersonalAccessToken");
                 } else {
                     throw e;
                 }
