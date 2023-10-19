@@ -183,7 +183,7 @@ public class BackportCommand implements CommandHandler {
     }
 
     private Branch getTargetBranch(String[] parts, int index, HostedRepository targetRepo, PrintWriter reply) {
-        var targetBranchName = parts.length == index + 1 ? parts[index] : "master";
+        var targetBranchName = parts.length == index + 1 ? parts[index] : targetRepo.defaultBranchName();
         var targetBranches = targetRepo.branches();
         if (targetBranches.stream().noneMatch(b -> b.name().equals(targetBranchName))) {
             reply.println("The target branch `" + targetBranchName + "` does not exist");

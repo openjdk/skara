@@ -110,6 +110,7 @@ public interface HostedRepository {
     long id();
     Optional<Hash> branchHash(String ref);
     List<HostedBranch> branches();
+    String defaultBranchName();
 
     /**
      * Adds a branch protection rule based on a branch pattern. The rule prevents

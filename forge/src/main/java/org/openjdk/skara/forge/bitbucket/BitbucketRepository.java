@@ -210,6 +210,11 @@ public class BitbucketRepository implements HostedRepository {
     }
 
     @Override
+    public String defaultBranchName() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void protectBranchPattern(String pattern) {
         throw new UnsupportedOperationException();
     }

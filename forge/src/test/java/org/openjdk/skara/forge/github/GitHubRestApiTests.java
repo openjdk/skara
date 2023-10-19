@@ -299,4 +299,10 @@ public class GitHubRestApiTests {
         var isClean = DiffComparator.areFuzzyEqual(backportDiff, prDiff);
         assertTrue(isClean);
     }
+
+    @Test
+    void testDefaultBranchName() {
+        var gitHubRepo = githubHost.repository(settings.getProperty("github.repository")).orElseThrow();
+        assertEquals(settings.getProperty("github.repository.branch"), gitHubRepo.defaultBranchName());
+    }
 }

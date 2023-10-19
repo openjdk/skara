@@ -278,6 +278,11 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
+    public String defaultBranchName() {
+        return "master";
+    }
+
+    @Override
     public void protectBranchPattern(String pattern) {
         protectedBranchPatterns.add(pattern);
     }
