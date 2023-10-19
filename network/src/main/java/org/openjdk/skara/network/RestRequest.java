@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -373,7 +373,7 @@ public class RestRequest {
         try {
             return JSON.parse(response.body());
         } catch (RuntimeException e) {
-            throw new UncheckedRestException("Failed to parse response", e, response.statusCode());
+            throw new UncheckedRestException("Failed to parse response", e, response.statusCode(), response.request());
         }
     }
 
@@ -388,7 +388,7 @@ public class RestRequest {
             log.warning("Request returned bad status: " + response.statusCode());
             log.info(queryBuilder.toString());
             log.info(response.body());
-            throw new UncheckedRestException(response.statusCode());
+            throw new UncheckedRestException(response.statusCode(), response.request());
         } else {
             return Optional.empty();
         }
@@ -531,7 +531,7 @@ public class RestRequest {
         var response = sendRequest(request, queryBuilder.skipLimiter);
         responseCounter.labels(Integer.toString(response.statusCode()), Boolean.toString(false)).inc();
         if (response.statusCode() >= 400) {
-            throw new UncheckedRestException(response.statusCode());
+            throw new UncheckedRestException(response.statusCode(), response.request());
         }
         return response.body();
     }
