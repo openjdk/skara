@@ -174,6 +174,11 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public String defaultBranchName() {
+        return null;
+    }
+
+    @Override
     public void protectBranchPattern(String ref) {
     }
 

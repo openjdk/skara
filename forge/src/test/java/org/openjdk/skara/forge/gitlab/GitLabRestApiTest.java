@@ -358,4 +358,17 @@ public class GitLabRestApiTest {
 
         assertFalse(comments.isEmpty());
     }
+
+    @Test
+    void testDefaultBranchName() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var username = settings.getProperty("gitlab.user");
+        var token = settings.getProperty("gitlab.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
+
+        assertEquals(settings.getProperty("gitlab.repository.branch"), gitLabRepo.defaultBranchName());
+    }
 }

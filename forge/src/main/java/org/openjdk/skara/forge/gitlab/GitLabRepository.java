@@ -435,6 +435,11 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
+    public String defaultBranchName() {
+        return json.get("default_branch").asString();
+    }
+
+    @Override
     public void protectBranchPattern(String pattern) {
         var body = JSON.object()
                 .put("name", pattern)
