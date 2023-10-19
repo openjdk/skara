@@ -214,6 +214,11 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
+    public String group() {
+        return repository.split("/")[0];
+    }
+
+    @Override
     public URI authenticatedUrl() {
         var builder = URIBuilder.base(gitHubHost.getURI())
                                 .setPath("/" + repository + ".git");
@@ -650,6 +655,16 @@ public class GitHubRepository implements HostedRepository {
         var sourceGroup = repository.split("/")[0];
         var endpoint = "/" + target.name() + "/pull/" + targetRef + "..." + sourceGroup + ":" + sourceRef;
         return gitHubHost.getWebURI(endpoint);
+    }
+
+    @Override
+    public List<Collaborator> collaborators() {
+        var result = request.get("collaborators")
+                .param("affiliation", "direct")
+                .execute();
+        return result.stream()
+                .map(o -> new Collaborator(GitHubHost.toHostUser(o.asObject()), o.get("permissions").get("push").asBoolean()))
+                .toList();
     }
 
     @Override

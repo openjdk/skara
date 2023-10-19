@@ -332,16 +332,69 @@ public class GitHubHost implements Forge {
         return Optional.of(toHostUser(details.asObject()));
     }
 
-    private HostUser toHostUser(JSONObject details) {
+    @Override
+    public Optional<HostUser> userById(String id) {
+        var details = request.get("user/" + id)
+                .onError(r -> Optional.of(JSON.of()))
+                .execute();
+        if (details.isNull()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(toHostUser(details.asObject()));
+    }
+
+    /**
+     * Gets all members of a GitHub organization.
+     */
+    @Override
+    public List<HostUser> groupMembers(String group) {
+        var result = request.get("orgs/" + group + "/members").execute();
+        return result.stream().map(o -> toHostUser(o.asObject())).toList();
+    }
+
+    /**
+     * Gets the membership state of a user in a GitHub organization. Since
+     * member invitations need to be accepted by the user, it can be either
+     * PENDING or ACTIVE. If the user isn't a member, the state is MISSING.
+     */
+    @Override
+    public MemberState groupMemberState(String group, HostUser user) {
+        var result = request.get("orgs/" + group + "/memberships/" + user.username())
+                .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("state", "missing")) : Optional.empty())
+                .execute();
+        var state = result.get("state").asString();
+        return switch (state) {
+            case "active" -> MemberState.ACTIVE;
+            case "pending" -> MemberState.PENDING;
+            case "missing" -> MemberState.MISSING;
+            default -> throw new IllegalStateException("Unknown state: " + state);
+        };
+    }
+
+    /**
+     * Adds a user to a GitHub organization. This will put the user as PENDING
+     * and an invitation is sent to the user. When accepted, the user becomes
+     * ACTIVE.
+     */
+    @Override
+    public void addGroupMember(String group, HostUser user) {
+        request.put("orgs/" + group + "/memberships/" + user.username())
+                .body("role", "member")
+                .execute();
+    }
+
+    /**
+     * Generate a HostUser object from the json snippet. Depending on the source,
+     * not all fields may be present.
+     */
+    static HostUser toHostUser(JSONObject details) {
         // Always present
         var login = details.get("login").asString();
         var id = details.get("id").asInt();
-
-        var name = details.get("name").asString();
-        if (name == null) {
-            name = login;
-        }
-        var email = details.get("email").asString();
+        // Sometimes present
+        var name = details.contains("name") ? details.get("name").asString() : login;
+        var email = details.contains("email") ? details.get("email").asString() : null;
         return HostUser.builder()
                        .id(id)
                        .username(login)

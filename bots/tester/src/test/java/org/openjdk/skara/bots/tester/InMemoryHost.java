@@ -58,6 +58,11 @@ class InMemoryHost implements Forge {
     }
 
     @Override
+    public Optional<HostUser> userById(String id) {
+        return Optional.empty();
+    }
+
+    @Override
     public HostUser currentUser() {
         return currentUserDetails;
     }
@@ -70,5 +75,19 @@ class InMemoryHost implements Forge {
     @Override
     public Optional<HostedCommit> search(Hash hash, boolean includeDiffs) {
         return Optional.empty();
+    }
+
+    @Override
+    public List<HostUser> groupMembers(String group) {
+        return null;
+    }
+
+    @Override
+    public void addGroupMember(String group, HostUser user) {
+    }
+
+    @Override
+    public MemberState groupMemberState(String group, HostUser user) {
+        return null;
     }
 }

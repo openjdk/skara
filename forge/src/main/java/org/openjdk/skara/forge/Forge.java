@@ -55,6 +55,26 @@ public interface Forge extends Host {
     }
 
     /**
+     * Get user by numeric ID
+     */
+    Optional<HostUser> userById(String id);
+
+    /**
+     * List users that are members of a group
+     */
+    List<HostUser> groupMembers(String group);
+
+    /**
+     * Gets the membership state for a user in a group
+     */
+    MemberState groupMemberState(String group, HostUser user);
+
+    /**
+     * Adds a user to a group
+     */
+    void addGroupMember(String group, HostUser user);
+
+    /**
      * Some forges do not always update the "updated_at" fields of various objects
      * when the object changes. This method returns a Duration indicating how long
      * the shortest update interval is for the "updated_at" field. This is needed

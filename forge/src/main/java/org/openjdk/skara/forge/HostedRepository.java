@@ -73,6 +73,11 @@ public interface HostedRepository {
      * The full name of the repository, including any namespace/group/organization prefix
      */
     String name();
+
+    /**
+     * The group/org name where this repo belongs
+     */
+    String group();
     Optional<HostedRepository> parent();
     URI authenticatedUrl();
     URI webUrl();
@@ -162,6 +167,7 @@ public interface HostedRepository {
     URI createPullRequestUrl(HostedRepository target,
                              String targetRef,
                              String sourceRef);
+    List<Collaborator> collaborators();
     void addCollaborator(HostUser user, boolean canPush);
     boolean canPush(HostUser user);
     void restrictPushAccess(Branch branch, HostUser users);
