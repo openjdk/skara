@@ -27,6 +27,7 @@ import java.util.Properties;
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.forge.MemberState;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.json.JSON;
@@ -42,9 +43,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * To be able to run the tests, you need to remove or comment out the @Disabled annotation first.
@@ -304,5 +304,64 @@ public class GitHubRestApiTests {
     void testDefaultBranchName() {
         var gitHubRepo = githubHost.repository(settings.getProperty("github.repository")).orElseThrow();
         assertEquals(settings.getProperty("github.repository.branch"), gitHubRepo.defaultBranchName());
+    }
+
+    @Test
+    void testCollaborators() {
+        var gitHubRepo = githubHost.repository(settings.getProperty("github.repository")).orElseThrow();
+        var collaborators = gitHubRepo.collaborators();
+        assertNotNull(collaborators);
+    }
+
+    @Test
+    void testGetUser() {
+        var userName = settings.getProperty("github.user");
+        var userByName = githubHost.user(userName).orElseThrow();
+        var userById = githubHost.userById(userByName.id()).orElseThrow();
+        assertEquals(userByName, userById);
+    }
+
+    /**
+     * Expects
+     * github.group: Name of GitHub organization with at least one member
+     */
+    @Test
+    void testGroupMembers() {
+        var groupName = settings.getProperty("github.group");
+        var membersList = githubHost.groupMembers(groupName);
+        assertNotNull(membersList);
+        assertNotEquals(0, membersList.size());
+    }
+
+    /**
+     * Expects:
+     * github.group: Name of GitHub organization
+     * github.group.member: Name of user which is a member of the organization
+     * github.group.notmember: Name of user which is not a member of the organization
+     */
+    @Test
+    void testGroupMemberState() {
+        var groupName = settings.getProperty("github.group");
+        var memberName = settings.getProperty("github.group.member");
+        var notMemberName = settings.getProperty("github.group.notmember");
+        var member = githubHost.user(memberName).orElseThrow();
+        var notMember = githubHost.user(notMemberName).orElseThrow();
+        assertEquals(MemberState.ACTIVE, githubHost.groupMemberState(groupName, member));
+        assertEquals(MemberState.MISSING, githubHost.groupMemberState(groupName, notMember));
+    }
+
+    /**
+     * Expects:
+     * github.group: Name of GitHub organization
+     * github.group.user: Name of user which may or may not be a member already,
+     *                    but cannot be an owner
+     */
+    @Test
+    void testAddGroupMember() {
+        var groupName = settings.getProperty("github.group");
+        var userName = settings.getProperty("github.group.user");
+        var user = githubHost.user(userName).orElseThrow();
+        githubHost.addGroupMember(groupName, user);
+        assertNotEquals(MemberState.MISSING, githubHost.groupMemberState(groupName, user));
     }
 }

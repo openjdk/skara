@@ -90,6 +90,11 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public String group() {
+        return null;
+    }
+
+    @Override
     public Optional<HostedRepository> parent() {
         return null;
     }
@@ -243,6 +248,11 @@ class InMemoryHostedRepository implements HostedRepository {
     @Override
     public URI url() {
         return url;
+    }
+
+    @Override
+    public List<Collaborator> collaborators() {
+        return List.of();
     }
 
     @Override

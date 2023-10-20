@@ -24,7 +24,9 @@ package org.openjdk.skara.forge.gitlab;
 
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
+import java.util.Properties;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.host.Credential;
@@ -49,14 +51,21 @@ import static org.junit.jupiter.api.Assertions.*;
 @Disabled("Manual")
 public class GitLabRestApiTest {
 
-    @Test
-    void testReviews() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
+    private GitLabHost gitLabHost;
+    private Properties settings;
+
+    @BeforeEach
+    void setupGitLab() throws IOException {
+        settings = ManualTestSettings.loadManualTestSettings();
         var username = settings.getProperty("gitlab.user");
         var token = settings.getProperty("gitlab.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+        gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+    }
+
+    @Test
+    void testReviews() {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
 
@@ -66,13 +75,7 @@ public class GitLabRestApiTest {
     }
 
     @Test
-    void testFilesUrl() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var username = settings.getProperty("gitlab.user");
-        var token = settings.getProperty("gitlab.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+    void testFilesUrl() {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
 
@@ -86,13 +89,7 @@ public class GitLabRestApiTest {
     }
 
     @Test
-    void testLabels() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var username = settings.getProperty("gitlab.user");
-        var token = settings.getProperty("gitlab.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+    void testLabels() {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
 
@@ -116,13 +113,7 @@ public class GitLabRestApiTest {
     }
 
     @Test
-    void testOversizeComment() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var username = settings.getProperty("gitlab.user");
-        var token = settings.getProperty("gitlab.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+    void testOversizeComment() {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
 
@@ -138,13 +129,7 @@ public class GitLabRestApiTest {
     }
 
     @Test
-    void fileContentsNonExisting() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var username = settings.getProperty("gitlab.user");
-        var token = settings.getProperty("gitlab.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+    void fileContentsNonExisting() {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var branch = new Branch(settings.getProperty("gitlab.repository.branch"));
 
@@ -154,13 +139,7 @@ public class GitLabRestApiTest {
     }
 
     @Test
-    void writeFileContents() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var username = settings.getProperty("gitlab.user");
-        var token = settings.getProperty("gitlab.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+    void writeFileContents() {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var branch = new Branch(settings.getProperty("gitlab.repository.branch"));
 
@@ -196,12 +175,6 @@ public class GitLabRestApiTest {
 
     @Test
     void branchProtection() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var username = settings.getProperty("gitlab.user");
-        var token = settings.getProperty("gitlab.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var branchName = "pr/4711";
 
@@ -224,28 +197,16 @@ public class GitLabRestApiTest {
     }
 
     @Test
-    void testLastMarkedAsDraftTime() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var username = settings.getProperty("gitlab.user");
-        var token = settings.getProperty("gitlab.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+    void testLastMarkedAsDraftTime() {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
 
         var lastMarkedAsDraftTime = gitLabMergeRequest.lastMarkedAsDraftTime();
-        assertEquals("2023-02-11T08:43:52.408Z", lastMarkedAsDraftTime.get().toString());
+        assertEquals("2023-02-11T08:43:52.408Z", lastMarkedAsDraftTime.orElseThrow().toString());
     }
 
     @Test
-    void testDraftMR() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var username = settings.getProperty("gitlab.user");
-        var token = settings.getProperty("gitlab.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+    void testDraftMR() {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
 
         var gitLabMergeRequest = gitLabRepo.createPullRequest(gitLabRepo, settings.getProperty("gitlab.targetRef"),
@@ -260,13 +221,7 @@ public class GitLabRestApiTest {
     }
 
     @Test
-    void testHtmlUrl() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var username = settings.getProperty("gitlab.user");
-        var token = settings.getProperty("gitlab.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+    void testHtmlUrl() {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
         var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
 
@@ -281,58 +236,32 @@ public class GitLabRestApiTest {
     }
 
     @Test
-    void testDeleteDeployKey() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var username = settings.getProperty("gitlab.user");
-        var token = settings.getProperty("gitlab.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+    void testDeleteDeployKey() {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
-
         gitLabRepo.deleteDeployKeys(Duration.ofHours(24));
     }
 
     @Test
-    void testDeployKeyTitles() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var username = settings.getProperty("gitlab.user");
-        var token = settings.getProperty("gitlab.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+    void testDeployKeyTitles() {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
-
         var expiredDeployKeys = gitLabRepo.deployKeyTitles(Duration.ofMinutes(5));
         assertTrue(expiredDeployKeys.contains("test1"));
     }
 
     @Test
-    void testBackportCleanIgnoreCopyRight() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var username = settings.getProperty("gitlab.user");
-        var token = settings.getProperty("gitlab.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of(settings.getProperty("gitlab.group").split(",")));
+    void testBackportCleanIgnoreCopyRight() {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
 
         var pr = gitLabRepo.pullRequest(settings.getProperty("gitlab.prId"));
         var commit = pr.repository().forge().search(new Hash(settings.getProperty("gitlab.commitHash")), true);
-        var backportDiff = commit.get().parentDiffs().get(0);
+        var backportDiff = commit.orElseThrow().parentDiffs().get(0);
         var prDiff = pr.diff();
         var isClean = DiffComparator.areFuzzyEqual(backportDiff, prDiff);
         assertTrue(isClean);
     }
 
     @Test
-    void testCommitComments() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var username = settings.getProperty("gitlab.user");
-        var token = settings.getProperty("gitlab.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+    void testCommitComments() {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("commit.comments.gitlab.repository")).orElseThrow();
         var commitHash = new Hash(settings.getProperty("commit.comments.hash"));
 
@@ -343,12 +272,6 @@ public class GitLabRestApiTest {
 
     @Test
     void testRecentCommitComments() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var username = settings.getProperty("gitlab.user");
-        var token = settings.getProperty("gitlab.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
         var gitLabRepo = gitLabHost.repository(settings.getProperty("commit.comments.gitlab.repository")).orElseThrow();
 
         var localRepo = GitRepository.get(Path.of(settings.getProperty("commit.comments.local.repository"))).orElseThrow();
@@ -360,15 +283,23 @@ public class GitLabRestApiTest {
     }
 
     @Test
-    void testDefaultBranchName() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var username = settings.getProperty("gitlab.user");
-        var token = settings.getProperty("gitlab.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+    void testDefaultBranchName() {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
-
         assertEquals(settings.getProperty("gitlab.repository.branch"), gitLabRepo.defaultBranchName());
+    }
+
+    @Test
+    void testGetUser() {
+        var userName = settings.getProperty("gitlab.user");
+        var userByName = gitLabHost.user(userName).orElseThrow();
+        var userById = gitLabHost.userById(userByName.id()).orElseThrow();
+        assertEquals(userByName, userById);
+    }
+
+    @Test
+    void testCollaborators() {
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
+        var collaborators = gitLabRepo.collaborators();
+        assertNotNull(collaborators);
     }
 }

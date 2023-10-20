@@ -180,6 +180,20 @@ public class GitLabHost implements Forge {
     }
 
     @Override
+    public Optional<HostUser> userById(String id) {
+        var details = request.get("users/" + id)
+                .onError(r -> Optional.of(JSON.of()))
+                .execute();
+
+        if (details.isNull()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(parseAuthorObject(details.asObject()));
+    }
+
+
+    @Override
     public HostUser currentUser() {
         if (cachedCurrentUser != null) {
             return cachedCurrentUser;
@@ -262,5 +276,20 @@ public class GitLabHost implements Forge {
     @Override
     public Duration timeStampQueryPrecision() {
         return Duration.ofSeconds(1);
+    }
+
+    @Override
+    public List<HostUser> groupMembers(String group) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void addGroupMember(String group, HostUser user) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public MemberState groupMemberState(String group, HostUser user) {
+        throw new UnsupportedOperationException();
     }
 }

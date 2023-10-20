@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -58,6 +58,11 @@ class InMemoryHost implements Forge {
     }
 
     @Override
+    public Optional<HostUser> userById(String id) {
+        return Optional.empty();
+    }
+
+    @Override
     public HostUser currentUser() {
         return currentUserDetails;
     }
@@ -70,5 +75,19 @@ class InMemoryHost implements Forge {
     @Override
     public Optional<HostedCommit> search(Hash hash, boolean includeDiffs) {
         return Optional.empty();
+    }
+
+    @Override
+    public List<HostUser> groupMembers(String group) {
+        return null;
+    }
+
+    @Override
+    public void addGroupMember(String group, HostUser user) {
+    }
+
+    @Override
+    public MemberState groupMemberState(String group, HostUser user) {
+        return null;
     }
 }

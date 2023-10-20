@@ -235,6 +235,11 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
+    public String group() {
+        return projectName.split("/")[0];
+    }
+
+    @Override
     public URI authenticatedUrl() {
         if (gitLabHost.useSsh()) {
             return URI.create("ssh://git@" + gitLabHost.getPat().orElseThrow().username() + "." + gitLabHost.getUri().getHost() + "/" + projectName + ".git");
@@ -781,6 +786,14 @@ public class GitLabRepository implements HostedRepository {
                        "&merge_request[target_project]=" + targetId +
                        "&merge_request[target_branch]=" + targetRef;
         return gitLabHost.getWebUri(endpoint);
+    }
+
+    @Override
+    public List<Collaborator> collaborators() {
+        var result = request.get("members").execute();
+        return result.stream()
+                .map(o -> new Collaborator(gitLabHost.parseAuthorObject(o.asObject()), o.get("access_level").asInt() >= 30))
+                .toList();
     }
 
     @Override
