@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,72 +31,158 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.logging.Logger;
 
+/**
+ * Generates a valid census repository for use in tests. The possible structure
+ * is limited compared to a real census. A default user with forge ID 0 is always
+ * present as "lead" in the default group 'main' and default project 'test'.
+ * <p>
+ * Users can be added either directly to the default project with a given role, or
+ * as just generic users without any project roles.
+ */
 public class CensusBuilder {
     private final String namespace;
-    private final Logger log;
+    private static final Logger log = Logger.getLogger("org.openjdk.skara.test.utils");;
 
     private static class User {
-        final String platformId;
+        final String forgeId;
         final String name;
         final String fullName;
-        final String role;
 
-        User(String platformId, String name, String fullName, String role) {
-            this.platformId = platformId;
+        User(String forgeId, String name, String fullName) {
+            this.forgeId = forgeId;
             this.name = name;
             this.fullName = fullName;
-            this.role = role;
         }
     }
 
-    private User lead;
-    private List<User> authors = new ArrayList<>();
-    private List<User> committers = new ArrayList<>();
-    private List<User> reviewers = new ArrayList<>();
-    private int userIndex;
+    private final Map<String, User> users = new HashMap<>();
+    private int userIndex = 1;
 
-    static CensusBuilder create(String namespace) {
+    private static class Project {
+        private User lead;
+        private final List<User> authors = new ArrayList<>();
+        private final List<User> committers = new ArrayList<>();
+        private final List<User> reviewers = new ArrayList<>();
+    }
+    private final Project defaultProject;
+    private final Map<String, Project> projects = new HashMap<>();
+
+    private static class Group {
+        private User lead;
+        private final List<User> members = new ArrayList<>();
+    }
+    private final Group defaultGroup;
+    private final Map<String, Group> groups = new HashMap<>();
+
+
+    /**
+     * Creates a basic CensusBuilder with an implicit default project named
+     * "test", a default group named "main" and a default user with lead role
+     * in both of those.
+     */
+    public static CensusBuilder create(String namespace) {
         return new CensusBuilder(namespace);
     }
 
     private CensusBuilder(String namespace) {
         this.namespace = namespace;
-        userIndex = 1;
 
-        log = Logger.getLogger("org.openjdk.skara.test.utils");
-        lead = new User("0", "integrationlead", "Generated Lead", "lead");
+        defaultProject = new Project();
+        projects.put("test", defaultProject);
+
+        defaultGroup = new Group();
+        groups.put("main", defaultGroup);
+
+        var lead = new User("0", "integrationlead", "Generated Lead");
+        users.put(lead.forgeId, lead);
+        defaultProject.lead = lead;
+        defaultGroup.lead = lead;
     }
 
-    public CensusBuilder addAuthor(String id) {
-        authors.add(new User(id,
-                             "integrationauthor" + userIndex,
-                             "Generated Author " + userIndex,
-                             "author"));
-        userIndex++;
+    /**
+     * Creates new user and adds it to the default group and as author in the
+     * default project.
+     */
+    public CensusBuilder addAuthor(String forgeId) {
+        var user = createUser(forgeId, "integrationauthor", "Generated Author");
+        defaultProject.authors.add(user);
         return this;
     }
 
-    public CensusBuilder addAuthor(String id, String name) {
-        authors.add(new User(id, name, "Generated Author " + userIndex, "author"));
-        userIndex++;
+    /**
+     * Creates new user and adds it to the default group and as committer in the
+     * default project.
+     */
+    public CensusBuilder addCommitter(String forgeId) {
+        var user = createUser(forgeId, "integrationcommitter", "Generated Committer");
+        defaultProject.committers.add(user);
         return this;
     }
 
-    public CensusBuilder addCommitter(String id) {
-        committers.add(new User(id,
-                                "integrationcommitter" + userIndex,
-                                "Generated Committer " + userIndex,
-                                "committer"));
-        userIndex++;
+    /**
+     * Creates new user and adds it to the default group and as reviewer in the
+     * default project.
+     */
+    public CensusBuilder addReviewer(String forgeId) {
+        var user = createUser(forgeId, "integrationreviewer", "Generated Reviewer");
+        defaultProject.reviewers.add(user);
         return this;
     }
 
-    public CensusBuilder addReviewer(String id) {
-        reviewers.add(new User(id,
-                               "integrationreviewer" + userIndex,
-                               "Generated Reviewer " + userIndex,
-                               "reviewer"));
+    /**
+     * Creates new user with custom names and adds it to the default group, but
+     * not to any project.
+     */
+    public CensusBuilder addUser(String forgeId, String name, String fullName) {
+        var user = new User(forgeId, name, fullName);
         userIndex++;
+        users.put(forgeId, user);
+        defaultGroup.members.add(user);
+        return this;
+    }
+
+    private User createUser(String forgeId, String baseName, String baseFullName) {
+        var user = new User(forgeId, baseName + userIndex, baseFullName + " " + userIndex);
+        userIndex++;
+        users.put(forgeId, user);
+        defaultGroup.members.add(user);
+        return user;
+    }
+
+    /**
+     * Adds existing user to project as author
+     */
+    public CensusBuilder addAuthor(String forgeId, String project) {
+        var user = users.get(forgeId);
+        projects.get(project).authors.add(user);
+        return this;
+    }
+
+    /**
+     * Adds existing user to project as committer
+     */
+    public CensusBuilder addCommitter(String forgeId, String project) {
+        var user = users.get(forgeId);
+        projects.get(project).committers.add(user);
+        return this;
+    }
+
+    /**
+     * Adds existing user to project as reviewer
+     */
+    public CensusBuilder addReviewer(String forgeId, String project) {
+        var user = users.get(forgeId);
+        projects.get(project).reviewers.add(user);
+        return this;
+    }
+
+    /**
+     * Adds a new project with the existing user set as lead
+     */
+    public CensusBuilder addProject(String name, String leadForgeId) {
+        Project project = new Project();
+        project.lead = users.get(leadForgeId);
+        projects.put(name, project);
         return this;
     }
 
@@ -109,22 +195,18 @@ public class CensusBuilder {
         writer.println();
     }
 
-    private void writeMember(PrintWriter writer, User user) {
+    private void writeMember(PrintWriter writer, User user, String role) {
         writer.print("  <");
-        if (user.role.equals("lead")) {
-            writer.print("lead");
-        } else {
-            writer.print("member");
-        }
+        writer.print(role);
         writer.print(" username=\"");
         writer.print(user.name);
         writer.print("\" />");
         writer.println();
     }
 
-    private void writeRole(PrintWriter writer, User user) {
+    private void writeRole(PrintWriter writer, User user, String role) {
         writer.print("  <");
-        writer.print(user.role);
+        writer.print(role);
         writer.print(" username=\"");
         writer.print(user.name);
         writer.print("\" since=\"0\" />");
@@ -133,7 +215,7 @@ public class CensusBuilder {
 
     private void writeMapping(PrintWriter writer, User user) {
         writer.print("  <user id=\"");
-        writer.print(user.platformId);
+        writer.print(user.forgeId);
         writer.print("\" census=\"");
         writer.print(user.name);
         writer.print("\" />");
@@ -145,12 +227,7 @@ public class CensusBuilder {
         try (var writer = new PrintWriter(new FileWriter(folder.resolve("contributors.xml").toFile()))) {
             writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
             writer.println("<contributors>");
-
-            writeContributor(writer, lead);
-            authors.forEach(user -> writeContributor(writer, user));
-            committers.forEach(user -> writeContributor(writer, user));
-            reviewers.forEach(user -> writeContributor(writer, user));
-
+            users.values().forEach(user -> writeContributor(writer, user));
             writer.println("</contributors>");
         }
     }
@@ -158,32 +235,34 @@ public class CensusBuilder {
     private void generateGroup(Path folder) throws IOException {
         var groupFolder = folder.resolve("groups");
         Files.createDirectories(groupFolder);
-        try (var writer = new PrintWriter(new FileWriter(groupFolder.resolve("main.xml").toFile()))) {
-            writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
-            writer.println("<group name=\"main\" full-name=\"Main project\">");
-
-            writeMember(writer, lead);
-            authors.forEach(user -> writeMember(writer, user));
-            committers.forEach(user -> writeMember(writer, user));
-            reviewers.forEach(user -> writeMember(writer, user));
-
-            writer.println("</group>");
+        for (var groupEntry : groups.entrySet()) {
+            var name = groupEntry.getKey();
+            var group = groupEntry.getValue();
+            try (var writer = new PrintWriter(new FileWriter(groupFolder.resolve(name + ".xml").toFile()))) {
+                writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
+                writer.println("<group name=\"" + name + "\" full-name=\"" + name + " group\">");
+                writeMember(writer, group.lead, "lead");
+                group.members.forEach(user -> writeMember(writer, user, "member"));
+                writer.println("</group>");
+            }
         }
     }
 
     private void generateProject(Path folder) throws IOException {
         var projectFolder = folder.resolve("projects");
         Files.createDirectories(projectFolder);
-        try (var writer = new PrintWriter(new FileWriter(projectFolder.resolve("test.xml").toFile()))) {
-            writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
-            writer.println("<project name=\"test\" full-name=\"Test Project\" sponsor=\"main\">");
-
-            writeRole(writer, lead);
-            authors.forEach(user -> writeRole(writer, user));
-            committers.forEach(user -> writeRole(writer, user));
-            reviewers.forEach(user -> writeRole(writer, user));
-
-            writer.println("</project>");
+        for (var projectEntry : projects.entrySet()) {
+            String name = projectEntry.getKey();
+            var project = projectEntry.getValue();
+            try (var writer = new PrintWriter(new FileWriter(projectFolder.resolve(name + ".xml").toFile()))) {
+                writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
+                writer.println("<project name=\"" + name + "\" full-name=\"" + name + " Project\" sponsor=\"main\">");
+                writeRole(writer, project.lead, "lead");
+                project.authors.forEach(user -> writeRole(writer, user, "author"));
+                project.committers.forEach(user -> writeRole(writer, user, "committer"));
+                project.reviewers.forEach(user -> writeRole(writer, user, "reviewer"));
+                writer.println("</project>");
+            }
         }
     }
 
@@ -193,12 +272,7 @@ public class CensusBuilder {
         try (var writer = new PrintWriter(new FileWriter(namespaceFolder.resolve(namespace + ".xml").toFile()))) {
             writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
             writer.println("<namespace name=\"" + namespace + "\">");
-
-            writeMapping(writer, lead);
-            authors.forEach(user -> writeMapping(writer, user));
-            committers.forEach(user -> writeMapping(writer, user));
-            reviewers.forEach(user -> writeMapping(writer, user));
-
+            users.values().forEach(user -> writeMapping(writer, user));
             writer.println("</namespace>");
         }
     }

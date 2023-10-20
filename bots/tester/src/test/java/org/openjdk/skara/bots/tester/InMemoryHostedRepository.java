@@ -90,6 +90,11 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public String group() {
+        return null;
+    }
+
+    @Override
     public Optional<HostedRepository> parent() {
         return null;
     }
@@ -174,6 +179,11 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public String defaultBranchName() {
+        return null;
+    }
+
+    @Override
     public void protectBranchPattern(String ref) {
     }
 
@@ -241,7 +251,16 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public List<Collaborator> collaborators() {
+        return List.of();
+    }
+
+    @Override
     public void addCollaborator(HostUser user, boolean canPush) {
+    }
+
+    @Override
+    public void removeCollaborator(HostUser user) {
     }
 
     @Override

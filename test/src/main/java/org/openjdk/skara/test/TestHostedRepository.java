@@ -47,11 +47,12 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     private final Repository localRepository;
     private final Pattern pullRequestPattern;
     private final Map<Hash, List<CommitComment>> commitComments;
-    private Map<String, Boolean> collaborators = new HashMap<>();
-    private List<Label> labels = new ArrayList<>();
+    private final List<Collaborator> collaborators = new ArrayList<>();
+    private final List<Label> labels = new ArrayList<>();
     private final Set<Check> checks = new HashSet<>();
     private final Set<String> protectedBranchPatterns = new HashSet<>();
-    private Map<String, ZonedDateTime> deployKeys = new HashMap<>();
+    private final Map<String, ZonedDateTime> deployKeys = new HashMap<>();
+    private String namespace = "test";
 
     public TestHostedRepository(TestHost host, String projectName, Repository localRepository) {
         super(host, projectName);
@@ -161,6 +162,15 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
+    public String group() {
+        if (projectName.contains("/")) {
+            return projectName.split("/")[0];
+        } else {
+            return "";
+        }
+    }
+
+    @Override
     public URI authenticatedUrl() {
         try {
             // We need a URL without a trailing slash
@@ -237,7 +247,14 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
 
     @Override
     public String namespace() {
-        return "test";
+        return namespace;
+    }
+
+    /**
+     * Allow tests to user a different namespace
+     */
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
     }
 
     @Override
@@ -275,6 +292,11 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public String defaultBranchName() {
+        return "master";
     }
 
     @Override
@@ -393,13 +415,29 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
+    public List<Collaborator> collaborators() {
+        return collaborators;
+    }
+
+    @Override
     public void addCollaborator(HostUser user, boolean canPush) {
-        collaborators.put(user.username(), canPush);
+        collaborators.add(new Collaborator(user, canPush));
+    }
+
+    @Override
+    public void removeCollaborator(HostUser user) {
+        collaborators.stream()
+                .filter(c -> c.user().equals(user))
+                .forEach(collaborators::remove);
     }
 
     @Override
     public boolean canPush(HostUser user) {
-        return collaborators.getOrDefault(user.username(), false);
+        return collaborators.stream()
+                .filter(c -> c.user().equals(user))
+                .findFirst()
+                .map(Collaborator::canPush)
+                .orElse(false);
     }
 
     @Override

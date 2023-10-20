@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,23 +20,13 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-module org.openjdk.skara.cli {
-    requires org.openjdk.skara.vcs;
-    requires org.openjdk.skara.jcheck;
-    requires org.openjdk.skara.census;
-    requires org.openjdk.skara.webrev;
-    requires org.openjdk.skara.args;
-    requires org.openjdk.skara.json;
-    requires org.openjdk.skara.host;
-    requires org.openjdk.skara.forge;
-    requires org.openjdk.skara.proxy;
-    requires org.openjdk.skara.version;
-    requires org.openjdk.skara.process;
-    requires org.openjdk.skara.jbs;
-    requires org.openjdk.skara.network;
+package org.openjdk.skara.forge;
 
-    requires java.net.http;
-    requires java.logging;
-
-    exports org.openjdk.skara.cli;
+/**
+ * Forge group member states
+ */
+public enum MemberState {
+    ACTIVE,
+    PENDING,
+    MISSING
 }

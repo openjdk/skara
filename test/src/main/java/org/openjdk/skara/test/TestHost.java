@@ -70,6 +70,9 @@ public class TestHost implements Forge, IssueTracker {
         private final Map<String, TestIssueTrackerIssueStore> issues = new HashMap<>();
     }
 
+    // Map of org to map of user to MemberState
+    private final Map<String, Map<String, MemberState>> organizationMembers = new HashMap<>();
+
     private Repository createLocalRepository() {
         var folder = new TemporaryDirectory();
         data.folders.add(folder);
@@ -161,6 +164,13 @@ public class TestHost implements Forge, IssueTracker {
         return data.users.stream()
                          .filter(user -> user.username().equals(username))
                          .findAny();
+    }
+
+    @Override
+    public Optional<HostUser> userById(String id) {
+        return data.users.stream()
+                .filter(user -> user.id().equals(id))
+                .findAny();
     }
 
     @Override
@@ -294,8 +304,28 @@ public class TestHost implements Forge, IssueTracker {
         return timeStampQueryPrecision;
     }
 
-    public void setUsers(List<HostUser> newUsers) {
-        data.users.clear();
-        data.users.addAll(newUsers);
+    @Override
+    public List<HostUser> groupMembers(String group) {
+        return organizationMembers.getOrDefault(group, Map.of()).keySet().stream()
+                .map(u -> user(u).orElseThrow())
+                .toList();
+    }
+
+    @Override
+    public void addGroupMember(String group, HostUser user) {
+        organizationMembers.putIfAbsent(group, new HashMap<>());
+        organizationMembers.get(group).put(user.username(), MemberState.PENDING);
+    }
+
+    /**
+     * Test method to update an existing org member to active status
+     */
+    public void confirmGroupMember(String group, String user) {
+        organizationMembers.get(group).put(user, MemberState.ACTIVE);
+    }
+
+    @Override
+    public MemberState groupMemberState(String group, HostUser user) {
+        return organizationMembers.getOrDefault(group, Map.of()).getOrDefault(user.username(), MemberState.MISSING);
     }
 }

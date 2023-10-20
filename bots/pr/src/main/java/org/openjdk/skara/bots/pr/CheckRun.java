@@ -78,6 +78,8 @@ class CheckRun {
     private final Approval approval;
 
     private Duration expiresIn;
+    // Only set if approval is configured for the repo
+    private String realTargetRef;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
@@ -710,13 +712,12 @@ class CheckRun {
                             }
                             if (approvalNeeded()) {
                                 String status = "";
-                                String targetRef = pr.targetRef();
                                 var labels = issueTrackerIssue.get().labelNames();
-                                if (labels.contains(approval.rejectedLabel(targetRef))) {
+                                if (labels.contains(approval.rejectedLabel(realTargetRef))) {
                                     status = "Rejected";
-                                } else if (labels.contains(approval.approvedLabel(targetRef))) {
+                                } else if (labels.contains(approval.approvedLabel(realTargetRef))) {
                                     status = "Approved";
-                                } else if (labels.contains(approval.requestedLabel(targetRef))) {
+                                } else if (labels.contains(approval.requestedLabel(realTargetRef))) {
                                     status = "Requested";
                                     requestPresent = true;
                                 }
@@ -1518,7 +1519,13 @@ class CheckRun {
     }
 
     private boolean approvalNeeded() {
-        return approval != null && approval.needsApproval(pr.targetRef());
+        if (approval != null) {
+            if (realTargetRef == null) {
+                realTargetRef = PreIntegrations.realTargetRef(pr);
+            }
+            return approval.needsApproval(realTargetRef);
+        }
+        return false;
     }
 
     private void postApprovalNeededComment() {

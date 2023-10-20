@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
 package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.Main;
+import org.openjdk.skara.network.UncheckedRestException;
 import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.vcs.git.GitVersion;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -228,7 +229,17 @@ public class GitSkara {
         var command = isEmpty ? "help" : args[0];
         var commandArgs = isEmpty ? new String[0] : Arrays.copyOfRange(args, 1, args.length);
         if (commands.containsKey(command)) {
-            commands.get(command).main(commandArgs);
+            try {
+                commands.get(command).main(commandArgs);
+            } catch (UncheckedRestException e) {
+                if (e.getStatusCode() == 401) {
+                    System.err.println("Unauthorized: You do not have access to " + e.getRequest().uri().toString());
+                    System.err.println("Please see the page below to correctly configure your personal access token.");
+                    System.err.println("https://wiki.openjdk.org/display/SKARA/CLI+Tools#CLITools-PersonalAccessToken");
+                } else {
+                    throw e;
+                }
+            }
         } else {
             System.err.println("error: unknown command: " + command);
             help(new String[0]);

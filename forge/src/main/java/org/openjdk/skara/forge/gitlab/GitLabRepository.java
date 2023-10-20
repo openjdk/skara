@@ -235,6 +235,11 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
+    public String group() {
+        return projectName.split("/")[0];
+    }
+
+    @Override
     public URI authenticatedUrl() {
         if (gitLabHost.useSsh()) {
             return URI.create("ssh://git@" + gitLabHost.getPat().orElseThrow().username() + "." + gitLabHost.getUri().getHost() + "/" + projectName + ".git");
@@ -435,6 +440,11 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
+    public String defaultBranchName() {
+        return json.get("default_branch").asString();
+    }
+
+    @Override
     public void protectBranchPattern(String pattern) {
         var body = JSON.object()
                 .put("name", pattern)
@@ -465,28 +475,55 @@ public class GitLabRepository implements HostedRepository {
                 .execute();
     }
 
+    // Handles results from both comments and discussions API
     private CommitComment toCommitComment(Hash hash, JSONValue o) {
-       var line = o.get("line").isNull()? -1 : o.get("line").asInt();
-       var path = o.get("path").isNull()? null : Path.of(o.get("path").asString());
-       // GitLab does not offer updated_at for commit comments
-       var createdAt = ZonedDateTime.parse(o.get("created_at").asString());
-       // GitLab does not offer an id for commit comments
-       var body = o.get("note").asString();
-       var user = gitLabHost.parseAuthorField(o);
-       var id = Integer.toString((hash.hex() + createdAt.toString() + user.id()).hashCode());
-       return new CommitComment(hash,
-                                path,
-                                line,
-                                id,
-                                body,
-                                gitLabHost.parseAuthorField(o),
-                                createdAt,
-                                createdAt);
+        if (o.contains("note")) {
+            var line = o.get("line").isNull() ? -1 : o.get("line").asInt();
+            var path = o.get("path").isNull() ? null : Path.of(o.get("path").asString());
+            // GitLab does not offer updated_at for commit comments
+            var createdAt = ZonedDateTime.parse(o.get("created_at").asString());
+            var body = o.get("note").asString();
+            return new CommitComment(hash,
+                    path,
+                    line,
+                    null, // The comments API does not return an ID
+                    body,
+                    gitLabHost.parseAuthorField(o),
+                    createdAt,
+                    createdAt);
+
+        } else if (o.contains("notes")) {
+            var note = o.get("notes").asArray().get(0);
+            var line = -1;
+            Path path = null;
+            if (note.contains("position")) {
+                var position = note.get("position");
+                if (!position.get("new_line").isNull()) {
+                    line = position.get("new_line").asInt();
+                    path = Path.of(position.get("new_path").asString());
+                } else if (!position.get("old_line").isNull()) {
+                    line = position.get("old_line").asInt();
+                    path = Path.of(position.get("old_path").asString());
+                }
+            }
+            return new CommitComment(hash,
+                    path,
+                    line,
+                    String.valueOf(note.get("id").asInt()),
+                    note.get("body").asString(),
+                    gitLabHost.parseAuthorField(note),
+                    ZonedDateTime.parse(note.get("created_at").asString()),
+                    ZonedDateTime.parse(note.get("updated_at").asString()));
+
+        } else {
+            throw new RuntimeException("Object contains neither 'note' or 'notes', cannot parse commit comment");
+        }
     }
 
     @Override
     public List<CommitComment> commitComments(Hash hash) {
-        return request.get("repository/commits/" + hash.hex() + "/comments")
+        // Using the discussions API gives us more information, most notably the ID field
+        return request.get("repository/commits/" + hash.hex() + "/discussions")
                       .execute()
                       .stream()
                       .map(o -> toCommitComment(hash, o))
@@ -512,26 +549,22 @@ public class GitLabRepository implements HostedRepository {
         return Set.of();
     }
 
-    private Hash commitWithComment(String commitTitle,
-                                   ZonedDateTime commentCreatedAt,
-                                   HostUser author,
-                                   Map<String, Set<Hash>> commitTitleToCommits) {
+    private Optional<CommitComment> findComment(String commitTitle,
+            String commentId,
+            Map<String, Set<Hash>> commitTitleToCommits) {
         var candidates = commitsWithTitle(commitTitle, commitTitleToCommits);
-        if (candidates.size() == 1) {
-            return candidates.iterator().next();
+        // Even if there is only one candidate, we need to make sure the comment
+        // exists on that commit before we try to process it. If this fails it's
+        // most likely due to inconsistent data from GitLab, which should
+        // eventually clear up on subsequent tries.
+        Optional<CommitComment> found = candidates.stream()
+                .flatMap(candidate -> commitComments(candidate).stream())
+                .filter(comment -> comment.id().equals(commentId))
+                .findFirst();
+        if (found.isEmpty()) {
+            log.warning("Did not find commit with title " + commitTitle + " for repository " + projectName);
         }
-
-        for (var candidate : candidates) {
-            var comments = commitComments(candidate);
-            for (var comment : comments) {
-                if (comment.createdAt().equals(commentCreatedAt) &&
-                    comment.author().equals(author)) {
-                    return candidate;
-                }
-            }
-        }
-
-        throw new RuntimeException("Did not find commit with title " + commitTitle + " for repository " + projectName);
+        return found;
     }
 
     /**
@@ -548,19 +581,19 @@ public class GitLabRepository implements HostedRepository {
 
         var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         var notes = request.get("events")
-                      .param("after", updatedAfter.format(formatter))
-                      .execute()
-                      .stream()
-                      .filter(o -> o.contains("note") &&
-                                   o.get("note").contains("noteable_type") &&
-                                   o.get("note").get("noteable_type").asString().equals("Commit"))
-                      .filter(o -> o.contains("target_type") &&
-                                   !o.get("target_type").isNull() &&
-                                   o.get("target_type").asString().equals("Note"))
-                      .filter(o -> o.contains("author") &&
-                                   o.get("author").contains("id") &&
-                                   !excludeAuthors.contains(o.get("author").get("id").asInt()))
-                      .toList();
+                .param("after", updatedAfter.format(formatter))
+                .execute()
+                .stream()
+                .filter(o -> o.contains("note") &&
+                        o.get("note").contains("noteable_type") &&
+                        o.get("note").get("noteable_type").asString().equals("Commit"))
+                .filter(o -> o.contains("target_type") &&
+                        !o.get("target_type").isNull() &&
+                        o.get("target_type").asString().equals("Note"))
+                .filter(o -> o.contains("author") &&
+                        o.get("author").contains("id") &&
+                        !excludeAuthors.contains(o.get("author").get("id").asInt()))
+                .toList();
 
         if (notes.isEmpty()) {
             return List.of();
@@ -569,18 +602,10 @@ public class GitLabRepository implements HostedRepository {
         var commitTitleToCommits = getCommitTitleToCommitsMap(localRepo, branches);
 
         return notes.stream()
-                    .map(o -> {
-                        var createdAt = ZonedDateTime.parse(o.get("note").get("created_at").asString());
-                        var body = o.get("note").get("body").asString();
-                        var user = gitLabHost.parseAuthorField(o);
-                        var id = o.get("note").get("id").asInt();
-                        var hash = commitWithComment(o.get("target_title").asString(),
-                                                     createdAt,
-                                                     user,
-                                                     commitTitleToCommits);
-                        return new CommitComment(hash, null, -1, String.valueOf(id), body, user, createdAt, createdAt);
-                    })
-                    .toList();
+                .map(o -> findComment(o.get("target_title").asString(),
+                        String.valueOf(o.get("note").get("id").asInt()), commitTitleToCommits))
+                .flatMap(Optional::stream)
+                .toList();
     }
 
     /**
@@ -623,6 +648,10 @@ public class GitLabRepository implements HostedRepository {
         return commitTitleToCommits;
     }
 
+    /**
+     * The CommitComment returned from this method will not have an ID field,
+     * this is due to a limitation in the GitLab API.
+     */
     @Override
     public CommitComment addCommitComment(Hash hash, String body) {
         var query = JSON.object().put("note", body);
@@ -760,12 +789,25 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
+    public List<Collaborator> collaborators() {
+        var result = request.get("members").execute();
+        return result.stream()
+                .map(o -> new Collaborator(gitLabHost.parseAuthorObject(o.asObject()), o.get("access_level").asInt() >= 30))
+                .toList();
+    }
+
+    @Override
     public void addCollaborator(HostUser user, boolean canPush) {
         var accessLevel = canPush ? "30" : "20";
         request.post("members")
                .body("user_id", user.id())
                .body("access_level", accessLevel)
                .execute();
+    }
+
+    @Override
+    public void removeCollaborator(HostUser user) {
+        request.delete("members/" + user.id()).execute();
     }
 
     @Override

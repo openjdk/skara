@@ -213,7 +213,10 @@ class CheckWorkItem extends PullRequestWorkItem {
                             issueData.append(properties.get("priority").asString());
                             issueData.append(properties.get("issuetype").asString());
                         }
-                        if (bot.approval() != null && bot.approval().needsApproval(pr.targetRef())) {
+                        if (bot.approval() != null && bot.approval().needsApproval(PreIntegrations.realTargetRef(pr))) {
+                            // Add a static sting to the metadata if the PR needs approval to force
+                            // update if this configuration has changed for the target branch.
+                            issueData.append("approval");
                             issueData.append(String.join("", issue.labelNames()));
                         }
                         return issueData;

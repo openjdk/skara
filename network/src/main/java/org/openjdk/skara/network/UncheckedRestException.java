@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.network;
 
+import java.net.http.HttpRequest;
+
 /**
  * Specialized RuntimeException thrown when a REST call receives a response code
  * >=400 that isn't handled. When catching this, details about the failed call
@@ -30,16 +32,23 @@ package org.openjdk.skara.network;
 public class UncheckedRestException extends RuntimeException {
     int statusCode;
 
-    public UncheckedRestException(int statusCode) {
-        this("Request returned bad status", null, statusCode);
+    HttpRequest request;
+
+    public UncheckedRestException(int statusCode, HttpRequest request) {
+        this("Request returned bad status", null, statusCode, request);
     }
 
-    public UncheckedRestException(String message, Throwable cause, int statusCode) {
-        super("[" +statusCode + "] " + message, cause);
+    public UncheckedRestException(String message, Throwable cause, int statusCode, HttpRequest request) {
+        super("[" + statusCode + "] " + message, cause);
         this.statusCode = statusCode;
+        this.request = request;
     }
 
     public int getStatusCode() {
         return statusCode;
+    }
+
+    public HttpRequest getRequest() {
+        return request;
     }
 }

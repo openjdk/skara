@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bots.common.SolvesTracker;
+import org.openjdk.skara.forge.PreIntegrations;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.openjdk.Issue;
@@ -30,7 +31,6 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.regex.Pattern;
 
 public class ApproveCommand implements CommandHandler {
@@ -59,13 +59,13 @@ public class ApproveCommand implements CommandHandler {
         }
 
         var approval = bot.approval();
-        var targetRef = pr.targetRef();
+        var targetRef = PreIntegrations.realTargetRef(pr);
         if (approval == null) {
             reply.println("Changes in this repository do not require maintainer approval.");
             return;
         }
         if (!approval.needsApproval(targetRef)) {
-            reply.println("Changes to branch " + pr.targetRef() + " do not require maintainer approval");
+            reply.println("Changes to branch " + targetRef + " do not require maintainer approval");
             return;
         }
         var argMatcher = APPROVE_ARG_PATTERN.matcher(command.args());
@@ -118,7 +118,7 @@ public class ApproveCommand implements CommandHandler {
         }
     }
 
-    private List<Issue> getIssues(String issueId, PullRequest pr, List<Comment> allComments, PrintWriter reply) {
+    static List<Issue> getIssues(String issueId, PullRequest pr, List<Comment> allComments, PrintWriter reply) {
         var titleIssue = Issue.fromStringRelaxed(pr.title());
         var issueIds = new ArrayList<String>();
         titleIssue.ifPresent(value -> issueIds.add(value.shortId()));
@@ -133,7 +133,7 @@ public class ApproveCommand implements CommandHandler {
             if (issueIds.contains(issue.shortId())) {
                 ret.add(issue);
             } else {
-                reply.println("You can only handle approval requests for issues that this pull request solves.");
+                reply.println("This issue is not associated with this pull request.");
             }
             // If issueId is not specified, then handle all the issues associated with this pull request
         } else {

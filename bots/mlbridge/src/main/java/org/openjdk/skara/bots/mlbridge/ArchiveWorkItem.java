@@ -363,7 +363,8 @@ class ArchiveWorkItem implements WorkItem {
             var localRepoPath = scratchPath.resolve("mlbridge-mergebase").resolve(pr.repository().name());
             var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, localRepoPath);
 
-            var webrevPath = scratchPath.resolve("mlbridge-webrevs");
+            var jsonWebrevPath = scratchPath.resolve("mlbridge-webrevs").resolve("json");
+            var htmlWebrevPath = scratchPath.resolve("mlbridge-webrevs").resolve("html");
             var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer(), bot.sendInterval());
             var archiver = new ReviewArchive(pr, bot.emailAddress());
             var lastDraftTime = pr.lastMarkedAsDraftTime().orElse(null);
@@ -398,7 +399,7 @@ class ArchiveWorkItem implements WorkItem {
                 archiver.addReviewComment(reviewComment);
             }
 
-            var webrevGenerator = bot.webrevStorage().generator(pr, localRepo, webrevPath);
+            var webrevGenerator = bot.webrevStorage().generator(pr, localRepo, jsonWebrevPath, htmlWebrevPath, hostedRepositoryPool);
             var newMails = archiver.generateNewEmails(sentMails, bot.cooldown(), localRepo, bot.issueTracker(), jbs.toUpperCase(), webrevGenerator,
                                                       (index, webrevs) -> updateWebrevComment(comments, index, webrevs),
                                                       user -> getAuthorAddress(census, user),

@@ -214,6 +214,11 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
+    public String group() {
+        return repository.split("/")[0];
+    }
+
+    @Override
     public URI authenticatedUrl() {
         var builder = URIBuilder.base(gitHubHost.getURI())
                                 .setPath("/" + repository + ".git");
@@ -351,6 +356,11 @@ public class GitHubRepository implements HostedRepository {
                        .map(b -> new HostedBranch(b.get("name").asString(),
                                                   new Hash(b.get("commit").get("sha").asString())))
                        .collect(Collectors.toList());
+    }
+
+    @Override
+    public String defaultBranchName() {
+        return json().get("default_branch").asString();
     }
 
     @Override
@@ -648,12 +658,27 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
+    public List<Collaborator> collaborators() {
+        var result = request.get("collaborators")
+                .param("affiliation", "direct")
+                .execute();
+        return result.stream()
+                .map(o -> new Collaborator(GitHubHost.toHostUser(o.asObject()), o.get("permissions").get("push").asBoolean()))
+                .toList();
+    }
+
+    @Override
     public void addCollaborator(HostUser user, boolean canPush) {
         var query = JSON.object().put("permission", canPush ? "push" : "pull");
         request.put("collaborators/" + user.username())
                .body(query)
                .execute();
 
+    }
+
+    @Override
+    public void removeCollaborator(HostUser user) {
+        request.delete("collaborators/" + user.username()).execute();
     }
 
     @Override

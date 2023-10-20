@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.openjdk.skara.forge.Check;
+import org.openjdk.skara.forge.Collaborator;
 import org.openjdk.skara.forge.CommitComment;
 import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.forge.HostedBranch;
@@ -104,6 +105,11 @@ public class BitbucketRepository implements HostedRepository {
     @Override
     public String name() {
         return name;
+    }
+
+    @Override
+    public String group() {
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -210,6 +216,11 @@ public class BitbucketRepository implements HostedRepository {
     }
 
     @Override
+    public String defaultBranchName() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void protectBranchPattern(String pattern) {
         throw new UnsupportedOperationException();
     }
@@ -265,7 +276,17 @@ public class BitbucketRepository implements HostedRepository {
     }
 
     @Override
+    public List<Collaborator> collaborators() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void addCollaborator(HostUser user, boolean canPush) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void removeCollaborator(HostUser user) {
         throw new UnsupportedOperationException();
     }
 

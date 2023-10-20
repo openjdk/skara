@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,6 +53,26 @@ public interface Forge extends Host {
     default Optional<HostedCommit> search(Hash hash) {
         return search(hash, false);
     }
+
+    /**
+     * Get user by numeric ID
+     */
+    Optional<HostUser> userById(String id);
+
+    /**
+     * List users that are members of a group
+     */
+    List<HostUser> groupMembers(String group);
+
+    /**
+     * Gets the membership state for a user in a group
+     */
+    MemberState groupMemberState(String group, HostUser user);
+
+    /**
+     * Adds a user to a group
+     */
+    void addGroupMember(String group, HostUser user);
 
     /**
      * Some forges do not always update the "updated_at" fields of various objects
