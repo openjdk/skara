@@ -426,9 +426,10 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
 
     @Override
     public void removeCollaborator(HostUser user) {
-        collaborators.stream()
+        var toRemove = collaborators.stream()
                 .filter(c -> c.user().equals(user))
-                .forEach(collaborators::remove);
+                .toList();
+        toRemove.forEach(collaborators::remove);
     }
 
     @Override
