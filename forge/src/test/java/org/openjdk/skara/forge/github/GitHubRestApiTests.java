@@ -364,4 +364,20 @@ public class GitHubRestApiTests {
         githubHost.addGroupMember(groupName, user);
         assertNotEquals(MemberState.MISSING, githubHost.groupMemberState(groupName, user));
     }
+
+    /**
+     * Expects:
+     * github.collaborators.repository: Github repository where user has admin access
+     * github.collaborators.user: User not currently a collaborator in repository
+     */
+    @Test
+    void addRemoveCollaborator() {
+        var gitHubRepo = githubHost.repository(settings.getProperty("github.collaborators.repository")).orElseThrow();
+        var userName = settings.getProperty("github.collaborators.user");
+        var user = gitHubRepo.forge().user(userName).orElseThrow();
+        gitHubRepo.addCollaborator(user, false);
+        // On Github, the user has to accept an invitation before becoming a collaborator
+        // so we cannot verify automatically here.
+        gitHubRepo.removeCollaborator(user);
+    }
 }

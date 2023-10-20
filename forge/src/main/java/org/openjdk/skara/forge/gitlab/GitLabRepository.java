@@ -807,7 +807,9 @@ public class GitLabRepository implements HostedRepository {
 
     @Override
     public void removeCollaborator(HostUser user) {
-        request.delete("members/" + user.id()).execute();
+        request.delete("members/" + user.id())
+                .header("Content-Type", "application/json")
+                .execute();
     }
 
     @Override
