@@ -193,4 +193,43 @@ public class INITests {
         assertTrue(ini.contains("project"));
         assertFalse(ini.contains("bugs"));
     }
+
+    @Test
+    void testUpdatingValueInGlobalSection() {
+        var lines = List.of(
+            "foo=bar",
+            "foo=baz"
+        );
+        var ini = INI.parse(lines);
+        assertEquals("baz", ini.get("foo").asString());
+    }
+
+    @Test
+    void testUpdatingValueInSection() {
+        var lines = List.of(
+            "[checks]",
+            "    commits = reviews",
+            "",
+            "[checks]",
+            "    commits = none"
+        );
+        var ini = INI.parse(lines);
+        assertEquals("none", ini.section("checks").get("commits").asString());
+    }
+
+    @Test
+    void testUpdatingValueInSubsection() {
+        var lines = List.of(
+            "[checks]",
+            "    commits = reviews",
+            "",
+            "[checks \"reviews\"]",
+            "    merge = ignore",
+            "",
+            "[checks \"reviews\"]",
+            "    merge = check"
+        );
+        var ini = INI.parse(lines);
+        assertEquals("check", ini.section("checks").subsection("reviews").get("merge").asString());
+    }
 }

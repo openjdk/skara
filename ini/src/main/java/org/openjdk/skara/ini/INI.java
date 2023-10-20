@@ -138,7 +138,6 @@ public class INI {
         var sections = new HashMap<String, Section>();
 
         Section current = null;
-        boolean isSubsection = false;
         for (var i = 0; i < lines.size(); i++) {
             var line = lines.get(i);
             if (line.isEmpty() || line.startsWith(";")) {
@@ -156,14 +155,14 @@ public class INI {
                     fail(i, "section header must be of format '[name (\"subsection\")?]'");
                 }
 
-                if (!isSubsection && current != null) {
-                    sections.put(current.name(), current);
-                }
-
                 var name = parts[0];
                 if (parts.length == 1) {
-                    current = new Section(name);
-                    isSubsection = false;
+                    if (sections.containsKey(name)) {
+                        current = sections.get(name);
+                    } else {
+                        current = new Section(name);
+                        sections.put(current.name(), current);
+                    }
                 } else {
                     var subsection = parts[1];
                     if (!(subsection.startsWith("\"") && subsection.endsWith("\""))) {
@@ -180,11 +179,12 @@ public class INI {
                     }
 
                     var section = sections.get(name);
-                    var next = new Section(subsectionName);
-                    section.addSubsection(next);
-
-                    isSubsection = true;
-                    current = next;
+                    if (section.hasSubsection(subsectionName)) {
+                        current = section.subsection(subsectionName);
+                    } else {
+                        current = new Section(subsectionName);
+                        section.addSubsection(current);
+                    }
                 }
             } else {
                 if (!line.contains("=")) {
@@ -200,10 +200,6 @@ public class INI {
                     current.put(key, value);
                 }
             }
-        }
-
-        if (!isSubsection && current != null) {
-            sections.put(current.name(), current);
         }
 
         return new INI(sections, globalEntries);
