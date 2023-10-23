@@ -1254,7 +1254,9 @@ class CheckRun {
                 additionalErrors = List.of(e.getMessage());
                 localHash = baseHash;
             }
-            PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(checkablePullRequest.targetHash());
+
+            Hash jcheckConfHash = checkablePullRequest.targetHash();
+            PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(jcheckConfHash);
             boolean needUpdateAdditionalProgresses = false;
             if (localHash.equals(baseHash)) {
                 if (additionalErrors.isEmpty()) {
@@ -1265,9 +1267,10 @@ class CheckRun {
             } else {
                 // Determine current status
                 jcheckType = "jcheck";
-                var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash,
+                var conf = checkablePullRequest.parseJCheckConfiguration(localRepo, jcheckConfHash);
+                var additionalConfiguration = AdditionalConfiguration.get(conf,
                         pr.repository().forge().currentUser(), comments, reviewMerge);
-                checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration, checkablePullRequest.targetHash());
+                checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration, jcheckConfHash);
                 // Don't need to run the second round if confOverride is set.
                 if (workItem.bot.confOverrideRepository().isEmpty() && isFileUpdated(".jcheck/conf", localHash)) {
                     jcheckType = "second jcheck";

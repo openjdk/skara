@@ -262,8 +262,10 @@ public class IntegrateCommand implements CommandHandler {
     static boolean runJcheck(PullRequest pr, CensusInstance censusInstance, List<Comment> allComments, PrintWriter reply,
                       Repository localRepo, CheckablePullRequest checkablePr, Hash localHash, boolean reviewMerge) throws IOException {
         var issues = checkablePr.createVisitor(checkablePr.targetHash());
-        var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments, reviewMerge);
-        checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration, checkablePr.targetHash());
+        var jcheckConfHash = checkablePr.targetHash();
+        var jcheckConf = checkablePr.parseJCheckConfiguration(localRepo, jcheckConfHash);
+        var additionalConfiguration = AdditionalConfiguration.get(jcheckConf, pr.repository().forge().currentUser(), allComments, reviewMerge);
+        checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration, jcheckConfHash);
         if (!issues.messages().isEmpty()) {
             reply.print("Your integration request cannot be fulfilled at this time, as ");
             reply.println("your changes failed the final jcheck:");

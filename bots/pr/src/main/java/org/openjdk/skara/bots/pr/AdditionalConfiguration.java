@@ -31,14 +31,14 @@ import java.io.IOException;
 import java.util.*;
 
 public class AdditionalConfiguration {
-    static List<String> get(ReadOnlyRepository repository, Hash hash, HostUser botUser, List<Comment> comments, boolean reviewMerge) throws IOException {
+    static List<String> get(Optional<JCheckConfiguration> conf, HostUser botUser, List<Comment> comments, boolean reviewMerge) throws IOException {
         var ret = new ArrayList<String>();
         var additionalReviewers = ReviewersTracker.additionalRequiredReviewers(botUser, comments);
         if (additionalReviewers.isEmpty() && !reviewMerge) {
             return ret;
         }
 
-        var currentConfiguration = JCheckConfiguration.from(repository, hash).orElseThrow();
+        var currentConfiguration = conf.orElseThrow();
         if (additionalReviewers.isEmpty()) {
             additionalReviewers = Optional.of(new ReviewersTracker.AdditionalRequiredReviewers(0, ""));
         }

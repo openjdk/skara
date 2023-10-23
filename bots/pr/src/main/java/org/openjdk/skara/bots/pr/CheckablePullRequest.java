@@ -207,16 +207,22 @@ public class CheckablePullRequest {
         return new PullRequestCheckIssueVisitor(checks);
     }
 
-    void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor,
-                       List<String> additionalConfiguration, Hash hash) throws IOException {
-        Optional<JCheckConfiguration> conf;
+    Optional<JCheckConfiguration> parseJCheckConfiguration(ReadOnlyRepository repo, Hash hash) {
+        return parseJCheckConfiguration(repo, hash, List.of());
+    }
+
+    Optional<JCheckConfiguration> parseJCheckConfiguration(ReadOnlyRepository repo, Hash hash, List<String> additional) {
         if (confOverride != null) {
-            conf = JCheck.parseConfiguration(confOverride, additionalConfiguration);
-        } else {
-            conf = JCheck.parseConfiguration(localRepo, hash, additionalConfiguration);
+            return JCheck.parseConfiguration(confOverride, additional);
         }
+        return JCheck.parseConfiguration(localRepo, hash, additional);
+    }
+
+    void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor,
+                       List<String> additionalConfiguration, Hash jcheckConfHash) throws IOException {
+        var conf = parseJCheckConfiguration(localRepo, jcheckConfHash, additionalConfiguration);
         if (conf.isEmpty()) {
-            throw new RuntimeException("Failed to parse jcheck configuration at: " + hash + " with extra: " + additionalConfiguration);
+            throw new RuntimeException("Failed to parse jcheck configuration at: " + jcheckConfHash + " with extra: " + additionalConfiguration);
         }
         visitor.setConfiguration(conf.get());
         try (var issues = JCheck.check(localRepo, censusInstance.census(), CommitMessageParsers.v1, localHash,
