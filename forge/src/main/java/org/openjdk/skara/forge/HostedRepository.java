@@ -169,6 +169,7 @@ public interface HostedRepository {
                              String sourceRef);
     List<Collaborator> collaborators();
     void addCollaborator(HostUser user, boolean canPush);
+    void removeCollaborator(HostUser user);
     boolean canPush(HostUser user);
     void restrictPushAccess(Branch branch, HostUser users);
     List<Label> labels();

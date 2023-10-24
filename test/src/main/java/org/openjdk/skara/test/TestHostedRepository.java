@@ -425,6 +425,14 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
+    public void removeCollaborator(HostUser user) {
+        var toRemove = collaborators.stream()
+                .filter(c -> c.user().equals(user))
+                .toList();
+        toRemove.forEach(collaborators::remove);
+    }
+
+    @Override
     public boolean canPush(HostUser user) {
         return collaborators.stream()
                 .filter(c -> c.user().equals(user))

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -123,8 +123,9 @@ public class JiraHost implements IssueTracker {
         }
 
         var user = HostUser.create(data.get("name").asString(),
-                                   data.get("name").asString(),
-                                   data.get("displayName").asString());
+                data.get("name").asString(),
+                data.get("displayName").asString(),
+                data.get("active").asBoolean());
         return Optional.of(user);
     }
 
@@ -133,11 +134,12 @@ public class JiraHost implements IssueTracker {
         if (currentUser == null) {
             var data = request.get("myself").execute();
             currentUser = HostUser.builder()
-                                  .id(data.get("name").asString())
-                                  .username(data.get("name").asString())
-                                  .fullName(data.get("displayName").asString())
-                                  .email(data.get("emailAddress").asString())
-                                  .build();
+                    .id(data.get("name").asString())
+                    .username(data.get("name").asString())
+                    .fullName(data.get("displayName").asString())
+                    .active(data.get("active").asBoolean())
+                    .email(data.get("emailAddress").asString())
+                    .build();
         }
         return currentUser;
     }

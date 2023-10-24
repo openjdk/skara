@@ -22,18 +22,20 @@
  */
 package org.openjdk.skara.issuetracker.jira;
 
+import java.net.URI;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.IssueTracker;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.test.ManualTestSettings;
 
 import java.io.IOException;
+import java.util.Properties;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
 /**
@@ -43,10 +45,28 @@ import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 @Disabled("Manual")
 public class JiraProjectTests {
 
+    private URI jiraUri;
+    private Properties settings;
+
+    @BeforeEach
+    void setupJira() throws IOException {
+        HttpProxy.setup();
+        settings = ManualTestSettings.loadManualTestSettings();
+        jiraUri = URIBuilder.base(settings.getProperty("jira.uri")).build();
+    }
+
+    private IssueTracker authenticatedJiraHost() {
+        var pat = settings.getProperty("jira.pat");
+        return new JiraIssueTrackerFactory().createWithPat(jiraUri, "Bearer " + pat);
+    }
+
+    private IssueTracker jiraHost() {
+        return new JiraIssueTrackerFactory().create(jiraUri, null, null);
+    }
+
     @Test
-    void testJepIssue() throws IOException {
-        var uri = URIBuilder.base("https://bugs.openjdk.org").build();
-        var jiraHost = new JiraIssueTrackerFactory().create(uri, null, null);
+    void testJepIssue() {
+        var jiraHost = jiraHost();
         var jiraProject = jiraHost.project("JDK");
 
         // Test a closed JEP. Note: all the JEPs may be changed to state `Closed` in the end.
@@ -68,37 +88,41 @@ public class JiraProjectTests {
     }
 
     @Test
-    void test() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var jiraUri = settings.getProperty("jira-uri");
-        var cookie = settings.getProperty("jira-cookie");
-        var projectId = settings.getProperty("jira-project-id");
-        var issueId = settings.getProperty("jira-issue-id");
-        var uri = URIBuilder.base(jiraUri).build();
-        var jiraHost = new JiraIssueTrackerFactory().create(uri, cookie);
+    void testClosingIssue() {
+        var projectId = settings.getProperty("jira.project");
+        var issueId = settings.getProperty("jira.issue");
+        var jiraHost = authenticatedJiraHost();
         var jiraProject = jiraHost.project(projectId);
-        var jiraIssueOpt = jiraProject.issue(issueId);
-        var jiraIssue = jiraIssueOpt.get();
+        var jiraIssue = jiraProject.issue(issueId).orElseThrow();
         assertNotEquals(Issue.State.CLOSED, jiraIssue.state());
         jiraIssue.setState(Issue.State.CLOSED);
-        var jiraIssueOpt2 = jiraProject.issue(issueId);
-        assertEquals(Issue.State.CLOSED, jiraIssueOpt2.get().state());
+        var jiraIssue2 = jiraProject.issue(issueId).orElseThrow();
+        assertEquals(Issue.State.CLOSED, jiraIssue2.state());
     }
 
     @Test
-    void testEquals() throws IOException {
-        HttpProxy.setup();
-        var uri = URIBuilder.base("https://bugs.openjdk.org").build();
+    void testIssueEquals() throws IOException {
         var settings = ManualTestSettings.loadManualTestSettings();
-        var pat = settings.getProperty("jira.pat");
         var project = settings.getProperty("jira.project");
         var issueId = settings.getProperty("jira.issue");
-        var jiraHost = new JiraIssueTrackerFactory().createWithPat(uri, "Bearer " + pat);
+        var jiraHost = authenticatedJiraHost();
         var jiraProject = jiraHost.project(project);
 
         var issue = jiraProject.issue(issueId).orElseThrow();
         var issue2 = jiraProject.issue(issueId).orElseThrow();
 
         assertEquals(issue, issue2);
+    }
+
+    @Test
+    void testUserActive() {
+        var jiraHost = authenticatedJiraHost();
+        var activeUserId = settings.getProperty("jira.user.active");
+        var activeUser = jiraHost.user(activeUserId).orElseThrow();
+        assertTrue(activeUser.active());
+
+        var inactiveUserId = settings.getProperty("jira.user.inactive");
+        var inactiveUser = jiraHost.user(inactiveUserId).orElseThrow();
+        assertFalse(inactiveUser.active());
     }
 }

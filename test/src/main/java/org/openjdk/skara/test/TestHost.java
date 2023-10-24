@@ -328,4 +328,14 @@ public class TestHost implements Forge, IssueTracker {
     public MemberState groupMemberState(String group, HostUser user) {
         return organizationMembers.getOrDefault(group, Map.of()).getOrDefault(user.username(), MemberState.MISSING);
     }
+
+    /**
+     * Test method to update the active state of an existing user
+     */
+    public void setUserActive(String user, boolean active) {
+        var currentUser = user(user).orElseThrow();
+        data.users.remove(currentUser);
+        var newUser = HostUser.create(currentUser.id(), currentUser.username(), currentUser.fullName(), active);
+        data.users.add(newUser);
+    }
 }

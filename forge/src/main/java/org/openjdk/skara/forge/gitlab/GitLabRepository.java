@@ -806,6 +806,13 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
+    public void removeCollaborator(HostUser user) {
+        request.delete("members/" + user.id())
+                .header("Content-Type", "application/json")
+                .execute();
+    }
+
+    @Override
     public boolean canPush(HostUser user) {
         var accessLevel = request.get("members/all/" + user.id())
                                  .onError(r -> r.statusCode() == 404 ?

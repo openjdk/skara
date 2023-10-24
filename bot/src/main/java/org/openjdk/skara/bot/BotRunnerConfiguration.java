@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -264,6 +264,14 @@ public class BotRunnerConfiguration {
                 } catch (ConfigurationError configurationError) {
                     throw new RuntimeException("Couldn't find repository with name: " + name, configurationError);
                 }
+            }
+
+            @Override
+            public IssueTracker issueTracker(String name) {
+                if (!issueHosts.containsKey(name)) {
+                    throw new RuntimeException("Couldn't find issue tracker with name: " + name);
+                }
+                return issueHosts.get(name);
             }
 
             @Override

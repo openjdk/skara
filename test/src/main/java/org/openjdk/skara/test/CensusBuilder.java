@@ -43,16 +43,7 @@ public class CensusBuilder {
     private final String namespace;
     private static final Logger log = Logger.getLogger("org.openjdk.skara.test.utils");;
 
-    private static class User {
-        final String forgeId;
-        final String name;
-        final String fullName;
-
-        User(String forgeId, String name, String fullName) {
-            this.forgeId = forgeId;
-            this.name = name;
-            this.fullName = fullName;
-        }
+    public record User(String forgeId, String name, String fullName) {
     }
 
     private final Map<String, User> users = new HashMap<>();
@@ -184,6 +175,10 @@ public class CensusBuilder {
         project.lead = users.get(leadForgeId);
         projects.put(name, project);
         return this;
+    }
+
+    public User user(String forgeId) {
+        return users.get(forgeId);
     }
 
     private void writeContributor(PrintWriter writer, User user) {

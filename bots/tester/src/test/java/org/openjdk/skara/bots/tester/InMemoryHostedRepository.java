@@ -260,6 +260,10 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public void removeCollaborator(HostUser user) {
+    }
+
+    @Override
     public boolean canPush(HostUser user) {
         return false;
     }

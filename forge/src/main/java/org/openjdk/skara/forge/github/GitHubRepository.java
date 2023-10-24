@@ -677,6 +677,11 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
+    public void removeCollaborator(HostUser user) {
+        request.delete("collaborators/" + user.username()).execute();
+    }
+
+    @Override
     public boolean canPush(HostUser user) {
         var permission = request.get("collaborators/" + user.username() + "/permission")
                                 .onError(r -> r.statusCode() == 404 ?

@@ -302,4 +302,48 @@ public class GitLabRestApiTest {
         var collaborators = gitLabRepo.collaborators();
         assertNotNull(collaborators);
     }
+
+    /**
+     * Expects:
+     * github.collaborators.repository: Github repository where user has admin access
+     * github.collaborators.user: User not currently a collaborator in repository
+     */
+    @Test
+    void addRemoveCollaborator() {
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.collaborators.repository")).orElseThrow();
+        var userName = settings.getProperty("gitlab.collaborators.user");
+        var user = gitLabRepo.forge().user(userName).orElseThrow();
+        gitLabRepo.addCollaborator(user, false);
+        {
+            var collaborators = gitLabRepo.collaborators();
+            var collaborator = collaborators.stream()
+                    .filter(c -> c.user().username().equals(userName))
+                    .findAny().orElseThrow();
+            assertFalse(collaborator.canPush());
+        }
+        gitLabRepo.removeCollaborator(user);
+        {
+            var collaborators = gitLabRepo.collaborators();
+            var collaborator = collaborators.stream()
+                    .filter(c -> c.user().username().equals(userName))
+                    .findAny();
+            assertTrue(collaborator.isEmpty());
+        }
+        gitLabRepo.addCollaborator(user, true);
+        {
+            var collaborators = gitLabRepo.collaborators();
+            var collaborator = collaborators.stream()
+                    .filter(c -> c.user().username().equals(userName))
+                    .findAny().orElseThrow();
+            assertTrue(collaborator.canPush());
+        }
+        gitLabRepo.removeCollaborator(user);
+        {
+            var collaborators = gitLabRepo.collaborators();
+            var collaborator = collaborators.stream()
+                    .filter(c -> c.user().username().equals(userName))
+                    .findAny();
+            assertTrue(collaborator.isEmpty());
+        }
+    }
 }

@@ -286,6 +286,11 @@ public class BitbucketRepository implements HostedRepository {
     }
 
     @Override
+    public void removeCollaborator(HostUser user) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public boolean canPush(HostUser user) {
         throw new UnsupportedOperationException();
     }
