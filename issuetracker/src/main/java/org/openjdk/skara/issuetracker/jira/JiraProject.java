@@ -470,18 +470,20 @@ public class JiraProject implements IssueProject {
         return ret;
     }
 
+    // Need to sort by updated time in descending order to guarantee that no issues are missed, see SKARA-1962 for details
     @Override
     public List<IssueTrackerIssue> issues(ZonedDateTime updatedAfter) {
         var timeString = toTimeString(updatedAfter);
-        var jql = "project = " + projectName + " AND updated >= '" + timeString + "'";
+        var jql = "project = " + projectName + " AND updated >= '" + timeString + "' ORDER BY updated DESC";
         return queryIssues(jql);
     }
 
 
+    // Need to sort by updated time in descending order to guarantee that no issues are missed, see SKARA-1962 for details
     @Override
     public List<IssueTrackerIssue> csrIssues(ZonedDateTime updatedAfter) {
         var timeString = toTimeString(updatedAfter);
-        var jql = "project = " + projectName + " AND updated >= '" + timeString + "' AND issuetype = CSR";
+        var jql = "project = " + projectName + " AND updated >= '" + timeString + "' AND issuetype = CSR ORDER BY updated DESC";
         return queryIssues(jql);
     }
 
@@ -506,18 +508,20 @@ public class JiraProject implements IssueProject {
         return timeZoned.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm"));
     }
 
-    private ArrayList<IssueTrackerIssue> queryIssues(String jql) {
-        var ret = new ArrayList<IssueTrackerIssue>();
+    private List<IssueTrackerIssue> queryIssues(String jql) {
+        var ret = new HashMap<String, IssueTrackerIssue>();
+        int count = 0;
         var issues = request.get("search")
                 .param("jql", jql)
                 .execute();
         var startAt = 0;
         while (issues.get("issues").asArray().size() > 0) {
             for (var issue : issues.get("issues").asArray()) {
-                ret.add(new JiraIssue(this, generateIssueRequest(issue), issue));
+                ret.put(JiraIssue.id(issue), new JiraIssue(this, generateIssueRequest(issue), issue));
+                count++;
             }
 
-            if (ret.size() < issues.get("total").asInt()) {
+            if (count < issues.get("total").asInt()) {
                 startAt += issues.get("issues").asArray().size();
                 issues = request.get("search")
                         .param("jql", jql)
@@ -527,7 +531,8 @@ public class JiraProject implements IssueProject {
                 break;
             }
         }
-        return ret;
+
+        return ret.values().stream().toList();
     }
 
     @Override
