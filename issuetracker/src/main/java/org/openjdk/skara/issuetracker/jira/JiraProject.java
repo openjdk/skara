@@ -470,6 +470,7 @@ public class JiraProject implements IssueProject {
         return ret;
     }
 
+    // Need to sort by updated time in descending order to guarantee that no issues are missed, see SKARA-1962 for details
     @Override
     public List<IssueTrackerIssue> issues(ZonedDateTime updatedAfter) {
         var timeString = toTimeString(updatedAfter);
@@ -478,6 +479,7 @@ public class JiraProject implements IssueProject {
     }
 
 
+    // Need to sort by updated time in descending order to guarantee that no issues are missed, see SKARA-1962 for details
     @Override
     public List<IssueTrackerIssue> csrIssues(ZonedDateTime updatedAfter) {
         var timeString = toTimeString(updatedAfter);
