@@ -66,7 +66,7 @@ class AdditionalConfigurationTests {
             var jcheckConf = JCheck.parseConfiguration(localRepo, masterHash, List.of());
             assertTrue(jcheckConf.isPresent());
             var additional = AdditionalConfiguration.get(jcheckConf.get(), bot.forge().currentUser(),
-                                                         pr.comments(), false);
+                                                         pr.comments(), MergePullRequestReviewConfiguration.ALWAYS);
             var expected = List.of(
                 "[checks \"reviewers\"]",
                 "lead=0",
@@ -74,7 +74,8 @@ class AdditionalConfigurationTests {
                 "committers=0",
                 "authors=1",
                 "contributors=0",
-                "minimum=disable"
+                "minimum=disable",
+                "merge=check"
             );
             assertEquals(expected, additional);
         }

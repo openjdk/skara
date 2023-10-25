@@ -83,7 +83,7 @@ class CheckRun {
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
                      CensusInstance censusInstance, boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport,
-                     boolean reviewMerge, Approval approval) throws IOException {
+                     MergePullRequestReviewConfiguration reviewMerge, Approval approval) throws IOException {
         this.workItem = workItem;
         this.pr = pr;
         this.localRepo = localRepo;
@@ -109,7 +109,7 @@ class CheckRun {
 
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance,
-                                     boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport, boolean reviewMerge,
+                                     boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport, MergePullRequestReviewConfiguration reviewMerge,
                                      Approval approval) throws IOException {
         var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance,
                 ignoreStaleReviews, integrators, reviewCleanBackport, reviewMerge, approval);

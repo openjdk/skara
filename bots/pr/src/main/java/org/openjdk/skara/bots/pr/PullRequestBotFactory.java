@@ -205,7 +205,16 @@ public class PullRequestBotFactory implements BotFactory {
                 botBuilder.reviewCleanBackport(repo.value().get("reviewCleanBackport").asBoolean());
             }
             if (repo.value().contains("reviewMerge")) {
-                botBuilder.reviewMerge(repo.value().get("reviewMerge").asBoolean());
+                MergePullRequestReviewConfiguration result = MergePullRequestReviewConfiguration.JCHECK;
+
+                var val = repo.value().get("reviewMerge").asString().toLowerCase().trim();
+                if (val.equals("always")) {
+                    result = MergePullRequestReviewConfiguration.ALWAYS;
+                } else if (val.equals("never")) {
+                    result = MergePullRequestReviewConfiguration.NEVER;
+                }
+
+                botBuilder.reviewMerge(result);
             }
             if (repo.value().contains("processPR")) {
                 botBuilder.processPR(repo.value().get("processPR").asBoolean());
