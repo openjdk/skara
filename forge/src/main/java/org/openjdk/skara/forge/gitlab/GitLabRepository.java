@@ -634,6 +634,7 @@ public class GitLabRepository implements HostedRepository {
         // Fetch eventual new commits
         var commits = request.get("repository/commits")
                 .param("since", lastCommitTime.format(DateTimeFormatter.ISO_DATE_TIME))
+                .param("all", "true")
                 .execute()
                 .asArray();
         for (var commit : commits) {
