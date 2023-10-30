@@ -34,6 +34,7 @@ import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
+import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -199,6 +200,7 @@ class CheckWorkItem extends PullRequestWorkItem {
             }
             var issueIds = BotUtils.parseAllIssues(prBody);
             var issuesData = issueIds.stream()
+                    .map(i -> new Issue(i, "").shortId())
                     .sorted()
                     .map(this::issueTrackerIssue)
                     .filter(Optional::isPresent)
@@ -528,7 +530,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                         return List.of();
                     }
 
-                    var id = issues.get(0).id();
+                    var id = issues.get(0).shortId();
                     var issue = issueTrackerIssue(id);
                     if (!issue.isPresent()) {
                         var text = "<!-- backport error -->\n" +
