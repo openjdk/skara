@@ -142,14 +142,14 @@ class CheckWorkItem extends PullRequestWorkItem {
 
     /**
      * Provides cached fetching of issues from the IssueTracker.
-     * @param id ID of issue to fetch
+     * @param shortId Short id of issue to fetch, e.g. the id of an issue is TEST-123, then the short id of the issue is 123
      * @return The issue if found, otherwise empty.
      */
-    Optional<IssueTrackerIssue> issueTrackerIssue(String id) {
-        if (!issues.containsKey(id)) {
-            issues.put(id, bot.issueProject().issue(id));
+    Optional<IssueTrackerIssue> issueTrackerIssue(String shortId) {
+        if (!issues.containsKey(shortId)) {
+            issues.put(shortId, bot.issueProject().issue(shortId));
         }
-        return issues.get(id);
+        return issues.get(shortId);
     }
 
     String getPRMetadata(CensusInstance censusInstance, String title, String body, List<Comment> comments,
