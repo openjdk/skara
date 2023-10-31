@@ -60,7 +60,7 @@ public class ApprovalAndApproveCommandTests {
                     .addCommitter(author.forge().currentUser().id());
             Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             Approval approval = new Approval("", "-critical-request", "-critical-approved",
-                    "-critical-rejected", "https://example.com");
+                    "-critical-rejected", "https://example.com", true, "maintainer approval");
             approval.addBranchPrefix(Pattern.compile("jdk20.0.1"), "CPU23_04");
             approval.addBranchPrefix(Pattern.compile("jdk20.0.2"), "CPU23_05");
 
@@ -174,7 +174,7 @@ public class ApprovalAndApproveCommandTests {
                     .addCommitter(author.forge().currentUser().id());
             Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             Approval approval = new Approval("", "-critical-request", "-critical-approved",
-                    "-critical-rejected", "https://example.com");
+                    "-critical-rejected", "https://example.com", true, "maintainer approval");
             approval.addBranchPrefix(Pattern.compile("jdk20.0.1"), "CPU23_04");
             approval.addBranchPrefix(Pattern.compile("jdk20.0.2"), "CPU23_05");
 

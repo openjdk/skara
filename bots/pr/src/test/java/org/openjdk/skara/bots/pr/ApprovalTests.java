@@ -32,22 +32,26 @@ public class ApprovalTests {
     @Test
     void simple() {
         Approval approval = new Approval("", "jdk17u-fix-request", "jdk17u-fix-yes",
-                "jdk17u-fix-no", "https://example.com");
+                "jdk17u-fix-no", "https://example.com", true, "maintainer approval");
         assertEquals("jdk17u-fix-request", approval.requestedLabel("master"));
         assertEquals("jdk17u-fix-yes", approval.approvedLabel("master"));
         assertEquals("jdk17u-fix-no", approval.rejectedLabel("master"));
         assertEquals("https://example.com", approval.documentLink());
+        assertTrue(approval.approvalComment());
+        assertEquals("maintainer approval", approval.approvalTerm());
         assertTrue(approval.needsApproval("master"));
 
         approval = new Approval("jdk17u-fix-", "request", "yes", "no",
-                "https://example.com");
+                "https://example.com", false, "maintainer approval");
         assertEquals("jdk17u-fix-request", approval.requestedLabel("master"));
         assertEquals("jdk17u-fix-yes", approval.approvedLabel("master"));
         assertEquals("jdk17u-fix-no", approval.rejectedLabel("master"));
+        assertFalse(approval.approvalComment());
+        assertEquals("maintainer approval", approval.approvalTerm());
         assertTrue(approval.needsApproval("master"));
 
         approval = new Approval("", "-critical-request", "-critical-approved",
-                "-critical-rejected", "https://example.com");
+                "-critical-rejected", "https://example.com", false, "critical request");
         approval.addBranchPrefix(Pattern.compile("jdk20.0.1"), "CPU23_04");
         approval.addBranchPrefix(Pattern.compile("jdk20.0.2"), "CPU23_05");
         assertEquals("CPU23_04-critical-request", approval.requestedLabel("jdk20.0.1"));
@@ -60,5 +64,7 @@ public class ApprovalTests {
         assertTrue(approval.needsApproval("jdk20.0.1"));
         assertTrue(approval.needsApproval("jdk20.0.2"));
         assertFalse(approval.needsApproval("jdk20.0.3"));
+        assertFalse(approval.approvalComment());
+        assertEquals("critical request", approval.approvalTerm());
     }
 }
