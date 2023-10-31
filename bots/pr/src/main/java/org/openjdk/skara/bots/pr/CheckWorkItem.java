@@ -34,6 +34,7 @@ import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
+import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -141,14 +142,14 @@ class CheckWorkItem extends PullRequestWorkItem {
 
     /**
      * Provides cached fetching of issues from the IssueTracker.
-     * @param id ID of issue to fetch
+     * @param shortId Short id of issue to fetch, e.g. the id of an issue is TEST-123, then the short id of the issue is 123
      * @return The issue if found, otherwise empty.
      */
-    Optional<IssueTrackerIssue> issueTrackerIssue(String id) {
-        if (!issues.containsKey(id)) {
-            issues.put(id, bot.issueProject().issue(id));
+    Optional<IssueTrackerIssue> issueTrackerIssue(String shortId) {
+        if (!issues.containsKey(shortId)) {
+            issues.put(shortId, bot.issueProject().issue(shortId));
         }
-        return issues.get(id);
+        return issues.get(shortId);
     }
 
     String getPRMetadata(CensusInstance censusInstance, String title, String body, List<Comment> comments,
@@ -199,6 +200,7 @@ class CheckWorkItem extends PullRequestWorkItem {
             }
             var issueIds = BotUtils.parseAllIssues(prBody);
             var issuesData = issueIds.stream()
+                    .map(i -> new Issue(i, "").shortId())
                     .sorted()
                     .map(this::issueTrackerIssue)
                     .filter(Optional::isPresent)
@@ -528,7 +530,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                         return List.of();
                     }
 
-                    var id = issues.get(0).id();
+                    var id = issues.get(0).shortId();
                     var issue = issueTrackerIssue(id);
                     if (!issue.isPresent()) {
                         var text = "<!-- backport error -->\n" +

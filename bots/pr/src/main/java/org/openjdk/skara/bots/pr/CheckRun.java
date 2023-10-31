@@ -183,7 +183,7 @@ class CheckRun {
     private Optional<IssueTrackerIssue> jepIssue() {
         if (issueProject() != null) {
             var comment = findJepComment();
-            return comment.flatMap(c -> workItem.issueTrackerIssue(c.group(2)));
+            return comment.flatMap(c -> workItem.issueTrackerIssue(new Issue(c.group(2), "").shortId()));
         }
         return Optional.empty();
     }
