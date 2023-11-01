@@ -295,4 +295,16 @@ public class JCheck {
                                 null);
         return jcheck.checksForRange();
     }
+
+    public static Set<Check> checksFor(JCheckConfiguration conf, ReadOnlyRepository repository, Hash hash) throws IOException {
+        var jcheck = new JCheck(repository,
+                                CommitMessageParsers.v1,
+                                repository.range(hash),
+                                Pattern.compile(".*"),
+                                Pattern.compile(".*"),
+                                List.of(),
+                                conf,
+                                null);
+        return jcheck.checksForRange();
+    }
 }

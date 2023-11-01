@@ -100,7 +100,8 @@ public class SponsorCommand implements CommandHandler {
                     bot.confOverrideRepository().orElse(null),
                     bot.confOverrideName(),
                     bot.confOverrideRef(),
-                    allComments);
+                    allComments,
+                    bot.reviewMerge());
 
             // Validate the target hash if requested
             if (!command.args().isBlank()) {
@@ -125,7 +126,7 @@ public class SponsorCommand implements CommandHandler {
             var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(),
                     command.user().id(), original);
 
-            if (IntegrateCommand.runJcheck(pr, censusInstance, allComments, reply, localRepo, checkablePr, localHash, bot.reviewMerge())) {
+            if (IntegrateCommand.runJcheck(pr, censusInstance, allComments, reply, checkablePr, localHash)) {
                 return;
             }
 

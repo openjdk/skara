@@ -1412,7 +1412,7 @@ class CheckTests {
             var pr = credentials.createPullRequest(author, "master", "edit",
                                                    "This is a pull request", true);
 
-            // Check the status - should throw because in edit hash, .jcheck/conf is updated and it will trigger second jcheck
+            // Check the status - should throw because in edit hash, .jcheck/conf is updated and it will trigger source jcheck
             assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
             assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
             assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
@@ -1423,7 +1423,7 @@ class CheckTests {
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
             assertEquals("line 0: entry must be of form 'key = value'", check.summary().get());
-            assertEquals("Exception occurred during second jcheck - the operation will be retried", check.title().get());
+            assertEquals("Exception occurred during source jcheck - the operation will be retried", check.title().get());
         }
     }
 
@@ -2778,16 +2778,16 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // pr body should have the integrationBlocker for whitespace and reviewer check
-            assertTrue(pr.store().body().contains("Whitespace errors (failed with the updated jcheck configuration)"));
-            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with the updated jcheck configuration)"));
+            assertTrue(pr.store().body().contains("Whitespace errors (failed with updated jcheck configuration in pull request)"));
+            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with updated jcheck configuration in pull request)"));
 
             var approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // // pr body should only have the integrationBlocker for whitespace check
-            assertTrue(pr.store().body().contains("Whitespace errors (failed with the updated jcheck configuration)"));
-            assertFalse(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with the updated jcheck configuration)"));
+            assertTrue(pr.store().body().contains("Whitespace errors (failed with updated jcheck configuration in pull request)"));
+            assertFalse(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with updated jcheck configuration in pull request)"));
         }
     }
 
@@ -2846,7 +2846,7 @@ class CheckTests {
             check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
             assertEquals("line 18: entry must be of form 'key = value'", check.summary().get());
-            assertEquals("Exception occurred during second jcheck - the operation will be retried", check.title().get());
+            assertEquals("Exception occurred during source jcheck - the operation will be retried", check.title().get());
 
             // Restore .jcheck/conf and add whitespace issue check
             writeToCheckConf(checkConf);
@@ -2856,8 +2856,8 @@ class CheckTests {
 
             TestBotRunner.runPeriodicItems(checkBot);
             // pr body should have the integrationBlocker for whitespace and reviewer check
-            assertTrue(pr.store().body().contains("Whitespace errors (failed with the updated jcheck configuration)"));
-            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with the updated jcheck configuration)"));
+            assertTrue(pr.store().body().contains("Whitespace errors (failed with updated jcheck configuration in pull request)"));
+            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with updated jcheck configuration in pull request)"));
         }
     }
 
