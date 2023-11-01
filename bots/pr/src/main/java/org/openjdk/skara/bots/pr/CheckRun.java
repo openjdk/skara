@@ -279,9 +279,9 @@ class CheckRun {
                     var issue = issueOpt.get();
                     var labelNames = issue.labelNames();
                     if (labelNames.contains(approval.approvedLabel(pr.targetRef()))) {
-                        ret.put("[" + issue.id() + "](" + issue.webUrl() + ") needs maintainer approval", true);
+                        ret.put("[" + issue.id() + "](" + issue.webUrl() + ") needs " + approval.approvalTerm(), true);
                     } else {
-                        ret.put("[" + issue.id() + "](" + issue.webUrl() + ") needs maintainer approval", false);
+                        ret.put("[" + issue.id() + "](" + issue.webUrl() + ") needs " + approval.approvalTerm(), false);
                     }
                 }
             }
@@ -1335,9 +1335,9 @@ class CheckRun {
             var readyForIntegration = readyToPostApprovalNeededComment &&
                     !additionalProgresses.containsValue(false);
 
-            if (approvalNeeded() && readyToPostApprovalNeededComment) {
+            if (approvalNeeded() && approval.approvalComment() && readyToPostApprovalNeededComment) {
                 for (var entry : additionalProgresses.entrySet()) {
-                    if (!entry.getKey().endsWith("needs maintainer approval") && !entry.getValue()) {
+                    if (!entry.getKey().endsWith("needs " + approval.approvalTerm()) && !entry.getValue()) {
                         readyToPostApprovalNeededComment = false;
                         break;
                     }
@@ -1534,7 +1534,7 @@ class CheckRun {
             return;
         }
         String message = "⚠️  @" + pr.author().username() +
-                " This change is now ready for you to apply for maintainer [approval](" + approval.documentLink() + "). " +
+                " This change is now ready for you to apply for [" + approval.approvalTerm() + "](" + approval.documentLink() + "). " +
                 "This can be done directly in each associated issue or by using the " +
                 "[/approval](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/approval) " +
                 "command." +
