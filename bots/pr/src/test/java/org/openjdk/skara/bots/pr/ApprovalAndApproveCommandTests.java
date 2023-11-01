@@ -132,7 +132,7 @@ public class ApprovalAndApproveCommandTests {
             reviewerPr.addReview(Review.Verdict.APPROVED, "LGTM");
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().labelNames().contains("ready"));
-            assertLastCommentContains(pr, " This change is now ready for you to apply for maintainer");
+            assertLastCommentContains(pr, " This change is now ready for you to apply for [maintainer approval]");
 
             reviewerPr.addComment("/approve yes");
             TestBotRunner.runPeriodicItems(prBot);
