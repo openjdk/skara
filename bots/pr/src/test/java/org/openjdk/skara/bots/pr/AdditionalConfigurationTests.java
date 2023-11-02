@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.forge.*;
 import org.openjdk.skara.test.*;
 
 import java.io.*;
