@@ -130,31 +130,40 @@ public class ReviewersConfiguration {
         var contributors = s.get("contributors", 0);
 
         if (s.contains("minimum")) {
-            // Reset defaults to 0
-            lead = 0;
-            reviewers = 0;
-            committers = 0;
-            authors = 0;
-            contributors = 0;
-
-            var minimum = s.get("minimum").asInt();
-            if (s.contains("role")) {
-                var role = s.get("role").asString();
-                if (role.equals("lead")) {
-                    lead = minimum;
-                } else if (role.equals("reviewer")) {
-                    reviewers = minimum;
-                } else if (role.equals("committer")) {
-                    committers = minimum;
-                } else if (role.equals("author")) {
-                    authors = minimum;
-                } else if (role.equals("contributor")) {
-                    contributors = minimum;
-                } else {
-                    throw new IllegalArgumentException("Unexpected role: " + role);
+            var isMinimumDisabled = s.get("minimum").asString().trim().toLowerCase().equals("disable");
+            if (!isMinimumDisabled) {
+                for (var role : List.of("lead", "reviewers", "committers", "authors", "contributors")) {
+                    if (s.contains(role)) {
+                        throw new IllegalStateException("Cannot combine 'minimum' with '" + role + "'");
+                    }
                 }
-            } else {
-                reviewers = minimum;
+
+                // Reset defaults to 0
+                lead = 0;
+                reviewers = 0;
+                committers = 0;
+                authors = 0;
+                contributors = 0;
+
+                var minimum = s.get("minimum").asInt();
+                if (s.contains("role")) {
+                    var role = s.get("role").asString();
+                    if (role.equals("lead")) {
+                        lead = minimum;
+                    } else if (role.equals("reviewer")) {
+                        reviewers = minimum;
+                    } else if (role.equals("committer")) {
+                        committers = minimum;
+                    } else if (role.equals("author")) {
+                        authors = minimum;
+                    } else if (role.equals("contributor")) {
+                        contributors = minimum;
+                    } else {
+                        throw new IllegalArgumentException("Unexpected role: " + role);
+                    }
+                } else {
+                    reviewers = minimum;
+                }
             }
         }
 
