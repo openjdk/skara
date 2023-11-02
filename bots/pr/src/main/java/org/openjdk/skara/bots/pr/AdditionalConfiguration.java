@@ -45,6 +45,7 @@ public class AdditionalConfiguration {
         var updatedLimits = ReviewersTracker.updatedRoleLimits(currentConfiguration, additionalReviewers.get().number(), additionalReviewers.get().role());
         ret.add("[checks \"reviewers\"]");
         updatedLimits.forEach((role, count) -> ret.add(role + "=" + count));
+        ret.add("minimum=disable");
         if (reviewMerge) {
             ret.add("merge=check");
         }
