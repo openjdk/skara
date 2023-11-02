@@ -158,6 +158,10 @@ public class HostUser {
         if (fullName == null) {
             update();
         }
+        // If the user doesn't set full name, then use username instead
+        if (fullName == null) {
+            return username();
+        }
         return fullName;
     }
 
