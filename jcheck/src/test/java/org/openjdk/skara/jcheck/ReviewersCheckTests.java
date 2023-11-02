@@ -698,4 +698,21 @@ class ReviewersCheckTests {
         return String.format(hasReview, totalNum, totalNum > 1 ? "s" : "", String.join(", ", requireList));
     }
 
+    @Test
+    void minimumCanBeDisabled() {
+        var conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 1");
+        conf.add("minimum = disable");
+        assertEquals(constructReviewRequirement(0, 1, 0, 0, 0),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+    }
+
+    @Test
+    void minimumWithAnotherRoleTrows() {
+        var conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 1");
+        conf.add("minimum = 1");
+        assertThrows(IllegalStateException.class, () -> JCheckConfiguration.parse(conf));
+    }
+
 }

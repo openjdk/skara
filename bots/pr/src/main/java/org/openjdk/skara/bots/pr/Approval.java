@@ -33,14 +33,18 @@ public class Approval {
     private final String rejected;
     private final String documentLink;
     private final Map<Pattern, String> branchPrefixes;
+    private final boolean approvalComment;
+    private final String approvalTerm;
 
-    public Approval(String prefix, String request, String approved, String rejected, String documentLink) {
+    public Approval(String prefix, String request, String approved, String rejected, String documentLink, boolean approvalComment, String approvalTerm) {
         this.prefix = prefix;
         this.request = request;
         this.approved = approved;
         this.rejected = rejected;
         this.branchPrefixes = new HashMap<>();
         this.documentLink = documentLink;
+        this.approvalComment = approvalComment;
+        this.approvalTerm = approvalTerm;
     }
 
     public void addBranchPrefix(Pattern branchPattern, String prefix) {
@@ -84,5 +88,13 @@ public class Approval {
             }
         }
         return false;
+    }
+
+    public boolean approvalComment() {
+        return approvalComment;
+    }
+
+    public String approvalTerm() {
+        return approvalTerm;
     }
 }

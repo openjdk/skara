@@ -219,7 +219,7 @@ public class CheckablePullRequest {
         }
 
         var currentUser = pr.repository().forge().currentUser();
-        var additional = AdditionalConfiguration.get(original, currentUser, comments, reviewMerge);
+        var additional = AdditionalConfiguration.get(original.get(), currentUser, comments, reviewMerge);
         return confOverride == null ?
             JCheck.parseConfiguration(localRepo, hash, additional) :
             JCheck.parseConfiguration(confOverride, additional);

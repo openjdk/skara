@@ -60,7 +60,7 @@ public class ApprovalAndApproveCommandTests {
                     .addCommitter(author.forge().currentUser().id());
             Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             Approval approval = new Approval("", "-critical-request", "-critical-approved",
-                    "-critical-rejected", "https://example.com");
+                    "-critical-rejected", "https://example.com", true, "maintainer approval");
             approval.addBranchPrefix(Pattern.compile("jdk20.0.1"), "CPU23_04");
             approval.addBranchPrefix(Pattern.compile("jdk20.0.2"), "CPU23_05");
 
@@ -132,7 +132,7 @@ public class ApprovalAndApproveCommandTests {
             reviewerPr.addReview(Review.Verdict.APPROVED, "LGTM");
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().labelNames().contains("ready"));
-            assertLastCommentContains(pr, " This change is now ready for you to apply for maintainer");
+            assertLastCommentContains(pr, " This change is now ready for you to apply for [maintainer approval]");
 
             reviewerPr.addComment("/approve yes");
             TestBotRunner.runPeriodicItems(prBot);
@@ -174,7 +174,7 @@ public class ApprovalAndApproveCommandTests {
                     .addCommitter(author.forge().currentUser().id());
             Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
             Approval approval = new Approval("", "-critical-request", "-critical-approved",
-                    "-critical-rejected", "https://example.com");
+                    "-critical-rejected", "https://example.com", true, "maintainer approval");
             approval.addBranchPrefix(Pattern.compile("jdk20.0.1"), "CPU23_04");
             approval.addBranchPrefix(Pattern.compile("jdk20.0.2"), "CPU23_05");
 
