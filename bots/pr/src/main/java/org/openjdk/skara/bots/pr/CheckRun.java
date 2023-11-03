@@ -1186,7 +1186,7 @@ class CheckRun {
         return pr.repository().forge().name().equals("GitHub") ? "jcheck-" + pr.repository().name() + "-" + pr.id() : "jcheck";
     }
 
-    private void checkStatus()  {
+    private void checkStatus() {
         var checkBuilder = CheckBuilder.create(getJcheckName(pr), pr.headHash());
         var censusDomain = censusInstance.configuration().census().domain();
         var jcheckType = "jcheck";
