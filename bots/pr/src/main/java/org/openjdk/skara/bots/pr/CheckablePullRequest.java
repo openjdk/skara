@@ -215,11 +215,11 @@ public class CheckablePullRequest {
             JCheck.parseConfiguration(confOverride, List.of());
 
         if (original.isEmpty()) {
-            throw new IllegalStateException("Cannot parse JCheck configuration for " + this);
+            throw new IllegalStateException("Cannot parse JCheck configuration for commit with hash " + hash.hex());
         }
 
-        var currentUser = pr.repository().forge().currentUser();
-        var additional = AdditionalConfiguration.get(original.get(), currentUser, comments, reviewMerge);
+        var botUser = pr.repository().forge().currentUser();
+        var additional = AdditionalConfiguration.get(original.get(), botUser, comments, reviewMerge);
         return confOverride == null ?
             JCheck.parseConfiguration(localRepo, hash, additional) :
             JCheck.parseConfiguration(confOverride, additional);

@@ -264,7 +264,7 @@ public class IntegrateCommand implements CommandHandler {
                              PrintWriter reply, CheckablePullRequest checkablePr, Hash localHash) throws IOException {
         var targetHash = checkablePr.targetHash();
         var jcheckConf = checkablePr.parseJCheckConfiguration(targetHash)
-                                    .orElseThrow(() -> new IllegalStateException("No .jcheck/conf found for PR " + pr.id()));
+                                    .orElseThrow(() -> new IllegalStateException("No .jcheck/conf found in commit with hash " + targetHash.hex()));
         var visitor = checkablePr.createVisitor(jcheckConf, targetHash);
         checkablePr.executeChecks(localHash, censusInstance, visitor, jcheckConf);
         if (!visitor.messages().isEmpty()) {
