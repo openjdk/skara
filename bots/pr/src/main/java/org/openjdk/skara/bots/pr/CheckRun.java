@@ -1186,14 +1186,11 @@ class CheckRun {
         return pr.repository().forge().name().equals("GitHub") ? "jcheck-" + pr.repository().name() + "-" + pr.id() : "jcheck";
     }
 
-    private void checkStatus() throws IOException {
+    private void checkStatus()  {
         var checkBuilder = CheckBuilder.create(getJcheckName(pr), pr.headHash());
         var censusDomain = censusInstance.configuration().census().domain();
-        Exception checkException = null;
         var jcheckType = "jcheck";
-        var targetHash = checkablePullRequest.targetHash();
-        var targetJCheckConf = checkablePullRequest.parseJCheckConfiguration(targetHash)
-                                                   .orElseThrow(() -> new IllegalStateException("Missing .jcheck/conf for " + pr));
+        Exception checkException = null;
 
         try {
             // Post check in-progress
@@ -1211,7 +1208,9 @@ class CheckRun {
             }
 
             List<String> mergeJCheckMessage = new ArrayList<>();
-
+            var targetHash = checkablePullRequest.targetHash();
+            var targetJCheckConf = checkablePullRequest.parseJCheckConfiguration(targetHash)
+                                                    .orElseThrow(() -> new IllegalStateException("Missing .jcheck/conf for " + pr));
             var isJCheckConfUpdatedInMergePR = false;
             if (PullRequestUtils.isMerge(pr)) {
                 if (rebasePossible) {
