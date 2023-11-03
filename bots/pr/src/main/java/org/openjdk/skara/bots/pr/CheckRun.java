@@ -1232,10 +1232,14 @@ class CheckRun {
                         jcheckType = "merge jcheck in commit " + hash.hex();
                         var targetVisitor = checkablePullRequest.createVisitor(targetJCheckConf, hash);
                         checkablePullRequest.executeChecks(hash, censusInstance, targetVisitor, targetJCheckConf);
+
                         var commitJCheckConf = checkablePullRequest.parseJCheckConfiguration(hash)
                                                 .orElseThrow(() -> new IllegalStateException("No .jcheck/conf present in tree for commit " + hash));
                         var commitVisitor = checkablePullRequest.createVisitor(commitJCheckConf, hash);
-                        checkablePullRequest.executeChecks(hash, censusInstance, commitVisitor, commitJCheckConf);
+                        if (isJCheckConfUpdatedInMergePR) {
+                            checkablePullRequest.executeChecks(hash, censusInstance, commitVisitor, commitJCheckConf);
+                        }
+
                         mergeJCheckMessage.addAll(
                                 Stream.concat(targetVisitor.messages().stream(), commitVisitor.messages().stream())
                                 .map(StringBuilder::new)
