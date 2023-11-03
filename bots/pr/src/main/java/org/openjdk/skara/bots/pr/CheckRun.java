@@ -1220,17 +1220,15 @@ class CheckRun {
                 // JCheck all commits in "Merge PR"
                 if (workItem.bot.jcheckMerge()) {
                     var commits = localRepo.commitMetadata(localRepo.mergeBase(targetHash, pr.headHash()), pr.headHash(), true);
-                    var hashes = commits.stream()
-                            .map(CommitMetadata::hash)
-                            .collect(Collectors.toList());
-                    isJCheckConfUpdatedInMergePR = hashes.stream().anyMatch(h -> {
+                    isJCheckConfUpdatedInMergePR = commits.stream().anyMatch(c -> {
                         try {
-                            return isFileUpdated(Path.of(".jcheck").resolve("conf"), h);
+                            return isFileUpdated(Path.of(".jcheck").resolve("conf"), c.hash());
                         } catch (IOException e) {
                             throw new UncheckedIOException(e);
                         }
                     });
-                    for (var hash : hashes) {
+                    for (var commit : commits) {
+                        var hash = commit.hash();
                         jcheckType = "merge jcheck in commit " + hash.hex();
                         var targetVisitor = checkablePullRequest.createVisitor(targetJCheckConf, hash);
                         checkablePullRequest.executeChecks(hash, censusInstance, targetVisitor, targetJCheckConf);
