@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.forge.HostedBranch;
 import org.openjdk.skara.forge.HostedCommit;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.*;
@@ -99,18 +100,21 @@ public class BranchCommand implements CommandHandler {
                                .materialize(bot.repo(), localRepoDir);
             localRepo.fetch(bot.repo().authenticatedUrl(), commit.hash().toString(), true);
 
-            var remoteBranches = localRepo.remoteBranches(bot.repo().authenticatedUrl().toString());
+            var remoteBranches = bot.repo().branches();
             var remoteBranchNames = remoteBranches.stream()
-                                                  .map(Reference::name)
+                                                  .map(HostedBranch::name)
                                                   .collect(Collectors.toSet());
             if (remoteBranchNames.contains(branchName)) {
-                var ref = remoteBranches.stream().filter(r -> r.name().equals(branchName)).findFirst();
-                if (ref.isEmpty()) {
-                    throw new IllegalStateException("Cannot find hash for remote branch '" + branchName + "'");
+                var msg = "A branch with name `" + branchName + "` already exists";
+                var remoteBranch = remoteBranches.stream().filter(r -> r.name().equals(branchName)).findFirst();
+                if (remoteBranch.isPresent()) {
+                    var hash = remoteBranch.get().hash();
+                    var hashUrl = bot.repo().webUrl(hash);
+                    msg += " that refers to commit [" + hash.abbreviate() + "](" + hashUrl + ").";
+                } else {
+                    msg += " (could not find the commit it refers to).";
                 }
-                var hash = ref.get().hash();
-                var hashUrl = bot.repo().webUrl(hash);
-                reply.println("A branch with name `" + branchName + "` already exists that refers to commit [" + hash.abbreviate() + "](" + hashUrl + ").");
+                reply.println(msg);
                 return;
             }
 
@@ -124,7 +128,6 @@ public class BranchCommand implements CommandHandler {
             var branch = localRepo.branch(commit.hash(), branchName);
             log.info("Pushing branch '" + branch + "' to refer to commit: " + commit.hash().hex());
             localRepo.push(commit.hash(), bot.repo().authenticatedUrl(), branch.name(), false, false);
-            log.info(String.join(", ", localRepo.branches().stream().map(Branch::name).collect(Collectors.toList())));
             reply.println("The branch [" + branch.name() + "](" + bot.repo().webUrl(branch) + ") was successfully created.");
         } catch (IOException e) {
             throw new UncheckedIOException(e);
