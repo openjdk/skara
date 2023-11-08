@@ -215,10 +215,12 @@ class CheckWorkItem extends PullRequestWorkItem {
                         if (properties != null) {
                             issueData.append(properties.get("priority").asString());
                             issueData.append(properties.get("issuetype").asString());
-                            issueData.append(properties.get("fixVersions").stream()
-                                    .map(JSONValue::asString)
-                                    .sorted()
-                                    .toList());
+                            if (properties.get("fixVersions") != null) {
+                                issueData.append(properties.get("fixVersions").stream()
+                                        .map(JSONValue::asString)
+                                        .sorted()
+                                        .toList());
+                            }
                         }
                         if (bot.approval() != null && bot.approval().needsApproval(PreIntegrations.realTargetRef(pr))) {
                             // Add a static sting to the metadata if the PR needs approval to force
