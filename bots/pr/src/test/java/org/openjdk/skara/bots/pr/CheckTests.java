@@ -2035,7 +2035,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(csrIssueBot);
 
             var issue = issueProject.createIssue("This is the primary issue", List.of(), Map.of());
-            issue.setState(Issue.State.OPEN);
+            issue.setState(Issue.State.CLOSED);
             issue.setProperty("issuetype", JSON.of("Bug"));
             issue.setProperty("fixVersions", JSON.array().add("18"));
 
