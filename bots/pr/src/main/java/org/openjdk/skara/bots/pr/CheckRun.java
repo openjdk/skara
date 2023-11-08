@@ -727,10 +727,14 @@ class CheckRun {
                             }
                             progressBody.append(")");
                         }
-                        if (issueTrackerIssue.get().isOpen() && version != null) {
+                        if (issueTrackerIssue.get().isOpen() && version != null && issueType != null
+                                && PRIMARY_TYPES.contains(issueType.asString())) {
                             var existing = Backports.findIssue(issueTrackerIssue.get(), version);
                             if (existing.isEmpty()) {
-                                progressBody.append("(⚠️ The fixVersion in the main issue is different from the fixVersion in .jcheck/conf.)");
+                                var fixVersions = Backports.fixVersions(issueTrackerIssue.get());
+                                progressBody.append("(⚠️ The fixVersion in this issue is " + fixVersions +
+                                        " but the fixVersion in .jcheck/conf is " + version.raw() + ", " +
+                                        "a new backport will be created when this pr is integrated.)");
                             }
                         }
                         if (!relaxedEquals(issueTrackerIssue.get().title(), issue.description())) {

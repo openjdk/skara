@@ -31,6 +31,7 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.IssueTrackerIssue;
+import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -214,6 +215,10 @@ class CheckWorkItem extends PullRequestWorkItem {
                         if (properties != null) {
                             issueData.append(properties.get("priority").asString());
                             issueData.append(properties.get("issuetype").asString());
+                            issueData.append(properties.get("fixVersions").stream()
+                                    .map(JSONValue::asString)
+                                    .sorted()
+                                    .toList());
                         }
                         if (bot.approval() != null && bot.approval().needsApproval(PreIntegrations.realTargetRef(pr))) {
                             // Add a static sting to the metadata if the PR needs approval to force
