@@ -650,7 +650,7 @@ class CheckRun {
             List<String> additionalErrors, Map<String, Boolean> additionalProgresses,
             List<String> integrationBlockers, boolean reviewNeeded,
             Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap,
-            IssueTrackerIssue jepIssue, Collection<IssueTrackerIssue> csrIssues) {
+            IssueTrackerIssue jepIssue, Collection<IssueTrackerIssue> csrIssues, JdkVersion version) {
         var progressBody = new StringBuilder();
         progressBody.append("---------\n");
         progressBody.append("### Progress\n");
@@ -726,6 +726,16 @@ class CheckRun {
                                 }
                             }
                             progressBody.append(")");
+                        }
+                        if (workItem.bot.versionMismatchWarning() && issueTrackerIssue.get().isOpen()
+                                && version != null && issueType != null && PRIMARY_TYPES.contains(issueType.asString())) {
+                            var existing = Backports.findIssue(issueTrackerIssue.get(), version);
+                            if (existing.isEmpty()) {
+                                var fixVersions = Backports.fixVersions(issueTrackerIssue.get());
+                                progressBody.append("(⚠️ The fixVersion in this issue is " + fixVersions +
+                                        " but the fixVersion in .jcheck/conf is " + version.raw() + ", " +
+                                        "a new backport will be created when this pr is integrated.)");
+                            }
                         }
                         if (!relaxedEquals(issueTrackerIssue.get().title(), issue.description())) {
                             progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
@@ -1319,7 +1329,7 @@ class CheckRun {
 
             // Calculate and update the status message if needed
             var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers,
-                    reviewNeeded, regularIssuesMap, jepIssue, issueToCsrMap.values());
+                    reviewNeeded, regularIssuesMap, jepIssue, issueToCsrMap.values(), version);
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
 

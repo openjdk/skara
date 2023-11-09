@@ -124,7 +124,8 @@ class PullRequestBotFactoryTest {
                           "reviewCleanBackport": true,
                           "reviewMerge": true,
                           "processPR": false,
-                          "jcheckMerge": true
+                          "jcheckMerge": true,
+                          "versionMismatchWarning": false,
                         },
                         "repo7": {
                           "census": "census:master",
@@ -153,7 +154,8 @@ class PullRequestBotFactoryTest {
                               "jdk20.0.1": { "prefix": "CPU23_04" },
                               "jdk20.0.2": { "prefix": "CPU23_05" },
                               }
-                          }
+                          },
+                          "versionMismatchWarning": true,
                         }
                       },
                       "forks": {
@@ -205,6 +207,7 @@ class PullRequestBotFactoryTest {
             assertTrue(pullRequestBot5.enableMerge());
             assertFalse(pullRequestBot5.jcheckMerge());
             assertTrue(pullRequestBot5.enableBackport());
+            assertFalse(pullRequestBot5.versionMismatchWarning());
 
             var pullRequestBot6 = (PullRequestBot) bots.stream()
                     .filter(bot -> bot.toString().equals("PullRequestBot@repo6"))
@@ -230,6 +233,7 @@ class PullRequestBotFactoryTest {
             assertTrue(pullRequestBot6.enableMerge());
             assertTrue(pullRequestBot6.jcheckMerge());
             assertTrue(pullRequestBot6.enableBackport());
+            assertFalse(pullRequestBot6.versionMismatchWarning());
 
             var pullRequestBot7 = (PullRequestBot) bots.stream()
                     .filter(bot -> bot.toString().equals("PullRequestBot@repo7"))
@@ -237,6 +241,7 @@ class PullRequestBotFactoryTest {
             assertEquals("PullRequestBot@repo7", pullRequestBot7.toString());
             assertFalse(pullRequestBot7.jcheckMerge());
             assertEquals("https://example.com", pullRequestBot7.approval().documentLink());
+            assertTrue(pullRequestBot7.versionMismatchWarning());
 
             var csrIssueBot1 = (CSRIssueBot) bots.stream()
                     .filter(bot -> bot.toString().equals("CSRIssueBot@TEST"))

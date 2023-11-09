@@ -79,6 +79,7 @@ class PullRequestBot implements Bot {
     private final Map<String, Set<String>> targetRefPRMap = new HashMap<>();
     private final Approval approval;
     private boolean initialRun = true;
+    private final boolean versionMismatchWarning;
 
     private Instant lastFullUpdate;
 
@@ -93,7 +94,7 @@ class PullRequestBot implements Bot {
                    Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr, boolean enableJep,
                    boolean reviewCleanBackport, String mlbridgeBotName, boolean reviewMerge, boolean processPR, boolean processCommit,
                    boolean enableMerge, Set<String> mergeSources, boolean jcheckMerge, boolean enableBackport,
-                   Map<String, List<PRRecord>> issuePRMap, Approval approval) {
+                   Map<String, List<PRRecord>> issuePRMap, Approval approval, boolean versionMismatchWarning) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -129,6 +130,7 @@ class PullRequestBot implements Bot {
         this.enableBackport = enableBackport;
         this.issuePRMap = issuePRMap;
         this.approval = approval;
+        this.versionMismatchWarning = versionMismatchWarning;
 
         autoLabelled = new HashSet<>();
         poller = new PullRequestPoller(repo, true);
@@ -395,6 +397,10 @@ class PullRequestBot implements Bot {
 
     public Approval approval() {
         return approval;
+    }
+
+    public boolean versionMismatchWarning() {
+        return versionMismatchWarning;
     }
 
     public void addIssuePRMapping(String issueId, PRRecord prRecord) {

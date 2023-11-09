@@ -2035,7 +2035,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(csrIssueBot);
 
             var issue = issueProject.createIssue("This is the primary issue", List.of(), Map.of());
-            issue.setState(Issue.State.OPEN);
+            issue.setState(Issue.State.CLOSED);
             issue.setProperty("issuetype", JSON.of("Bug"));
             issue.setProperty("fixVersions", JSON.array().add("18"));
 
@@ -3115,6 +3115,109 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             assertTrue(followUpPr.store().body().contains("needs maintainer approval"));
+        }
+    }
+
+    @Test
+    void fixVersionNotMatch(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
+            issue.setProperty("priority", JSON.of("4"));
+            issue.setState(Issue.State.OPEN);
+            issue.setProperty("fixVersions", JSON.array().add("18"));
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(issuePRMap)
+                    .versionMismatchWarning(true)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "1");
+
+
+            // Populate the projects repository
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().body().contains("(⚠️ The fixVersion in this issue is [18] but the fixVersion in .jcheck/conf is 0.1, a new backport will be created when this pr is integrated.)"));
+
+            issue.setProperty("fixVersions", JSON.array().add("0.1"));
+            pr.store().setBody("update");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertFalse(pr.store().body().contains("(⚠️ The fixVersion"));
+
+            issue.setProperty("fixVersions", JSON.array().add("0.1").add("0.2"));
+            pr.store().setBody("update");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().body().contains("(⚠️ The fixVersion in this issue is [0.1, 0.2] but the fixVersion in .jcheck/conf is 0.1, a new backport will be created when this pr is integrated.)"));
+
+
+            issue.setProperty("fixVersions", JSON.array().add("tbd"));
+            pr.store().setBody("update");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertFalse(pr.store().body().contains("(⚠️ The fixVersion"));
+        }
+    }
+
+    @Test
+    void versionMismatchWarningOffByDefault(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
+            issue.setProperty("priority", JSON.of("4"));
+            issue.setState(Issue.State.OPEN);
+            issue.setProperty("fixVersions", JSON.array().add("18"));
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .issueProject(issueProject)
+                    .censusRepo(censusBuilder.build())
+                    .issuePRMap(issuePRMap)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "1");
+
+
+            // Populate the projects repository
+            TestBotRunner.runPeriodicItems(prBot);
+            assertFalse(pr.store().body().contains("(⚠️ The fixVersion"));
         }
     }
 }
