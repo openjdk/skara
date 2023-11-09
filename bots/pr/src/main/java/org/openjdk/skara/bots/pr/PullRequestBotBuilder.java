@@ -66,7 +66,7 @@ public class PullRequestBotBuilder {
     private boolean enableBackport = true;
     private Map<String, List<PRRecord>> issuePRMap;
     private Approval approval = null;
-    private boolean fixVersionOverride = false;
+    private boolean versionMismatchWarning = false;
 
     PullRequestBotBuilder() {
     }
@@ -246,8 +246,8 @@ public class PullRequestBotBuilder {
         return this;
     }
 
-    public PullRequestBotBuilder fixVersionOverride(boolean fixVersionOverride) {
-        this.fixVersionOverride = fixVersionOverride;
+    public PullRequestBotBuilder versionMismatchWarning(boolean versionMismatchWarning) {
+        this.versionMismatchWarning = versionMismatchWarning;
         return this;
     }
 
@@ -257,6 +257,6 @@ public class PullRequestBotBuilder {
                 readyComments, issueProject, ignoreStaleReviews, allowedTargetBranches, seedStorage, confOverrideRepo,
                 confOverrideName, confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom, enableCsr,
                 enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge, processPR, processCommit, enableMerge,
-                mergeSources, jcheckMerge, enableBackport, issuePRMap, approval, fixVersionOverride);
+                mergeSources, jcheckMerge, enableBackport, issuePRMap, approval, versionMismatchWarning);
     }
 }

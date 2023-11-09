@@ -3142,6 +3142,7 @@ class CheckTests {
                     .issueProject(issueProject)
                     .censusRepo(censusBuilder.build())
                     .issuePRMap(issuePRMap)
+                    .versionMismatchWarning(true)
                     .build();
 
             // Populate the projects repository
@@ -3178,7 +3179,7 @@ class CheckTests {
     }
 
     @Test
-    void fixVersionOverride(TestInfo testInfo) throws IOException {
+    void versionMismatchWarningOffByDefault(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -3201,7 +3202,6 @@ class CheckTests {
                     .issueProject(issueProject)
                     .censusRepo(censusBuilder.build())
                     .issuePRMap(issuePRMap)
-                    .fixVersionOverride(true)
                     .build();
 
             // Populate the projects repository
