@@ -244,6 +244,10 @@ public class PullRequestBotFactory implements BotFactory {
                 botBuilder.approval(approval);
             }
 
+            if (repo.value().contains("fixVersionOverride")) {
+                botBuilder.fixVersionOverride(repo.value().get("fixVersionOverride").asBoolean());
+            }
+
             var prBot = botBuilder.build();
             pullRequestBotMap.put(repository.name(), prBot);
             ret.add(prBot);

@@ -727,8 +727,8 @@ class CheckRun {
                             }
                             progressBody.append(")");
                         }
-                        if (issueTrackerIssue.get().isOpen() && version != null && issueType != null
-                                && PRIMARY_TYPES.contains(issueType.asString())) {
+                        if (!workItem.bot.fixVersionOverride() && issueTrackerIssue.get().isOpen()
+                                && version != null && issueType != null && PRIMARY_TYPES.contains(issueType.asString())) {
                             var existing = Backports.findIssue(issueTrackerIssue.get(), version);
                             if (existing.isEmpty()) {
                                 var fixVersions = Backports.fixVersions(issueTrackerIssue.get());
