@@ -776,6 +776,7 @@ class CheckRun {
                 progressBody.append("\n");
             }
             for (var csrIssue : csrIssues) {
+                currentIssues.add(csrIssue.id());
                 progressBody.append(" * ");
                 formatIssue(progressBody, csrIssue);
                 progressBody.append(" (**CSR**)");

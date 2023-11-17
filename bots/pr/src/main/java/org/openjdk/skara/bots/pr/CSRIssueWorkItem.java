@@ -106,7 +106,9 @@ class CSRIssueWorkItem implements WorkItem {
                 .filter(pr -> bot.getPRBot(pr.repository().name()).enableCsr())
                 // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
                 // best we can do.
-                .map(pr -> CheckWorkItem.fromCSRIssue(bot.getPRBot(pr.repository().name()), pr.id(), errorHandler, csrIssue.updatedAt()))
+                .map(pr -> CheckWorkItem.fromCSRIssue(bot.getPRBot(pr.repository().name()), pr.id(), errorHandler, csrIssue.updatedAt(),
+                        !bot.issuePRMap().containsKey(csrIssue.id()) ||
+                                bot.issuePRMap().get(csrIssue.id()).stream().noneMatch(prRecord -> prRecord.prId().equals(pr.id()))))
                 .forEach(ret::add);
         return ret;
     }
