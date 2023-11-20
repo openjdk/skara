@@ -184,8 +184,8 @@ public class BackportCommand implements CommandHandler {
 
     private Branch getTargetBranch(String[] parts, int index, HostedRepository targetRepo, PrintWriter reply) {
         var targetBranchName = parts.length == index + 1 ? parts[index] : targetRepo.defaultBranchName();
-        var targetBranches = targetRepo.branches();
-        if (targetBranches.stream().noneMatch(b -> b.name().equals(targetBranchName))) {
+        var targetBranchHash = targetRepo.branchHash(targetBranchName);
+        if (targetBranchHash.isEmpty()) {
             reply.println("The target branch `" + targetBranchName + "` does not exist");
             return null;
         }
@@ -259,8 +259,8 @@ public class BackportCommand implements CommandHandler {
             var hash = commit.hash();
             Hash backportHash;
             var backportBranchName = realUser.username() + "-backport-" + hash.abbreviate();
-            var hostedBackportBranch = fork.branches().stream().filter(b -> b.name().equals(backportBranchName)).findAny();
-            if (hostedBackportBranch.isEmpty()) {
+            var backportBranchHash = fork.branchHash(backportBranchName);
+            if (backportBranchHash.isEmpty()) {
                 var localRepoDir = scratchArea.get(this)
                         .resolve(targetRepo.name())
                         .resolve("fork");
@@ -327,7 +327,7 @@ public class BackportCommand implements CommandHandler {
                 backportHash = localRepo.commit("Backport " + hash.hex(), "duke", "duke@openjdk.org");
                 localRepo.push(backportHash, fork.authenticatedUrl(), backportBranchName, false);
             } else {
-                backportHash = hostedBackportBranch.get().hash();
+                backportHash = backportBranchHash.get();
             }
 
             if (!fork.canPush(realUser)) {
