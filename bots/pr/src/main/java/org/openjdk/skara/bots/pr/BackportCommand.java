@@ -258,7 +258,7 @@ public class BackportCommand implements CommandHandler {
         try {
             var hash = commit.hash();
             Hash backportHash;
-            var backportBranchName = realUser.username() + "-backport-" + hash.abbreviate();
+            var backportBranchName = "backport-" + realUser.username() + "-" + hash.abbreviate();
             var backportBranchHash = fork.branchHash(backportBranchName);
             if (backportBranchHash.isEmpty()) {
                 var localRepoDir = scratchArea.get(this)
