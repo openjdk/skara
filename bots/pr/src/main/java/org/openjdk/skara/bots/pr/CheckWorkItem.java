@@ -31,6 +31,7 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.IssueTrackerIssue;
+import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -92,8 +93,8 @@ class CheckWorkItem extends PullRequestWorkItem {
     /**
      * Create CheckWorkItem spawned from CSRIssueWorkItem
      */
-    public static CheckWorkItem fromCSRIssue(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt) {
-        return new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, true, true, false, false);
+    public static CheckWorkItem fromCSRIssue(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt, boolean forceUpdate) {
+        return new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, true, forceUpdate, true, false);
     }
 
     /**
@@ -214,6 +215,12 @@ class CheckWorkItem extends PullRequestWorkItem {
                         if (properties != null) {
                             issueData.append(properties.get("priority").asString());
                             issueData.append(properties.get("issuetype").asString());
+                            if (properties.get("fixVersions") != null) {
+                                issueData.append(properties.get("fixVersions").stream()
+                                        .map(JSONValue::asString)
+                                        .sorted()
+                                        .toList());
+                            }
                         }
                         if (bot.approval() != null && bot.approval().needsApproval(PreIntegrations.realTargetRef(pr))) {
                             // Add a static sting to the metadata if the PR needs approval to force
@@ -385,8 +392,8 @@ class CheckWorkItem extends PullRequestWorkItem {
 
     private void initializeIssuePRMap() {
         // When bot restarts, the issuePRMap needs to get updated with this pr
-        var prRecord = new PRRecord(pr.repository().name(), prId);
         if (!bot.initializedPRs().containsKey(prId)) {
+            var prRecord = new PRRecord(pr.repository().name(), prId);
             var issueIds = BotUtils.parseAllIssues(pr.body());
             for (String issueId : issueIds) {
                 bot.addIssuePRMapping(issueId, prRecord);

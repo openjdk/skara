@@ -64,6 +64,7 @@ public class CommandExtractor {
             Map.entry(open.name(), new OpenCommand()),
             Map.entry(backport.name(), new BackportCommand()),
             Map.entry(tag.name(), new TagCommand()),
+            Map.entry(branch.name(), new BranchCommand()),
             Map.entry(approval.name(), new ApprovalCommand()),
             Map.entry(approve.name(), new ApproveCommand()),
             Map.entry(author.name(), new AuthorCommand())
