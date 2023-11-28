@@ -121,7 +121,7 @@ public class BranchCommand implements CommandHandler {
             var jcheckConf = JCheckConfiguration.from(localRepo, commit.hash());
             var branchPattern = jcheckConf.map(c -> c.repository().branches());
             if (branchPattern.isPresent() && !branchName.matches(branchPattern.get())) {
-                reply.println("The given branch name `" + branchName + "` is not of the form `" + branchPattern + "`.");
+                reply.println("The given branch name `" + branchName + "` is not of the form `" + branchPattern.get() + "`.");
                 return;
             }
 

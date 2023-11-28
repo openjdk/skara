@@ -74,7 +74,6 @@ public class BranchCommitCommandTests {
             assertTrue(botReply.body().contains("was successfully created"));
 
             var localAuthorRepoDir = tempFolder.path().resolve("author");
-            System.err.println("author.authenticatedUrl(): " + author.authenticatedUrl());
             var localAuthorRepo = Repository.clone(author.authenticatedUrl(), localAuthorRepoDir);
             var next = new Branch("next");
             localAuthorRepo.checkout(next);
@@ -295,7 +294,6 @@ public class BranchCommitCommandTests {
             var recentCommitComments = author.recentCommitComments();
             assertEquals(2, recentCommitComments.size());
             var botReply = recentCommitComments.get(0);
-            System.out.println(botReply);
             assertTrue(botReply.body().contains("The given branch name `bar` is not of the form `foo`"));
 
             var localAuthorRepoDir = tempFolder.path().resolve("author");
