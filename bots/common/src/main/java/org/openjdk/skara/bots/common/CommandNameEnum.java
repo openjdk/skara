@@ -46,6 +46,7 @@ public enum CommandNameEnum {
     open,
     backport,
     tag,
+    branch,
     approval(true),
     approve,
     author;
