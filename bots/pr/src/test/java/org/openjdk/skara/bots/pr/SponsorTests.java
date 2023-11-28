@@ -32,6 +32,7 @@ import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
@@ -967,6 +968,105 @@ class SponsorTests {
 
             assertTrue(pr.comments().get(pr.comments().size() - 1).body()
                     .contains("can only be used in open pull requests"));
+        }
+    }
+
+    @Test
+    void withIntegrityVerification(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tmp = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var integrity = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(reviewer.forge().currentUser().id())
+                                           .addAuthor(author.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                                    .repo(integrator)
+                                    .censusRepo(censusBuilder.build())
+                                    .integrityRepo(integrity)
+                                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tmp.path().resolve("local"), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Populate intergity repo
+            var integrityPreDir = tmp.path().resolve("integrity-pre");
+            var localIntegrityPreRepo = CheckableRepository.init(integrityPreDir, integrity.repositoryType());
+            var localIntegrityPreRepoMasterHash = localRepo.resolve("master").orElseThrow();
+            localIntegrityPreRepo.push(localIntegrityPreRepoMasterHash, integrity.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var authorFullName = author.forge().currentUser().fullName();
+            var authorEmail = "ta@none.none";
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "This is a new line", "Append commit", authorFullName, authorEmail);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Approve it as another user
+            var approvalPr = reviewer.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Let the bot see it
+            TestBotRunner.runPeriodicItems(bot);
+
+            // Issue a merge command without being a Committer
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The bot should reply that a sponsor is required
+            var sponsor = pr.comments().stream()
+                            .filter(comment -> comment.body().contains("sponsor"))
+                            .filter(comment -> comment.body().contains("your change"))
+                            .count();
+            assertEquals(1, sponsor);
+
+            // The bot should not have pushed the commit
+            var notPushed = pr.comments().stream()
+                              .filter(comment -> comment.body().contains("Pushed as commit"))
+                              .count();
+            assertEquals(0, notPushed);
+
+            // Reviewer now agrees to sponsor
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addComment("/sponsor");
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The bot should have pushed the commit
+            var pushed = pr.comments().stream()
+                           .filter(comment -> comment.body().contains("Pushed as commit"))
+                           .count();
+            assertEquals(1, pushed);
+
+            // Ready label should have been removed
+            assertFalse(pr.store().labelNames().contains("ready"));
+
+            // The change should now be present on the master branch
+            var pushedRepo = Repository.materialize(tmp.path().resolve("pushed"), author.authenticatedUrl(), "master");
+            var headHash = pushedRepo.resolve("HEAD").orElseThrow();
+            var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
+
+            assertEquals("Generated Author 2", headCommit.author().name());
+            assertEquals("integrationauthor2@openjdk.org", headCommit.author().email());
+
+            assertEquals("Generated Reviewer 1", headCommit.committer().name());
+            assertEquals("integrationreviewer1@openjdk.org", headCommit.committer().email());
+            assertTrue(pr.store().labelNames().contains("integrated"));
+            assertFalse(pr.store().labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("sponsor"));
+
+            // Integrity repo should have been updated
+            var integrityPostDir = tmp.path().resolve("integrity-post");
+            var localIntegrityPostRepo = Repository.materialize(integrityPostDir,
+                                                                integrity.authenticatedUrl(),
+                                                                author.name() + "-master");
+            var heads = Files.readAllLines(localIntegrityPostRepo.root().resolve("heads.txt"));
+            assertEquals(List.of(headHash.hex(), masterHash.hex()), heads);
         }
     }
 }

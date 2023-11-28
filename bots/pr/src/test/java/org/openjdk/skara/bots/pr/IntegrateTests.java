@@ -1533,4 +1533,89 @@ class IntegrateTests {
             assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
         }
     }
+
+    @Test
+    void withIntegrityVerification(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tmp = new TemporaryDirectory()) {
+            var botUser = credentials.getHostedRepository();
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var integrity = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                                    .repo(botUser)
+                                    .censusRepo(censusBuilder.build())
+                                    .integrityRepo(integrity)
+                                    .build();
+
+            // Populate the projects repository
+            var localDir = tmp.path().resolve("local");
+            var localRepo = CheckableRepository.init(localDir, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Populate intergity repo
+            var integrityPreDir = tmp.path().resolve("integrity-pre");
+            var localIntegrityPreRepo = CheckableRepository.init(integrityPreDir, integrity.repositoryType());
+            var localIntegrityPreRepoMasterHash = localRepo.resolve("master").orElseThrow();
+            localIntegrityPreRepo.push(localIntegrityPreRepoMasterHash, integrity.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Approve it as another user
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // The bot should reply with integration message
+            TestBotRunner.runPeriodicItems(bot);
+            var integrateComments = pr.comments()
+                                      .stream()
+                                      .filter(c -> c.body().contains("To integrate this PR with the above commit message to the `master` branch"))
+                                      .filter(c -> c.body().contains("If you prefer to avoid any potential automatic rebasing"))
+                                      .count();
+            assertEquals(1, integrateComments);
+
+            // Issue "/integrate" command
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The bot should reply with an ok message
+            var pushed = pr.comments().stream()
+                           .filter(comment -> comment.body().contains("Pushed as commit"))
+                           .count();
+            assertEquals(1, pushed);
+
+            // The change should now be present on the master branch
+            var pushedRepo = Repository.materialize(tmp.path().resolve("pushed"), author.authenticatedUrl(), "master");
+            assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
+
+            var headHash = pushedRepo.resolve("HEAD").orElseThrow();
+            var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
+
+            // Author and committer should be the same
+            assertEquals("Generated Committer 1", headCommit.author().name());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
+            assertEquals("Generated Committer 1", headCommit.committer().name());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
+            assertTrue(pr.store().labelNames().contains("integrated"));
+
+            // Ready label should have been removed
+            assertFalse(pr.store().labelNames().contains("ready"));
+
+            // Integrity repo should have been updated
+            var integrityPostDir = tmp.path().resolve("integrity-post");
+            var localIntegrityPostRepo = Repository.materialize(integrityPostDir,
+                                                                integrity.authenticatedUrl(),
+                                                                author.name() + "-master");
+            var heads = Files.readAllLines(localIntegrityPostRepo.root().resolve("heads.txt"));
+            assertEquals(List.of(headHash.hex(), masterHash.hex()), heads);
+        }
+    }
 }

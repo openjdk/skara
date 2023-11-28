@@ -80,6 +80,7 @@ class PullRequestBot implements Bot {
     private final Approval approval;
     private boolean initialRun = true;
     private final boolean versionMismatchWarning;
+    private final HostedRepository integrityRepo;
 
     private Instant lastFullUpdate;
 
@@ -94,7 +95,7 @@ class PullRequestBot implements Bot {
                    Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr, boolean enableJep,
                    boolean reviewCleanBackport, String mlbridgeBotName, MergePullRequestReviewConfiguration reviewMerge, boolean processPR, boolean processCommit,
                    boolean enableMerge, Set<String> mergeSources, boolean jcheckMerge, boolean enableBackport,
-                   Map<String, List<PRRecord>> issuePRMap, Approval approval, boolean versionMismatchWarning) {
+                   Map<String, List<PRRecord>> issuePRMap, Approval approval, boolean versionMismatchWarning, HostedRepository integrityRepo) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -131,6 +132,7 @@ class PullRequestBot implements Bot {
         this.issuePRMap = issuePRMap;
         this.approval = approval;
         this.versionMismatchWarning = versionMismatchWarning;
+        this.integrityRepo = integrityRepo;
 
         autoLabelled = new HashSet<>();
         poller = new PullRequestPoller(repo, true);
@@ -401,6 +403,14 @@ class PullRequestBot implements Bot {
 
     public boolean versionMismatchWarning() {
         return versionMismatchWarning;
+    }
+
+    public Optional<HostedRepository> integrityRepo() {
+        return Optional.ofNullable(integrityRepo);
+    }
+
+    public boolean shouldVerifyIntegrity() {
+        return integrityRepo != null;
     }
 
     public void addIssuePRMapping(String issueId, PRRecord prRecord) {

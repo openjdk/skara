@@ -133,6 +133,14 @@ public class SponsorCommand implements CommandHandler {
             if (!localHash.equals(checkablePr.targetHash())) {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 IntegrateCommand.addPrePushComment(pr, amendedHash, rebaseMessage.toString());
+
+                if (bot.shouldVerifyIntegrity()) {
+                    var verifier = IntegrateCommand.materializeIntegrityVerifier(bot, pr, scratchArea);
+                    verifier.verifyPullRequestTarget(pr);
+                    var amendedCommit = localRepo.lookup(amendedHash).orElseThrow();
+                    verifier.updatePullRequestTarget(pr, amendedCommit);
+                }
+
                 localRepo.push(amendedHash, pr.repository().authenticatedUrl(), pr.targetRef());
                 markIntegratedAndClosed(pr, amendedHash, reply, allComments);
             } else {

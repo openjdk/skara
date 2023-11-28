@@ -91,6 +91,11 @@ public class PullRequestBotFactory implements BotFactory {
                     .forEach(id -> excludeCommitCommentsFrom.add(id));
         }
 
+        HostedRepository integrityRepo = null;
+        if (specific.contains("integrity")) {
+            integrityRepo = configuration.repository(specific.get("integrity").get("repo").asString());
+        }
+
         var readyLabels = specific.get("ready").get("labels").stream()
                                   .map(JSONValue::asString)
                                   .collect(Collectors.toSet());
@@ -129,6 +134,7 @@ public class PullRequestBotFactory implements BotFactory {
                                            .seedStorage(configuration.storageFolder().resolve("seeds"))
                                            .excludeCommitCommentsFrom(excludeCommitCommentsFrom)
                                            .forks(forks)
+                                           .integrityRepo(integrityRepo)
                                            .mlbridgeBotName(mlbridgeBotName);
 
             if (repo.value().contains("labels")) {

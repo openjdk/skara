@@ -57,4 +57,7 @@ public class ScratchArea {
         return root.resolve("census");
     }
 
+    public Path getIntegrity() {
+        return root.resolve(botName).resolve("integrity");
+    }
 }

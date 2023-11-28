@@ -23,6 +23,7 @@
 package org.openjdk.skara.vcs;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
@@ -148,6 +149,9 @@ public interface ReadOnlyRepository {
     boolean isValidRevisionRange(String expression) throws IOException;
     Optional<String> upstreamFor(Branch branch) throws IOException;
     List<Reference> remoteBranches(String remote) throws IOException;
+    default List<Reference> remoteBranches(URI uri) throws IOException {
+        return remoteBranches(uri.toString());
+    }
     List<String> remotes() throws IOException;
     List<Submodule> submodules() throws IOException;
     Tree tree(Hash h) throws IOException;

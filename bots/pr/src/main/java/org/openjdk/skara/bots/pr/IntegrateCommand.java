@@ -243,6 +243,14 @@ public class IntegrateCommand implements CommandHandler {
             if (!localHash.equals(checkablePr.targetHash())) {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 addPrePushComment(pr, amendedHash, rebaseMessage.toString());
+
+                if (bot.shouldVerifyIntegrity()) {
+                    var verifier = materializeIntegrityVerifier(bot, pr, scratchArea);
+                    verifier.verifyPullRequestTarget(pr);
+                    var amendedCommit = localRepo.lookup(amendedHash).orElseThrow();
+                    verifier.updatePullRequestTarget(pr, amendedCommit);
+                }
+
                 localRepo.push(amendedHash, pr.repository().authenticatedUrl(), pr.targetRef());
                 markIntegratedAndClosed(pr, amendedHash, reply, allComments);
             } else {
@@ -282,6 +290,15 @@ public class IntegrateCommand implements CommandHandler {
         var seedPath = bot.seedStorage().orElse(scratchArea.getSeeds());
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
         return PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
+    }
+
+    static IntegrityVerifier materializeIntegrityVerifier(PullRequestBot bot, PullRequest pr, ScratchArea scratchArea) throws IOException {
+        var path = scratchArea.getIntegrity().resolve(pr.repository().name());
+        var seedPath = bot.seedStorage().orElse(scratchArea.getSeeds());
+        var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
+        var hostedIntegrityRepo = bot.integrityRepo().get();
+        var repo = hostedRepositoryPool.materialize(hostedIntegrityRepo, path);
+        return new IntegrityVerifier(repo, bot.integrityRepo().get().authenticatedUrl());
     }
 
     /**

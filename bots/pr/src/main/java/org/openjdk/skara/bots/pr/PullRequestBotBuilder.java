@@ -53,6 +53,7 @@ public class PullRequestBotBuilder {
     private boolean enableCsr = false;
     private boolean enableJep = false;
     private Map<String, HostedRepository> forks = Map.of();
+    private HostedRepository integrityRepo = null;
     private Set<String> integrators = Set.of();
     private Set<Integer> excludeCommitCommentsFrom = Set.of();
     private boolean reviewCleanBackport = false;
@@ -181,6 +182,11 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder integrityRepo(HostedRepository integrityRepo) {
+        this.integrityRepo = integrityRepo;
+        return this;
+    }
+
     public PullRequestBotBuilder integrators(Set<String> integrators) {
         this.integrators = new HashSet<>(integrators);
         return this;
@@ -257,6 +263,6 @@ public class PullRequestBotBuilder {
                 readyComments, issueProject, ignoreStaleReviews, allowedTargetBranches, seedStorage, confOverrideRepo,
                 confOverrideName, confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom, enableCsr,
                 enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge, processPR, processCommit, enableMerge,
-                mergeSources, jcheckMerge, enableBackport, issuePRMap, approval, versionMismatchWarning);
+                mergeSources, jcheckMerge, enableBackport, issuePRMap, approval, versionMismatchWarning, integrityRepo);
     }
 }
