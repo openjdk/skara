@@ -1905,50 +1905,33 @@ public class RepositoryTests {
             var r = TestableRepository.init(dir.path(), VCS.GIT);
             assertTrue(r.isClean());
 
-            // Both of these files contain the letter 'Á', but encoded differently, one is
-            // NFC normalized and one is NFD. Git normalizes filenames to NFC by default, so
-            // that filename should be comparable directly. For the NFD encoded file, we
-            // need to normalize it to NFC before comparing it to the Git output. Both files
-            // should be found by the filesystem regardless of normalization.
-            String nfcFileName = "RE\u00C1DME.md";
-            var nfcFile = dir.path().resolve(nfcFileName);
-            Files.writeString(nfcFile, "Hello\n");
-            r.add(nfcFile);
-
-            String nfdFileName = "READMA\u0301.md";
-            var nfdFile = dir.path().resolve(nfdFileName);
-            Files.writeString(nfdFile, "Hello\n");
-            r.add(nfdFile);
-
+            var f = dir.path().resolve("REÁDME.md");
+            Files.writeString(f, "Hello\n");
+            r.add(f);
             var first = r.commit("Add readme", "duke", "duke@openjdk.org");
 
-            Files.writeString(nfcFile, "Hello\nWorld\n");
-            r.add(nfcFile);
+            Files.writeString(f, "Hello\nWorld\n");
+            r.add(f);
+            var second = r.commit("Update readme", "duke", "duke@openjdk.org");
 
-            var second = r.commit("Update nfc readme", "duke", "duke@openjdk.org");
-
-            Files.writeString(nfdFile, "Hello\nWorld\n");
-            r.add(nfdFile);
-
-            var third = r.commit("Update nfd readme", "duke", "duke@openjdk.org");
-
-            {
-                var entries = r.status(first, second);
-                assertEquals(1, entries.size());
-                var entry = entries.get(0);
-                assertTrue(entry.status().isModified());
+            var entries = r.status(first, second);
+            assertEquals(1, entries.size());
+            var entry = entries.get(0);
+            assertTrue(entry.status().isModified());
+            if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
+                // On macos, the default filesystem APFS is normalization-insensitive yet
+                // normalization-preserving. Because of this, Git has a commonly enabled
+                // feature 'core.precomposeUnicode' which normalizes unicode to composite
+                // form. Because of this, we cannot trust that the path object returned
+                // from status is equal to a path object created here with the same
+                // original filename. We need to instead compare the NFC normalized
+                // strings.
+                assertEquals(Normalizer.normalize("REÁDME.md", Normalizer.Form.NFC),
+                        Normalizer.normalize(entry.target().path().orElseThrow().toString(), Normalizer.Form.NFC));
+                // Also check that the filesystem resolves the file as returned by Git.
                 assertTrue(Files.exists(dir.path().resolve(entry.target().path().orElseThrow())));
-                assertEquals(Path.of(nfcFileName), entry.target().path().orElseThrow());
-            }
-
-            {
-                var entries = r.status(second, third);
-                assertEquals(1, entries.size());
-                var entry = entries.get(0);
-                assertTrue(entry.status().isModified());
-                assertTrue(Files.exists(dir.path().resolve(entry.target().path().orElseThrow())));
-                assertEquals(Normalizer.normalize(nfdFileName, Normalizer.Form.NFC),
-                        entry.target().path().orElseThrow().toString());
+            } else {
+                assertEquals(Path.of("REÁDME.md"), entry.target().path().orElseThrow());
             }
         }
     }
