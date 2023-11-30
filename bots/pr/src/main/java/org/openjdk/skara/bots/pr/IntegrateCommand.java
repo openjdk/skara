@@ -263,9 +263,8 @@ public class IntegrateCommand implements CommandHandler {
     static boolean runJcheck(PullRequest pr, CensusInstance censusInstance, List<Comment> allComments,
                              PrintWriter reply, CheckablePullRequest checkablePr, Hash localHash) throws IOException {
         var targetHash = checkablePr.targetHash();
-        var jcheckConf = checkablePr.parseJCheckConfiguration(targetHash)
-                                    .orElseThrow(() -> new IllegalStateException("No .jcheck/conf found in commit with hash " + targetHash.hex()));
-        var visitor = checkablePr.createVisitor(jcheckConf, targetHash);
+        var jcheckConf = checkablePr.parseJCheckConfiguration(targetHash);
+        var visitor = checkablePr.createVisitor(jcheckConf);
         checkablePr.executeChecks(localHash, censusInstance, visitor, jcheckConf);
         if (!visitor.messages().isEmpty()) {
             reply.print("Your integration request cannot be fulfilled at this time, as ");

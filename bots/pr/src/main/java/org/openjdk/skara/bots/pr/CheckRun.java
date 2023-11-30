@@ -1218,10 +1218,10 @@ class CheckRun {
                 rebasePossible = false;
             }
 
-            List<String> mergeJCheckMessage = new ArrayList<>();
+            var mergeJCheckMessageWithTargetConf = new ArrayList<String>();
+            var mergeJCheckMessageWithCommitConf = new ArrayList<String>();
             var targetHash = checkablePullRequest.targetHash();
-            var targetJCheckConf = checkablePullRequest.parseJCheckConfiguration(targetHash)
-                                                    .orElseThrow(() -> new IllegalStateException("Missing .jcheck/conf for " + pr));
+            var targetJCheckConf = checkablePullRequest.parseJCheckConfiguration(targetHash);
             var isJCheckConfUpdatedInMergePR = false;
             if (PullRequestUtils.isMerge(pr)) {
                 if (rebasePossible) {
@@ -1240,23 +1240,27 @@ class CheckRun {
                     });
                     for (var commit : commits) {
                         var hash = commit.hash();
-                        jcheckType = "merge jcheck in commit " + hash.hex();
-                        var targetVisitor = checkablePullRequest.createVisitor(targetJCheckConf, hash);
+                        jcheckType = "merge jcheck with target conf in commit " + hash.hex();
+                        var targetVisitor = checkablePullRequest.createVisitor(targetJCheckConf);
                         checkablePullRequest.executeChecks(hash, censusInstance, targetVisitor, targetJCheckConf);
-
-                        var commitJCheckConf = checkablePullRequest.parseJCheckConfiguration(hash)
-                                                .orElseThrow(() -> new IllegalStateException("No .jcheck/conf present in tree for commit " + hash));
-                        var commitVisitor = checkablePullRequest.createVisitor(commitJCheckConf, hash);
-                        if (isJCheckConfUpdatedInMergePR) {
-                            checkablePullRequest.executeChecks(hash, censusInstance, commitVisitor, commitJCheckConf);
-                        }
-
-                        mergeJCheckMessage.addAll(
-                                Stream.concat(targetVisitor.messages().stream(), commitVisitor.messages().stream())
+                        mergeJCheckMessageWithTargetConf.addAll(targetVisitor.messages().stream()
                                 .map(StringBuilder::new)
-                                .map(e -> e.append(" (in commit ").append(hash.hex()).append(")"))
+                                .map(e -> e.append(" (in commit `").append(hash.hex()).append("` with target configuration)"))
                                 .map(StringBuilder::toString)
                                 .toList());
+
+                        var commitJCheckConf = checkablePullRequest.parseJCheckConfiguration(hash);
+                        var commitVisitor = checkablePullRequest.createVisitor(commitJCheckConf);
+                        if (isJCheckConfUpdatedInMergePR) {
+                            jcheckType = "merge jcheck with commit conf in commit " + hash.hex();
+                            checkablePullRequest.executeChecks(hash, censusInstance, commitVisitor, commitJCheckConf);
+                            mergeJCheckMessageWithCommitConf.addAll(commitVisitor.messages().stream()
+                                    .map(StringBuilder::new)
+                                    .map(e -> e.append(" (in commit `").append(hash.hex()).append("` with commit configuration)"))
+                                    .map(StringBuilder::toString)
+                                    .toList());
+                        }
+
                     }
                 }
             }
@@ -1280,7 +1284,7 @@ class CheckRun {
                 localHash = baseHash;
             }
 
-            var visitor = checkablePullRequest.createVisitor(targetJCheckConf, localHash);
+            var visitor = checkablePullRequest.createVisitor(targetJCheckConf);
             var needUpdateAdditionalProgresses = false;
             if (localHash.equals(baseHash)) {
                 if (additionalErrors.isEmpty()) {
@@ -1299,9 +1303,8 @@ class CheckRun {
                 if (workItem.bot.confOverrideRepository().isEmpty() &&
                     (isFileUpdated(Path.of(".jcheck").resolve("conf"), localHash) || isJCheckConfUpdatedInMergePR)) {
                     jcheckType = "source jcheck";
-                    var localJCheckConf = checkablePullRequest.parseJCheckConfiguration(localHash)
-                                                               .orElseThrow(() -> new IllegalStateException("Missing .jcheck/conf at localHash in PR " + pr));
-                    var localVisitor = checkablePullRequest.createVisitor(localJCheckConf, localHash);
+                    var localJCheckConf = checkablePullRequest.parseJCheckConfiguration(localHash);
+                    var localVisitor = checkablePullRequest.createVisitor(localJCheckConf);
                     log.info("Run jcheck against localHash with JCHeck configuration from localHash");
                     checkablePullRequest.executeChecks(localHash, censusInstance, localVisitor, localJCheckConf);
                     secondJCheckMessage.addAll(localVisitor.messages().stream()
@@ -1341,7 +1344,8 @@ class CheckRun {
 
             var integrationBlockers = botSpecificIntegrationBlockers(regularIssuesMap);
             integrationBlockers.addAll(secondJCheckMessage);
-            integrationBlockers.addAll(mergeJCheckMessage);
+            integrationBlockers.addAll(mergeJCheckMessageWithTargetConf);
+            integrationBlockers.addAll(mergeJCheckMessageWithCommitConf);
 
             var reviewersCommandIssued = ReviewersTracker.additionalRequiredReviewers(pr.repository().forge().currentUser(), comments).isPresent();
 

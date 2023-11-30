@@ -204,12 +204,12 @@ public class CheckablePullRequest {
         }
     }
 
-    PullRequestCheckIssueVisitor createVisitor(JCheckConfiguration conf, Hash hash) throws IOException {
-        var checks = JCheck.checksFor(conf, localRepo, hash);
+    PullRequestCheckIssueVisitor createVisitor(JCheckConfiguration conf) throws IOException {
+        var checks = JCheck.checksFor(localRepo, conf);
         return new PullRequestCheckIssueVisitor(checks);
     }
 
-    Optional<JCheckConfiguration> parseJCheckConfiguration(Hash hash) throws IOException {
+    JCheckConfiguration parseJCheckConfiguration(Hash hash) throws IOException {
         var original = confOverride == null ?
             JCheck.parseConfiguration(localRepo, hash, List.of()) :
             JCheck.parseConfiguration(confOverride, List.of());
@@ -220,14 +220,19 @@ public class CheckablePullRequest {
 
         var botUser = pr.repository().forge().currentUser();
         var additional = AdditionalConfiguration.get(original.get(), botUser, comments, reviewMerge);
-        return confOverride == null ?
+        if (additional.isEmpty()) {
+            return original.get();
+        }
+        var result = confOverride == null ?
             JCheck.parseConfiguration(localRepo, hash, additional) :
             JCheck.parseConfiguration(confOverride, additional);
+        return result.orElseThrow(
+                    () -> new IllegalStateException("Cannot parse JCheck configuration with additional configuration for commit with hash " + hash.hex()));
     }
 
-    void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor, JCheckConfiguration conf) throws IOException {
+    void executeChecks(Hash hash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor, JCheckConfiguration conf) throws IOException {
         visitor.setConfiguration(conf);
-        try (var issues = JCheck.check(localRepo, censusInstance.census(), CommitMessageParsers.v1, localHash, conf)) {
+        try (var issues = JCheck.check(localRepo, censusInstance.census(), CommitMessageParsers.v1, hash, conf)) {
             for (var issue : issues) {
                 issue.accept(visitor);
             }
