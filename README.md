@@ -47,7 +47,7 @@ external Git source code hosting providers are available:
 ## Building
 
 [JDK 21](http://jdk.java.net/21/) or later and [Gradle](https://gradle.org/)
-8.4 or later are required for building and will be automatically downloaded
+8.5 or later are required for building and will be automatically downloaded
 and installed by the custom gradlew script. To build the project on macOS or
 GNU/Linux x64, just run the following command from the source tree root:
 
