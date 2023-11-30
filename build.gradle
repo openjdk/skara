@@ -62,7 +62,7 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
     }
 
     tasks.withType(JavaCompile).configureEach {
-        options.release.set(17)
+        options.release.set(21)
     }
 
     compileJava.options.encoding = 'UTF-8'
