@@ -77,6 +77,15 @@ public interface PullRequest extends Issue {
     List<ReviewComment> reviewComments();
 
     /**
+     * Get all file specific comments but potentially without file location data.
+     * This may save computation and I/O time if constructing that data is expensive.
+     * @return
+     */
+    default List<? extends Comment> reviewCommentsAsComments() {
+        return reviewComments();
+    }
+
+    /**
      * Hash of the current head of the request.
      * @return
      */

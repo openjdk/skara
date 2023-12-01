@@ -186,7 +186,7 @@ public class GitHubPullRequest implements PullRequest {
                .execute();
     }
 
-    private ReviewComment parseReviewComment(ReviewComment parent, JSONObject reviewJson) {
+    private ReviewComment parseReviewComment(ReviewComment parent, JSONObject reviewJson, boolean includeLocationData) {
         var author = host.parseUserField(reviewJson);
         var threadId = parent == null ? reviewJson.get("id").toString() : parent.threadId();
 
@@ -198,7 +198,7 @@ public class GitHubPullRequest implements PullRequest {
         }
         var path = reviewJson.get("path").asString();
 
-        if (reviewJson.get("side").asString().equals("LEFT")) {
+        if (includeLocationData && reviewJson.get("side").asString().equals("LEFT")) {
             var commitInfo = request.get("commits/" + hash).execute();
 
             // If line is present, it indicates the line in the merge-base commit
@@ -245,7 +245,7 @@ public class GitHubPullRequest implements PullRequest {
         var response = request.post("pulls/" + json.get("number").toString() + "/comments")
                               .body(query)
                               .execute();
-        return parseReviewComment(null, response.asObject());
+        return parseReviewComment(null, response.asObject(), true);
     }
 
     @Override
@@ -256,11 +256,10 @@ public class GitHubPullRequest implements PullRequest {
         var response = request.post("pulls/" + json.get("number").toString() + "/comments")
                               .body(query)
                               .execute();
-        return parseReviewComment(parent, response.asObject());
+        return parseReviewComment(parent, response.asObject(), true);
     }
 
-    @Override
-    public List<ReviewComment> reviewComments() {
+    public List<ReviewComment> reviewComments(boolean includeLocationData) {
         var ret = new ArrayList<ReviewComment>();
         var reviewComments = request.get("pulls/" + json.get("number").toString() + "/comments").execute().stream()
                                     .map(JSONValue::asObject)
@@ -272,12 +271,22 @@ public class GitHubPullRequest implements PullRequest {
             if (reviewComment.contains("in_reply_to_id")) {
                 parent = idToComment.get(reviewComment.get("in_reply_to_id").toString());
             }
-            var comment = parseReviewComment(parent, reviewComment);
+            var comment = parseReviewComment(parent, reviewComment, includeLocationData);
             idToComment.put(comment.id(), comment);
             ret.add(comment);
         }
 
         return ret;
+    }
+
+    @Override
+    public List<ReviewComment> reviewComments() {
+        return reviewComments(true);
+    }
+
+    @Override
+    public List<? extends Comment> reviewCommentsAsComments() {
+        return reviewComments(false);
     }
 
     @Override
@@ -383,7 +392,7 @@ public class GitHubPullRequest implements PullRequest {
             var reviewComment = request.patch("pulls/comments/" + id)
                                        .body("body", body)
                                        .execute();
-            return parseReviewComment(null, reviewComment.asObject());
+            return parseReviewComment(null, reviewComment.asObject(), false);
         }
         return parseComment(comment);
     }
