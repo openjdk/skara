@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.vcs;
 
+import java.text.Normalizer;
 import org.junit.jupiter.api.BeforeAll;
 import org.openjdk.skara.test.TemporaryDirectory;
 
@@ -1917,7 +1918,21 @@ public class RepositoryTests {
             assertEquals(1, entries.size());
             var entry = entries.get(0);
             assertTrue(entry.status().isModified());
-            assertEquals(Path.of("REÁDME.md"), entry.target().path().get());
+            if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
+                // On macos, the default filesystem APFS is normalization-insensitive yet
+                // normalization-preserving. Because of this, Git has a commonly enabled
+                // feature 'core.precomposeUnicode' which normalizes unicode to composite
+                // form. Because of this, we cannot trust that the path object returned
+                // from status is equal to a path object created here with the same
+                // original filename. We need to instead compare the NFC normalized
+                // strings.
+                assertEquals(Normalizer.normalize("REÁDME.md", Normalizer.Form.NFC),
+                        Normalizer.normalize(entry.target().path().orElseThrow().toString(), Normalizer.Form.NFC));
+                // Also check that the filesystem resolves the file as returned by Git.
+                assertTrue(Files.exists(dir.path().resolve(entry.target().path().orElseThrow())));
+            } else {
+                assertEquals(Path.of("REÁDME.md"), entry.target().path().orElseThrow());
+            }
         }
     }
 

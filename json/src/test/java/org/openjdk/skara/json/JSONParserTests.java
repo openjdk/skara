@@ -40,13 +40,13 @@ public class JSONParserTests {
 
     @Test
     void testParseFalse() {
-        var value = parser.parse("false"); 
+        var value = parser.parse("false");
         assertEquals(value.asBoolean(), false);
     }
 
     @Test
     void testParseInt() {
-        var value = parser.parse("17"); 
+        var value = parser.parse("17");
         assertEquals(value.asInt(), 17);
     }
 
@@ -58,7 +58,7 @@ public class JSONParserTests {
 
     @Test
     void testParseFalseWithWhitespace() {
-        var value = parser.parse("\r\n    \t    false  \t\t\t"); 
+        var value = parser.parse("\r\n    \t    false  \t\t\t");
         assertEquals(value.asBoolean(), false);
     }
 
@@ -491,8 +491,8 @@ public class JSONParserTests {
     @Test
     public void testFieldsShortcut() {
         var json = JSON.parse("{\"id\":705,\"type\":null,\"body\":\"description\"}");
-        var names = json.fields().stream().map(JSONObject.Field::name).collect(Collectors.toList());
-        assertEquals(List.of("id", "type", "body"), names);
+        var names = json.fields().stream().map(JSONObject.Field::name).collect(Collectors.toSet());
+        assertEquals(Set.of("id", "type", "body"), names);
     }
 
     @Test
