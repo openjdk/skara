@@ -1223,6 +1223,7 @@ class CheckRun {
             var targetHash = checkablePullRequest.targetHash();
             var targetJCheckConf = checkablePullRequest.parseJCheckConfiguration(targetHash);
             var isJCheckConfUpdatedInMergePR = false;
+            var hasOverridingJCheckConf = workItem.bot.confOverrideRepository().isPresent();
             if (PullRequestUtils.isMerge(pr)) {
                 if (rebasePossible) {
                     localRepo.lookup(pr.headHash()).ifPresent(this::updateMergeClean);
@@ -1233,7 +1234,7 @@ class CheckRun {
                     var commits = localRepo.commitMetadata(localRepo.mergeBase(targetHash, pr.headHash()), pr.headHash(), true);
                     isJCheckConfUpdatedInMergePR = commits.stream().anyMatch(c -> {
                         try {
-                            return isFileUpdated(Path.of(".jcheck").resolve("conf"), c.hash());
+                            return isFileUpdated(Path.of(".jcheck", "conf"), c.hash());
                         } catch (IOException e) {
                             throw new UncheckedIOException(e);
                         }
@@ -1249,9 +1250,9 @@ class CheckRun {
                                 .map(StringBuilder::toString)
                                 .toList());
 
-                        var commitJCheckConf = checkablePullRequest.parseJCheckConfiguration(hash);
-                        var commitVisitor = checkablePullRequest.createVisitor(commitJCheckConf);
-                        if (isJCheckConfUpdatedInMergePR) {
+                        if (!hasOverridingJCheckConf && isJCheckConfUpdatedInMergePR) {
+                            var commitJCheckConf = checkablePullRequest.parseJCheckConfiguration(hash);
+                            var commitVisitor = checkablePullRequest.createVisitor(commitJCheckConf);
                             jcheckType = "merge jcheck with commit conf in commit " + hash.hex();
                             checkablePullRequest.executeChecks(hash, censusInstance, commitVisitor, commitJCheckConf);
                             mergeJCheckMessageWithCommitConf.addAll(commitVisitor.messages().stream()
@@ -1300,12 +1301,12 @@ class CheckRun {
                 // If the PR updates .jcheck/conf then Need to run JCheck again using the configuration
                 // from the resulting commit. Not needed if we are overriding the JCheck configuration since
                 // then we won't use the one in the repo anyway.
-                if (workItem.bot.confOverrideRepository().isEmpty() &&
-                    (isFileUpdated(Path.of(".jcheck").resolve("conf"), localHash) || isJCheckConfUpdatedInMergePR)) {
+                if (!hasOverridingJCheckConf &&
+                    (isFileUpdated(Path.of(".jcheck", "conf"), localHash) || isJCheckConfUpdatedInMergePR)) {
                     jcheckType = "source jcheck";
                     var localJCheckConf = checkablePullRequest.parseJCheckConfiguration(localHash);
                     var localVisitor = checkablePullRequest.createVisitor(localJCheckConf);
-                    log.info("Run jcheck against localHash with JCHeck configuration from localHash");
+                    log.info("Run JCheck against localHash with configuration from localHash");
                     checkablePullRequest.executeChecks(localHash, censusInstance, localVisitor, localJCheckConf);
                     secondJCheckMessage.addAll(localVisitor.messages().stream()
                             .map(StringBuilder::new)
