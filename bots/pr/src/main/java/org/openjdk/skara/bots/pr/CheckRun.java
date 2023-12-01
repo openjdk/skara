@@ -1318,7 +1318,7 @@ class CheckRun {
                 needUpdateAdditionalProgresses = true;
             }
 
-            var confFile = localRepo.lines(Path.of(".jcheck").resolve("conf"), localHash);
+            var confFile = localRepo.lines(Path.of(".jcheck", "conf"), localHash);
             JdkVersion version = null;
             if (confFile.isPresent()) {
                 var configuration = JCheckConfiguration.parse(confFile.get());
