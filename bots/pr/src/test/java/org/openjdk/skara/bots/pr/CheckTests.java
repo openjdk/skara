@@ -28,6 +28,7 @@ import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
+import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -1411,7 +1412,7 @@ class CheckTests {
             var pr = credentials.createPullRequest(author, "master", "edit",
                                                    "This is a pull request", true);
 
-            // Check the status - should throw because in edit hash, .jcheck/conf is updated and it will trigger second jcheck
+            // Check the status - should throw because in edit hash, .jcheck/conf is updated and it will trigger source jcheck
             assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
             assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
             assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
@@ -1422,7 +1423,7 @@ class CheckTests {
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
             assertEquals("line 0: entry must be of form 'key = value'", check.summary().get());
-            assertEquals("Exception occurred during second jcheck - the operation will be retried", check.title().get());
+            assertEquals("Exception occurred during source jcheck - the operation will be retried", check.title().get());
         }
     }
 
@@ -2777,16 +2778,16 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // pr body should have the integrationBlocker for whitespace and reviewer check
-            assertTrue(pr.store().body().contains("Whitespace errors (failed with the updated jcheck configuration)"));
-            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with the updated jcheck configuration)"));
+            assertTrue(pr.store().body().contains("Whitespace errors (failed with updated jcheck configuration in pull request)"));
+            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with updated jcheck configuration in pull request)"));
 
             var approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // // pr body should only have the integrationBlocker for whitespace check
-            assertTrue(pr.store().body().contains("Whitespace errors (failed with the updated jcheck configuration)"));
-            assertFalse(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with the updated jcheck configuration)"));
+            assertTrue(pr.store().body().contains("Whitespace errors (failed with updated jcheck configuration in pull request)"));
+            assertFalse(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with updated jcheck configuration in pull request)"));
         }
     }
 
@@ -2845,7 +2846,7 @@ class CheckTests {
             check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
             assertEquals("line 18: entry must be of form 'key = value'", check.summary().get());
-            assertEquals("Exception occurred during second jcheck - the operation will be retried", check.title().get());
+            assertEquals("Exception occurred during source jcheck - the operation will be retried", check.title().get());
 
             // Restore .jcheck/conf and add whitespace issue check
             writeToCheckConf(checkConf);
@@ -2855,8 +2856,8 @@ class CheckTests {
 
             TestBotRunner.runPeriodicItems(checkBot);
             // pr body should have the integrationBlocker for whitespace and reviewer check
-            assertTrue(pr.store().body().contains("Whitespace errors (failed with the updated jcheck configuration)"));
-            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with the updated jcheck configuration)"));
+            assertTrue(pr.store().body().contains("Whitespace errors (failed with updated jcheck configuration in pull request)"));
+            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with updated jcheck configuration in pull request)"));
         }
     }
 
@@ -3115,6 +3116,56 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             assertTrue(followUpPr.store().body().contains("needs maintainer approval"));
+        }
+    }
+
+    @Test
+    void overrideJcheckConfAndAdditionalConf(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var conf = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder()
+                                         .repo(author)
+                                         .censusRepo(censusBuilder.build())
+                                         .confOverrideRepo(conf)
+                                         .confOverrideName("jcheck.conf")
+                                         .confOverrideRef("jcheck-branch")
+                                         .reviewMerge(true)
+                                         .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Create a different conf on a different branch
+            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            var newConf = defaultConf.replace("reviewers=1", "reviewers=0");
+            Files.writeString(localRepo.root().resolve("jcheck.conf"), newConf, StandardCharsets.UTF_8);
+            localRepo.add(localRepo.root().resolve("jcheck.conf"));
+            var confHash = localRepo.commit("Separate conf", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, author.authenticatedUrl(), "jcheck-branch", true);
+            localRepo.checkout(masterHash, true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+
+            localRepo.checkout(masterHash, true);
+            localRepo.branch(masterHash, "dev");
+            localRepo.merge(editHash, Repository.FastForward.DISABLE);
+            var mergeHash = localRepo.commit("Merge edit", "duke", "duke@openjdk.org");
+            localRepo.push(mergeHash, author.authenticatedUrl(), "dev", true);
+            var pr = credentials.createPullRequest(author, "master", "dev", "Merge edit");
+
+            // Check the status (should become ready immediately as reviewercount is overridden to 0)
+            // even though merge PRs should always be reviewed
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertEquals(Set.of("rfr", "ready", "clean"), new HashSet<>(pr.store().labelNames()));
         }
     }
 

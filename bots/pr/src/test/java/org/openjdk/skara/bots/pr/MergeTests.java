@@ -1788,8 +1788,8 @@ class MergeTests {
                     .count();
             assertEquals(0, pushed);
 
-            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (in commit " + otherHash1.hex() + ")"));
-            assertTrue(pr.store().body().contains("Whitespace errors (in commit " + otherHash2.hex() + ")"));
+            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (in commit `" + otherHash1.hex() + "` with target configuration)"));
+            assertTrue(pr.store().body().contains("Whitespace errors (in commit `" + otherHash2.hex() + "` with target configuration)"));
         }
     }
 
@@ -1846,7 +1846,7 @@ class MergeTests {
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
             assertEquals("line 0: entry must be of form 'key = value'", check.summary().get());
-            assertEquals("Exception occurred during merge jcheck in commit " + otherHash2.hex() + " - the operation will be retried",
+            assertEquals("Exception occurred during merge jcheck with target conf in commit " + otherHash2.hex() + " - the operation will be retried",
                     check.title().get());
         }
     }

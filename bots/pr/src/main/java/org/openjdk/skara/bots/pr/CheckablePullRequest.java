@@ -47,13 +47,15 @@ public class CheckablePullRequest {
     private final boolean ignoreStaleReviews;
     private final List<String> confOverride;
     private final List<Comment> comments;
+    private final boolean reviewMerge;
 
     CheckablePullRequest(PullRequest pr, Repository localRepo, boolean ignoreStaleReviews,
-            HostedRepository jcheckRepo, String jcheckName, String jcheckRef, List<Comment> comments) {
+            HostedRepository jcheckRepo, String jcheckName, String jcheckRef, List<Comment> comments, boolean reviewMerge) {
         this.pr = pr;
         this.localRepo = localRepo;
         this.ignoreStaleReviews = ignoreStaleReviews;
         this.comments = comments;
+        this.reviewMerge = reviewMerge;
 
         if (jcheckRepo != null) {
             confOverride = jcheckRepo.fileContents(jcheckName, jcheckRef).orElseThrow(
@@ -202,25 +204,35 @@ public class CheckablePullRequest {
         }
     }
 
-    PullRequestCheckIssueVisitor createVisitor(Hash hash) throws IOException {
-        var checks = JCheck.checksFor(localRepo, hash);
+    PullRequestCheckIssueVisitor createVisitor(JCheckConfiguration conf) throws IOException {
+        var checks = JCheck.checksFor(localRepo, conf);
         return new PullRequestCheckIssueVisitor(checks);
     }
 
-    void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor,
-                       List<String> additionalConfiguration, Hash hash) throws IOException {
-        Optional<JCheckConfiguration> conf;
-        if (confOverride != null) {
-            conf = JCheck.parseConfiguration(confOverride, additionalConfiguration);
-        } else {
-            conf = JCheck.parseConfiguration(localRepo, hash, additionalConfiguration);
+    JCheckConfiguration parseJCheckConfiguration(Hash hash) throws IOException {
+        var original = confOverride == null ?
+            JCheck.parseConfiguration(localRepo, hash, List.of()) :
+            JCheck.parseConfiguration(confOverride, List.of());
+
+        if (original.isEmpty()) {
+            throw new IllegalStateException("Cannot parse JCheck configuration for commit with hash " + hash.hex());
         }
-        if (conf.isEmpty()) {
-            throw new RuntimeException("Failed to parse jcheck configuration at: " + hash + " with extra: " + additionalConfiguration);
+
+        var botUser = pr.repository().forge().currentUser();
+        var additional = AdditionalConfiguration.get(original.get(), botUser, comments, reviewMerge);
+        if (additional.isEmpty()) {
+            return original.get();
         }
-        visitor.setConfiguration(conf.get());
-        try (var issues = JCheck.check(localRepo, censusInstance.census(), CommitMessageParsers.v1, localHash,
-                                       conf.get())) {
+        var result = confOverride == null ?
+            JCheck.parseConfiguration(localRepo, hash, additional) :
+            JCheck.parseConfiguration(confOverride, additional);
+        return result.orElseThrow(
+                    () -> new IllegalStateException("Cannot parse JCheck configuration with additional configuration for commit with hash " + hash.hex()));
+    }
+
+    void executeChecks(Hash hash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor, JCheckConfiguration conf) throws IOException {
+        visitor.setConfiguration(conf);
+        try (var issues = JCheck.check(localRepo, censusInstance.census(), CommitMessageParsers.v1, hash, conf)) {
             for (var issue : issues) {
                 issue.accept(visitor);
             }

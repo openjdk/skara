@@ -197,7 +197,8 @@ public class IntegrateCommand implements CommandHandler {
                     bot.confOverrideRepository().orElse(null),
                     bot.confOverrideName(),
                     bot.confOverrideRef(),
-                    allComments);
+                    allComments,
+                    bot.reviewMerge());
 
             if (targetHash != null && !checkablePr.targetHash().equals(targetHash)) {
                 reply.print("The head of the target branch is no longer at the requested hash " + targetHash);
@@ -223,7 +224,7 @@ public class IntegrateCommand implements CommandHandler {
             }
             var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(),
                     censusInstance.configuration().census().domain(), committerId, original);
-            if (runJcheck(pr, censusInstance, allComments, reply, localRepo, checkablePr, localHash, bot.reviewMerge())) {
+            if (runJcheck(pr, censusInstance, allComments, reply, checkablePr, localHash)) {
                 return;
             }
 
@@ -259,15 +260,16 @@ public class IntegrateCommand implements CommandHandler {
     /**
      * Runs the checks adding to the reply message and returns true if any of them failed
      */
-    static boolean runJcheck(PullRequest pr, CensusInstance censusInstance, List<Comment> allComments, PrintWriter reply,
-                      Repository localRepo, CheckablePullRequest checkablePr, Hash localHash, boolean reviewMerge) throws IOException {
-        var issues = checkablePr.createVisitor(checkablePr.targetHash());
-        var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments, reviewMerge);
-        checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration, checkablePr.targetHash());
-        if (!issues.messages().isEmpty()) {
+    static boolean runJcheck(PullRequest pr, CensusInstance censusInstance, List<Comment> allComments,
+                             PrintWriter reply, CheckablePullRequest checkablePr, Hash localHash) throws IOException {
+        var targetHash = checkablePr.targetHash();
+        var jcheckConf = checkablePr.parseJCheckConfiguration(targetHash);
+        var visitor = checkablePr.createVisitor(jcheckConf);
+        checkablePr.executeChecks(localHash, censusInstance, visitor, jcheckConf);
+        if (!visitor.messages().isEmpty()) {
             reply.print("Your integration request cannot be fulfilled at this time, as ");
             reply.println("your changes failed the final jcheck:");
-            issues.messages().stream()
+            visitor.messages().stream()
                   .map(line -> " * " + line)
                   .forEach(reply::println);
             return true;

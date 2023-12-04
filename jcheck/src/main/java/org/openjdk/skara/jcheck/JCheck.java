@@ -156,6 +156,9 @@ public class JCheck {
     }
 
     private Set<Check> checksForRange() throws IOException {
+        if (overridingConfiguration != null) {
+            return new HashSet<>(overridingConfiguration.checks().enabled(commitChecks));
+        }
         try (var commits = repository.commits(revisionRange)) {
             return commits.stream()
                           .flatMap(commit -> checksForCommit(commit).stream())
@@ -292,6 +295,18 @@ public class JCheck {
                                 Pattern.compile(".*"),
                                 List.of(),
                                 null,
+                                null);
+        return jcheck.checksForRange();
+    }
+
+    public static Set<Check> checksFor(ReadOnlyRepository repository, JCheckConfiguration conf) throws IOException {
+        var jcheck = new JCheck(repository,
+                                CommitMessageParsers.v1,
+                                null,
+                                Pattern.compile(".*"),
+                                Pattern.compile(".*"),
+                                List.of(),
+                                conf,
                                 null);
         return jcheck.checksForRange();
     }

@@ -74,7 +74,6 @@ class CheckRun {
     private static final Set<String> PRIMARY_TYPES = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final Set<String> newLabels;
     private final boolean reviewCleanBackport;
-    private final boolean reviewMerge;
     private final Approval approval;
 
     private Duration expiresIn;
@@ -97,7 +96,6 @@ class CheckRun {
         this.ignoreStaleReviews = ignoreStaleReviews;
         this.integrators = integrators;
         this.reviewCleanBackport = reviewCleanBackport;
-        this.reviewMerge = reviewMerge;
         this.approval = approval;
 
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
@@ -105,7 +103,8 @@ class CheckRun {
                 workItem.bot.confOverrideRepository().orElse(null),
                 workItem.bot.confOverrideName(),
                 workItem.bot.confOverrideRef(),
-                comments);
+                comments,
+                reviewMerge);
     }
 
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
@@ -1201,8 +1200,8 @@ class CheckRun {
     private void checkStatus() {
         var checkBuilder = CheckBuilder.create(getJcheckName(pr), pr.headHash());
         var censusDomain = censusInstance.configuration().census().domain();
+        var jcheckType = "jcheck";
         Exception checkException = null;
-        String jcheckType = "jcheck";
 
         try {
             // Post check in-progress
@@ -1219,8 +1218,12 @@ class CheckRun {
                 rebasePossible = false;
             }
 
-            List<String> mergeJCheckMessage = new ArrayList<>();
-
+            var mergeJCheckMessageWithTargetConf = new ArrayList<String>();
+            var mergeJCheckMessageWithCommitConf = new ArrayList<String>();
+            var targetHash = checkablePullRequest.targetHash();
+            var targetJCheckConf = checkablePullRequest.parseJCheckConfiguration(targetHash);
+            var isJCheckConfUpdatedInMergePR = false;
+            var hasOverridingJCheckConf = workItem.bot.confOverrideRepository().isPresent();
             if (PullRequestUtils.isMerge(pr)) {
                 if (rebasePossible) {
                     localRepo.lookup(pr.headHash()).ifPresent(this::updateMergeClean);
@@ -1228,21 +1231,37 @@ class CheckRun {
 
                 // JCheck all commits in "Merge PR"
                 if (workItem.bot.jcheckMerge()) {
-                    var commits = localRepo.commitMetadata(localRepo.mergeBase(
-                            PullRequestUtils.targetHash(localRepo), pr.headHash()), commitHash);
-                    var commitHashes = commits.stream()
-                            .map(CommitMetadata::hash)
-                            .collect(Collectors.toSet());
-                    commitHashes.remove(pr.headHash());
-                    for (Hash hash : commitHashes) {
-                        jcheckType = "merge jcheck in commit " + hash.hex();
-                        PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(hash);
-                        checkablePullRequest.executeChecks(hash, censusInstance, visitor, List.of(), hash);
-                        mergeJCheckMessage.addAll(visitor.messages().stream()
+                    var commits = localRepo.commitMetadata(localRepo.mergeBase(targetHash, pr.headHash()), pr.headHash(), true);
+                    isJCheckConfUpdatedInMergePR = commits.stream().anyMatch(c -> {
+                        try {
+                            return isFileUpdated(Path.of(".jcheck", "conf"), c.hash());
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
+                    });
+                    for (var commit : commits) {
+                        var hash = commit.hash();
+                        jcheckType = "merge jcheck with target conf in commit " + hash.hex();
+                        var targetVisitor = checkablePullRequest.createVisitor(targetJCheckConf);
+                        checkablePullRequest.executeChecks(hash, censusInstance, targetVisitor, targetJCheckConf);
+                        mergeJCheckMessageWithTargetConf.addAll(targetVisitor.messages().stream()
                                 .map(StringBuilder::new)
-                                .map(e -> e.append(" (in commit ").append(hash.hex()).append(")"))
+                                .map(e -> e.append(" (in commit `").append(hash.hex()).append("` with target configuration)"))
                                 .map(StringBuilder::toString)
                                 .toList());
+
+                        if (!hasOverridingJCheckConf && isJCheckConfUpdatedInMergePR) {
+                            var commitJCheckConf = checkablePullRequest.parseJCheckConfiguration(hash);
+                            var commitVisitor = checkablePullRequest.createVisitor(commitJCheckConf);
+                            jcheckType = "merge jcheck with commit conf in commit " + hash.hex();
+                            checkablePullRequest.executeChecks(hash, censusInstance, commitVisitor, commitJCheckConf);
+                            mergeJCheckMessageWithCommitConf.addAll(commitVisitor.messages().stream()
+                                    .map(StringBuilder::new)
+                                    .map(e -> e.append(" (in commit `").append(hash.hex()).append("` with commit configuration)"))
+                                    .map(StringBuilder::toString)
+                                    .toList());
+                        }
+
                     }
                 }
             }
@@ -1265,8 +1284,9 @@ class CheckRun {
                 additionalErrors = List.of(e.getMessage());
                 localHash = baseHash;
             }
-            PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(checkablePullRequest.targetHash());
-            boolean needUpdateAdditionalProgresses = false;
+
+            var visitor = checkablePullRequest.createVisitor(targetJCheckConf);
+            var needUpdateAdditionalProgresses = false;
             if (localHash.equals(baseHash)) {
                 if (additionalErrors.isEmpty()) {
                     additionalErrors = List.of("This PR contains no changes");
@@ -1275,19 +1295,22 @@ class CheckRun {
                 additionalErrors = List.of("This PR only contains changes already present in the target");
             } else {
                 // Determine current status
-                jcheckType = "jcheck";
-                var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash,
-                        pr.repository().forge().currentUser(), comments, reviewMerge);
-                checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration, checkablePullRequest.targetHash());
-                // Don't need to run the second round if confOverride is set.
-                if (workItem.bot.confOverrideRepository().isEmpty() && isFileUpdated(".jcheck/conf", localHash)) {
-                    jcheckType = "second jcheck";
-                    PullRequestCheckIssueVisitor visitor2 = checkablePullRequest.createVisitor(pr.headHash());
-                    log.info("Run jcheck again with the updated configuration");
-                    checkablePullRequest.executeChecks(localHash, censusInstance, visitor2, additionalConfiguration, pr.headHash());
-                    secondJCheckMessage.addAll(visitor2.messages().stream()
+                jcheckType = "target jcheck";
+                checkablePullRequest.executeChecks(localHash, censusInstance, visitor, targetJCheckConf);
+
+                // If the PR updates .jcheck/conf then Need to run JCheck again using the configuration
+                // from the resulting commit. Not needed if we are overriding the JCheck configuration since
+                // then we won't use the one in the repo anyway.
+                if (!hasOverridingJCheckConf &&
+                    (isFileUpdated(Path.of(".jcheck", "conf"), localHash) || isJCheckConfUpdatedInMergePR)) {
+                    jcheckType = "source jcheck";
+                    var localJCheckConf = checkablePullRequest.parseJCheckConfiguration(localHash);
+                    var localVisitor = checkablePullRequest.createVisitor(localJCheckConf);
+                    log.info("Run JCheck against localHash with configuration from localHash");
+                    checkablePullRequest.executeChecks(localHash, censusInstance, localVisitor, localJCheckConf);
+                    secondJCheckMessage.addAll(localVisitor.messages().stream()
                             .map(StringBuilder::new)
-                            .map(e -> e.append(" (failed with the updated jcheck configuration)"))
+                            .map(e -> e.append(" (failed with updated jcheck configuration in pull request)"))
                             .map(StringBuilder::toString)
                             .toList());
                 }
@@ -1295,7 +1318,7 @@ class CheckRun {
                 needUpdateAdditionalProgresses = true;
             }
 
-            var confFile = localRepo.lines(Path.of(".jcheck/conf"), localHash);
+            var confFile = localRepo.lines(Path.of(".jcheck", "conf"), localHash);
             JdkVersion version = null;
             if (confFile.isPresent()) {
                 var configuration = JCheckConfiguration.parse(confFile.get());
@@ -1322,7 +1345,8 @@ class CheckRun {
 
             var integrationBlockers = botSpecificIntegrationBlockers(regularIssuesMap);
             integrationBlockers.addAll(secondJCheckMessage);
-            integrationBlockers.addAll(mergeJCheckMessage);
+            integrationBlockers.addAll(mergeJCheckMessageWithTargetConf);
+            integrationBlockers.addAll(mergeJCheckMessageWithCommitConf);
 
             var reviewersCommandIssued = ReviewersTracker.additionalRequiredReviewers(pr.repository().forge().currentUser(), comments).isPresent();
 
@@ -1430,13 +1454,13 @@ class CheckRun {
         }
     }
 
-    private boolean isFileUpdated(String filename, Hash hash) throws IOException {
-        return !localRepo.files(hash, Path.of(filename)).isEmpty() &&
+    private boolean isFileUpdated(Path filename, Hash hash) throws IOException {
+        return !localRepo.files(hash, filename).isEmpty() &&
                 localRepo.commits(hash.hex(), 1).stream()
                         .anyMatch(commit -> commit.parentDiffs().stream()
                                 .anyMatch(diff -> diff.patches().stream()
-                                        .anyMatch(patch -> (patch.source().path().isPresent() && patch.source().path().get().toString().equals(filename))
-                                                || ((patch.target().path().isPresent() && patch.target().path().get().toString().equals(filename))))));
+                                        .anyMatch(patch -> (patch.source().path().isPresent() && patch.source().path().get().equals(filename))
+                                                || ((patch.target().path().isPresent() && patch.target().path().get().equals(filename))))));
     }
 
     private void updateCSRLabel(JdkVersion version, Map<String, IssueTrackerIssue> csrIssueTrackerIssueMap) {

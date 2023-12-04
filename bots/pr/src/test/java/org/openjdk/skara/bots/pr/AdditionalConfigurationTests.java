@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.test.*;
+import org.openjdk.skara.jcheck.JCheck;
 
 import java.io.*;
 import java.util.*;
@@ -62,7 +63,9 @@ class AdditionalConfigurationTests {
             reviewerPr.addComment("/reviewers 2");
             TestBotRunner.runPeriodicItems(prBot);
 
-            var additional = AdditionalConfiguration.get(localRepo, masterHash, bot.forge().currentUser(),
+            var jcheckConf = JCheck.parseConfiguration(localRepo, masterHash, List.of());
+            assertTrue(jcheckConf.isPresent());
+            var additional = AdditionalConfiguration.get(jcheckConf.get(), bot.forge().currentUser(),
                                                          pr.comments(), false);
             var expected = List.of(
                 "[checks \"reviewers\"]",
