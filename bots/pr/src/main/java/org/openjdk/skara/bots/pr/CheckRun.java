@@ -37,6 +37,7 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.*;
 import java.nio.file.Path;
+import java.text.Normalizer;
 import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
@@ -1074,8 +1075,11 @@ class CheckRun {
         var head = pr.repository().commit(pr.headHash()).orElseThrow(
             () -> new IllegalStateException("Cannot lookup HEAD hash for PR " + pr.id())
         );
-        if (!pr.author().fullName().equals(pr.author().username()) &&
-            !pr.author().fullName().equals(head.author().name())) {
+        // Normalize the strings before comparison to ensure unicode characters are encoded in the same way
+        var prAuthorFullName = Normalizer.normalize(pr.author().fullName(), Normalizer.Form.NFC);
+        var prAuthorUserName = Normalizer.normalize(pr.author().username(), Normalizer.Form.NFC);
+        var headAuthorName = Normalizer.normalize(head.author().name(), Normalizer.Form.NFC);
+        if (!prAuthorFullName.equals(prAuthorUserName) && !prAuthorFullName.equals(headAuthorName)) {
             var headUrl = pr.headUrl().toString();
             var message = ":warning: @" + pr.author().username() + " the full name on your profile does not match " +
                 "the author name in this pull requests' [HEAD](" + headUrl + ") commit. " +
