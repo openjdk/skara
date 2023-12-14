@@ -47,10 +47,10 @@ public class CheckablePullRequest {
     private final boolean ignoreStaleReviews;
     private final List<String> confOverride;
     private final List<Comment> comments;
-    private final boolean reviewMerge;
+    private final MergePullRequestReviewConfiguration reviewMerge;
 
     CheckablePullRequest(PullRequest pr, Repository localRepo, boolean ignoreStaleReviews,
-            HostedRepository jcheckRepo, String jcheckName, String jcheckRef, List<Comment> comments, boolean reviewMerge) {
+            HostedRepository jcheckRepo, String jcheckName, String jcheckRef, List<Comment> comments, MergePullRequestReviewConfiguration reviewMerge) {
         this.pr = pr;
         this.localRepo = localRepo;
         this.ignoreStaleReviews = ignoreStaleReviews;

@@ -57,7 +57,7 @@ public class PullRequestBotBuilder {
     private Set<Integer> excludeCommitCommentsFrom = Set.of();
     private boolean reviewCleanBackport = false;
     private String mlbridgeBotName;
-    private boolean reviewMerge = false;
+    private MergePullRequestReviewConfiguration reviewMerge = MergePullRequestReviewConfiguration.JCHECK;
     private boolean processPR = true;
     private boolean processCommit = true;
     private boolean enableMerge = true;
@@ -201,7 +201,7 @@ public class PullRequestBotBuilder {
         return this;
     }
 
-    public PullRequestBotBuilder reviewMerge(boolean reviewMerge) {
+    public PullRequestBotBuilder reviewMerge(MergePullRequestReviewConfiguration reviewMerge) {
         this.reviewMerge = reviewMerge;
         return this;
     }

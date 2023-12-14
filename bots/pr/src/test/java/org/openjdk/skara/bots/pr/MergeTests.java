@@ -138,7 +138,7 @@ class MergeTests {
                     .addCommitter(author.forge().currentUser().id())
                     .addReviewer(integrator.forge().currentUser().id());
             var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build())
-                    .reviewMerge(true).build();
+                    .reviewMerge(MergePullRequestReviewConfiguration.ALWAYS).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");

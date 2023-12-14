@@ -31,10 +31,10 @@ import java.io.IOException;
 import java.util.*;
 
 public class AdditionalConfiguration {
-    static List<String> get(JCheckConfiguration original, HostUser botUser, List<Comment> comments, boolean reviewMerge) throws IOException {
+    static List<String> get(JCheckConfiguration original, HostUser botUser, List<Comment> comments, MergePullRequestReviewConfiguration reviewMerge) throws IOException {
         var ret = new ArrayList<String>();
         var additionalReviewers = ReviewersTracker.additionalRequiredReviewers(botUser, comments);
-        if (additionalReviewers.isEmpty() && !reviewMerge) {
+        if (additionalReviewers.isEmpty() && reviewMerge == MergePullRequestReviewConfiguration.JCHECK) {
             return ret;
         }
 
@@ -45,8 +45,10 @@ public class AdditionalConfiguration {
         ret.add("[checks \"reviewers\"]");
         updatedLimits.forEach((role, count) -> ret.add(role + "=" + count));
         ret.add("minimum=disable");
-        if (reviewMerge) {
+        if (reviewMerge == MergePullRequestReviewConfiguration.ALWAYS) {
             ret.add("merge=check");
+        } else if (reviewMerge == MergePullRequestReviewConfiguration.NEVER) {
+            ret.add("merge=ignore");
         }
         return ret;
     }

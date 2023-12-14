@@ -66,7 +66,7 @@ class PullRequestBot implements Bot {
     private final PullRequestPoller poller;
     private final boolean reviewCleanBackport;
     private final String mlbridgeBotName;
-    private final boolean reviewMerge;
+    private final MergePullRequestReviewConfiguration reviewMerge;
     private final boolean processPR;
     private final boolean processCommit;
     private final boolean enableMerge;
@@ -92,7 +92,7 @@ class PullRequestBot implements Bot {
                    Path seedStorage, HostedRepository confOverrideRepo, String confOverrideName,
                    String confOverrideRef, String censusLink, Map<String, HostedRepository> forks,
                    Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr, boolean enableJep,
-                   boolean reviewCleanBackport, String mlbridgeBotName, boolean reviewMerge, boolean processPR, boolean processCommit,
+                   boolean reviewCleanBackport, String mlbridgeBotName, MergePullRequestReviewConfiguration reviewMerge, boolean processPR, boolean processCommit,
                    boolean enableMerge, Set<String> mergeSources, boolean jcheckMerge, boolean enableBackport,
                    Map<String, List<PRRecord>> issuePRMap, Approval approval, boolean versionMismatchWarning) {
         remoteRepo = repo;
@@ -367,7 +367,7 @@ class PullRequestBot implements Bot {
         return mlbridgeBotName;
     }
 
-    public boolean reviewMerge(){
+    public MergePullRequestReviewConfiguration reviewMerge() {
         return reviewMerge;
     }
 

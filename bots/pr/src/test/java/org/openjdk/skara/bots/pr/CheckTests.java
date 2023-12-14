@@ -3134,7 +3134,7 @@ class CheckTests {
                                          .confOverrideRepo(conf)
                                          .confOverrideName("jcheck.conf")
                                          .confOverrideRef("jcheck-branch")
-                                         .reviewMerge(true)
+                                         .reviewMerge(MergePullRequestReviewConfiguration.ALWAYS)
                                          .build();
 
             // Populate the projects repository

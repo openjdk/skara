@@ -122,7 +122,7 @@ class PullRequestBotFactoryTest {
                             "integrator2"
                           ],
                           "reviewCleanBackport": true,
-                          "reviewMerge": true,
+                          "reviewMerge": "always",
                           "processPR": false,
                           "jcheckMerge": true,
                           "versionMismatchWarning": false,
@@ -142,7 +142,7 @@ class PullRequestBotFactoryTest {
                             "integrator2"
                           ],
                           "reviewCleanBackport": true,
-                          "reviewMerge": true,
+                          "reviewMerge": "always",
                           "processPR": false,
                           "jcheckMerge": false
                           "approval": {
@@ -228,7 +228,7 @@ class PullRequestBotFactoryTest {
             assertTrue(integrators.contains("integrator1"));
             assertTrue(integrators.contains("integrator2"));
             assertTrue(pullRequestBot6.reviewCleanBackport());
-            assertTrue(pullRequestBot6.reviewMerge());
+            assertEquals(MergePullRequestReviewConfiguration.ALWAYS, pullRequestBot6.reviewMerge());
             assertEquals("mlbridge[bot]", pullRequestBot6.mlbridgeBotName());
             assertTrue(pullRequestBot6.enableMerge());
             assertTrue(pullRequestBot6.jcheckMerge());
