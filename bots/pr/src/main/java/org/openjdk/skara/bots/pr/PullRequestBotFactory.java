@@ -205,13 +205,19 @@ public class PullRequestBotFactory implements BotFactory {
                 botBuilder.reviewCleanBackport(repo.value().get("reviewCleanBackport").asBoolean());
             }
             if (repo.value().contains("reviewMerge")) {
-                MergePullRequestReviewConfiguration result = MergePullRequestReviewConfiguration.JCHECK;
+                MergePullRequestReviewConfiguration result = null;
 
                 var val = repo.value().get("reviewMerge").asString().toLowerCase().trim();
                 if (val.equals("always")) {
                     result = MergePullRequestReviewConfiguration.ALWAYS;
                 } else if (val.equals("never")) {
                     result = MergePullRequestReviewConfiguration.NEVER;
+                } else if (val.equals("jcheck")) {
+                    result = MergePullRequestReviewConfiguration.JCHECK;
+                } else {
+                    throw new RuntimeException("Unexpected value for key \"reviewMerge\": '" +
+                                               repo.value().get("reviewMerge") + "', " +
+                                               "expected one of \"always\", \"never\" or \"jcheck\"");
                 }
 
                 botBuilder.reviewMerge(result);

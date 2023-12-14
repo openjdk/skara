@@ -367,7 +367,7 @@ class PullRequestBot implements Bot {
         return mlbridgeBotName;
     }
 
-    public MergePullRequestReviewConfiguration reviewMerge(){
+    public MergePullRequestReviewConfiguration reviewMerge() {
         return reviewMerge;
     }
 
