@@ -260,7 +260,7 @@ public class GitHubPullRequest implements PullRequest {
         return parseReviewComment(parent, response.asObject(), true);
     }
 
-    public List<ReviewComment> reviewComments(boolean includeLocationData) {
+    private List<ReviewComment> reviewComments(boolean includeLocationData) {
         var ret = new ArrayList<ReviewComment>();
         var reviewComments = request.get("pulls/" + json.get("number").toString() + "/comments")
                 .param("per_page", "100").execute().stream()
