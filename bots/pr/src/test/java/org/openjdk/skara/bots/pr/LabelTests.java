@@ -95,7 +95,7 @@ public class LabelTests {
             assertLastCommentContains(pr,"* `extra`");
 
             // Add a label
-            pr.addComment("/label add 1");
+            pr.addComment("/skara label add 1");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
@@ -109,7 +109,7 @@ public class LabelTests {
             assertLastCommentContains(pr,"The `group` label was successfully added.");
 
             // Drop both
-            pr.addComment("/label remove 1   group");
+            pr.addComment("        /skara label remove 1   group");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
@@ -117,7 +117,7 @@ public class LabelTests {
             assertLastCommentContains(pr,"The `group` label was successfully removed.");
 
             // And once more
-            pr.addComment("/label add 2, extra");
+            pr.addComment("   /skara    label add 2, extra");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message

@@ -202,7 +202,7 @@ class SummaryTests {
             assertLastCommentContains(pr,"To set a summary");
 
             // Add a multi-line summary
-            pr.addComment("/summary\nFirst line\nSecond line");
+            pr.addComment("   /skara  summary\nFirst line\nSecond line");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
