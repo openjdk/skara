@@ -78,6 +78,6 @@ public class BotUtils {
     }
 
     public static String preprocessCommandLine(String line) {
-        return line.replaceFirst("/skara\\s*", "/");
+        return line.replaceFirst("/skara\\s+", "/");
     }
 }
