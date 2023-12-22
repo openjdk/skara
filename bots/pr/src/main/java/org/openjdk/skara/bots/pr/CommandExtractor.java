@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import java.time.ZonedDateTime;
 
+import org.openjdk.skara.bots.common.BotUtils;
 import org.openjdk.skara.forge.HostedCommit;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
@@ -118,6 +119,7 @@ public class CommandExtractor {
         String multiLineCommand = null;
         int subId = 0;
         for (var line : text.split("\\R")) {
+            line = BotUtils.preprocessCommandLine(line);
             var commandMatcher = EXECUTION_COMMAND_PATTERN.getPattern().matcher(line);
             if (commandMatcher.matches()) {
                 if (multiLineHandler != null) {

@@ -190,17 +190,17 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             //valid skara command - should not be archived
-            pr.addComment("/help");
+            pr.addComment("/skara   help");
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
 
             //Invalid skara command but starting with '/' - should be archived
-            pr.addComment("/some-text & more text");
+            pr.addComment("/skara some-text & more text");
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
 
             //Not a valid skara command with upper case letter - should be archived
-            pr.addComment("/Help");
+            pr.addComment("/skara Help");
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
 
@@ -226,8 +226,8 @@ class MailingListBridgeBotTests {
             assertFalse(archiveContains(archiveFolder.path(), "With several lines"));
             assertTrue(archiveContains(archiveFolder.path(), "do not ignore me /help"));
             assertFalse(archiveContains(archiveFolder.path(), "Available commands"));
-            assertTrue(archiveContains(archiveFolder.path(), "/some-text & more text"));
-            assertTrue(archiveContains(archiveFolder.path(), "/Help"));
+            assertTrue(archiveContains(archiveFolder.path(), "/skara some-text & more text"));
+            assertTrue(archiveContains(archiveFolder.path(), "/skara Help"));
 
             // The mailing list as well
             listServer.processIncoming();

@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.mlbridge;
 
 import java.util.logging.Level;
 import org.openjdk.skara.bot.WorkItem;
+import org.openjdk.skara.bots.common.BotUtils;
 import org.openjdk.skara.bots.common.CommandNameEnum;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.*;
@@ -123,7 +124,8 @@ class ArchiveWorkItem implements WorkItem {
         var filteredBody = new StringBuilder();
         boolean readingMultiLineCommandArgs = false;
         for (var line : body.split("\\R")) {
-            var commandMatcher = EXECUTION_COMMAND_PATTERN.getPattern().matcher(line);
+            var preprocessedLine = BotUtils.preprocessCommandLine(line);
+            var commandMatcher = EXECUTION_COMMAND_PATTERN.getPattern().matcher(preprocessedLine);
             if (commandMatcher.matches()) {
                 readingMultiLineCommandArgs = false;
                 var command = commandMatcher.group(1).toLowerCase();

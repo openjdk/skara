@@ -76,4 +76,8 @@ public class BotUtils {
                 .map(mo -> mo.group(1))
                 .collect(Collectors.toSet());
     }
+
+    public static String preprocessCommandLine(String line) {
+        return line.replaceFirst("/skara\\s+", "/");
+    }
 }

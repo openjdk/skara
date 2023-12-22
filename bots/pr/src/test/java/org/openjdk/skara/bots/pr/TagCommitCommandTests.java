@@ -64,7 +64,7 @@ public class TagCommitCommandTests {
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Add a tag command
-            author.addCommitComment(masterHash, "/tag v1.0");
+            author.addCommitComment(masterHash, "/skara tag v1.0");
             TestBotRunner.runPeriodicItems(bot);
 
             var recentCommitComments = author.recentCommitComments();
