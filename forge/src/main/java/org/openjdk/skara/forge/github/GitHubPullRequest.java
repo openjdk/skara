@@ -84,34 +84,35 @@ public class GitHubPullRequest implements PullRequest {
     @Override
     public List<Review> reviews() {
         var currentTargetRef = targetRef();
-        var reviews = request.get("pulls/" + json.get("number").toString() + "/reviews").execute().stream()
-                             .map(JSONValue::asObject)
-                             .filter(obj -> !(obj.get("state").asString().equals("COMMENTED") && obj.get("body").asString().isEmpty()))
-                             .map(obj -> {
-                                 var reviewer = host.parseUserField(obj);
-                                 var commitId = obj.get("commit_id");
-                                 Hash hash = null;
-                                 if (commitId != null) {
-                                     hash = new Hash(commitId.asString());
-                                 }
-                                 Review.Verdict verdict;
-                                 switch (obj.get("state").asString()) {
-                                     case "APPROVED":
-                                         verdict = Review.Verdict.APPROVED;
-                                         break;
-                                     case "CHANGES_REQUESTED":
-                                         verdict = Review.Verdict.DISAPPROVED;
-                                         break;
-                                     default:
-                                         verdict = Review.Verdict.NONE;
-                                         break;
-                                 }
-                                 var id = obj.get("id").asInt();
-                                 var body = obj.get("body").asString();
-                                 var createdAt = ZonedDateTime.parse(obj.get("submitted_at").asString());
-                                 return new Review(createdAt, reviewer, verdict, hash, id, body, currentTargetRef);
-                             })
-                             .collect(Collectors.toList());
+        var reviews = request.get("pulls/" + json.get("number").toString() + "/reviews")
+                .param("per_page", "100").execute().stream()
+                .map(JSONValue::asObject)
+                .filter(obj -> !(obj.get("state").asString().equals("COMMENTED") && obj.get("body").asString().isEmpty()))
+                .map(obj -> {
+                    var reviewer = host.parseUserField(obj);
+                    var commitId = obj.get("commit_id");
+                    Hash hash = null;
+                    if (commitId != null) {
+                        hash = new Hash(commitId.asString());
+                    }
+                    Review.Verdict verdict;
+                    switch (obj.get("state").asString()) {
+                        case "APPROVED":
+                            verdict = Review.Verdict.APPROVED;
+                            break;
+                        case "CHANGES_REQUESTED":
+                            verdict = Review.Verdict.DISAPPROVED;
+                            break;
+                        default:
+                            verdict = Review.Verdict.NONE;
+                            break;
+                    }
+                    var id = obj.get("id").asInt();
+                    var body = obj.get("body").asString();
+                    var createdAt = ZonedDateTime.parse(obj.get("submitted_at").asString());
+                    return new Review(createdAt, reviewer, verdict, hash, id, body, currentTargetRef);
+                })
+                .collect(Collectors.toList());
 
         var targetRefChanges = targetRefChanges();
         return PullRequest.calculateReviewTargetRefs(reviews, targetRefChanges);
@@ -186,7 +187,7 @@ public class GitHubPullRequest implements PullRequest {
                .execute();
     }
 
-    private ReviewComment parseReviewComment(ReviewComment parent, JSONObject reviewJson) {
+    private ReviewComment parseReviewComment(ReviewComment parent, JSONObject reviewJson, boolean includeLocationData) {
         var author = host.parseUserField(reviewJson);
         var threadId = parent == null ? reviewJson.get("id").toString() : parent.threadId();
 
@@ -198,7 +199,7 @@ public class GitHubPullRequest implements PullRequest {
         }
         var path = reviewJson.get("path").asString();
 
-        if (reviewJson.get("side").asString().equals("LEFT")) {
+        if (includeLocationData && reviewJson.get("side").asString().equals("LEFT")) {
             var commitInfo = request.get("commits/" + hash).execute();
 
             // If line is present, it indicates the line in the merge-base commit
@@ -245,7 +246,7 @@ public class GitHubPullRequest implements PullRequest {
         var response = request.post("pulls/" + json.get("number").toString() + "/comments")
                               .body(query)
                               .execute();
-        return parseReviewComment(null, response.asObject());
+        return parseReviewComment(null, response.asObject(), true);
     }
 
     @Override
@@ -256,15 +257,15 @@ public class GitHubPullRequest implements PullRequest {
         var response = request.post("pulls/" + json.get("number").toString() + "/comments")
                               .body(query)
                               .execute();
-        return parseReviewComment(parent, response.asObject());
+        return parseReviewComment(parent, response.asObject(), true);
     }
 
-    @Override
-    public List<ReviewComment> reviewComments() {
+    private List<ReviewComment> reviewComments(boolean includeLocationData) {
         var ret = new ArrayList<ReviewComment>();
-        var reviewComments = request.get("pulls/" + json.get("number").toString() + "/comments").execute().stream()
-                                    .map(JSONValue::asObject)
-                                    .collect(Collectors.toList());
+        var reviewComments = request.get("pulls/" + json.get("number").toString() + "/comments")
+                .param("per_page", "100").execute().stream()
+                .map(JSONValue::asObject)
+                .collect(Collectors.toList());
         var idToComment = new HashMap<String, ReviewComment>();
 
         for (var reviewComment : reviewComments) {
@@ -272,12 +273,22 @@ public class GitHubPullRequest implements PullRequest {
             if (reviewComment.contains("in_reply_to_id")) {
                 parent = idToComment.get(reviewComment.get("in_reply_to_id").toString());
             }
-            var comment = parseReviewComment(parent, reviewComment);
+            var comment = parseReviewComment(parent, reviewComment, includeLocationData);
             idToComment.put(comment.id(), comment);
             ret.add(comment);
         }
 
         return ret;
+    }
+
+    @Override
+    public List<ReviewComment> reviewComments() {
+        return reviewComments(true);
+    }
+
+    @Override
+    public List<? extends Comment> reviewCommentsAsComments() {
+        return reviewComments(false);
     }
 
     @Override
@@ -348,7 +359,8 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public List<Comment> comments() {
-        return request.get("issues/" + json.get("number").toString() + "/comments").execute().stream()
+        return request.get("issues/" + json.get("number").toString() + "/comments")
+                .param("per_page", "100").execute().stream()
                 .map(this::parseComment)
                 .collect(Collectors.toList());
     }
@@ -383,7 +395,7 @@ public class GitHubPullRequest implements PullRequest {
             var reviewComment = request.patch("pulls/comments/" + id)
                                        .body("body", body)
                                        .execute();
-            return parseReviewComment(null, reviewComment.asObject());
+            return parseReviewComment(null, reviewComment.asObject(), false);
         }
         return parseComment(comment);
     }

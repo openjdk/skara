@@ -152,13 +152,13 @@ public class PullRequestPrunerBot implements Bot {
         }
 
         // Latest prune-delaying action (deliberately excluding pr.updatedAt, as it can be updated spuriously)
-        var latestAction = List.of(Stream.of(pr.createdAt()),
+        var latestAction = Stream.of(Stream.of(pr.createdAt()),
                                    pr.comments().stream()
                                      .map(Comment::updatedAt),
                                    pr.reviews().stream()
                                      .map(Review::createdAt),
-                                   pr.reviewComments().stream()
-                                     .map(Comment::updatedAt)).stream()
+                                   pr.reviewCommentsAsComments().stream()
+                                     .map(Comment::updatedAt))
                                .flatMap(Function.identity())
                                .max(ZonedDateTime::compareTo).orElseThrow();
 
