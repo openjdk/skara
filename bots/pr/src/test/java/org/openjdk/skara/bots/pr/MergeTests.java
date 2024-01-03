@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -221,6 +221,96 @@ class MergeTests {
             assertTrue(String.join("", headCommit.message())
                             .matches(".*Reviewed-by: integrationreviewer2$"),
                     String.join("", headCommit.message()));
+        }
+    }
+
+
+    @Test
+    void runJCheckTwiceInMergePR(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator1 = credentials.getHostedRepository();
+            var integrator2 = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(integrator1.forge().currentUser().id())
+                    .addReviewer(integrator2.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator1).censusRepo(censusBuilder.build())
+                    .reviewMerge(MergePullRequestReviewConfiguration.JCHECK).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make more changes in another branch
+
+            var checkConf = localRepoFolder.resolve(".jcheck/conf");
+            try (var output = Files.newBufferedWriter(checkConf)) {
+                output.append("[general]\n");
+                output.append("project=test\n");
+                output.append("jbs=tstprj\n");
+                output.append("\n");
+                output.append("[checks]\n");
+                output.append("error=");
+                output.append(String.join(",", Set.of("author", "reviewers", "whitespace")));
+                output.append("\n\n");
+                output.append("[census]\n");
+                output.append("version=0\n");
+                output.append("domain=openjdk.org\n");
+                output.append("\n");
+                output.append("[checks \"whitespace\"]\n");
+                output.append("files=.*\\.txt\n");
+                output.append("\n");
+                output.append("[checks \"reviewers\"]\n");
+                output.append("reviewers=2\n");
+                output.append("merge=check");
+            }
+            localRepo.add(checkConf);
+            var otherHash1 = localRepo.commit("add conf to master", "testauthor", "ta@none.none");
+            localRepo.push(otherHash1, author.authenticatedUrl(), "other_/-1.2");
+
+            var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other_/-1.2",
+                    "Second other_/-1.2\n\nReviewed-by: integrationreviewer2");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "other_/-1.2");
+
+            // Go back to the original master
+            localRepo.checkout(masterHash, true);
+
+            // Make a change with a corresponding PR
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            localRepo.add(unrelated);
+            var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
+            localRepo.merge(otherHash2);
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
+
+            var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other_/-1.2");
+
+            // Let the bot check the status
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // pr should not be ready, because JCheck conf updated in source branch
+            assertFalse(pr.store().labelNames().contains("ready"));
+            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 2) (failed with updated jcheck configuration in pull request)"));
+
+            // Approve it as another user
+            var approvalPr1 = integrator1.pullRequest(pr.id());
+            approvalPr1.addReview(Review.Verdict.APPROVED, "Approved");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            assertFalse(pr.store().labelNames().contains("ready"));
+            assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 1, need at least 2)"));
+
+            var approvalPr2 = integrator2.pullRequest(pr.id());
+            approvalPr2.addReview(Review.Verdict.APPROVED, "Approved");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            assertTrue(pr.store().labelNames().contains("ready"));
+            assertFalse(pr.store().body().contains("Too few reviewers with at least role reviewer found"));
         }
     }
 
