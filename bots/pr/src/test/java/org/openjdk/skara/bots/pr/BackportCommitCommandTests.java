@@ -252,6 +252,7 @@ public class BackportCommitCommandTests {
             assertTrue(botReply.body().contains("Please fetch the appropriate branch/commit and manually resolve these conflicts"));
             assertTrue(botReply.body().contains("master:master"));
             assertTrue(botReply.body().contains("$ git checkout master"));
+            assertTrue(botReply.body().contains("Below you can find a suggestion for the pull request body:"));
             assertEquals(List.of(), author.openPullRequests());
         }
     }

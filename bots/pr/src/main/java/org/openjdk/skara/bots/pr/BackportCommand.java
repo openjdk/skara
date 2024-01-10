@@ -260,6 +260,40 @@ public class BackportCommand implements CommandHandler {
             Hash backportHash;
             var backportBranchName = "backport-" + realUser.username() + "-" + hash.abbreviate();
             var backportBranchHash = fork.branchHash(backportBranchName);
+
+            var message = CommitMessageParsers.v1.parse(commit);
+            var formatter = DateTimeFormatter.ofPattern("d MMM uuuu");
+            var body = new ArrayList<String>();
+            body.add("> Hi all,");
+            body.add("> ");
+            body.add("> This pull request contains a backport of commit " +
+                    "[" + hash.abbreviate() + "](" + commit.url() + ") from the " +
+                    "[" + bot.repo().name() + "](" + bot.repo().webUrl() + ") repository.");
+            body.add(">");
+            var info = "> The commit being backported was authored by " + commit.author().name() + " on " +
+                    commit.committed().format(formatter);
+            if (message.reviewers().isEmpty()) {
+                info += " and had no reviewers";
+            } else {
+                var reviewers = message.reviewers()
+                        .stream()
+                        .map(r -> censusInstance.census().contributor(r))
+                        .map(c -> c.fullName().isPresent() ? c.fullName().get() : c.username())
+                        .collect(Collectors.toList());
+                var numReviewers = reviewers.size();
+                var listing = numReviewers == 1 ?
+                        reviewers.get(0) :
+                        String.join(", ", reviewers.subList(0, numReviewers - 1));
+                if (numReviewers > 1) {
+                    listing += " and " + reviewers.get(numReviewers - 1);
+                }
+                info += " and was reviewed by " + listing;
+            }
+            info += ".";
+            body.add(info);
+            body.add("> ");
+            body.add("> Thanks!");
+
             if (backportBranchHash.isEmpty()) {
                 var localRepoDir = scratchArea.get(this)
                         .resolve(targetRepo.name())
@@ -311,7 +345,9 @@ public class BackportCommand implements CommandHandler {
                     lines.add("```");
                     lines.add("");
                     lines.add("Once you have resolved the conflicts as explained above continue with creating a pull request towards the [" + targetRepoName + "](" + targetRepo.webUrl() + ") with the title `Backport " + hash.hex() + "`.");
-
+                    lines.add("");
+                    lines.add("Below you can find a suggestion for the pull request body:");
+                    lines.addAll(body);
                     reply.println(String.join("\n", lines));
                     localRepo.reset(head, true);
                     return;
@@ -341,39 +377,6 @@ public class BackportCommand implements CommandHandler {
                 // to push to the branch.
                 fork.restrictPushAccess(new Branch(backportBranchName), realUser);
             }
-
-            var message = CommitMessageParsers.v1.parse(commit);
-            var formatter = DateTimeFormatter.ofPattern("d MMM uuuu");
-            var body = new ArrayList<String>();
-            body.add("> Hi all,");
-            body.add("> ");
-            body.add("> This pull request contains a backport of commit " +
-                      "[" + hash.abbreviate() + "](" + commit.url() + ") from the " +
-                      "[" + bot.repo().name() + "](" + bot.repo().webUrl() + ") repository.");
-            body.add(">");
-            var info = "> The commit being backported was authored by " + commit.author().name() + " on " +
-                        commit.committed().format(formatter);
-            if (message.reviewers().isEmpty()) {
-                info += " and had no reviewers";
-            } else {
-                var reviewers = message.reviewers()
-                                       .stream()
-                                       .map(r -> censusInstance.census().contributor(r))
-                                       .map(c -> c.fullName().isPresent() ? c.fullName().get() : c.username())
-                                       .collect(Collectors.toList());
-                var numReviewers = reviewers.size();
-                var listing = numReviewers == 1 ?
-                    reviewers.get(0) :
-                    String.join(", ", reviewers.subList(0, numReviewers - 1));
-                if (numReviewers > 1) {
-                    listing += " and " + reviewers.get(numReviewers - 1);
-                }
-                info += " and was reviewed by " + listing;
-            }
-            info += ".";
-            body.add(info);
-            body.add("> ");
-            body.add("> Thanks!");
 
             var createPrUrl = fork.createPullRequestUrl(targetRepo, targetBranch.name(), backportBranchName);
             var targetBranchWebUrl = targetRepo.webUrl(targetBranch);

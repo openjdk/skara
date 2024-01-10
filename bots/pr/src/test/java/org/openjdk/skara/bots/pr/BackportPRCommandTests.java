@@ -120,6 +120,7 @@ public class BackportPRCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "@user2");
             assertLastCommentContains(pr, "Could **not** automatically backport");
+            assertLastCommentContains(pr, "Below you can find a suggestion for the pull request body:");
 
             // Resolve conflict
             localRepo.push(masterHash, targetRepo.authenticatedUrl(), "master", true);
