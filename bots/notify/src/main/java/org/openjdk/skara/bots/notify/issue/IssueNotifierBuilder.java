@@ -161,9 +161,8 @@ class IssueNotifierBuilder {
     }
 
     IssueNotifier build() {
-        var jbsBackport = new JbsBackport(issueProject.issueTracker());
         return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
-                setFixVersion, fixVersions, altFixVersions, jbsBackport, prOnly,
+                setFixVersion, fixVersions, altFixVersions, prOnly,
                 repoOnly, buildName, censusRepository, censusRef, namespace, useHeadVersion, originalRepository,
                 resolve, tagIgnoreOpt, tagMatchPrefix, defaultSecurity);
     }

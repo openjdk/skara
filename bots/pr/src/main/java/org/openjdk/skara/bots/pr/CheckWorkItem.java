@@ -31,6 +31,9 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.IssueTrackerIssue;
+import org.openjdk.skara.jbs.Backports;
+import org.openjdk.skara.jbs.JdkVersion;
+import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Hash;
@@ -650,6 +653,65 @@ class CheckWorkItem extends PullRequestWorkItem {
                     if (lastForcePushSuggestion.isEmpty() || lastForcePushSuggestion.get().createdAt().isBefore(lastForcePushTime.get())) {
                         log.info("Found force-push for " + pr.repository().name() + "#" + pr.id() + ", adding force-push suggestion");
                         pr.addComment("@" + pr.author().username() + " " + FORCE_PUSH_SUGGESTION + FORCE_PUSH_MARKER);
+                    }
+                }
+            }
+
+
+            // Check if the fixVersion of the issue is older than the fixVersion in the target branch. If so, update the
+            // fixVersion of the issue to fixVersion of the target branch and create a backport with the fixVersion
+            // from the original issue.
+            //
+            // NOTE: The current implementation only works for the issue in the title, *NOT* for all issues solved by the PR
+            if (bot.avoidForwardports()) {
+                var m = ISSUE_ID_PATTERN.matcher(pr.title());
+                Optional<IssueTrackerIssue> issue = m.matches() ? issueTrackerIssue(getMatchGroup(m, "id")) : Optional.empty();
+                if (issue.isPresent()) {
+                    // Check if a comment already has been added. If so the user must have reverted
+                    // the actions done by the bot and the fixVersion should not be updated.
+                    var avoidForwardportMarker = "<!-- avoid forwardport " + issue.get().id() + " -->";
+                    var botUser = pr.repository().forge().currentUser();
+                    var avoidForwardportComment = comments.stream()
+                            .filter(c -> c.author().equals(botUser))
+                            .filter(c -> c.body().contains(avoidForwardportMarker))
+                            .findFirst();
+                    if (avoidForwardportComment.isEmpty()) {
+                        var parser = new OverridingJCheckConfigurationParser(pr.repository(),
+                                                                            bot.confOverrideRepository(),
+                                                                            bot.confOverrideName(),
+                                                                            bot.confOverrideRef());
+                        var jcheckConf = parser.parse(pr.targetHeadHash());
+                        var targetFixVersion = jcheckConf.flatMap(c -> c.general().version())
+                                                        .flatMap(v -> JdkVersion.parse(v));
+                        if (targetFixVersion.isPresent()) {
+                            var willCreateBackport = Backports.findIssue(issue.get(), targetFixVersion.get()).isEmpty();
+                            if (willCreateBackport) {
+                                var issueFixVersion = Backports.mainFixVersion(issue.get());
+                                if (issueFixVersion.isPresent() &&
+                                    targetFixVersion.get().compareTo(issueFixVersion.get()) > 0) {
+                                    log.info("Avoiding forward-backport of issue '" + issue.get().id() + "' with fixVersion '" + issueFixVersion.get().raw() +
+                                             "', repository fixVersion is '" + targetFixVersion.get().raw() + "'");
+                                    // This scenario would result in a "forward-backport" being created. Avoid it by
+                                    // updating the fixVersion of the original issue and creating a backport with
+                                    // the fixVersion from the original issue.
+                                    issue.get().setProperty("fixVersions",
+                                                            JSON.array().add(targetFixVersion.get().raw()));
+                                    var assignees = issue.get().assignees();
+                                    var backport = assignees.isEmpty() ?
+                                        Backports.createBackport(issue.get(), issueFixVersion.get().raw()) :
+                                        Backports.createBackport(issue.get(), issueFixVersion.get().raw(), assignees.get(0).username());
+                                    pr.addComment(avoidForwardportMarker + "\n" + "@" + pr.author().username() + " in order to avoid a \"forward backport\" the fix version for [" +
+                                                issue.get().title() + "](" + issue.get().webUrl() + ") has been set to `" + targetFixVersion.get().raw() + "`" +
+                                                " and the backport issue [" + backport.id() + "](" + backport.webUrl() + ") with fix version set to `" +
+                                                issueFixVersion.get().raw() + "` has been created." +
+                                                "\n\n" +
+                                                "If you wish to revert this action then set the fix version for [" + issue.get().title() + "](" + issue.get().webUrl() + ")" +
+                                                " to `" + issueFixVersion.get().raw() + "` and close the backport issue [" + backport.id() + "](" + backport.webUrl() + ")." + 
+                                                " Be aware however that if you revert this action then a \"forward backport\" will be created if this pull request is integrated" +
+                                                " (this is most likely _not_ what you want).");
+                                }
+                            }
+                        }
                     }
                 }
             }

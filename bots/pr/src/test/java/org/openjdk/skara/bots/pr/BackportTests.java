@@ -24,7 +24,9 @@ package org.openjdk.skara.bots.pr;
 
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.jcheck.ReviewersCheck;
+import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -2095,6 +2097,356 @@ class BackportTests {
 
             // The bot should have added the "clean" label
             assertTrue(pr.store().labelNames().contains("clean"));
+        }
+    }
+
+    @Test
+    void avoidForwardports(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .avoidForwardports(true)
+                    .build();
+
+            // Add .jcheck/conf with fixVersion=22
+            var localRepoDir = tempFolder.path();
+            var localRepo = Repository.init(localRepoDir, author.repositoryType());
+            var jcheckConf = localRepoDir.resolve(".jcheck").resolve("conf");
+            Files.createDirectories(jcheckConf.getParent());
+            Files.write(jcheckConf, List.of(
+                "[general]",
+                "project=test",
+                "jbs=tstprj",
+                "version=22",
+                "",
+                "[checks]",
+                "error=author,reviewrs,whitespace",
+                "[census]",
+                "version=0",
+                "domain=openjdk.org",
+                "",
+                "[checks \"whitespace\"]",
+                "files=.*\\.txt",
+                "",
+                "[checks \"reviewers\"]",
+                "reviewers=1"
+            ));
+            localRepo.add(jcheckConf);
+            localRepo.commit("Added .jcheck/conf", "duke", "duke@openjdk.org");
+
+            // Populate "remote" repo
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Create issue with fixVersion=21 and "fix" it
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var newFile2 = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile2, "hello");
+            localRepo.add(newFile2);
+            var issueTitle = "An issue";
+            var issue = credentials.createIssue(issues, issueTitle);
+            issue.setProperty("fixVersions", JSON.array().add("21"));
+            var issueNumber = issue.id().split("-")[1];
+            var editHash = localRepo.commit(issueNumber + ": " + issueTitle, "duke", "duke@openjdk.org");
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issueNumber + ": " + issueTitle);
+
+            // The bot should reply with a message that the fixVersion has been updated and backport issue created
+            TestBotRunner.runPeriodicItems(bot);
+            var comment = pr.comments().get(1).body();
+            assertTrue(comment.contains("<!-- avoid forwardport " + issue.id() + " -->"));
+            assertTrue(comment.contains("in order to avoid a \"forward backport\""));
+            assertEquals(JSON.array().add("22"), issue.properties().get("fixVersions"));
+
+            var backportLink = issue.links().stream().filter(l -> l.relationship().equals(Optional.of("backported by"))).findFirst();
+            assertTrue(backportLink.isPresent());
+            var backport = backportLink.get().issue();
+            assertTrue(backport.isPresent());
+            assertEquals(JSON.of("Backport"), backport.get().properties().get("issuetype"));
+            assertEquals(JSON.array().add("21"), backport.get().properties().get("fixVersions"));
+        }
+    }
+
+    @Test
+    void avoidForwardportsShouldNotRepeat(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .avoidForwardports(true)
+                    .build();
+
+            // Add .jcheck/conf with fixVersion=22
+            var localRepoDir = tempFolder.path();
+            var localRepo = Repository.init(localRepoDir, author.repositoryType());
+            var jcheckConf = localRepoDir.resolve(".jcheck").resolve("conf");
+            Files.createDirectories(jcheckConf.getParent());
+            Files.write(jcheckConf, List.of(
+                "[general]",
+                "project=test",
+                "jbs=tstprj",
+                "version=22",
+                "",
+                "[checks]",
+                "error=author,reviewrs,whitespace",
+                "[census]",
+                "version=0",
+                "domain=openjdk.org",
+                "",
+                "[checks \"whitespace\"]",
+                "files=.*\\.txt",
+                "",
+                "[checks \"reviewers\"]",
+                "reviewers=1"
+            ));
+            localRepo.add(jcheckConf);
+            localRepo.commit("Added .jcheck/conf", "duke", "duke@openjdk.org");
+
+            // Populate "remote" repo
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Create issue with fixVersion=21 and "fix" it
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var newFile2 = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile2, "hello");
+            localRepo.add(newFile2);
+            var issueTitle = "An issue";
+            var issue = credentials.createIssue(issues, issueTitle);
+            issue.setProperty("fixVersions", JSON.array().add("21"));
+            var issueNumber = issue.id().split("-")[1];
+            var editHash = localRepo.commit(issueNumber + ": " + issueTitle, "duke", "duke@openjdk.org");
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issueNumber + ": " + issueTitle);
+
+            // The bot should reply with a message that the fixVersion has been updated and backport issue created
+            TestBotRunner.runPeriodicItems(bot);
+            var comment = pr.comments().get(1).body();
+            assertTrue(comment.contains("<!-- avoid forwardport " + issue.id() + " -->"));
+            assertTrue(comment.contains("in order to avoid a \"forward backport\""));
+            assertEquals(JSON.array().add("22"), issue.properties().get("fixVersions"));
+
+            var backportLink = issue.links().stream().filter(l -> l.relationship().equals(Optional.of("backported by"))).findFirst();
+            assertTrue(backportLink.isPresent());
+            var backport = backportLink.get().issue();
+            assertTrue(backport.isPresent());
+            assertEquals(JSON.of("Backport"), backport.get().properties().get("issuetype"));
+            assertEquals(JSON.array().add("21"), backport.get().properties().get("fixVersions"));
+
+            // Revert the actions done by the bot
+            issue.setProperty("fixVersions", JSON.array().add("21"));
+            issue.removeLink(backportLink.get());
+            backport.get().setState(Issue.State.CLOSED);
+
+            // Run the bot again, it should now not update the fixVersion nor create a backport
+            TestBotRunner.runPeriodicItems(bot);
+            assertEquals(JSON.array().add("21"), issue.properties().get("fixVersions"));
+            assertEquals(List.of(), issue.links());
+        }
+    }
+
+    @Test
+    void avoidForwardportsIfIssueChanges(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .avoidForwardports(true)
+                    .build();
+
+            // Add .jcheck/conf with fixVersion=22
+            var localRepoDir = tempFolder.path();
+            var localRepo = Repository.init(localRepoDir, author.repositoryType());
+            var jcheckConf = localRepoDir.resolve(".jcheck").resolve("conf");
+            Files.createDirectories(jcheckConf.getParent());
+            Files.write(jcheckConf, List.of(
+                "[general]",
+                "project=test",
+                "jbs=tstprj",
+                "version=22",
+                "",
+                "[checks]",
+                "error=author,reviewrs,whitespace",
+                "[census]",
+                "version=0",
+                "domain=openjdk.org",
+                "",
+                "[checks \"whitespace\"]",
+                "files=.*\\.txt",
+                "",
+                "[checks \"reviewers\"]",
+                "reviewers=1"
+            ));
+            localRepo.add(jcheckConf);
+            localRepo.commit("Added .jcheck/conf", "duke", "duke@openjdk.org");
+
+            // Populate "remote" repo
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Create issue with fixVersion=21 and "fix" it
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var newFile2 = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile2, "hello");
+            localRepo.add(newFile2);
+            var issueTitle = "An issue";
+            var issue = credentials.createIssue(issues, issueTitle);
+            issue.setProperty("fixVersions", JSON.array().add("21"));
+            var issueNumber = issue.id().split("-")[1];
+            var editHash = localRepo.commit(issueNumber + ": " + issueTitle, "duke", "duke@openjdk.org");
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issueNumber + ": " + issueTitle);
+
+            // The bot should reply with a message that the fixVersion has been updated and backport issue created
+            TestBotRunner.runPeriodicItems(bot);
+            var comment = pr.comments().get(1).body();
+            assertTrue(comment.contains("<!-- avoid forwardport " + issue.id() + " -->"));
+            assertTrue(comment.contains("in order to avoid a \"forward backport\""));
+            assertEquals(JSON.array().add("22"), issue.properties().get("fixVersions"));
+
+            var backportLink = issue.links().stream().filter(l -> l.relationship().equals(Optional.of("backported by"))).findFirst();
+            assertTrue(backportLink.isPresent());
+            var backport = backportLink.get().issue();
+            assertTrue(backport.isPresent());
+            assertEquals(JSON.of("Backport"), backport.get().properties().get("issuetype"));
+            assertEquals(JSON.array().add("21"), backport.get().properties().get("fixVersions"));
+
+            // Revert the actions done by the bot
+            issue.setProperty("fixVersions", JSON.array().add("21"));
+            issue.removeLink(backportLink.get());
+            backport.get().setState(Issue.State.CLOSED);
+
+            // Run the bot again, it should now not update the fixVersion nor create a backport
+            TestBotRunner.runPeriodicItems(bot);
+            assertEquals(JSON.array().add("21"), issue.properties().get("fixVersions"));
+            assertEquals(List.of(), issue.links());
+
+            // Change the issue that the PR solves
+            var issue2 = credentials.createIssue(issues, "Another issue");
+            issue2.setProperty("fixVersions", JSON.array().add("21"));
+            var issue2Number = issue2.id().split("-")[1];
+            pr.setTitle(issue2Number + ": Another issue");
+
+            // Run the bot again, it should now avoid a forwardport as the issue has changed
+            TestBotRunner.runPeriodicItems(bot);
+            var comment2 = pr.comments().get(pr.comments().size() - 1).body();
+            assertTrue(comment2.contains("<!-- avoid forwardport " + issue2.id() + " -->"));
+            assertTrue(comment2.contains("in order to avoid a \"forward backport\""));
+            assertEquals(JSON.array().add("22"), issue2.properties().get("fixVersions"));
+        }
+    }
+
+    @Test
+    void avoidForwardportShouldNotRunForEqualFixVersions(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .avoidForwardports(true)
+                    .build();
+
+            // Add .jcheck/conf with fixVersion=22
+            var localRepoDir = tempFolder.path();
+            var localRepo = Repository.init(localRepoDir, author.repositoryType());
+            var jcheckConf = localRepoDir.resolve(".jcheck").resolve("conf");
+            Files.createDirectories(jcheckConf.getParent());
+            Files.write(jcheckConf, List.of(
+                "[general]",
+                "project=test",
+                "jbs=tstprj",
+                "version=22",
+                "",
+                "[checks]",
+                "error=author,reviewrs,whitespace",
+                "[census]",
+                "version=0",
+                "domain=openjdk.org",
+                "",
+                "[checks \"whitespace\"]",
+                "files=.*\\.txt",
+                "",
+                "[checks \"reviewers\"]",
+                "reviewers=1"
+            ));
+            localRepo.add(jcheckConf);
+            localRepo.commit("Added .jcheck/conf", "duke", "duke@openjdk.org");
+
+            // Populate "remote" repo
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Create issue with fixVersion=21 and "fix" it
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var newFile2 = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile2, "hello");
+            localRepo.add(newFile2);
+            var issueTitle = "An issue";
+            var issue = credentials.createIssue(issues, issueTitle);
+            issue.setProperty("fixVersions", JSON.array().add("22"));
+            var issueNumber = issue.id().split("-")[1];
+            var editHash = localRepo.commit(issueNumber + ": " + issueTitle, "duke", "duke@openjdk.org");
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issueNumber + ": " + issueTitle);
+
+            // The bot should *not* reply with a message that the fixVersion has been updated and backport issue created
+            TestBotRunner.runPeriodicItems(bot);
+            assertEquals(1, pr.comments().size());
+            var comment = pr.comments().get(0).body();
+            assertFalse(comment.contains("<!-- avoid forwardport " + issue.id() + " -->"));
+            assertFalse(comment.contains("in order to avoid a \"forward backport\""));
+            assertEquals(JSON.array().add("22"), issue.properties().get("fixVersions"));
+
+            var backportLink = issue.links().stream().filter(l -> l.relationship().equals(Optional.of("backported by"))).findFirst();
+            assertFalse(backportLink.isPresent());
         }
     }
 }

@@ -193,10 +193,12 @@ public class IntegrateCommand implements CommandHandler {
             pr = pr.repository().pullRequest(pr.id());
 
             Repository localRepo = materializeLocalRepo(bot, pr, scratchArea);
-            var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
-                    bot.confOverrideRepository().orElse(null),
+            var jcheckParser = new OverridingJCheckConfigurationParser(localRepo,
+                    bot.confOverrideRepository(),
                     bot.confOverrideName(),
-                    bot.confOverrideRef(),
+                    bot.confOverrideRef());
+            var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
+                    jcheckParser,
                     allComments,
                     bot.reviewMerge());
 

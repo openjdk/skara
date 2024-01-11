@@ -68,6 +68,7 @@ public class PullRequestBotBuilder {
     private Approval approval = null;
     private boolean versionMismatchWarning = false;
     private boolean cleanCommandEnabled = true;
+    private boolean avoidForwardports = false;
 
     PullRequestBotBuilder() {
     }
@@ -257,12 +258,17 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder avoidForwardports(boolean avoidForwardports) {
+        this.avoidForwardports = avoidForwardports;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration, externalPullRequestCommands,
                 externalCommitCommands, blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
                 readyComments, issueProject, ignoreStaleReviews, allowedTargetBranches, seedStorage, confOverrideRepo,
                 confOverrideName, confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom, enableCsr,
                 enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge, processPR, processCommit, enableMerge,
-                mergeSources, jcheckMerge, enableBackport, issuePRMap, approval, versionMismatchWarning, cleanCommandEnabled);
+                mergeSources, jcheckMerge, enableBackport, issuePRMap, approval, versionMismatchWarning, cleanCommandEnabled, avoidForwardports);
     }
 }

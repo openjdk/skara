@@ -104,10 +104,12 @@ class CheckRun {
         this.approval = approval;
 
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
-        checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews,
-                workItem.bot.confOverrideRepository().orElse(null),
+        var jcheckParser = new OverridingJCheckConfigurationParser(localRepo,
+                workItem.bot.confOverrideRepository(),
                 workItem.bot.confOverrideName(),
-                workItem.bot.confOverrideRef(),
+                workItem.bot.confOverrideRef());
+        checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews,
+                jcheckParser,
                 comments,
                 reviewMerge);
     }

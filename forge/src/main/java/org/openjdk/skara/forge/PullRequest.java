@@ -122,6 +122,18 @@ public interface PullRequest extends Issue {
     String targetRef();
 
     /**
+     * Returns the hash of the current HEAD of the target ref the request is intended to be merged into.
+     *
+     * Note that the target HEAD hash is constantly changing as new commits are integrated into the target ref.
+     * @return
+     */
+    default Hash targetHeadHash() {
+        return repository().branchHash(targetRef()).orElseThrow(() ->
+            new IllegalStateException("Missing HEAD hash for branch '" + targetRef() + "'")
+        );
+    }
+
+    /**
      * Returns a list of all targetRef change events.
      * @return
      */

@@ -25,6 +25,8 @@ module {
     name = 'org.openjdk.skara.jbs'
     test {
         requires 'org.openjdk.skara.test'
+        requires 'org.openjdk.skara.network'
+        requires 'org.openjdk.skara.proxy'
         requires 'org.junit.jupiter.api'
         opens 'org.openjdk.skara.jbs' to 'org.junit.platform.commons'
     }
@@ -35,6 +37,8 @@ dependencies {
     implementation project(':issuetracker')
     implementation project(':json')
 
+    testImplementation project(':network')
+    testImplementation project(':proxy')
     testImplementation project(':test')
 }
 

@@ -267,6 +267,10 @@ public class PullRequestBotFactory implements BotFactory {
                 botBuilder.cleanCommandEnabled(repo.value().get("cleanCommandEnabled").asBoolean());
             }
 
+            if (repo.value().contains("avoidForwardports")) {
+                botBuilder.avoidForwardports(repo.value().get("avoidForwardports").asBoolean());
+            }
+
             var prBot = botBuilder.build();
             pullRequestBotMap.put(repository.name(), prBot);
             ret.add(prBot);
