@@ -409,6 +409,14 @@ public class BackportCommand implements CommandHandler {
                           "$ git commit --message 'Describe additional changes made'\n" +
                           "$ git push " + fork.url() + " " + backportBranchName + "\n" +
                           "```");
+            if (bot.repo().forge().name().equals("GitHub")) {
+                reply.println();
+                reply.print("@");
+                reply.print(realUser.username());
+                reply.print(" ");
+                reply.print("If this is the first time you are using the /backport command for this particular target repository, " +
+                        "a `collaborator` invite will be sent out for my fork [" + fork.name() + "](" + fork.url() + "). You will need to accept this invite before you can proceed.\n");
+            }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
