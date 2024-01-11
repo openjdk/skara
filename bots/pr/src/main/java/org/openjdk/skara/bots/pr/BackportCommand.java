@@ -370,9 +370,9 @@ public class BackportCommand implements CommandHandler {
             if (!fork.canPush(realUser)) {
                 fork.addCollaborator(realUser, true);
                 if (bot.repo().forge().name().equals("GitHub")) {
-                    invitationReminder = "\n\n⚠️ @" + realUser.username() + " " +
-                            "You are not yet a collaborator in my fork [" + fork.name() + "](" + fork.url() + "). " +
-                            "An invite will be sent out and you need to accept it before you can proceed.";
+                    invitationReminder = "\n\n⚠️ @" + realUser.username() +
+                            " You are not yet a collaborator in my fork [" + fork.name() + "](" + fork.url() + ")." +
+                            " An invite will be sent out and you need to accept it before you can proceed.";
                 }
             } else {
                 // It's not possible to add branch level push protection unless the user
