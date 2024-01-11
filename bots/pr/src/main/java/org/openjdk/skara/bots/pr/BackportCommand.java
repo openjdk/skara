@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -366,8 +366,14 @@ public class BackportCommand implements CommandHandler {
                 backportHash = backportBranchHash.get();
             }
 
+            var invitationReminder = "";
             if (!fork.canPush(realUser)) {
                 fork.addCollaborator(realUser, true);
+                if (bot.repo().forge().name().equals("GitHub")) {
+                    invitationReminder = "\n\n⚠️ @" + realUser.username() + " " +
+                            "You are not yet a collaborator in my fork [" + fork.name() + "](" + fork.url() + "). " +
+                            "An invite will be sent out and you need to accept it before you can proceed.";
+                }
             } else {
                 // It's not possible to add branch level push protection unless the user
                 // already has push permissions in the repository. If we try to restrict
@@ -408,15 +414,8 @@ public class BackportCommand implements CommandHandler {
                           "$ git add paths/to/changed/files\n" +
                           "$ git commit --message 'Describe additional changes made'\n" +
                           "$ git push " + fork.url() + " " + backportBranchName + "\n" +
-                          "```");
-            if (bot.repo().forge().name().equals("GitHub")) {
-                reply.println();
-                reply.print("@");
-                reply.print(realUser.username());
-                reply.print(" ");
-                reply.print("If this is the first time you are using the /backport command for this particular target repository, " +
-                        "a `collaborator` invite will be sent out for my fork [" + fork.name() + "](" + fork.url() + "). You will need to accept this invite before you can proceed.\n");
-            }
+                          "```" +
+                          invitationReminder);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
