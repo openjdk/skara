@@ -212,13 +212,10 @@ task bots(type: Copy) {
 
     dependsOn ':bots:cli:images'
 
-    def os = getOS()
-    def cpu = getCPU()
-
     from zipTree(file(project.rootDir.toString() +
                       '/bots/cli/build/distributions/cli' +
-                      '-' + project.version + '-' +
-                      os + '-' + cpu + '.zip'))
+                      '-' + project.version +
+                      '-linux-x64.zip'))
     into project.rootDir.toString() + '/bots/bin'
 }
 
