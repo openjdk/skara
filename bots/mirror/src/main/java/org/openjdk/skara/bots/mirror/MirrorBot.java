@@ -49,19 +49,21 @@ class MirrorBot implements Bot, WorkItem {
     private final List<Pattern> branchPatterns;
     private final boolean includeTags;
     private final boolean onlyTags;
+    private final List<String> refspecs;
 
     MirrorBot(Path storage, HostedRepository from, HostedRepository to) {
-        this(storage, from, to, List.of(), true, false);
+        this(storage, from, to, List.of(), true, false, List.of());
     }
 
     MirrorBot(Path storage, HostedRepository from, HostedRepository to, List<Pattern> branchPatterns,
-              boolean includeTags, boolean onlyTags) {
+              boolean includeTags, boolean onlyTags, List<String> refspecs) {
         this.storage = storage;
         this.from = from;
         this.to = to;
         this.branchPatterns = branchPatterns;
         this.includeTags = includeTags;
         this.onlyTags = onlyTags;
+        this.refspecs = refspecs;
     }
 
     @Override
@@ -103,14 +105,14 @@ class MirrorBot implements Bot, WorkItem {
             }
 
             log.info("Pulling " + from.name());
-            repo.fetchAll(from.authenticatedUrl(), includeTags || onlyTags);
+            repo.fetchAll(from.authenticatedUrl(), includeTags || onlyTags || !refspecs.isEmpty());
             if (onlyTags) {
                 log.info("Pushing tags to " + to.name());
                 repo.pushTags(to.authenticatedUrl(), true);
             } else if (branchPatterns.isEmpty() && includeTags) {
                 log.info("Pushing tags and branches to " + to.name());
                 repo.pushAll(to.authenticatedUrl(), true);
-            } else {
+            } else if (!branchPatterns.isEmpty()) {
                 for (var branch : repo.branches()) {
                     if (branchPatterns.stream().anyMatch(p -> p.matcher(branch.name()).matches())) {
                         var hash = repo.resolve(branch);
@@ -123,6 +125,11 @@ class MirrorBot implements Bot, WorkItem {
                         }
                     }
                 }
+            } else if (!refspecs.isEmpty()) {
+                for (var refspec : refspecs) {
+                    log.info("Pushing using refspec " + refspec + " to " + to.name());
+                    repo.push(refspec, to.authenticatedUrl(), true);
+                }
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -133,22 +140,26 @@ class MirrorBot implements Bot, WorkItem {
     @Override
     public String toString() {
         var name = "MirrorBot@" + from.name() + "->" + to.name();
-        if (branchPatterns.isEmpty()) {
-            if (onlyTags) {
-                name += " ()";
+        if (!refspecs.isEmpty()) {
+            name += " (" + String.join(",", refspecs) + ")";
+        } else {
+            if (branchPatterns.isEmpty()) {
+                if (onlyTags) {
+                    name += " ()";
+                } else {
+                    name += " (*)";
+                }
             } else {
-                name += " (*)";
+                var branchPatterns = this.branchPatterns.stream().map(Pattern::toString).collect(Collectors.toList());
+                name += " (" + String.join(",", branchPatterns) + ")";
             }
-        } else {
-            var branchPatterns = this.branchPatterns.stream().map(Pattern::toString).collect(Collectors.toList());
-            name += " (" + String.join(",", branchPatterns) + ")";
-        }
-        if (onlyTags) {
-            name += " [tags only]";
-        } else if (includeTags) {
-            name += " [tags included]";
-        } else {
-            name += " [tags excluded]";
+            if (onlyTags) {
+                name += " [tags only]";
+            } else if (includeTags) {
+                name += " [tags included]";
+            } else {
+                name += " [tags excluded]";
+            }
         }
         return name;
     }
@@ -183,5 +194,9 @@ class MirrorBot implements Bot, WorkItem {
 
     public boolean isOnlyTags() {
         return onlyTags;
+    }
+
+    public List<String> getRefspecs() {
+        return refspecs;
     }
 }

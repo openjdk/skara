@@ -71,6 +71,7 @@ public interface Repository extends ReadOnlyRepository {
     void push(Hash hash, URI uri, String ref, boolean force, boolean includeTags) throws IOException;
     void push(Branch branch, String remote, boolean setUpstream) throws IOException;
     void push(Tag tag, URI uri, boolean force) throws IOException;
+    void push(String refspec, URI uri, boolean force) throws IOException;
     void clean() throws IOException;
     void reset(Hash target, boolean hard) throws IOException;
     void revert(Hash parent) throws IOException;

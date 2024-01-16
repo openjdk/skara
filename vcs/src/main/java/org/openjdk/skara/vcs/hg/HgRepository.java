@@ -604,6 +604,11 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public void push(String refspec, URI uri, boolean force) throws IOException {
+        throw new RuntimeException("Refspec not supported with Mercurial");
+    }
+
+    @Override
     public boolean isClean() throws IOException {
         try (var p = capture("hg", "status")) {
             var output = await(p);

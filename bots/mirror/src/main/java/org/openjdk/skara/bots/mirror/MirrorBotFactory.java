@@ -60,8 +60,25 @@ public class MirrorBotFactory implements BotFactory {
             var toName = repo.get("to").asString();
             var toRepo = configuration.repository(toName);
 
+            List<String> refspecs;
+            if (repo.contains("refspecs")) {
+                var refspecsElement = repo.get("refspecs");
+                if (refspecsElement.isArray()) {
+                    refspecs = refspecsElement.asArray().stream()
+                            .map(JSONValue::asString)
+                            .toList();
+                } else {
+                    refspecs = List.of(refspecsElement.asString());
+                }
+            } else {
+                refspecs = List.of();
+            }
+
             List<Pattern> branchPatterns;
             if (repo.contains("branches")) {
+                if (!refspecs.isEmpty()) {
+                    throw new IllegalStateException("Cannot combine refspecs and branches");
+                }
                 // Accept both an array of regex patterns as well as a single comma separated
                 // string for backwards compatibility
                 var branchesElement = repo.get("branches");
@@ -79,7 +96,7 @@ public class MirrorBotFactory implements BotFactory {
                 branchPatterns = List.of();
             }
 
-            var includeTags = branchPatterns.isEmpty();
+            var includeTags = branchPatterns.isEmpty() && refspecs.isEmpty();
             var onlyTags = false;
             if (repo.contains("tags")) {
                 var tags = repo.get("tags").asString().toLowerCase().strip();
@@ -96,9 +113,12 @@ public class MirrorBotFactory implements BotFactory {
             if (onlyTags && !branchPatterns.isEmpty()) {
                 throw new IllegalStateException("Branches cannot be mirrored when only tags are mirrored");
             }
+            if ((onlyTags || includeTags) && !refspecs.isEmpty()) {
+                throw new IllegalStateException("Cannot combine refspecs and tags");
+            }
 
             log.info("Setting up mirroring from " + fromRepo.name() + " to " + toRepo.name());
-            bots.add(new MirrorBot(storage, fromRepo, toRepo, branchPatterns, includeTags, onlyTags));
+            bots.add(new MirrorBot(storage, fromRepo, toRepo, branchPatterns, includeTags, onlyTags, refspecs));
         }
         return bots;
     }
