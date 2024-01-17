@@ -1940,4 +1940,57 @@ class MergeTests {
                     check.title().get());
         }
     }
+
+    @Test
+    void noSecondParentSpecified(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(integrator.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder()
+                                         .repo(integrator)
+                                         .censusRepo(censusBuilder.build())
+                                         .reviewMerge(MergePullRequestReviewConfiguration.ALWAYS)
+                                         .jcheckMerge(true)
+                                         .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make more changes in another branch
+            var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other", 
+                    "First other\n\nReviewed-by: integrationreviewer2");
+            var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
+                    "Second other\n\nReviewed-by: integrationreviewer2");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "other");
+
+            // Go back to the original master
+            localRepo.checkout(masterHash, true);
+
+            // Make a change with a corresponding PR
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            localRepo.add(unrelated);
+            var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
+
+            var pr = credentials.createPullRequest(author, "master", "other", "Merge");
+
+            // Let the bot check the status
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The PR title should have been updated
+            assertEquals("Merge " + otherHash2.hex(), pr.title());
+            assertLastCommentContains(pr,
+                    "The second parent of the resulting merge commit from this pull request will be set to `" +
+                    otherHash2.hex() + "`");
+        }
+    }
 }
