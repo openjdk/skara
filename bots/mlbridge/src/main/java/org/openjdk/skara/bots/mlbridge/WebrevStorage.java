@@ -255,7 +255,7 @@ class WebrevStorage {
         var uriBuilder = URIBuilder.base(uri);
 
         while (Instant.now().isBefore(end)) {
-            var uncachedUri = uriBuilder.setQuery(Map.of("nocache", UUID.randomUUID().toString())).build();
+            var uncachedUri = uriBuilder.setQuery(Map.of("nocache", List.of(UUID.randomUUID().toString()))).build();
             log.fine("Validating webrev URL: " + uncachedUri);
             var request = HttpRequest.newBuilder(uncachedUri)
                                      .timeout(Duration.ofSeconds(30))
