@@ -128,7 +128,7 @@ class MirrorBot implements Bot, WorkItem {
             } else if (!refspecs.isEmpty()) {
                 for (var refspec : refspecs) {
                     log.info("Pushing using refspec " + refspec + " to " + to.name());
-                    repo.push(refspec, to.authenticatedUrl(), true);
+                    repo.push(refspec, to.authenticatedUrl());
                 }
             }
         } catch (IOException e) {

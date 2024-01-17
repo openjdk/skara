@@ -604,7 +604,7 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public void push(String refspec, URI uri, boolean force) throws IOException {
+    public void push(String refspec, URI uri) throws IOException {
         throw new RuntimeException("Refspec not supported with Mercurial");
     }
 

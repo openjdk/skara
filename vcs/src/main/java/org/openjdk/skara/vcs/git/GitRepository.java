@@ -650,10 +650,7 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public void push(String refspec, URI uri, boolean force) throws IOException {
-        if (force && !refspec.equals("+")) {
-            refspec = "+" + refspec;
-        }
+    public void push(String refspec, URI uri) throws IOException {
         try (var p = capture("git", "push", uri.toString(), refspec)) {
             await(p);
         }
