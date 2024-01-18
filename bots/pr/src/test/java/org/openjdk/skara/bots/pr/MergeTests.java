@@ -1966,7 +1966,7 @@ class MergeTests {
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make more changes in another branch
-            var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other", 
+            var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other",
                     "First other\n\nReviewed-by: integrationreviewer2");
             var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
                     "Second other\n\nReviewed-by: integrationreviewer2");
