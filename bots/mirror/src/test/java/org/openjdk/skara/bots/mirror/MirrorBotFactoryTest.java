@@ -252,4 +252,109 @@ class MirrorBotFactoryTest {
                          mirrorBot6.getBranchPatterns().stream().map(Pattern::toString).toList());
         }
     }
+
+    @Test
+    public void testThrowsWithRefspecsAndTags() {
+        try (var tempFolder = new TemporaryDirectory()) {
+            String jsonString = """
+                    {
+                      "repositories": [
+                        {
+                          "from": "from1",
+                          "to": "to1",
+                          "refspecs": "refs/foo",
+                          "tags": "only"
+                        }
+                      ]
+                    }
+                    """;
+            var jsonConfig = JWCC.parse(jsonString).asObject();
+
+            var testBotFactory = TestBotFactory.newBuilder()
+                    .addHostedRepository("from1", new TestHostedRepository("from1"))
+                    .addHostedRepository("to1", new TestHostedRepository("to1"))
+                    .storagePath(tempFolder.path().resolve("storage"))
+                    .build();
+
+            assertThrows(IllegalStateException.class, () -> testBotFactory.createBots(MirrorBotFactory.NAME, jsonConfig));
+        }
+    }
+
+    @Test
+    public void testThrowsWithRefspecsAndBranches() {
+        try (var tempFolder = new TemporaryDirectory()) {
+            String jsonString = """
+                    {
+                      "repositories": [
+                        {
+                          "from": "from1",
+                          "to": "to1",
+                          "refspecs": "refs/foo",
+                          "branches": "master"
+                        }
+                      ]
+                    }
+                    """;
+            var jsonConfig = JWCC.parse(jsonString).asObject();
+
+            var testBotFactory = TestBotFactory.newBuilder()
+                    .addHostedRepository("from1", new TestHostedRepository("from1"))
+                    .addHostedRepository("to1", new TestHostedRepository("to1"))
+                    .storagePath(tempFolder.path().resolve("storage"))
+                    .build();
+
+            assertThrows(IllegalStateException.class, () -> testBotFactory.createBots(MirrorBotFactory.NAME, jsonConfig));
+        }
+    }
+
+    @Test
+    public void testCreateWithRefspecs() {
+        try (var tempFolder = new TemporaryDirectory()) {
+            String jsonString = """
+                    {
+                      "repositories": [
+                        {
+                          "from": "from1",
+                          "to": "to1",
+                          "refspecs": "refs/foo",
+                        },
+                        {
+                          "from": "from2",
+                          "to": "to2",
+                          "refspecs": [
+                            "refs/foo",
+                            "refs/bar"
+                          ]
+                        }
+                      ]
+                    }
+                    """;
+            var jsonConfig = JWCC.parse(jsonString).asObject();
+
+            var testBotFactory = TestBotFactory.newBuilder()
+                    .addHostedRepository("from1", new TestHostedRepository("from1"))
+                    .addHostedRepository("from2", new TestHostedRepository("from2"))
+                    .addHostedRepository("to1", new TestHostedRepository("to1"))
+                    .addHostedRepository("to2", new TestHostedRepository("to2"))
+                    .storagePath(tempFolder.path().resolve("storage"))
+                    .build();
+
+            var bots = testBotFactory.createBots(MirrorBotFactory.NAME, jsonConfig);
+            assertEquals(2, bots.size());
+
+            MirrorBot mirrorBot1 = (MirrorBot) bots.get(0);
+            assertEquals("MirrorBot@from1->to1 (refs/foo)", mirrorBot1.toString());
+            assertFalse(mirrorBot1.isIncludeTags());
+            assertFalse(mirrorBot1.isOnlyTags());
+            assertEquals(List.of(), mirrorBot1.getBranchPatterns());
+            assertEquals(List.of("refs/foo"), mirrorBot1.getRefspecs());
+
+            MirrorBot mirrorBot2 = (MirrorBot) bots.get(1);
+            assertEquals("MirrorBot@from2->to2 (refs/foo,refs/bar)", mirrorBot2.toString());
+            assertFalse(mirrorBot2.isIncludeTags());
+            assertFalse(mirrorBot2.isOnlyTags());
+            assertEquals(List.of(), mirrorBot2.getBranchPatterns());
+            assertEquals(List.of("refs/foo", "refs/bar"), mirrorBot2.getRefspecs());
+        }
+    }
 }

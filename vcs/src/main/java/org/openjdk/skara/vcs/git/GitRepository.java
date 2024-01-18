@@ -650,6 +650,13 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public void push(String refspec, URI uri) throws IOException {
+        try (var p = capture("git", "push", uri.toString(), refspec)) {
+            await(p);
+        }
+    }
+
+    @Override
     public void push(Branch branch, String remote, boolean setUpstream) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "push", remote, branch.name()));
