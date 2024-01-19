@@ -246,6 +246,8 @@ class MailingListBridgeBotTests {
             // And there should be a webrev
             Repository.materialize(webrevFolder.path(), archive.authenticatedUrl(), "webrev");
             assertTrue(webrevContains(webrevFolder.path(), "1 lines changed"));
+            assertTrue(webrevContains(webrevFolder.path(), "<a href=\"http://issues.test/browse/tstprj-1234\">tstprj-1234</a>"));
+
             var comments = pr.comments();
             var webrevComments = comments.stream()
                                          .filter(comment -> comment.author().equals(author.forge().currentUser()))

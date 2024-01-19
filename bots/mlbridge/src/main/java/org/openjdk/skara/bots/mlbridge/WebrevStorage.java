@@ -103,12 +103,15 @@ class WebrevStorage {
                             .pullRequest(pr.webUrl().toString())
                             .username(fullName);
 
-        var conf = JCheckConfiguration.from(localRepository, head);
-        if (conf.isPresent()) {
-            var project = conf.get().general().jbs() != null ? conf.get().general().jbs() : conf.get().general().project();
-            builder.issueLinker(id -> issueTracker + project + "-" + id);
+        var issue = Issue.fromStringRelaxed(pr.title());
+        if (issue.isPresent()) {
+            builder.issue(issue.get().shortId());
+            var conf = JCheckConfiguration.from(localRepository, head);
+            if (conf.isPresent()) {
+                var project = conf.get().general().jbs() != null ? conf.get().general().jbs() : conf.get().general().project();
+                builder.issueLinker(id -> issueTracker + project + "-" + id);
+            }
         }
-        Issue.fromStringRelaxed(pr.title()).ifPresent(value -> builder.issue(value.shortId()));
 
         if (diff != null) {
             builder.generate(diff);
