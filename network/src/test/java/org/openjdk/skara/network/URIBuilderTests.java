@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.network;
 
+import java.util.*;
+
 import org.openjdk.skara.network.*;
 
 import org.junit.jupiter.api.Test;
@@ -74,5 +76,30 @@ class URIBuilderTests {
     void noHost() {
         var a = URIBuilder.base("file:///a/b/c").build();
         assertEquals("/a/b/c", a.getPath());
+    }
+
+    @Test
+    void multipleParamsWithSameKey() {
+        var params = Map.of("key", List.of("v1", "v2"));
+        var uri = URIBuilder.base(validHost).setQuery(params).build();
+        assertEquals("key=v1&key=v2", uri.getQuery());
+    }
+
+    @Test
+    void multipleParamsWithDifferentKeys() {
+        var params = new LinkedHashMap<String, List<String>>();
+        params.put("k1", List.of("v1", "v2"));
+        params.put("k2", List.of("v3", "v4"));
+        var uri = URIBuilder.base(validHost).setQuery(params).build();
+        assertEquals("k1=v1&k1=v2&k2=v3&k2=v4", uri.getQuery());
+    }
+
+    @Test
+    void singleKeyAndValue() {
+        var params = Map.of(
+            "k1", List.of("v1")
+        );
+        var uri = URIBuilder.base(validHost).setQuery(params).build();
+        assertEquals("k1=v1", uri.getQuery());
     }
 }

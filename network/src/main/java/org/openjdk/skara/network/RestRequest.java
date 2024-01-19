@@ -224,6 +224,10 @@ public class RestRequest {
             return RestRequest.this.executeUnparsed(this);
         }
 
+        public HttpRequest build() {
+            return RestRequest.this.build(this);
+        }
+
         @Override
         public String toString() {
             return "QueryBuilder: type: " + queryType +
@@ -402,7 +406,14 @@ public class RestRequest {
             uriBuilder = uriBuilder.appendPath(endpoint);
         }
         if (!params.isEmpty()) {
-            uriBuilder.setQuery(params.stream().collect(Collectors.toMap(param -> param.key, param -> param.value)));
+            var query = new LinkedHashMap<String, List<String>>();
+            for (var param : params) {
+                if (!query.containsKey(param.key)) {
+                    query.put(param.key, new ArrayList<String>());
+                }
+                query.get(param.key).add(param.value);
+            }
+            uriBuilder.setQuery(query);
         }
         var uri = uriBuilder.build();
 
@@ -482,6 +493,12 @@ public class RestRequest {
         }
         var uri = URI.create(links.get("next"));
         return Optional.of(getHttpRequestBuilder(uri).GET());
+    }
+
+    private HttpRequest build(QueryBuilder queryBuilder) {
+        var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
+                queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON(), queryBuilder.sha256Header);
+        return request.build();
     }
 
     private JSONValue execute(QueryBuilder queryBuilder) throws IOException {

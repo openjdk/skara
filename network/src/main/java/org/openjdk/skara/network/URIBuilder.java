@@ -22,9 +22,9 @@
  */
 package org.openjdk.skara.network;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.net.*;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -142,14 +142,13 @@ public class URIBuilder {
         return this;
     }
 
-    public URIBuilder setQuery(Map<String, String> parameters) {
+    public URIBuilder setQuery(Map<String, List<String>> parameters) {
         var query = parameters.entrySet().stream()
-                .map(p -> {
-                    try {
-                        return URLEncoder.encode(p.getKey(), "UTF-8") + "=" + URLEncoder.encode(p.getValue(), "UTF-8");
-                    } catch (UnsupportedEncodingException e) {
-                        throw new RuntimeException("Cannot find UTF-8");
-                    }
+                .flatMap(p -> {
+                    var key = URLEncoder.encode(p.getKey(), StandardCharsets.UTF_8);
+                    return p.getValue()
+                            .stream()
+                            .map(v -> key + "=" + URLEncoder.encode(v, StandardCharsets.UTF_8));
                 })
                 .collect(Collectors.joining("&"));
 

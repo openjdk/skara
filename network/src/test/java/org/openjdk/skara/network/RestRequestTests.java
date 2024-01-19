@@ -377,4 +377,36 @@ class RestRequestTests {
             assertEquals(List.of(), receiver.getRawRequests());
         }
     }
+
+    @Test
+    void multipleParamsWithSameKey() throws IOException {
+        try (var receiver = new RestReceiver()) {
+            var restRequest = new RestRequest(receiver.getEndpoint());
+            var httpRequest = restRequest.get("/test").param("k", "v1").param("k", "v2").build();
+            assertEquals("k=v1&k=v2", httpRequest.uri().getQuery());
+        }
+    }
+
+    @Test
+    void multipleParamsWithMultipleKeys() throws IOException {
+        try (var receiver = new RestReceiver()) {
+            var restRequest = new RestRequest(receiver.getEndpoint());
+            var httpRequest = restRequest.get("/test").param("k1", "v1").param("k2", "v2").build();
+            assertEquals("k1=v1&k2=v2", httpRequest.uri().getQuery());
+        }
+    }
+
+    @Test
+    void multipleParamsWithMultipleKeysWithMultipleValues() throws IOException {
+        try (var receiver = new RestReceiver()) {
+            var restRequest = new RestRequest(receiver.getEndpoint());
+            var httpRequest = restRequest.get("/test")
+                                         .param("k1", "v1")
+                                         .param("k1", "v2")
+                                         .param("k2", "v3")
+                                         .param("k2", "v4")
+                                         .build();
+            assertEquals("k1=v1&k1=v2&k2=v3&k2=v4", httpRequest.uri().getQuery());
+        }
+    }
 }

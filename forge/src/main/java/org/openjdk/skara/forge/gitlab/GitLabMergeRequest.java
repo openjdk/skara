@@ -645,7 +645,7 @@ public class GitLabMergeRequest implements PullRequest {
     @Override
     public URI changeUrl(Hash base) {
         return URIBuilder.base(webUrl()).appendPath("/diffs")
-                         .setQuery(Map.of("start_sha", base.hex()))
+                         .setQuery(Map.of("start_sha", List.of(base.hex())))
                          .build();
     }
 
