@@ -32,6 +32,7 @@ import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 import org.openjdk.skara.json.JSONValue;
+import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -577,6 +578,22 @@ class CheckWorkItem extends PullRequestWorkItem {
                     addErrorComment(text, comments);
                     return List.of();
                 }
+            } else if (pr.title().equals("Merge")) {
+                // Update the PR title with the hash of the commit that will become the second parent
+                // of the final merge commit (the first parent is always the HEAD of the target branch).
+                var targetBranch = new Branch(pr.targetRef());
+                var targetBranchWebUrl = pr.repository().webUrl(targetBranch);
+                var secondParent = pr.headHash();
+                pr.setTitle("Merge " + secondParent.hex());
+                var comment = List.of(
+                    "<!-- merge parent " + secondParent.hex() + "-->\n",
+                    "The first parent of the resulting merge commit from this pull request will be set to the " +
+                    "upon integration current `HEAD` of the (" + targetBranch.name() + ")[" + targetBranchWebUrl + "] " +
+                    "branch. The second parent of the resulting merge commit from this pull request will be " +
+                    "set to `" + secondParent.hex() + "`."
+                );
+                pr.addComment(String.join("\n", comment));
+                return List.of(CheckWorkItem.fromWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
             }
 
             // Check for a title of the form Backport <issueid>
