@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,6 @@ package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.issuetracker.IssueTracker;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.vcs.*;
@@ -51,6 +50,7 @@ class WebrevStorage {
     private final EmailAddress author;
     private final boolean generateHTML;
     private final boolean generateJSON;
+    private final URI issueTracker;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
     private static final HttpClient client = HttpClient.newBuilder()
                                                        .connectTimeout(Duration.ofSeconds(10))
@@ -60,7 +60,8 @@ class WebrevStorage {
                   String ref,
                   Path baseFolder,
                   URI baseUri,
-                  EmailAddress author) {
+                  EmailAddress author,
+                  URI issueTracker) {
         this.baseFolder = baseFolder;
         this.baseUri = baseUri;
         this.htmlStorage = htmlStorage;
@@ -69,6 +70,7 @@ class WebrevStorage {
         this.author = author;
         this.generateHTML = true;
         this.generateJSON = false;
+        this.issueTracker = issueTracker;
     }
 
     WebrevStorage(HostedRepository htmlStorage,
@@ -78,7 +80,8 @@ class WebrevStorage {
                   URI baseUri,
                   EmailAddress author,
                   boolean generateHTML,
-                  boolean generateJSON) {
+                  boolean generateJSON,
+                  URI issueTracker) {
         this.baseFolder = baseFolder;
         this.baseUri = baseUri;
         this.htmlStorage = htmlStorage;
@@ -87,6 +90,7 @@ class WebrevStorage {
         this.author = author;
         this.generateHTML = generateHTML;
         this.generateJSON = generateJSON;
+        this.issueTracker = issueTracker;
     }
 
     private void generateHTML(PullRequest pr, ReadOnlyRepository localRepository, Path folder, Diff diff, Hash base, Hash head) throws IOException {
@@ -99,26 +103,12 @@ class WebrevStorage {
                             .pullRequest(pr.webUrl().toString())
                             .username(fullName);
 
-        var issue = Issue.fromStringRelaxed(pr.title());
-        if (issue.isPresent()) {
-            var conf = JCheckConfiguration.from(localRepository, head);
-            if (!conf.isEmpty()) {
-                var project = conf.get().general().jbs() != null ? conf.get().general().jbs() : conf.get().general().project();
-                var id = issue.get().shortId();
-                IssueTracker issueTracker = null;
-                try {
-                    issueTracker = IssueTracker.from("jira", URI.create("https://bugs.openjdk.org"));
-                } catch (RuntimeException e) {
-                    log.warning("Failed to create Jira issue tracker");
-                }
-                if (issueTracker != null) {
-                    var hostedIssue = issueTracker.project(project).issue(id);
-                    if (hostedIssue.isPresent()) {
-                        builder = builder.issue(hostedIssue.get().webUrl().toString());
-                    }
-                }
-            }
+        var conf = JCheckConfiguration.from(localRepository, head);
+        if (conf.isPresent()) {
+            var project = conf.get().general().jbs() != null ? conf.get().general().jbs() : conf.get().general().project();
+            builder.issueLinker(id -> issueTracker + project + "-" + id);
         }
+        Issue.fromStringRelaxed(pr.title()).ifPresent(value -> builder.issue(value.shortId()));
 
         if (diff != null) {
             builder.generate(diff);

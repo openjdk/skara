@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,6 +31,7 @@ import org.openjdk.skara.vcs.*;
 import org.junit.jupiter.api.*;
 
 import java.io.*;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.UUID;
@@ -66,7 +67,7 @@ class WebrevStorageTests {
 
             var from = EmailAddress.from("test", "test@test.mail");
             var storage = new WebrevStorage(archive, "webrev", Path.of("test"),
-                                            webrevServer.uri(), from);
+                    webrevServer.uri(), from, URI.create("http://issues.test/browse/"));
 
             var prFolder = tempFolder.path().resolve("pr");
             var prRepo = Repository.materialize(prFolder, pr.repository().authenticatedUrl(), "edit");
@@ -121,7 +122,7 @@ class WebrevStorageTests {
 
             var from = EmailAddress.from("test", "test@test.mail");
             var storage = new WebrevStorage(archive, "webrev", Path.of("test"),
-                                            webrevServer.uri(), from);
+                    webrevServer.uri(), from, URI.create("http://issues.test/browse/"));
 
             var prFolder = tempFolder.path().resolve("pr");
             var prRepo = Repository.materialize(prFolder, pr.repository().authenticatedUrl(), "edit");
@@ -206,7 +207,7 @@ class WebrevStorageTests {
 
             var from = EmailAddress.from("test", "test@test.mail");
             var storage = new WebrevStorage(archive, "webrev", Path.of("test"),
-                                            webrevServer.uri(), from);
+                    webrevServer.uri(), from, URI.create("http://issues.test/browse/"));
 
             var prFolder = tempFolder.path().resolve("pr");
             var prRepo = Repository.materialize(prFolder, pr.repository().authenticatedUrl(), "edit");
