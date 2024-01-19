@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.pr;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.openjdk.skara.test.*;
+import org.openjdk.skara.vcs.Author;
 import org.openjdk.skara.vcs.Tag;
 import org.openjdk.skara.vcs.Repository;
 
@@ -302,6 +303,55 @@ public class TagCommitCommandTests {
             var localAuthorRepo = Repository.clone(author.authenticatedUrl(), localAuthorRepoDir);
             var tags = localAuthorRepo.tags();
             assertEquals(List.of(), tags);
+        }
+    }
+
+    @Test
+    void metadata(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var bot = PullRequestBot.newBuilder()
+                                    .repo(author)
+                                    .integrators(Set.of(author.forge().currentUser().username()))
+                                    .censusRepo(censusBuilder.build())
+                                    .censusLink("https://census.com/{{contributor}}-profile")
+                                    .seedStorage(seedFolder)
+                                    .forks(Map.of(author.name(), author))
+                                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Add a tag command
+            author.addCommitComment(masterHash, "/skara tag v1.0");
+            TestBotRunner.runPeriodicItems(bot);
+
+            var recentCommitComments = author.recentCommitComments();
+            assertEquals(2, recentCommitComments.size());
+            var botReply = recentCommitComments.get(0);
+            assertTrue(botReply.body().contains("tag"));
+            assertTrue(botReply.body().contains("was successfully created"));
+
+            var localAuthorRepoDir = tempFolder.path().resolve("author");
+            var localAuthorRepo = Repository.clone(author.authenticatedUrl(), localAuthorRepoDir);
+            var tags = localAuthorRepo.tags();
+            assertEquals(List.of(new Tag("v1.0")), tags);
+
+            var tag = localAuthorRepo.annotate(tags.get(0));
+            assertTrue(tag.isPresent());
+            assertEquals(masterHash, tag.get().target());
+            assertEquals("v1.0", tag.get().name());
+            assertEquals("Added tag v1.0 for changeset " + masterHash.abbreviate(), tag.get().message());
+            assertEquals(Author.fromString("Generated Author 1 <integrationauthor1@openjdk.org>"), tag.get().author());
         }
     }
 }
