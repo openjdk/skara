@@ -116,7 +116,8 @@ public class TagCommand implements CommandHandler {
             var contributor = censusInstance.contributor(command.user()).orElseThrow();
             var email = contributor.username() + "@" + domain;
             var message = "Added tag " + tagName + " for changeset " + commit.hash().abbreviate();
-            var tag = localRepo.tag(commit.hash(), tagName, message, contributor.username(), email);
+            var name = contributor.fullName().isPresent() ? contributor.fullName().get() : contributor.username();
+            var tag = localRepo.tag(commit.hash(), tagName, message, name, email);
             localRepo.push(tag, bot.repo().authenticatedUrl(), false);
             reply.println("The tag [" + tag.name() + "](" + bot.repo().webUrl(tag) + ") was successfully created.");
         } catch (IOException e) {
