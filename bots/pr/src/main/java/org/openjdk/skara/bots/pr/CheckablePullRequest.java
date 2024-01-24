@@ -41,6 +41,7 @@ import java.util.stream.Stream;
 
 public class CheckablePullRequest {
     private static final Pattern BACKPORT_PATTERN = Pattern.compile("<!-- backport ([0-9a-z]{40}) -->");
+    private static final Pattern BACKPORT_REPO_PATTERN = Pattern.compile("<!-- repo (.+) -->");
 
     private final PullRequest pr;
     private final Repository localRepo;
@@ -311,6 +312,10 @@ public class CheckablePullRequest {
         return findOriginalBackportHash(pr, comments);
     }
 
+    String findOriginalBackportRepo() {
+        return findOriginalBackportRepo(pr, comments);
+    }
+
     static Hash findOriginalBackportHash(PullRequest pr, List<Comment> comments) {
         var botUser = pr.repository().forge().currentUser();
         return comments
@@ -321,6 +326,19 @@ public class CheckablePullRequest {
                 .filter(Matcher::find)
                 .reduce((first, second) -> second)
                 .map(l -> new Hash(l.group(1)))
+                .orElse(null);
+    }
+
+    static String findOriginalBackportRepo(PullRequest pr, List<Comment> comments) {
+        var botUser = pr.repository().forge().currentUser();
+        return comments
+                .stream()
+                .filter(c -> c.author().equals(botUser))
+                .flatMap(c -> Stream.of(c.body().split("\n")))
+                .map(BACKPORT_REPO_PATTERN::matcher)
+                .filter(Matcher::find)
+                .reduce((first, second) -> second)
+                .map(l -> l.group(1))
                 .orElse(null);
     }
 

@@ -49,8 +49,8 @@ public interface Forge extends Host {
      * @param includeDiffs Set to true to include parent diffs in Commit, default false
      * @return Commit instance if found, otherwise empty
      */
-    Optional<HostedCommit> search(Hash hash, boolean includeDiffs);
-    default Optional<HostedCommit> search(Hash hash) {
+    Optional<String> search(Hash hash, boolean includeDiffs);
+    default Optional<String> search(Hash hash) {
         return search(hash, false);
     }
 

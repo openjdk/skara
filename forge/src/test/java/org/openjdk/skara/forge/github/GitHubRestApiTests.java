@@ -293,7 +293,9 @@ public class GitHubRestApiTests {
         var gitHubRepo = githubHost.repository(settings.getProperty("github.repository")).orElseThrow();
 
         var pr = gitHubRepo.pullRequest(settings.getProperty("github.prId"));
-        var commit = pr.repository().forge().search(new Hash(settings.getProperty("github.commitHash")), true);
+        var hash = new Hash(settings.getProperty("github.commitHash"));
+        var repoName = pr.repository().forge().search(hash, true);
+        var commit = pr.repository().forge().repository(repoName.get()).get().commit(hash, true);
         var backportDiff = commit.get().parentDiffs().get(0);
         var prDiff = pr.diff();
         var isClean = DiffComparator.areFuzzyEqual(backportDiff, prDiff);

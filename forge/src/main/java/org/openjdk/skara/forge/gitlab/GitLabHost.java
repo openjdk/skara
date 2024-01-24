@@ -235,7 +235,7 @@ public class GitLabHost implements Forge {
     }
 
     @Override
-    public Optional<HostedCommit> search(Hash hash, boolean includeDiffs) {
+    public Optional<String> search(Hash hash, boolean includeDiffs) {
         var hex = hash.hex();
         for (var group : groups) {
             var ids = request.get("groups/" + group + "/projects")
@@ -252,7 +252,7 @@ public class GitLabHost implements Forge {
                 var project = new GitLabRepository(this, id);
                 var commit = project.commit(hash, includeDiffs);
                 if (commit.isPresent()) {
-                    return commit;
+                    return Optional.of(project.name());
                 }
             }
         }

@@ -443,7 +443,7 @@ public class GitHubHost implements Forge {
     }
 
     @Override
-    public Optional<HostedCommit> search(Hash hash, boolean includeDiffs) {
+    public Optional<String> search(Hash hash, boolean includeDiffs) {
         var orgsToSearch = orgs.stream().map(o -> "org:" + o).collect(Collectors.joining(" "));
         if (!orgsToSearch.isEmpty()) {
             orgsToSearch = " " + orgsToSearch;
@@ -460,6 +460,7 @@ public class GitHubHost implements Forge {
         var shortestName = items.stream()
                 .map(o -> o.get("repository").get("full_name").asString())
                 .min(Comparator.comparing(String::length));
-        return shortestName.flatMap(this::repository).flatMap(r -> r.commit(hash, includeDiffs));
+        return shortestName;
+//        return shortestName.flatMap(this::repository).flatMap(r -> r.commit(hash, includeDiffs));
     }
 }

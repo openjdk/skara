@@ -24,6 +24,7 @@ package org.openjdk.skara.forge.gitlab;
 
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,7 +62,7 @@ public class GitLabRestApiTest {
         var token = settings.getProperty("gitlab.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+        gitLabHost = new GitLabHost("gitlab", uri, false, credential, Arrays.asList(settings.getProperty("gitlab.group").split(",")));
     }
 
     @Test
@@ -253,7 +254,9 @@ public class GitLabRestApiTest {
         var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
 
         var pr = gitLabRepo.pullRequest(settings.getProperty("gitlab.prId"));
-        var commit = pr.repository().forge().search(new Hash(settings.getProperty("gitlab.commitHash")), true);
+        var hash = new Hash(settings.getProperty("gitlab.commitHash"));
+        var repoName = pr.repository().forge().search(hash, true);
+        var commit = pr.repository().forge().repository(repoName.get()).get().commit(hash, true);
         var backportDiff = commit.orElseThrow().parentDiffs().get(0);
         var prDiff = pr.diff();
         var isClean = DiffComparator.areFuzzyEqual(backportDiff, prDiff);

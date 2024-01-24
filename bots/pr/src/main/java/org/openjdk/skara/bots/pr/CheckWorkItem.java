@@ -524,8 +524,9 @@ class CheckWorkItem extends PullRequestWorkItem {
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }
-                var metadata = pr.repository().forge().search(hash);
-                if (metadata.isPresent()) {
+                var repoName = pr.repository().forge().search(hash);
+                if (repoName.isPresent()) {
+                    var metadata = pr.repository().forge().repository(repoName.get()).flatMap(repository -> repository.commit(hash));
                     var message = CommitMessageParsers.v1.parse(metadata.get().message());
                     var issues = message.issues();
                     var comment = new ArrayList<String>();
@@ -550,6 +551,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     }
                     pr.setTitle(id + ": " + issue.get().title());
                     comment.add("<!-- backport " + hash.hex() + " -->\n");
+                    comment.add("<!-- repo " + repoName.get() + " -->\n");
                     for (var additionalIssue : issues.subList(1, issues.size())) {
                         comment.add(SolvesTracker.setSolvesMarker(additionalIssue));
                     }

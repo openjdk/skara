@@ -79,7 +79,7 @@ public class BitbucketHost implements Forge {
     }
 
     @Override
-    public Optional<HostedCommit> search(Hash hash, boolean includeDiffs) {
+    public Optional<String> search(Hash hash, boolean includeDiffs) {
         throw new UnsupportedOperationException();
     }
 
