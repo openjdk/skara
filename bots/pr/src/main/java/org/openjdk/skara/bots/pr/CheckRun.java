@@ -1393,7 +1393,7 @@ class CheckRun {
             if (!PullRequestUtils.isMerge(pr) && !newLabels.contains("ready") && !newLabels.contains(APPROVAL_LABEL)
                     && approvalNeeded() && approval.approvalComment() && readyToPostApprovalNeededComment) {
                 for (var entry : additionalProgresses.entrySet()) {
-                    if (!entry.getKey().endsWith("needs maintainer approval") && !entry.getValue()) {
+                    if (!entry.getKey().endsWith("needs " + approval.approvalTerm()) && !entry.getValue()) {
                         readyToPostApprovalNeededComment = false;
                         break;
                     }
