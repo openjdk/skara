@@ -479,7 +479,7 @@ class CheckRun {
         }
         var repoName = checkablePullRequest.findOriginalBackportRepo();
         if (repoName == null) {
-            return Optional.empty();
+            repoName = pr.repository().forge().search(hash).orElseThrow();
         }
         var repo = pr.repository().forge().repository(repoName);
         if (repo.isEmpty()) {

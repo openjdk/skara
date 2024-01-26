@@ -527,8 +527,8 @@ class CheckWorkItem extends PullRequestWorkItem {
                 var forge = pr.repository().forge();
                 var repoName = forge.search(hash);
                 if (repoName.isPresent()) {
-                    var metadata = forge.repository(repoName.get()).flatMap(repository -> repository.commit(hash));
-                    var message = CommitMessageParsers.v1.parse(metadata.orElseThrow().message());
+                    var commit = forge.repository(repoName.get()).flatMap(repository -> repository.commit(hash));
+                    var message = CommitMessageParsers.v1.parse(commit.orElseThrow().message());
                     var issues = message.issues();
                     var comment = new ArrayList<String>();
                     if (issues.isEmpty()) {
@@ -568,7 +568,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     if (!summary.isEmpty()) {
                         text += " and summary";
                     }
-                    text += " from the original [commit](" + metadata.get().url() + ").";
+                    text += " from the original [commit](" + commit.get().url() + ").";
                     comment.add(text);
                     pr.addComment(String.join("\n", comment));
                     pr.addLabel("backport");
