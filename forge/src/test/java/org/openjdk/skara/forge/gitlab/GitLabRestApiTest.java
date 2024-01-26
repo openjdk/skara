@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -256,7 +256,10 @@ public class GitLabRestApiTest {
         var pr = gitLabRepo.pullRequest(settings.getProperty("gitlab.prId"));
         var hash = new Hash(settings.getProperty("gitlab.commitHash"));
         var repoName = pr.repository().forge().search(hash, true);
-        var commit = pr.repository().forge().repository(repoName.get()).get().commit(hash, true);
+        assertTrue(repoName.isPresent());
+        var repository = pr.repository().forge().repository(repoName.get());
+        assertTrue(repository.isPresent());
+        var commit = repository.get().commit(hash, true);
         var backportDiff = commit.orElseThrow().parentDiffs().get(0);
         var prDiff = pr.diff();
         var isClean = DiffComparator.areFuzzyEqual(backportDiff, prDiff);

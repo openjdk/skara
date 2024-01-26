@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -457,10 +457,8 @@ public class GitHubHost implements Forge {
         // There is no good way of knowing for sure which repository we would rather
         // get the commit from, but a reasonable default is to go by the shortest
         // name as that is most likely the main repository of the project.
-        var shortestName = items.stream()
+        return items.stream()
                 .map(o -> o.get("repository").get("full_name").asString())
                 .min(Comparator.comparing(String::length));
-        return shortestName;
-//        return shortestName.flatMap(this::repository).flatMap(r -> r.commit(hash, includeDiffs));
     }
 }

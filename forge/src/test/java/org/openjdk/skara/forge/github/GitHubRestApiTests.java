@@ -235,7 +235,7 @@ public class GitHubRestApiTests {
     }
 
     @Test
-    void test() {
+    void testGeneratingUrl() {
         var username = settings.getProperty("github.user");
         var token = settings.getProperty("github.pat");
         var credential = new Credential(username, token);
@@ -295,8 +295,11 @@ public class GitHubRestApiTests {
         var pr = gitHubRepo.pullRequest(settings.getProperty("github.prId"));
         var hash = new Hash(settings.getProperty("github.commitHash"));
         var repoName = pr.repository().forge().search(hash, true);
-        var commit = pr.repository().forge().repository(repoName.get()).get().commit(hash, true);
-        var backportDiff = commit.get().parentDiffs().get(0);
+        assertTrue(repoName.isPresent());
+        var repository = pr.repository().forge().repository(repoName.get());
+        assertTrue(repository.isPresent());
+        var commit = repository.get().commit(hash, true);
+        var backportDiff = commit.orElseThrow().parentDiffs().get(0);
         var prDiff = pr.diff();
         var isClean = DiffComparator.areFuzzyEqual(backportDiff, prDiff);
         assertTrue(isClean);

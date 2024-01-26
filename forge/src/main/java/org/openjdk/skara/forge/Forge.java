@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -47,7 +47,7 @@ public interface Forge extends Host {
      * Search the whole host for a commit by hash.
      * @param hash Hash to search for
      * @param includeDiffs Set to true to include parent diffs in Commit, default false
-     * @return Commit instance if found, otherwise empty
+     * @return Repository name if found, otherwise empty
      */
     Optional<String> search(Hash hash, boolean includeDiffs);
     default Optional<String> search(Hash hash) {

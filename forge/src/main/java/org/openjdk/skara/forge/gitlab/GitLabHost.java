@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,7 +34,6 @@ import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public class GitLabHost implements Forge {
     private final String name;
@@ -236,7 +235,6 @@ public class GitLabHost implements Forge {
 
     @Override
     public Optional<String> search(Hash hash, boolean includeDiffs) {
-        var hex = hash.hex();
         for (var group : groups) {
             var ids = request.get("groups/" + group + "/projects")
                                   .execute()
@@ -247,7 +245,7 @@ public class GitLabHost implements Forge {
                                   // path name as that is most likely the main repository of the project.
                                   .sorted(Comparator.comparing(o -> o.get("path").asString().length()))
                                   .map(o -> o.get("id").asInt())
-                                  .collect(Collectors.toList());
+                                  .toList();
             for (var id : ids) {
                 var project = new GitLabRepository(this, id);
                 var commit = project.commit(hash, includeDiffs);
