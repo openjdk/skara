@@ -1375,18 +1375,6 @@ class CheckRun {
             var readyForIntegration = readyToPostApprovalNeededComment &&
                     !additionalProgresses.containsValue(false);
 
-            if (approvalNeeded() && approval.approvalComment() && readyToPostApprovalNeededComment) {
-                for (var entry : additionalProgresses.entrySet()) {
-                    if (!entry.getKey().endsWith("needs " + approval.approvalTerm()) && !entry.getValue()) {
-                        readyToPostApprovalNeededComment = false;
-                        break;
-                    }
-                }
-                if (readyToPostApprovalNeededComment) {
-                    postApprovalNeededComment();
-                }
-            }
-
             updateMergeReadyComment(readyForIntegration, commitMessage, rebasePossible);
             if (readyForIntegration && rebasePossible) {
                 newLabels.add("ready");
@@ -1400,6 +1388,19 @@ class CheckRun {
                 newLabels.add("merge-conflict");
             } else {
                 newLabels.remove("merge-conflict");
+            }
+
+            if (!PullRequestUtils.isMerge(pr) && !newLabels.contains("ready") && !newLabels.contains(APPROVAL_LABEL)
+                    && approvalNeeded() && approval.approvalComment() && readyToPostApprovalNeededComment) {
+                for (var entry : additionalProgresses.entrySet()) {
+                    if (!entry.getKey().endsWith("needs maintainer approval") && !entry.getValue()) {
+                        readyToPostApprovalNeededComment = false;
+                        break;
+                    }
+                }
+                if (readyToPostApprovalNeededComment) {
+                    postApprovalNeededComment();
+                }
             }
 
             if (pr.sourceRepository().isPresent()) {
