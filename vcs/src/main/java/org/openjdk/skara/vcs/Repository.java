@@ -191,6 +191,18 @@ public interface Repository extends ReadOnlyRepository {
         updateSubmodule(s.path());
     }
 
+    void addNote(Hash hash,
+                 List<String> note,
+                 String authorName,
+                 String authorEmail,
+                 String committerName,
+                 String committerEmail) throws IOException;
+    default void addNote(Hash hash, List<String> note, String authorName, String authorEmail) throws IOException {
+        addNote(hash, note, authorName, authorEmail, authorName, authorEmail);
+    }
+    List<String> notes(Hash hash) throws IOException;
+    void pushNotes(URI uri) throws IOException;
+
     /**
      * Check whether this commit is empty.
      * For a merge commit, it will be considered as empty if it has no merge resolutions.
