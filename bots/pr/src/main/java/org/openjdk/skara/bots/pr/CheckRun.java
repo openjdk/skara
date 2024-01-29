@@ -80,6 +80,7 @@ class CheckRun {
     private Duration expiresIn;
     // Only set if approval is configured for the repo
     private String realTargetRef;
+    private boolean missingApproval = false;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
@@ -720,6 +721,8 @@ class CheckRun {
                                 } else if (labels.contains(approval.requestedLabel(realTargetRef))) {
                                     status = "Requested";
                                     requestPresent = true;
+                                } else {
+                                    missingApproval = true;
                                 }
                                 if (!status.isEmpty()) {
                                     progressBody.append(" - ").append(status);
@@ -1390,7 +1393,7 @@ class CheckRun {
                 newLabels.remove("merge-conflict");
             }
 
-            if (!PullRequestUtils.isMerge(pr) && !newLabels.contains("ready") && !newLabels.contains(APPROVAL_LABEL)
+            if (!PullRequestUtils.isMerge(pr) && !newLabels.contains("ready") && missingApproval
                     && approvalNeeded() && approval.approvalComment() && readyToPostApprovalNeededComment) {
                 for (var entry : additionalProgresses.entrySet()) {
                     if (!entry.getKey().endsWith("needs " + approval.approvalTerm()) && !entry.getValue()) {
