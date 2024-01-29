@@ -477,7 +477,15 @@ class CheckRun {
         if (hash == null) {
             return Optional.empty();
         }
-        var commit = pr.repository().forge().search(hash, true);
+        var repoName = checkablePullRequest.findOriginalBackportRepo();
+        if (repoName == null) {
+            repoName = pr.repository().forge().search(hash).orElseThrow();
+        }
+        var repo = pr.repository().forge().repository(repoName);
+        if (repo.isEmpty()) {
+            throw new IllegalStateException("Backport comment for PR " + pr.id() + " contains bad repo name: " + repoName);
+        }
+        var commit = repo.get().commit(hash, true);
         if (commit.isEmpty()) {
             throw new IllegalStateException("Backport comment for PR " + pr.id() + " contains bad hash: " + hash.hex());
         }

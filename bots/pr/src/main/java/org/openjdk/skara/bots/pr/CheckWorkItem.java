@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -524,9 +524,11 @@ class CheckWorkItem extends PullRequestWorkItem {
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }
-                var metadata = pr.repository().forge().search(hash);
-                if (metadata.isPresent()) {
-                    var message = CommitMessageParsers.v1.parse(metadata.get().message());
+                var forge = pr.repository().forge();
+                var repoName = forge.search(hash);
+                if (repoName.isPresent()) {
+                    var commit = forge.repository(repoName.get()).flatMap(repository -> repository.commit(hash));
+                    var message = CommitMessageParsers.v1.parse(commit.orElseThrow().message());
                     var issues = message.issues();
                     var comment = new ArrayList<String>();
                     if (issues.isEmpty()) {
@@ -550,6 +552,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     }
                     pr.setTitle(id + ": " + issue.get().title());
                     comment.add("<!-- backport " + hash.hex() + " -->\n");
+                    comment.add("<!-- repo " + repoName.get() + " -->\n");
                     for (var additionalIssue : issues.subList(1, issues.size())) {
                         comment.add(SolvesTracker.setSolvesMarker(additionalIssue));
                     }
@@ -565,13 +568,12 @@ class CheckWorkItem extends PullRequestWorkItem {
                     if (!summary.isEmpty()) {
                         text += " and summary";
                     }
-                    text += " from the original [commit](" + metadata.get().url() + ").";
+                    text += " from the original [commit](" + commit.get().url() + ").";
                     comment.add(text);
                     pr.addComment(String.join("\n", comment));
                     pr.addLabel("backport");
                     return List.of(CheckWorkItem.fromWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
                 } else {
-                    var botUser = pr.repository().forge().currentUser();
                     var text = "<!-- backport error -->\n" +
                             ":warning: @" + pr.author().username() + " could not find any commit with hash `" +
                             hash.hex() + "`. Please update the title with the hash for an existing commit.";

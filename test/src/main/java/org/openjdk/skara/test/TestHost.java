@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -184,12 +184,12 @@ public class TestHost implements Forge, IssueTracker {
     }
 
     @Override
-    public Optional<HostedCommit> search(Hash hash, boolean includeDiffs) {
+    public Optional<String> search(Hash hash, boolean includeDiffs) {
         for (var key : data.repositories.keySet()) {
             var repo = repository(key).orElseThrow();
             var commit = repo.commit(hash, includeDiffs);
             if (commit.isPresent()) {
-                return commit;
+                return Optional.of(repo.name());
             }
         }
         return Optional.empty();
