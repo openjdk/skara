@@ -32,6 +32,7 @@ module {
         opens 'org.openjdk.skara.bots.notify.issue' to 'org.junit.platform.commons'
         opens 'org.openjdk.skara.bots.notify.comment' to 'org.junit.platform.commons'
         opens 'org.openjdk.skara.bots.notify.prbranch' to 'org.junit.platform.commons'
+        opens 'org.openjdk.skara.bots.notify.notes' to 'org.junit.platform.commons'
     }
 }
 

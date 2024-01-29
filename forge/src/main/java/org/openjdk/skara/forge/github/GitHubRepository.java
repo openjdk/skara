@@ -582,7 +582,9 @@ public class GitHubRepository implements HostedRepository {
         } else {
             diffs = List.of();
         }
-        return Optional.of(new HostedCommit(metadata, diffs, URI.create(o.get("html_url").asString())));
+        var url = URI.create(o.get("html_url").asString());
+        var webUrl = gitHubHost.getWebURI(url.getPath());
+        return Optional.of(new HostedCommit(metadata, diffs, url, webUrl));
     }
 
     @Override

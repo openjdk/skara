@@ -20,53 +20,23 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.forge;
+package org.openjdk.skara.bots.notify.notes;
 
-import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.bot.BotConfiguration;
+import org.openjdk.skara.bots.notify.*;
+import org.openjdk.skara.json.JSONObject;
 
 import java.net.URI;
-import java.util.*;
-import java.time.*;
-import java.time.format.*;
 
-public class HostedCommit extends Commit {
-    private final URI url;
-    private final URI webUrl;
-
-    public HostedCommit(CommitMetadata metadata, List<Diff> parentDiffs, URI url) {
-        this(metadata, parentDiffs, url, url);
-    }
-    public HostedCommit(CommitMetadata metadata, List<Diff> parentDiffs, URI url, URI webUrl) {
-        super(metadata, parentDiffs);
-        this.url = url;
-        this.webUrl = webUrl;
-    }
-
-    public URI url() {
-        return url;
-    }
-
-    public URI webUrl() {
-        return webUrl;
+public class CommitNoteNotifierFactory implements NotifierFactory {
+    @Override
+    public String name() {
+        return "notes";
     }
 
     @Override
-    public String toString() {
-        return url.toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(url);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (!(o instanceof HostedCommit)) {
-            return false;
-        }
-
-        var other = (HostedCommit) o;
-        return Objects.equals(url, other.url);
+    public Notifier create(BotConfiguration botConfiguration, JSONObject notifierConfiguration) {
+        var issueProject = botConfiguration.issueProject(notifierConfiguration.get("project").asString());
+        return new CommitNoteNotifier(issueProject);
     }
 }
