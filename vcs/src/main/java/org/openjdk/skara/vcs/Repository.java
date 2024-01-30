@@ -192,13 +192,13 @@ public interface Repository extends ReadOnlyRepository {
     }
 
     void addNote(Hash hash,
-                 List<String> note,
+                 List<String> lines,
                  String authorName,
                  String authorEmail,
                  String committerName,
                  String committerEmail) throws IOException;
-    default void addNote(Hash hash, List<String> note, String authorName, String authorEmail) throws IOException {
-        addNote(hash, note, authorName, authorEmail, authorName, authorEmail);
+    default void addNote(Hash hash, List<String> lines, String authorName, String authorEmail) throws IOException {
+        addNote(hash, lines, authorName, authorEmail, authorName, authorEmail);
     }
     List<String> notes(Hash hash) throws IOException;
     void pushNotes(URI uri) throws IOException;

@@ -1558,7 +1558,7 @@ public class HgRepository implements Repository {
 
     @Override
     public void addNote(Hash hash,
-                        List<String> note,
+                        List<String> lines,
                         String authorName,
                         String authorEmail,
                         String committerName,

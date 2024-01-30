@@ -1773,7 +1773,7 @@ public class GitRepository implements Repository {
 
     @Override
     public void addNote(Hash hash,
-                        List<String> note,
+                        List<String> lines,
                         String authorName,
                         String authorEmail,
                         String committerName,
@@ -1783,7 +1783,7 @@ public class GitRepository implements Repository {
             throw new IllegalStateException("A note already exists for " + hash.hex());
         }
 
-        var cmd = Process.capture("git", "notes", "add", "-m", String.join("\n", note), hash.hex())
+        var cmd = Process.capture("git", "notes", "add", "-m", String.join("\n", lines), hash.hex())
                          .workdir(dir)
                          .environ(currentEnv)
                          .environ("GIT_AUTHOR_NAME", authorName)
