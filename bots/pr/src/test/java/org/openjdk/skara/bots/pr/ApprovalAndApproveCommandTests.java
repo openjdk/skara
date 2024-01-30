@@ -132,7 +132,6 @@ public class ApprovalAndApproveCommandTests {
             reviewerPr.addReview(Review.Verdict.APPROVED, "LGTM");
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().labelNames().contains("ready"));
-            assertLastCommentContains(pr, " This change is now ready for you to apply for [maintainer approval]");
 
             reviewerPr.addComment("/approve yes");
             TestBotRunner.runPeriodicItems(prBot);
@@ -165,9 +164,11 @@ public class ApprovalAndApproveCommandTests {
             var issue1 = issueProject.createIssue("This is an issue", List.of(), Map.of());
             issue1.setProperty("issuetype", JSON.of("Bug"));
             issue1.setProperty("priority", JSON.of("4"));
+            issue1.addLabel("CPU23_04-critical-request");
             var issue2 = issueProject.createIssue("This is an issue 2", List.of(), Map.of());
-            issue1.setProperty("issuetype", JSON.of("Bug"));
-            issue1.setProperty("priority", JSON.of("2"));
+            issue2.setProperty("issuetype", JSON.of("Bug"));
+            issue2.setProperty("priority", JSON.of("2"));
+            issue2.addLabel("CPU23_04-critical-request");
 
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(reviewer.forge().currentUser().id())
@@ -210,6 +211,16 @@ public class ApprovalAndApproveCommandTests {
 
             var reviewerPr = reviewer.pullRequest(pr.id());
             reviewerPr.addReview(Review.Verdict.APPROVED, "LGTM");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            pr.addComment("/approval 1 cancel");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(issueBot);
+            assertLastCommentContains(pr, "This change is now ready for you to apply for [maintainer approval](https://example.com).");
+            pr.addComment("/approval 2 cancel");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(issueBot);
+
             reviewerPr.addComment("/approve yes");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "1: There is no maintainer approval request for this issue.");
