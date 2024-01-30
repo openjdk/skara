@@ -34,6 +34,10 @@ public interface IssueProject {
     IssueTrackerIssue createIssue(String title, List<String> body, Map<String, JSONValue> properties);
     Optional<IssueTrackerIssue> issue(String id);
     List<IssueTrackerIssue> issues();
+    List<IssueTrackerIssue> search(String query, int limit);
+    default List<IssueTrackerIssue> search(String query) {
+        return search(query, -1);
+    }
 
     /**
      * Find all issues that have been updated after or on the given time, with

@@ -447,27 +447,13 @@ public class JiraProject implements IssueProject {
 
     @Override
     public Optional<IssueTrackerIssue> jepIssue(String jepId) {
-        var issues = request.post("search")
-                .body("jql", "project = " + projectName + " AND \"JEP Number\" ~ \"" + jepId + "\"")
-                .execute();
-        if (issues.get("issues").asArray().size() == 0) {
-            return Optional.empty();
-        } else {
-            var json = issues.get("issues").asArray().get(0);
-            return Optional.of(new JiraIssue(this, generateIssueRequest(json), json));
-        }
+        var issues = search("project = " + projectName + " AND \"JEP Number\" ~ \"" + jepId + "\"");
+        return issues.isEmpty() ? Optional.empty() : Optional.of(issues.get(0));
     }
 
     @Override
     public List<IssueTrackerIssue> issues() {
-        var ret = new ArrayList<IssueTrackerIssue>();
-        var issues = request.post("search")
-                            .body("jql", "project = " + projectName + " AND status in (Open, New)")
-                            .execute();
-        for (var issue : issues.get("issues").asArray()) {
-            ret.add(new JiraIssue(this, generateIssueRequest(issue), issue));
-        }
-        return ret;
+        return search("project = " + projectName + " AND status in (Open, New)");
     }
 
     // Need to sort by updated time in descending order to guarantee that no issues are missed, see SKARA-1962 for details
@@ -475,7 +461,7 @@ public class JiraProject implements IssueProject {
     public List<IssueTrackerIssue> issues(ZonedDateTime updatedAfter) {
         var timeString = toTimeString(updatedAfter);
         var jql = "project = " + projectName + " AND updated >= '" + timeString + "' ORDER BY updated DESC";
-        return queryIssues(jql);
+        return search(jql);
     }
 
 
@@ -484,23 +470,13 @@ public class JiraProject implements IssueProject {
     public List<IssueTrackerIssue> csrIssues(ZonedDateTime updatedAfter) {
         var timeString = toTimeString(updatedAfter);
         var jql = "project = " + projectName + " AND updated >= '" + timeString + "' AND issuetype = CSR ORDER BY updated DESC";
-        return queryIssues(jql);
+        return search(jql);
     }
 
     @Override
     public Optional<IssueTrackerIssue> lastUpdatedIssue() {
-        var jql = "project = " + projectName + " ORDER BY updated DESC";
-        var issues = request.get("search")
-                .param("jql", jql)
-                .param("maxResults", "1")
-                .execute();
-        var issuesArray = issues.get("issues").asArray();
-        if (issuesArray.isEmpty()) {
-            return Optional.empty();
-        } else {
-            var json = issuesArray.get(0);
-            return Optional.of(new JiraIssue(this, generateIssueRequest(json), json));
-        }
+        var issues = search("project = " + projectName + " ORDER BY updated DESC", 1);
+        return issues.isEmpty() ? Optional.empty() : Optional.of(issues.get(0));
     }
 
     private String toTimeString(ZonedDateTime time) {
@@ -508,12 +484,19 @@ public class JiraProject implements IssueProject {
         return timeZoned.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm"));
     }
 
-    private List<IssueTrackerIssue> queryIssues(String jql) {
+    @Override
+    public List<IssueTrackerIssue> search(String jql, int limit) {
+        if (limit == 0) {
+            return List.of();
+        }
+
         var ret = new HashMap<String, IssueTrackerIssue>();
         int count = 0;
-        var issues = request.get("search")
-                .param("jql", jql)
-                .execute();
+        var req = request.get("search").param("jql", jql);
+        if (limit > 0) {
+            req = req.param("maxResults", Integer.toString(limit));
+        }
+        var issues = req.execute();
         var startAt = 0;
         while (issues.get("issues").asArray().size() > 0) {
             for (var issue : issues.get("issues").asArray()) {
@@ -523,10 +506,14 @@ public class JiraProject implements IssueProject {
 
             if (count < issues.get("total").asInt()) {
                 startAt += issues.get("issues").asArray().size();
-                issues = request.get("search")
-                        .param("jql", jql)
-                        .param("startAt", String.valueOf(startAt))
-                        .execute();
+                req = request.get("search")
+                             .param("jql", jql)
+                             .param("startAt", String.valueOf(startAt));
+                if (limit > 0) {
+                    req = req.param("maxResults", Integer.toString(limit));
+                }
+
+                issues = req.execute();
             } else {
                 break;
             }

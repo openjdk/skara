@@ -96,4 +96,9 @@ public class TestIssueProject implements IssueProject {
     public String name() {
         return projectName.toUpperCase();
     }
+
+    @Override
+    public List<IssueTrackerIssue> search(String query, int limit) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
 }
