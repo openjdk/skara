@@ -3038,4 +3038,53 @@ public class RepositoryTests {
             assertTrue(metadata.stream().anyMatch(c -> c.hash().equals(third)));
         }
     }
+
+    @Test
+    void testNotes() throws IOException, InterruptedException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = TestableRepository.init(dir.path(), VCS.GIT);
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            repo.add(readme);
+            var head = repo.commit("Add README", "author", "author@openjdk.org");
+
+            // No notes by default
+            assertEquals(List.of(), repo.notes(head));
+
+            // Add a new note
+            var note = List.of("A notice");
+            repo.addNote(head, note, "duke", "duke@openjdk.org");
+            assertEquals(note, repo.notes(head));
+        }
+    }
+
+    @Test
+    void testThrowsExceptionOnOverwritingExistingNote() throws IOException, InterruptedException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = TestableRepository.init(dir.path(), VCS.GIT);
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            repo.add(readme);
+            var head = repo.commit("Add README", "author", "author@openjdk.org");
+
+            // No notes by default
+            assertEquals(List.of(), repo.notes(head));
+
+            // Add a new note
+            var note = List.of("A notice");
+            repo.addNote(head, note, "duke", "duke@openjdk.org");
+            assertEquals(note, repo.notes(head));
+
+            // Cannot add an additional note
+            assertThrows(IllegalStateException.class, () -> {
+                try {
+                    repo.addNote(head, List.of("Another notice"), "Duke", "duke@openjdk.org");
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+    }
 }

@@ -1770,4 +1770,44 @@ public class GitRepository implements Repository {
             return true;
         }
     }
+
+    @Override
+    public void addNote(Hash hash,
+                        List<String> lines,
+                        String authorName,
+                        String authorEmail,
+                        String committerName,
+                        String committerEmail) throws IOException {
+        var existing = notes(hash);
+        if (!existing.isEmpty()) {
+            throw new IllegalStateException("A note already exists for " + hash.hex());
+        }
+
+        var cmd = Process.capture("git", "notes", "add", "-m", String.join("\n", lines), hash.hex())
+                         .workdir(dir)
+                         .environ(currentEnv)
+                         .environ("GIT_AUTHOR_NAME", authorName)
+                         .environ("GIT_AUTHOR_EMAIL", authorEmail)
+                         .environ("GIT_COMMITTER_NAME", committerName)
+                         .environ("GIT_COMMITTER_EMAIL", committerEmail);
+        try (var p = cmd.execute()) {
+            await(p);
+        }
+    }
+
+    @Override
+    public List<String> notes(Hash hash) throws IOException {
+        try (var p = capture("git", "notes", "show", hash.hex())) {
+            var res = p.await();
+            if (res.status() != 0) {
+                return List.of();
+            }
+            return res.stdout();
+        }
+    }
+
+    @Override
+    public void pushNotes(URI uri) throws IOException {
+        push("refs/notes/*:refs/notes/*", uri);
+    }
 }
