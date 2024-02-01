@@ -484,8 +484,11 @@ public class JiraProject implements IssueProject {
         return timeZoned.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm"));
     }
 
-    @Override
-    public List<IssueTrackerIssue> search(String jql, int limit) {
+    private List<IssueTrackerIssue> search(String jql) {
+        return search(jql, -1);
+    }
+
+    private List<IssueTrackerIssue> search(String jql, int limit) {
         if (limit == 0) {
             return List.of();
         }
