@@ -493,30 +493,42 @@ public class JiraProject implements IssueProject {
             return List.of();
         }
 
-        var ret = new HashMap<String, IssueTrackerIssue>();
-        int count = 0;
         var req = request.get("search").param("jql", jql);
         if (limit > 0) {
             req = req.param("maxResults", Integer.toString(limit));
         }
-        var issues = req.execute();
-        var startAt = 0;
-        while (issues.get("issues").asArray().size() > 0) {
-            for (var issue : issues.get("issues").asArray()) {
+        var res = req.execute();
+
+        // Due to pagination the same issue can be returned multiple times,
+        // for example if an issue is updated _after_ the REST call to the
+        // "search" endpoint. Then it might be included in one of  the next
+        // pages of results, even though it was also present in the first page.
+        //
+        // Handle this case gracefuily by prefering the most recent version of
+        // the issue (the one encountered last), this is implemented by
+        // utilizing a HashMap.
+        var ret = new HashMap<String, IssueTrackerIssue>();
+        var issues = res.get("issues").asArray();
+        int count = 0;
+        while (issues.size() > 0) {
+            for (var issue : issues) {
                 ret.put(JiraIssue.id(issue), new JiraIssue(this, generateIssueRequest(issue), issue));
                 count++;
+                if (count == limit) {
+                    break;
+                }
             }
 
-            if (count < issues.get("total").asInt()) {
-                startAt += issues.get("issues").asArray().size();
+            if (count < issues.get("total").asInt() && count < limit) {
                 req = request.get("search")
                              .param("jql", jql)
-                             .param("startAt", String.valueOf(startAt));
+                             .param("startAt", String.valueOf(count));
                 if (limit > 0) {
-                    req = req.param("maxResults", Integer.toString(limit));
+                    var remaining = limit - count;
+                    req = req.param("maxResults", Integer.toString(remaining));
                 }
 
-                issues = req.execute();
+                issues = req.execute().get("issues").asArray();
             } else {
                 break;
             }
