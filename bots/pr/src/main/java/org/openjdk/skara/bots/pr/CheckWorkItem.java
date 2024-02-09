@@ -726,3 +726,4 @@ class CheckWorkItem extends PullRequestWorkItem {
         return "check";
     }
 }
+
