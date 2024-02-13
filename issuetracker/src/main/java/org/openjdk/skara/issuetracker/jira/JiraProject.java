@@ -519,7 +519,9 @@ public class JiraProject implements IssueProject {
                 }
             }
 
-            if (count < issues.get("total").asInt() && count < limit) {
+            var isBelowLimit = limit == -1 || count < limit;
+            var total = issues.get("total").asInt();
+            if (count < total && isBelowLimit) {
                 req = request.get("search")
                              .param("jql", jql)
                              .param("startAt", String.valueOf(count));
