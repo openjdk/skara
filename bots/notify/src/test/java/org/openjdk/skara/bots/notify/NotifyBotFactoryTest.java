@@ -94,6 +94,9 @@ class NotifyBotFactoryTest {
                             "project": "test_bugs/TEST"
                           },
                           "prbranch": {
+                          },
+                          "notes": {
+                            "project": "test_bugs/TEST"
                           }
                         },
                         "repo2": {
@@ -119,6 +122,9 @@ class NotifyBotFactoryTest {
                             "project": "test_bugs/TEST"
                           },
                           "prbranch": {
+                          },
+                          "notes": {
+                            "project": "test_bugs/TEST"
                           }
                         }
                       }
