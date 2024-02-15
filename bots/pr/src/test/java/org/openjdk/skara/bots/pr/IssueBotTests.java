@@ -412,7 +412,7 @@ public class IssueBotTests {
                             "This can be done directly in each associated issue or by using the " +
                             "[/approval](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/approval) command." +
                             "<!-- PullRequestBot approval needed comment -->"
-                    , pr.store().comments().get(1).body());
+                    , pr.store().comments().get(2).body());
 
             issue.addLabel("CPU23_04-critical-request");
             TestBotRunner.runPeriodicItems(issueBot);
@@ -426,7 +426,7 @@ public class IssueBotTests {
                             "This can be done directly in each associated issue or by using the " +
                             "[/approval](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/approval) command." +
                             "<!-- PullRequestBot approval needed comment -->"
-                    , pr.store().comments().get(1).body());
+                    , pr.store().comments().get(2).body());
         }
     }
 }

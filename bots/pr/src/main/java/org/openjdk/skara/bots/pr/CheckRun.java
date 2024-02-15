@@ -80,6 +80,7 @@ class CheckRun {
     private Duration expiresIn;
     // Only set if approval is configured for the repo
     private String realTargetRef;
+    private boolean missingApprovalRequest = false;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
@@ -477,7 +478,15 @@ class CheckRun {
         if (hash == null) {
             return Optional.empty();
         }
-        var commit = pr.repository().forge().search(hash, true);
+        var repoName = checkablePullRequest.findOriginalBackportRepo();
+        if (repoName == null) {
+            repoName = pr.repository().forge().search(hash).orElseThrow();
+        }
+        var repo = pr.repository().forge().repository(repoName);
+        if (repo.isEmpty()) {
+            throw new IllegalStateException("Backport comment for PR " + pr.id() + " contains bad repo name: " + repoName);
+        }
+        var commit = repo.get().commit(hash, true);
         if (commit.isEmpty()) {
             throw new IllegalStateException("Backport comment for PR " + pr.id() + " contains bad hash: " + hash.hex());
         }
@@ -720,6 +729,8 @@ class CheckRun {
                                 } else if (labels.contains(approval.requestedLabel(realTargetRef))) {
                                     status = "Requested";
                                     requestPresent = true;
+                                } else {
+                                    missingApprovalRequest = true;
                                 }
                                 if (!status.isEmpty()) {
                                     progressBody.append(" - ").append(status);
@@ -1375,18 +1386,6 @@ class CheckRun {
             var readyForIntegration = readyToPostApprovalNeededComment &&
                     !additionalProgresses.containsValue(false);
 
-            if (approvalNeeded() && approval.approvalComment() && readyToPostApprovalNeededComment) {
-                for (var entry : additionalProgresses.entrySet()) {
-                    if (!entry.getKey().endsWith("needs " + approval.approvalTerm()) && !entry.getValue()) {
-                        readyToPostApprovalNeededComment = false;
-                        break;
-                    }
-                }
-                if (readyToPostApprovalNeededComment) {
-                    postApprovalNeededComment();
-                }
-            }
-
             updateMergeReadyComment(readyForIntegration, commitMessage, rebasePossible);
             if (readyForIntegration && rebasePossible) {
                 newLabels.add("ready");
@@ -1400,6 +1399,19 @@ class CheckRun {
                 newLabels.add("merge-conflict");
             } else {
                 newLabels.remove("merge-conflict");
+            }
+
+            if (!PullRequestUtils.isMerge(pr) && !newLabels.contains("ready") && missingApprovalRequest
+                    && approvalNeeded() && approval.approvalComment() && readyToPostApprovalNeededComment) {
+                for (var entry : additionalProgresses.entrySet()) {
+                    if (!entry.getKey().endsWith("needs " + approval.approvalTerm()) && !entry.getValue()) {
+                        readyToPostApprovalNeededComment = false;
+                        break;
+                    }
+                }
+                if (readyToPostApprovalNeededComment) {
+                    postApprovalNeededComment();
+                }
             }
 
             if (pr.sourceRepository().isPresent()) {

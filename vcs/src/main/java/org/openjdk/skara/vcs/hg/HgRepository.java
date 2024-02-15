@@ -1555,4 +1555,24 @@ public class HgRepository implements Repository {
     public boolean isEmptyCommit(Hash hash) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void addNote(Hash hash,
+                        List<String> lines,
+                        String authorName,
+                        String authorEmail,
+                        String committerName,
+                        String committerEmail) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<String> notes(Hash hash) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void pushNotes(URI uri) throws IOException {
+        throw new UnsupportedOperationException();
+    }
 }
