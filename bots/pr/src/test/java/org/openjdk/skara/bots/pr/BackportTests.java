@@ -1031,7 +1031,7 @@ class BackportTests {
     void whitespaceAtEnd(TestInfo testInfo) throws IOException {
         try(var credentials = new HostCredentials(testInfo)) {
             String testString = "Backport %s ";
-            setupAndTest(testString, credentials);        
+            setupAndTest(testString, credentials);  
         }
     }
 
