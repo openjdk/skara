@@ -97,7 +97,7 @@ class ArchiveWorkItem implements WorkItem {
             } catch (IOException e) {
                 log.info("Push to archive failed: " + e);
                 try {
-                    var remoteHead = localRepo.fetch(bot.archiveRepo().authenticatedUrl(), bot.archiveRef(), false);
+                    var remoteHead = localRepo.fetch(bot.archiveRepo().authenticatedUrl(), bot.archiveRef(), false).orElseThrow();
                     localRepo.rebase(remoteHead, bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
                     hash = localRepo.head();
                     log.info("Rebase successful -  new hash: " + hash);

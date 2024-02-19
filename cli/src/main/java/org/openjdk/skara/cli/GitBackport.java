@@ -173,7 +173,7 @@ public class GitBackport {
 
         System.out.println("Fetching ...");
         System.out.flush();
-        var fetchHead = repo.fetch(fromURI, commit, false);
+        var fetchHead = repo.fetch(fromURI, commit, false).orElseThrow();
 
         System.out.println("Cherry picking ...");
         System.out.flush();

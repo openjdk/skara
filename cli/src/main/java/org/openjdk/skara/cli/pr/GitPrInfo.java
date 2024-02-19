@@ -312,8 +312,8 @@ public class GitPrInfo {
 
         if (showAll || showCommits) {
             var url = pr.repository().webUrl();
-            var target = repo.fetch(url, pr.targetRef());
-            var head = repo.fetch(url, pr.fetchRef());
+            var target = repo.fetch(url, pr.targetRef()).orElseThrow();
+            var head = repo.fetch(url, pr.fetchRef()).orElseThrow();
             var mergeBase = repo.mergeBase(head, target);
             var commits = repo.commitMetadata(mergeBase, head);
             if (showDecoration) {

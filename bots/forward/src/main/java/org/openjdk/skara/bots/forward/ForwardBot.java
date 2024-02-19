@@ -84,7 +84,7 @@ class ForwardBot implements Bot, WorkItem {
                      " to " + toBranch.name());
             var fetchHead = toLocalRepo.fetch(fromHostedRepo.authenticatedUrl(),
                                               fromBranch.name() + ":" + toBranch.name(),
-                                              false);
+                                              false).orElseThrow();
             log.info("Pushing " + toBranch.name() + " to " + toHostedRepo.name());
             toLocalRepo.push(fetchHead, toHostedRepo.authenticatedUrl(), toBranch.name(), false);
         } catch (IOException e) {

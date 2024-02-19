@@ -127,7 +127,7 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Save the state
-            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history");
+            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history").orElseThrow();
 
             // Create an issue and commit a fix
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
@@ -764,7 +764,7 @@ public class IssueNotifierTests {
             assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
 
             // Restore the history to simulate looking at another repository
-            localRepo.fetch(repo.authenticatedUrl(), "history");
+            localRepo.fetch(repo.authenticatedUrl(), "history").orElseThrow();
             localRepo.push(blankHistory, repo.authenticatedUrl(), "history", true);
 
             // When the second notifier sees it, it should upgrade the build name
@@ -774,7 +774,7 @@ public class IssueNotifierTests {
             assertEquals("master", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Restore the history to simulate looking at another repository
-            localRepo.fetch(repo.authenticatedUrl(), "history");
+            localRepo.fetch(repo.authenticatedUrl(), "history").orElseThrow();
             localRepo.push(blankHistory, repo.authenticatedUrl(), "history", true);
 
             // When the third notifier sees it, it should switch to a build number
@@ -784,7 +784,7 @@ public class IssueNotifierTests {
             assertEquals("b04", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Restore the history to simulate looking at another repository
-            localRepo.fetch(repo.authenticatedUrl(), "history");
+            localRepo.fetch(repo.authenticatedUrl(), "history").orElseThrow();
             localRepo.push(blankHistory, repo.authenticatedUrl(), "history", true);
 
             // When the fourth notifier sees it, it should switch to a lower build number
@@ -794,7 +794,7 @@ public class IssueNotifierTests {
             assertEquals("b02", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Restore the history to simulate looking at another repository
-            localRepo.fetch(repo.authenticatedUrl(), "history");
+            localRepo.fetch(repo.authenticatedUrl(), "history").orElseThrow();
             localRepo.push(blankHistory, repo.authenticatedUrl(), "history", true);
 
             // When the fifth notifier sees it, it should NOT switch to a higher build number
@@ -1357,7 +1357,7 @@ public class IssueNotifierTests {
             localRepo.push(new Branch(repo.authenticatedUrl().toString()), "--tags", false);
 
             // Claim that it is already processed
-            localRepo.fetch(repo.authenticatedUrl(), "+history:history");
+            localRepo.fetch(repo.authenticatedUrl(), "+history:history").orElseThrow();
             localRepo.checkout(new Branch("history"), true);
             var historyFile = repoFolder.resolve("test.tags.txt");
             var processed = new ArrayList<>(Files.readAllLines(historyFile, StandardCharsets.UTF_8));
@@ -1598,7 +1598,7 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Save the state
-            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history");
+            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history").orElseThrow();
 
             // Create an issue and commit a fix
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
@@ -1653,7 +1653,7 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Save the state
-            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history");
+            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history").orElseThrow();
 
             // Create an issue and commit a fix
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
@@ -2203,7 +2203,7 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Save the state
-            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history");
+            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history").orElseThrow();
 
             // Create an issue and commit a fix
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));

@@ -462,7 +462,7 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public Hash fetch(URI uri, String refspec, boolean includeTags, boolean forceUpdateTags) throws IOException {
+    public Optional<Hash> fetch(URI uri, String refspec, boolean includeTags, boolean forceUpdateTags) throws IOException {
         // Ignore includeTags and forceUpdateTags, Mercurial always fetches tags
         return fetch(uri != null ? uri.toString() : null, refspec);
     }
@@ -479,7 +479,7 @@ public class HgRepository implements Repository {
         }
     }
 
-    private Hash fetch(String from, String refspec) throws IOException {
+    private Optional<Hash> fetch(String from, String refspec) throws IOException {
         var oldHeads = new HashSet<>(heads());
 
         var cmd = new ArrayList<String>();
@@ -503,9 +503,9 @@ public class HgRepository implements Repository {
             throw new IllegalStateException("fetching multiple heads is not supported");
         } else if (newHeads.size() == 0) {
             // no new head was fetched, return current head
-            return head();
+            return Optional.of(head());
         }
-        return newHeads.iterator().next();
+        return Optional.of(newHeads.iterator().next());
     }
 
     @Override

@@ -69,7 +69,7 @@ public class CommitCommentNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Save the state
-            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history");
+            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history").orElseThrow();
 
             // Commit a fix
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fix an issue");
@@ -138,7 +138,7 @@ public class CommitCommentNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Save the state
-            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history");
+            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history").orElseThrow();
 
             // Commit a fix
             localRepo.push(editHash, repo.authenticatedUrl(), "master");
@@ -207,7 +207,7 @@ public class CommitCommentNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Save the state
-            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history");
+            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history").orElseThrow();
 
             // Commit a fix
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fix an issue");

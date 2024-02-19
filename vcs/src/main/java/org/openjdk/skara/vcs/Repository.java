@@ -41,13 +41,13 @@ public interface Repository extends ReadOnlyRepository {
     default void checkout(Branch b) throws IOException {
         checkout(b, false);
     }
-    default Hash fetch(URI uri, String refspec) throws IOException {
+    default Optional<Hash> fetch(URI uri, String refspec) throws IOException {
         return fetch(uri, refspec, true);
     }
-    default Hash fetch(URI uri, String refspec, boolean includeTags) throws IOException {
+    default Optional<Hash> fetch(URI uri, String refspec, boolean includeTags) throws IOException {
         return fetch(uri, refspec, includeTags, false);
     }
-    Hash fetch(URI uri, String refspec, boolean includeTags, boolean forceUpdateTags) throws IOException;
+    Optional<Hash> fetch(URI uri, String refspec, boolean includeTags, boolean forceUpdateTags) throws IOException;
     default void fetchAll(URI uri) throws IOException {
         fetchAll(uri, true);
     }
@@ -282,14 +282,14 @@ public interface Repository extends ReadOnlyRepository {
             }
         }
 
-        var baseHash = localRepo.fetch(remote, ref);
+        var baseHash = localRepo.fetch(remote, ref).orElseThrow();
 
         if (checkout) {
             try {
                 localRepo.checkout(baseHash, true);
             } catch (IOException e) {
                 localRepo.reinitialize();
-                baseHash = localRepo.fetch(remote, ref);
+                baseHash = localRepo.fetch(remote, ref).orElseThrow();
                 localRepo.checkout(baseHash, true);
             }
         }

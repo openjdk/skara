@@ -275,7 +275,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
             if (!targetLocalRepository.root().equals(sourceLocalRepository.root())) {
                 // The target and source repo are not same, fetch the source branch
                 var sourceUri = URI.create("file://" + sourceLocalRepository.root().toString());
-                sourceHash = targetLocalRepository.fetch(sourceUri, sourceRef);
+                sourceHash = targetLocalRepository.fetch(sourceUri, sourceRef).orElseThrow();
             }
             // Find the base hash of the source and target branches.
             var baseHash = targetLocalRepository.mergeBase(sourceHash, targetRepository.branchHash(targetRef()).orElseThrow());

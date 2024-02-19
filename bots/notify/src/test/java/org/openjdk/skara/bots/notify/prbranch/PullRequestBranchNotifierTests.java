@@ -80,7 +80,7 @@ public class PullRequestBranchNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The target repo should now contain the new branch
-            var hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr));
+            var hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)).orElseThrow();
             assertEquals(editHash, hash);
 
             // Close the PR
@@ -88,14 +88,14 @@ public class PullRequestBranchNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The target repo should no longer contain the branch
-            assertThrows(IOException.class, () -> localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)));
+            assertThrows(IOException.class, () -> localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)).orElseThrow());
 
             // Reopen the PR
             pr.setState(Issue.State.OPEN);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The branch should have reappeared
-            hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr));
+            hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)).orElseThrow();
             assertEquals(editHash, hash);
         }
     }
@@ -125,7 +125,7 @@ public class PullRequestBranchNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The target repo should now contain the new branch
-            var hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr));
+            var hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)).orElseThrow();
             assertEquals(editHash, hash);
 
             // remove label `rfr`
@@ -136,21 +136,21 @@ public class PullRequestBranchNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The target repo should no longer contain the branch
-            assertThrows(IOException.class, () -> localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)));
+            assertThrows(IOException.class, () -> localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)).orElseThrow());
 
             // Reopen the PR
             pr.setState(Issue.State.OPEN);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The target repo should not contain the branch, because the pr doesn't have label `rfr`.
-            assertThrows(IOException.class, () -> localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)));
+            assertThrows(IOException.class, () -> localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)).orElseThrow());
 
             // add label `rfr`
             pr.addLabel("rfr");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The branch should have reappeared
-            hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr));
+            hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)).orElseThrow();
             assertEquals(editHash, hash);
         }
     }
@@ -180,7 +180,7 @@ public class PullRequestBranchNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The target repo should now contain the new branch
-            var hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr));
+            var hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)).orElseThrow();
             assertEquals(editHash, hash);
 
             // Push another change
@@ -190,7 +190,7 @@ public class PullRequestBranchNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The branch should have been updated
-            hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr));
+            hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)).orElseThrow();
             assertEquals(updatedHash, hash);
         }
     }
@@ -220,7 +220,7 @@ public class PullRequestBranchNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The target repo should now contain the new branch
-            var hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr));
+            var hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)).orElseThrow();
             assertEquals(editHash, hash);
             try {
                 localRepo.prune(new Branch(PreIntegrations.preIntegrateBranch(pr)), repo.authenticatedUrl().toString());
@@ -258,7 +258,7 @@ public class PullRequestBranchNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The target repo should now contain the new branch
-            var hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr));
+            var hash = localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)).orElseThrow();
             assertEquals(editHash, hash);
 
             // Create follow-up work
@@ -273,7 +273,7 @@ public class PullRequestBranchNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The target repo should no longer contain the branch
-            assertThrows(IOException.class, () -> localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)));
+            assertThrows(IOException.class, () -> localRepo.fetch(repo.authenticatedUrl(), PreIntegrations.preIntegrateBranch(pr)).orElseThrow());
 
             // The follow-up PR should have been retargeted
             assertEquals("master", followUpPr.store().targetRef());
@@ -298,7 +298,7 @@ public class PullRequestBranchNotifierTests {
 
             // The target repo should no longer contain the branch
             var targetBranch = PreIntegrations.preIntegrateBranch(followUpPr);
-            assertThrows(IOException.class, () -> localRepo.fetch(repo.authenticatedUrl(), targetBranch));
+            assertThrows(IOException.class, () -> localRepo.fetch(repo.authenticatedUrl(), targetBranch).orElseThrow());
 
             // The another follow-up PR should have been retargeted
             assertEquals("master", anotherFollowUpPr.store().targetRef());

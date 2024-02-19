@@ -1442,7 +1442,7 @@ class MergeTests {
             var otherHash = CheckableRepository.appendAndCommit(unrelatedRepo, "Change in other",
                                                                 "Other\n\nReviewed-by: integrationreviewer2");
             unrelatedRepo.push(otherHash, author.authenticatedUrl(), "other", true);
-            localRepo.fetch(author.authenticatedUrl(), "other");
+            localRepo.fetch(author.authenticatedUrl(), "other").orElseThrow();
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);

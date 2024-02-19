@@ -731,7 +731,7 @@ public class RepositoryTests {
             r1.tag(hash, "tag", "tagging", "duke", "duke@openjdk.org");
 
             var r2 = TestableRepository.init(dir2.path(), vcs);
-            r2.fetch(r1.root().toUri(), r1.defaultBranch().name());
+            r2.fetch(r1.root().toUri(), r1.defaultBranch().name()).orElseThrow();
 
             assertTrue(r2.isHealthy());
         }
@@ -814,7 +814,7 @@ public class RepositoryTests {
                  // note: forcing unix path separators for URI
                 var upstreamURI = URI.create("file:///" + dir.toString().replace('\\', '/'));
 
-                var fetchHead = downstream.fetch(upstreamURI, downstream.defaultBranch().name());
+                var fetchHead = downstream.fetch(upstreamURI, downstream.defaultBranch().name()).orElseThrow();
                 downstream.checkout(fetchHead, false);
 
                 var downstreamReadme = dir2.path().resolve("README");
@@ -859,7 +859,7 @@ public class RepositoryTests {
                 // note: forcing unix path separators for URI
                 var upstreamURI = URI.create("file:///" + dir.toString().replace('\\', '/'));
 
-                downstream.fetch(upstreamURI, downstream.defaultBranch().name());
+                downstream.fetch(upstreamURI, downstream.defaultBranch().name()).orElseThrow();
                 var tagHash = downstream.resolve(firstTag).orElseThrow();
                 downstream.checkout(tagHash, false);
 
@@ -869,7 +869,7 @@ public class RepositoryTests {
                 var secondTag = upstream.tag(secondHash, "my-tag", "Second tag message","duke",
                         "duke@openjdk.org", null, true);
 
-                downstream.fetch(upstreamURI, downstream.defaultBranch().name(), true, true);
+                downstream.fetch(upstreamURI, downstream.defaultBranch().name(), true, true).orElseThrow();
                 tagHash = downstream.resolve(secondTag).orElseThrow();
                 downstream.checkout(tagHash, false);
                 assertEquals(secondHash, tagHash, "Tag not updated to second hash");
@@ -2970,7 +2970,7 @@ public class RepositoryTests {
                  // note: forcing unix path separators for URI
                 var upstreamURI = URI.create("file:///" + dir.toString().replace('\\', '/'));
 
-                var fetchHead = downstream.fetch(upstreamURI, downstream.defaultBranch().name());
+                var fetchHead = downstream.fetch(upstreamURI, downstream.defaultBranch().name()).orElseThrow();
                 downstream.checkout(fetchHead, false);
 
                 var downstreamReadme = dir2.path().resolve("README");
