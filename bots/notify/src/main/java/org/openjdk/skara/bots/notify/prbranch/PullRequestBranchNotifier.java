@@ -50,7 +50,7 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
         var hostedRepositoryPool = new HostedRepositoryPool(seedFolder);
         try {
             var seedRepo = hostedRepositoryPool.seedRepository(pr.repository(), false);
-            seedRepo.fetch(pr.repository().authenticatedUrl(), pr.headHash().hex());
+            seedRepo.fetch(pr.repository().authenticatedUrl(), pr.headHash().hex()).orElseThrow();
             String branch = PreIntegrations.preIntegrateBranch(pr);
             log.info("Creating new pull request pre-integration branch " + branch);
             seedRepo.push(pr.headHash(), pr.repository().authenticatedUrl(), branch, true);

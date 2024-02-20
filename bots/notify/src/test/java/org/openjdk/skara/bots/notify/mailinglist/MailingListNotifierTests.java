@@ -865,7 +865,7 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
-            localRepo.fetch(repo.authenticatedUrl(), "history:history");
+            localRepo.fetch(repo.authenticatedUrl(), "history:history").orElseThrow();
             localRepo.tag(editHash, "jdk-12+2", "Added tag 2", "Duke Tagger", "tagger@openjdk.org");
             CheckableRepository.appendAndCommit(localRepo, "Another line 1", "34567890: Even more fixes");
             CheckableRepository.appendAndCommit(localRepo, "Another line 2", "45678901: Yet even more fixes");
@@ -988,7 +988,7 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
-            localRepo.fetch(repo.authenticatedUrl(), "history:history");
+            localRepo.fetch(repo.authenticatedUrl(), "history:history").orElseThrow();
             localRepo.tag(editHash, "jdk-12+2", "Added tag 2", "Duke Tagger", "tagger@openjdk.org");
             CheckableRepository.appendAndCommit(localRepo, "Another line 1", "34567890: Even more fixes");
             CheckableRepository.appendAndCommit(localRepo, "Another line 2", "45678901: Yet even more fixes");
@@ -1158,7 +1158,7 @@ public class MailingListNotifierTests {
             listServer.processIncoming();
 
             // Save history state
-            var historyHash = localRepo.fetch(repo.authenticatedUrl(), "history");
+            var historyHash = localRepo.fetch(repo.authenticatedUrl(), "history").orElseThrow();
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
             localRepo.push(editHash, repo.authenticatedUrl(), "master");

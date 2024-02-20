@@ -129,7 +129,7 @@ class HostedRepositoryStorage<T> implements Storage<T> {
 
                 // Check if the remote has changed
                 try {
-                    var remoteHash = localRepository.fetch(hostedRepository.authenticatedUrl(), ref);
+                    var remoteHash = localRepository.fetch(hostedRepository.authenticatedUrl(), ref).orElseThrow();
                     if (!remoteHash.equals(lastRemoteHash)) {
                         localRepository.checkout(remoteHash, true);
                         repositoryStorage = new RepositoryStorage<>(localRepository, fileName, authorName, authorEmail, message, serializer, deserializer);

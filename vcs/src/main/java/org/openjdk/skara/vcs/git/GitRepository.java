@@ -487,7 +487,7 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Hash fetch(URI uri, String refspec, boolean includeTags, boolean forceUpdateTags) throws IOException {
+    public Optional<Hash> fetch(URI uri, String refspec, boolean includeTags, boolean forceUpdateTags) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "fetch", "--recurse-submodules=on-demand"));
         if (includeTags) {
@@ -502,7 +502,7 @@ public class GitRepository implements Repository {
         cmd.add(refspec);
         try (var p = capture(cmd)) {
             await(p);
-            return resolve("FETCH_HEAD").orElseThrow();
+            return resolve("FETCH_HEAD");
         }
     }
 

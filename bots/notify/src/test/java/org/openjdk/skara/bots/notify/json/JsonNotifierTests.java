@@ -130,7 +130,7 @@ public class JsonNotifierTests {
             assertEquals(1, findJsonFiles(jsonFolder, "").size());
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
-            localRepo.fetch(repo.authenticatedUrl(), "history:history");
+            localRepo.fetch(repo.authenticatedUrl(), "history:history").orElseThrow();
             localRepo.tag(editHash, "jdk-12+2", "Added tag 2", "Duke", "duke@openjdk.org");
             var editHash2 = CheckableRepository.appendAndCommit(localRepo, "Another line", "34567890: Even more fixes");
             localRepo.tag(editHash2, "jdk-12+4", "Added tag 3", "Duke", "duke@openjdk.org");

@@ -166,7 +166,7 @@ class BridgeBotTests {
              var marksFolder = new TemporaryDirectory()) {
             // Export a partial version of a hg repository
             var localHgRepo = Repository.materialize(hgFolder.path(), source, "default");
-            localHgRepo.fetch(source, "testlock");
+            localHgRepo.fetch(source, "testlock").orElseThrow();
             var destinationRepo = credentials.getHostedRepository();
             var config = new TestExporterConfig(localHgRepo.root().toUri(), destinationRepo, marksFolder.path());
             var bridge = new JBridgeBot(config, storageFolder.path());
@@ -183,7 +183,7 @@ class BridgeBotTests {
             assertFalse(localGitTags.contains("jtreg4.1-b05"));
 
             // Import more revisions into the local hg repository and export again
-            localHgRepo.fetch(source, "default");
+            localHgRepo.fetch(source, "default").orElseThrow();
             TestBotRunner.runPeriodicItems(bridge);
 
             // There should now be more tags present
@@ -383,7 +383,7 @@ class BridgeBotTests {
              var marksFolder = new TemporaryDirectory()) {
             // Export a hg repository with unreachable commits
             var localHgRepo = Repository.materialize(hgFolder.path(), source, "default");
-            localHgRepo.fetch(source, "testlock");
+            localHgRepo.fetch(source, "testlock").orElseThrow();
             var destinationRepo = credentials.getHostedRepository();
             var config = new TestExporterConfig(localHgRepo.root().toUri(), destinationRepo, marksFolder.path());
             var bridge = new JBridgeBot(config, storageFolder.path());
@@ -412,7 +412,7 @@ class BridgeBotTests {
              var marksFolder = new TemporaryDirectory()) {
             // Export a hg repository
             var localHgRepo = Repository.materialize(hgFolder.path(), source, "default");
-            localHgRepo.fetch(source, "testlock");
+            localHgRepo.fetch(source, "testlock").orElseThrow();
             var destinationRepo = credentials.getHostedRepository();
             var config = new TestExporterConfig(localHgRepo.root().toUri(), destinationRepo, marksFolder.path());
             var bridge = new JBridgeBot(config, storageFolder.path());

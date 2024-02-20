@@ -80,7 +80,7 @@ public class GitPrCheckout {
         var id = pullRequestIdArgument(repo, arguments);
         var pr = getPullRequest(uri, repo, host, id);
 
-        var fetchHead = repo.fetch(pr.repository().webUrl(), pr.fetchRef());
+        var fetchHead = repo.fetch(pr.repository().webUrl(), pr.fetchRef()).orElseThrow();
         var branchName = getOption("branch", "checkout", arguments);
         if (branchName != null) {
             var branch = repo.branch(fetchHead, branchName);

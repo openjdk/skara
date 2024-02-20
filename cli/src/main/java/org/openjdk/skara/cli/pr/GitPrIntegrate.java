@@ -106,7 +106,7 @@ public class GitPrIntegrate {
             if (!targetHash.isPresent()) {
                 exit("error: cannot resolve target branch " + pr.targetRef());
             }
-            var sourceHash = repo.fetch(pr.repository().webUrl(), pr.fetchRef());
+            var sourceHash = repo.fetch(pr.repository().webUrl(), pr.fetchRef()).orElseThrow();
             var mergeBase = repo.mergeBase(sourceHash, targetHash.get());
             message += " " + mergeBase.hex();
         } else if (isAuto) {

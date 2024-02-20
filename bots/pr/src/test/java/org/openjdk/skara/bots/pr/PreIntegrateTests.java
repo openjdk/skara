@@ -117,7 +117,7 @@ public class PreIntegrateTests {
             assertTrue(followUpPr.store().labelNames().contains("ready"));
 
             // Push something else unrelated to the target
-            var currentMaster = localRepo.fetch(author.authenticatedUrl(), "master");
+            var currentMaster = localRepo.fetch(author.authenticatedUrl(), "master").orElseThrow();
             localRepo.checkout(currentMaster, true);
             var unrelatedFile2 = localRepo.root().resolve("unrelated2.txt");
             Files.writeString(unrelatedFile2, "Some other things happens in master");
@@ -135,7 +135,7 @@ public class PreIntegrateTests {
             assertLastCommentContains(followUpPr, "Pushed as commit");
 
             // Check that everything is present
-            var finalMaster = localRepo.fetch(author.authenticatedUrl(), "master");
+            var finalMaster = localRepo.fetch(author.authenticatedUrl(), "master").orElseThrow();
             localRepo.checkout(finalMaster, true);
             assertEquals("Other things happens in master", Files.readString(localRepo.root().resolve("unrelated.txt")));
             assertEquals("Some other things happens in master", Files.readString(localRepo.root().resolve("unrelated2.txt")));

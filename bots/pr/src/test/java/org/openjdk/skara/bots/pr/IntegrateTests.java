@@ -1286,7 +1286,7 @@ class IntegrateTests {
 
             // Add a new commit to master branch
             localRepo.checkout(new Branch("master"));
-            localRepo.fetch(author.authenticatedUrl(), "master");
+            localRepo.fetch(author.authenticatedUrl(), "master").orElseThrow();
             localRepo.merge(new Branch("FETCH_HEAD"));
             var integratedHash = localRepo.resolve("master");
             var newMasterHash = CheckableRepository.appendAndCommit(localRepo, "Another line",
