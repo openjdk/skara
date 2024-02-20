@@ -75,7 +75,7 @@ public class GitPrFetch {
         var id = pullRequestIdArgument(repo, arguments);
         var pr = getPullRequest(uri, repo, host, id);
 
-        var fetchHead = repo.fetch(pr.repository().webUrl(), pr.fetchRef());
+        var fetchHead = repo.fetch(pr.repository().webUrl(), pr.fetchRef()).orElseThrow();
         System.out.println(fetchHead.hex());
     }
 }

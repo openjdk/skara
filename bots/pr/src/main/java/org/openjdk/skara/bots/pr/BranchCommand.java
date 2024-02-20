@@ -98,7 +98,7 @@ public class BranchCommand implements CommandHandler {
             var localRepo = bot.hostedRepositoryPool()
                                .orElseThrow(() -> new IllegalStateException("Missing repository pool for PR bot"))
                                .materialize(bot.repo(), localRepoDir);
-            localRepo.fetch(bot.repo().authenticatedUrl(), commit.hash().toString(), true);
+            localRepo.fetch(bot.repo().authenticatedUrl(), commit.hash().toString(), true).orElseThrow();
 
             var remoteBranches = bot.repo().branches();
             var remoteBranchNames = remoteBranches.stream()

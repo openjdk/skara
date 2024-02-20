@@ -51,16 +51,14 @@ public class PullRequestUtils {
     private static Optional<Hash> fetchRef(Repository localRepo, URI uri, String ref) {
         // Just a plain name - is this a branch?
         try {
-            var hash = localRepo.fetch(uri, "+" + ref + ":refs/heads/merge_source", false);
-            return Optional.of(hash);
+            return localRepo.fetch(uri, "+" + ref + ":refs/heads/merge_source", false);
         } catch (IOException e) {
             // Ignored
         }
 
         // Perhaps it is an actual tag object - it cannot be fetched to a branch ref
         try {
-            var hash = localRepo.fetch(uri, "+" + ref + ":refs/tags/merge_source_tag", false);
-            return Optional.of(hash);
+            return localRepo.fetch(uri, "+" + ref + ":refs/tags/merge_source_tag", false);
         } catch (IOException e) {
             // Ignored
         }
@@ -164,7 +162,7 @@ public class PullRequestUtils {
 
     public static Repository materialize(HostedRepositoryPool hostedRepositoryPool, PullRequest pr, Path path) throws IOException {
         var localRepo = hostedRepositoryPool.checkout(pr.repository(), pr.headHash().hex(), path);
-        localRepo.fetch(pr.repository().authenticatedUrl(), "+" + pr.targetRef() + ":prutils_targetref", false);
+        localRepo.fetch(pr.repository().authenticatedUrl(), "+" + pr.targetRef() + ":prutils_targetref", false).orElseThrow();
         return localRepo;
     }
 

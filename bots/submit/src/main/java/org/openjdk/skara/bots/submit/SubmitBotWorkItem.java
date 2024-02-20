@@ -84,7 +84,7 @@ public class SubmitBotWorkItem implements WorkItem {
         try {
             var localRepo = Repository.materialize(prFolder, pr.repository().authenticatedUrl(),
                                                    "+" + pr.targetRef() + ":submit_" + pr.repository().name());
-            var headHash = localRepo.fetch(pr.repository().authenticatedUrl(), pr.headHash().hex(), false);
+            var headHash = localRepo.fetch(pr.repository().authenticatedUrl(), pr.headHash().hex(), false).orElseThrow();
 
             var checkBuilder = CheckBuilder.create(executor.checkName(), headHash);
             pr.createCheck(checkBuilder.build());

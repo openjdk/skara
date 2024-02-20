@@ -87,7 +87,7 @@ public class GitSync {
         Hash fetchHead = null;
         logVerbose("Fetching branch " + name + " from  " + sourceURI);
         if (!isDryRun) {
-            fetchHead = repo.fetch(sourceURI, name);
+            fetchHead = repo.fetch(sourceURI, name).orElseThrow();
         }
         logVerbose("Pushing to " + targetURI);
         if (!isDryRun) {

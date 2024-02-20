@@ -231,7 +231,7 @@ class WebrevStorage {
                         if (retryCount > 5) {
                             throw e;
                         }
-                        var updated = localStorage.fetch(remote, storageRef);
+                        var updated = localStorage.fetch(remote, storageRef).orElseThrow();
                         localStorage.rebase(updated, author.fullName().orElseThrow(), author.address());
                         hash = localStorage.head();
                     }
