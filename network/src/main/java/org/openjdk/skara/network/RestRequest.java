@@ -89,6 +89,7 @@ public class RestRequest {
         private ErrorTransform onError;
         private String sha256Header;
         private boolean skipLimiter = false;
+        private boolean failOnEmptyResponse = false;
 
         private QueryBuilder(RequestType queryType, String endpoint) {
             this.queryType = queryType;
@@ -209,6 +210,11 @@ public class RestRequest {
 
         public QueryBuilder skipLimiter(boolean skipLimiter) {
             this.skipLimiter = skipLimiter;
+            return this;
+        }
+
+        public QueryBuilder failOnEmptyResponse(boolean failOnEmptyResponse) {
+            this.failOnEmptyResponse = failOnEmptyResponse;
             return this;
         }
 
@@ -495,6 +501,10 @@ public class RestRequest {
             return errorTransform.get();
         }
 
+        if (queryBuilder.failOnEmptyResponse && response.body().isBlank()) {
+            throw new UncheckedRestException("Empty response body", response.statusCode(), request.build());
+        }
+
         var nextRequest = nextLinkExtractor.getNextLinkRequest(response);
         if (nextRequest.isEmpty() || queryBuilder.maxPages < 2) {
             return parseResponse(response);
@@ -537,11 +547,11 @@ public class RestRequest {
     }
 
     public QueryBuilder get(String endpoint) {
-        return new QueryBuilder(RequestType.GET, endpoint);
+        return new QueryBuilder(RequestType.GET, endpoint).failOnEmptyResponse(true);
     }
 
     public QueryBuilder get() {
-        return get(null);
+        return get(null).failOnEmptyResponse(true);
     }
 
     public QueryBuilder post(String endpoint) {
