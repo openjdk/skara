@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,7 +29,6 @@ import java.net.URI;
 import java.nio.file.*;
 import java.time.*;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class HostedRepositoryPool {
@@ -130,17 +129,8 @@ public class HostedRepositoryPool {
 
         private void removeOldClone(Path path, String reason) {
             if (Files.exists(path)) {
-                var preserved = path.resolveSibling(path.getFileName().toString() + "-" + reason + "-" + UUID.randomUUID());
-                log.severe("Invalid local repository detected (" + reason + ") - preserved in: " + preserved);
-                try {
-                    Files.move(path, preserved);
-                } catch (IOException e) {
-                    log.log(Level.SEVERE, "Failed to preserve old clone at " + path, e);
-                } finally {
-                    if (Files.exists(path)) {
-                        clearDirectory(path);
-                    }
-                }
+                log.severe("Invalid local repository " + path + " detected (" + reason + ")");
+                clearDirectory(path);
             }
         }
 
