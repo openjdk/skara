@@ -502,8 +502,8 @@ public class RestRequest {
         }
 
         if (queryBuilder.failOnEmptyResponse && response.body().isBlank()) {
-            throw new UncheckedRestException("Empty response body, Location: "
-                    + response.headers().firstValue("Location").orElse(""),
+            throw new UncheckedRestException("Empty response body"
+                    + response.headers().firstValue("Location").map(s -> ", redirect: " + s).orElse(""),
                     response.statusCode(), request.build());
         }
 
