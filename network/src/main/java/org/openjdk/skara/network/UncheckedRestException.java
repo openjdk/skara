@@ -38,6 +38,10 @@ public class UncheckedRestException extends RuntimeException {
         this("Request returned bad status", null, statusCode, request);
     }
 
+    public UncheckedRestException(String message, int statusCode, HttpRequest request) {
+        this(message, null, statusCode, request);
+    }
+
     public UncheckedRestException(String message, Throwable cause, int statusCode, HttpRequest request) {
         super("[" + statusCode + "] " + message, cause);
         this.statusCode = statusCode;
