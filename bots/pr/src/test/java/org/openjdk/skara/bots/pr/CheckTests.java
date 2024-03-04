@@ -2377,6 +2377,26 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
             assertEquals(1, pr.store().comments().size());
 
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            // Close the pr so we can skip CheckWorkItem
+            pr.setState(Issue.State.CLOSED);
+            reviewerPr.addComment("/reviewers 2");
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertEquals("<!-- Jmerge command reply message (1) -->\n" +
+                    "@user2 JCheck configuration is invalid in the target branch of this pull request. " +
+                    "Please issue this command again once the problem has been resolved.", pr.store().comments().get(2).body());
+
+            pr.setTargetRef("notExist");
+            reviewerPr.addComment("/reviewers 2");
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertEquals("<!-- Jmerge command reply message (3) -->\n" +
+                    "@user2 The target branch of this pull request no longer exists. " +
+                    "Please retarget this pull request. " +
+                    "Please issue this command again once the problem has been resolved.", pr.store().comments().get(4).body());
+
+            pr.setTargetRef("master");
+            pr.setState(Issue.State.OPEN);
+
             // Restore .jcheck/conf
             localRepo.checkout(masterHash);
             Files.createDirectories(tempFolder.path().resolve(".jcheck"));
@@ -2404,10 +2424,13 @@ class CheckTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
             var conf = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                    .addAuthor(author.forge().currentUser().id());
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+
             var checkBot = PullRequestBot.newBuilder()
                     .repo(author)
                     .censusRepo(censusBuilder.build())
@@ -2442,6 +2465,16 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
             TestBotRunner.runPeriodicItems(checkBot);
             assertEquals(1, pr.store().comments().size());
+
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            // Close the pr so we can skip CheckWorkItem
+            pr.setState(Issue.State.CLOSED);
+            reviewerPr.addComment("/reviewers 2");
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertEquals("<!-- Jmerge command reply message (1) -->\n" +
+                    "@user2 The JCheck configuration has been overridden, but is missing. Skara admins have been notified. " +
+                    "Please issue this command again once the problem has been resolved.", pr.store().comments().get(2).body());
+            pr.setState(Issue.State.OPEN);
 
             // Upload .jcheck/conf to jcheck-branch
             var jCheckBranch = localRepo.branch(masterHash, "jcheck-branch");

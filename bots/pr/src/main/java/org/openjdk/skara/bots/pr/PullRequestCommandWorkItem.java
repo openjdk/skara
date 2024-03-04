@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -200,13 +200,43 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
 
         CensusInstance census;
+        var command = nextCommand.get();
+
         try {
             census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchArea.getCensus(), pr,
                     bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
         } catch (InvalidJCheckConfException | MissingJCheckConfException e) {
-            throw new RuntimeException(e);
+            String errorMessage;
+            if (e instanceof InvalidJCheckConfException) {
+                errorMessage = "invalid";
+            } else {
+                errorMessage = "missing";
+            }
+
+            var writer = new StringWriter();
+            var printer = new PrintWriter(writer);
+
+            printer.println(String.format(COMMAND_REPLY_MARKER, command.id()));
+            printer.print("@");
+            printer.print(command.user().username());
+            printer.print(" ");
+            if (bot.confOverrideRepository().isEmpty()) {
+                var branchNames = pr.repository().branches().stream().map(HostedBranch::name).toList();
+                if (branchNames.contains(pr.targetRef())) {
+                    printer.print("JCheck configuration is " + errorMessage + " in the target branch of this pull request.");
+                } else {
+                    printer.print("The target branch of this pull request no longer exists. Please retarget this pull request.");
+                }
+            } else {
+                log.severe(bot.confOverrideName() + " on " + bot.confOverrideRef() +
+                        " is " + errorMessage + " in repo " + bot.confOverrideRepository().get().name());
+                printer.print("The JCheck configuration has been overridden, " +
+                        "but is " + errorMessage + ". Skara admins have been notified.");
+            }
+            printer.print(" Please issue this command again once the problem has been resolved.");
+            pr.addComment(writer.toString());
+            return List.of();
         }
-        var command = nextCommand.get();
         log.info("Processing command: " + command.id() + " - " + command.name());
 
         // We can't trust just the integrated label as that gets set before the commit comment.
