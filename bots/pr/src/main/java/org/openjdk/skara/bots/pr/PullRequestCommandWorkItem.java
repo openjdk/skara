@@ -224,7 +224,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
                 log.severe(bot.confOverrideName() + " on " + bot.confOverrideRef() +
                         " is missing or invalid in repo " + bot.confOverrideRepository().get().name());
                 printer.println("The JCheck configuration has been overridden, " +
-                        "but it's missing or invalid. Skara admin has been noticed and will fix it as soon as possible.");
+                        "but is missing or invalid. Skara admins have been notified.");
             }
             printer.print("Please issue this command again once the problem has been resolved.");
             pr.addComment(writer.toString());
