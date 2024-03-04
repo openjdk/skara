@@ -2383,14 +2383,15 @@ class CheckTests {
             reviewerPr.addComment("/reviewers 2");
             TestBotRunner.runPeriodicItems(checkBot);
             assertEquals("<!-- Jmerge command reply message (1) -->\n" +
-                    "@user2 JCheck configuration is missing or invalid in the target branch of this pull request.\n" +
+                    "@user2 JCheck configuration is invalid in the target branch of this pull request. " +
                     "Please issue this command again once the problem has been resolved.", pr.store().comments().get(2).body());
 
             pr.setTargetRef("notExist");
             reviewerPr.addComment("/reviewers 2");
             TestBotRunner.runPeriodicItems(checkBot);
             assertEquals("<!-- Jmerge command reply message (3) -->\n" +
-                    "@user2 The target branch of this pull request no longer exists. Please retarget this pull request.\n" +
+                    "@user2 The target branch of this pull request no longer exists. " +
+                    "Please retarget this pull request. " +
                     "Please issue this command again once the problem has been resolved.", pr.store().comments().get(4).body());
 
             pr.setTargetRef("master");
@@ -2471,7 +2472,7 @@ class CheckTests {
             reviewerPr.addComment("/reviewers 2");
             TestBotRunner.runPeriodicItems(checkBot);
             assertEquals("<!-- Jmerge command reply message (1) -->\n" +
-                    "@user2 The JCheck configuration has been overridden, but it's missing or invalid. Skara admin has been noticed and will fix it as soon as possible.\n" +
+                    "@user2 The JCheck configuration has been overridden, but is missing. Skara admins have been notified. " +
                     "Please issue this command again once the problem has been resolved.", pr.store().comments().get(2).body());
             pr.setState(Issue.State.OPEN);
 

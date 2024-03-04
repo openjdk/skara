@@ -206,6 +206,13 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
             census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchArea.getCensus(), pr,
                     bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
         } catch (InvalidJCheckConfException | MissingJCheckConfException e) {
+            String errorMessage;
+            if (e instanceof InvalidJCheckConfException) {
+                errorMessage = "invalid";
+            } else {
+                errorMessage = "missing";
+            }
+
             var writer = new StringWriter();
             var printer = new PrintWriter(writer);
 
@@ -216,17 +223,17 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
             if (bot.confOverrideRepository().isEmpty()) {
                 var branchNames = pr.repository().branches().stream().map(HostedBranch::name).toList();
                 if (branchNames.contains(pr.targetRef())) {
-                    printer.println("JCheck configuration is missing or invalid in the target branch of this pull request.");
+                    printer.print("JCheck configuration is " + errorMessage + " in the target branch of this pull request.");
                 } else {
-                    printer.println("The target branch of this pull request no longer exists. Please retarget this pull request.");
+                    printer.print("The target branch of this pull request no longer exists. Please retarget this pull request.");
                 }
             } else {
                 log.severe(bot.confOverrideName() + " on " + bot.confOverrideRef() +
-                        " is missing or invalid in repo " + bot.confOverrideRepository().get().name());
-                printer.println("The JCheck configuration has been overridden, " +
-                        "but is missing or invalid. Skara admins have been notified.");
+                        " is " + errorMessage + " in repo " + bot.confOverrideRepository().get().name());
+                printer.print("The JCheck configuration has been overridden, " +
+                        "but is " + errorMessage + ". Skara admins have been notified.");
             }
-            printer.print("Please issue this command again once the problem has been resolved.");
+            printer.print(" Please issue this command again once the problem has been resolved.");
             pr.addComment(writer.toString());
             return List.of();
         }
