@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -200,7 +200,19 @@ public class Webrev {
             return commits.stream().anyMatch(CommitMetadata::isMerge);
         }
 
+        private boolean isDiffTooLarge(Diff diff) {
+            var totalChanges = diff.patches().stream()
+                    .map(Patch::asTextualPatch)
+                    .flatMap(textualPatch -> textualPatch.hunks().stream())
+                    .mapToInt(Hunk::changes)
+                    .sum();
+            return totalChanges > 100000;
+        }
+
         private void generateJSON(Diff diff, Hash tailEnd, Hash head) throws IOException {
+            if (isDiffTooLarge(diff)) {
+                return;
+            }
             if (head == null) {
                 throw new IllegalArgumentException("Must supply a head hash");
             }
@@ -322,6 +334,9 @@ public class Webrev {
         }
 
         private void generate(Diff diff, Hash tailEnd, Hash head) throws IOException {
+            if (isDiffTooLarge(diff)) {
+                return;
+            }
             Files.createDirectories(output);
 
             copyResource(ANCNAV_HTML);
