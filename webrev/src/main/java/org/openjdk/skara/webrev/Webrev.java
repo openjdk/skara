@@ -202,6 +202,7 @@ public class Webrev {
 
         private boolean isDiffTooLarge(Diff diff) {
             var totalChanges = diff.patches().stream()
+                    .filter(Patch::isTextual)
                     .map(Patch::asTextualPatch)
                     .flatMap(textualPatch -> textualPatch.hunks().stream())
                     .mapToInt(Hunk::changes)
