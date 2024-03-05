@@ -200,20 +200,17 @@ public class Webrev {
             return commits.stream().anyMatch(CommitMetadata::isMerge);
         }
 
-        private boolean isDiffTooLarge(Diff diff) {
+        private void generateJSON(Diff diff, Hash tailEnd, Hash head) throws IOException {
             var totalChanges = diff.patches().stream()
                     .filter(Patch::isTextual)
                     .map(Patch::asTextualPatch)
                     .flatMap(textualPatch -> textualPatch.hunks().stream())
                     .mapToInt(Hunk::changes)
                     .sum();
-            return totalChanges > 100000;
-        }
-
-        private void generateJSON(Diff diff, Hash tailEnd, Hash head) throws IOException {
-            if (isDiffTooLarge(diff)) {
+            if (totalChanges > 100000) {
                 return;
             }
+
             if (head == null) {
                 throw new IllegalArgumentException("Must supply a head hash");
             }
@@ -335,9 +332,6 @@ public class Webrev {
         }
 
         private void generate(Diff diff, Hash tailEnd, Hash head) throws IOException {
-            if (isDiffTooLarge(diff)) {
-                return;
-            }
             Files.createDirectories(output);
 
             copyResource(ANCNAV_HTML);
