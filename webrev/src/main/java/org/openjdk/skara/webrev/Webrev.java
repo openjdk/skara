@@ -207,7 +207,7 @@ public class Webrev {
                     .flatMap(textualPatch -> textualPatch.hunks().stream())
                     .mapToInt(Hunk::changes)
                     .sum();
-            if (totalChanges > 100000) {
+            if (totalChanges > 300000) {
                 return;
             }
 
