@@ -49,7 +49,11 @@ public class JiraIssueTrackerFactory implements IssueTrackerFactory {
                 }
                 return new JiraHost(uri, jiraVault);
             } else {
-                throw new RuntimeException("basic authentication not implemented yet");
+                if (credential.username().isEmpty() && !credential.password().isEmpty()) {
+                    return createWithPat(uri, credential.password());
+                } else {
+                    throw new RuntimeException("basic authentication not implemented yet");
+                }
             }
         }
     }

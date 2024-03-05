@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,10 +33,64 @@ import java.net.URI;
 import java.util.*;
 
 public class JiraHost implements IssueTracker {
+    private static class BackportEndpoint implements CustomEndpoint, CustomEndpointRequest {
+        private final RestRequest request;
+        private final String securityLevel;
+
+        private RestRequest.QueryBuilder query;
+        private JSONValue body;
+
+        private BackportEndpoint(RestRequest request, String securityLevel) {
+            this.request = request;
+            this.securityLevel = securityLevel;
+        }
+
+        @Override
+        public CustomEndpointRequest post() {
+            query = request.post();
+            return this;
+        }
+
+        @Override
+        public CustomEndpointRequest body(JSONValue body) {
+            this.body = body;
+            return this;
+        }
+
+        @Override
+        public CustomEndpointRequest header(String value, String name) {
+            query = query.header(value, name);
+            return this;
+        }
+
+        @Override
+        public CustomEndpointRequest onError(RestRequest.ErrorTransform transform) {
+            query = query.onError(transform);
+            return this;
+        }
+
+        @Override
+        public JSONValue execute() {
+            if (body == null || !body.contains("parentIssueKey")) {
+                throw new IllegalStateException("Body must be a JSON object with at least the field 'parentIssueKey' set");
+            }
+
+            if (securityLevel != null) {
+                body = body.contains("level") ? body : body.asObject().put("level", securityLevel);
+            }
+
+            return query.body(body).execute();
+        }
+    }
+
+    private static final String REST_API_ENDPOINT_PATH = "/rest/api/2/";
+    private static final String BACKPORT_ENDPOINT_PATH = "/rest/jbs/1.0/backport/";
+
     private final URI uri;
     private final String visibilityRole;
     private final String securityLevel;
     private final RestRequest request;
+    private final RestRequest backportRequest;
 
     private HostUser currentUser;
     private ZoneId timeZone;
@@ -47,9 +101,14 @@ public class JiraHost implements IssueTracker {
         this.securityLevel = null;
 
         var baseApi = URIBuilder.base(uri)
-                                .appendPath("/rest/api/2/")
+                                .appendPath(REST_API_ENDPOINT_PATH)
                                 .build();
-        request = new RestRequest(baseApi);
+        this.request = new RestRequest(baseApi);
+
+        var backportUri = URIBuilder.base(uri)
+                                    .appendPath(BACKPORT_ENDPOINT_PATH)
+                                    .build();
+        this.backportRequest = new RestRequest(backportUri);
     }
 
     /**
@@ -61,34 +120,48 @@ public class JiraHost implements IssueTracker {
         this.securityLevel = null;
 
         var baseApi = URIBuilder.base(uri)
-                                .appendPath("/rest/api/2/")
+                                .appendPath(REST_API_ENDPOINT_PATH)
                                 .build();
-        request = new RestRequest(baseApi, "test", (r) -> Arrays.asList(header, value));
+        this.request = new RestRequest(baseApi, "test", (r) -> Arrays.asList(header, value));
+
+        var backportUri = URIBuilder.base(uri)
+                                    .appendPath(BACKPORT_ENDPOINT_PATH)
+                                    .build();
+        this.backportRequest = new RestRequest(backportUri, "test", (r) -> Arrays.asList(header, value));
     }
 
     JiraHost(URI uri, JiraVault jiraVault) {
-        this.uri = uri;
-        this.visibilityRole = null;
-        this.securityLevel = null;
-        var baseApi = URIBuilder.base(uri)
-                                .appendPath("/rest/api/2/")
-                                .build();
-        request = new RestRequest(baseApi, jiraVault.authId(), (r) -> Arrays.asList("Cookie", jiraVault.getCookie()));
+        this(uri, jiraVault, null, null);
     }
 
     JiraHost(URI uri, JiraVault jiraVault, String visibilityRole, String securityLevel) {
         this.uri = uri;
         this.visibilityRole = visibilityRole;
         this.securityLevel = securityLevel;
+
         var baseApi = URIBuilder.base(uri)
-                                .appendPath("/rest/api/2/")
+                                .appendPath(REST_API_ENDPOINT_PATH)
                                 .build();
-        request = new RestRequest(baseApi, jiraVault.authId(), (r) -> Arrays.asList("Cookie", jiraVault.getCookie()));
+        this.request = new RestRequest(baseApi, jiraVault.authId(), (r) -> Arrays.asList("Cookie", jiraVault.getCookie()));
+
+        var backportUri = URIBuilder.base(uri)
+                                    .appendPath(BACKPORT_ENDPOINT_PATH)
+                                    .build();
+        this.backportRequest = new RestRequest(backportUri, jiraVault.authId(), (r) -> Arrays.asList("Cookie", jiraVault.getCookie()));
     }
 
     @Override
     public URI uri() {
         return uri;
+    }
+
+    @Override
+    public Optional<CustomEndpoint> lookupCustomEndpoint(String path) {
+        var endpoint = switch (path) {
+            case BACKPORT_ENDPOINT_PATH -> new BackportEndpoint(backportRequest, securityLevel);
+            default -> null;
+        };
+        return Optional.ofNullable(endpoint);
     }
 
     Optional<String> visibilityRole() {

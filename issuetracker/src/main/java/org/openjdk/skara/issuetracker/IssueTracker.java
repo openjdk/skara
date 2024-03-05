@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,14 +23,47 @@
 package org.openjdk.skara.issuetracker;
 
 import java.time.Duration;
-import org.openjdk.skara.host.*;
-import org.openjdk.skara.json.JSONObject;
-
 import java.net.URI;
+import java.util.Optional;
+
+import org.openjdk.skara.host.*;
+import org.openjdk.skara.network.RestRequest;
+import org.openjdk.skara.json.*;
+
 
 public interface IssueTracker extends Host {
-    IssueProject project(String name);
+    public interface CustomEndpointRequest {
+        CustomEndpointRequest body(JSONValue json);
+        CustomEndpointRequest header(String value, String name);
+        CustomEndpointRequest onError(RestRequest.ErrorTransform transform);
 
+        JSONValue execute();
+    }
+
+    public interface CustomEndpoint {
+        default CustomEndpointRequest post() {
+            throw new UnsupportedOperationException("HTTP method POST is not supported");
+        }
+
+        default CustomEndpointRequest get() {
+            throw new UnsupportedOperationException("HTTP method GET is not supported");
+        }
+
+        default CustomEndpointRequest put() {
+            throw new UnsupportedOperationException("HTTP method PUT is not supported");
+        }
+
+        default CustomEndpointRequest patch() {
+            throw new UnsupportedOperationException("HTTP method PATCH is not supported");
+        }
+
+        default CustomEndpointRequest delete() {
+            throw new UnsupportedOperationException("HTTP method DELETE is not supported");
+        }
+    }
+
+    IssueProject project(String name);
+    Optional<CustomEndpoint> lookupCustomEndpoint(String path);
     URI uri();
 
     static IssueTracker from(String name, URI uri, Credential credential, JSONObject configuration) {

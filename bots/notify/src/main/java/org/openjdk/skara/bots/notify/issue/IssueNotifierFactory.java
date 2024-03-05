@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -83,19 +83,6 @@ public class IssueNotifierFactory implements NotifierFactory {
         }
         if (notifierConfiguration.contains("buildname")) {
             builder.buildName(notifierConfiguration.get("buildname").asString());
-        }
-
-        if (notifierConfiguration.contains("vault")) {
-            var vaultConfiguration = notifierConfiguration.get("vault").asObject();
-            var credential = new Credential(vaultConfiguration.get("username").asString(), vaultConfiguration.get("password").asString());
-
-            if (credential.username().startsWith("https://")) {
-                var vaultUrl = URIBuilder.base(credential.username()).build();
-                var jbsVault = new JbsVault(vaultUrl, credential.password(), issueProject.issueTracker().uri());
-                builder.vault(jbsVault);
-            } else {
-                throw new RuntimeException("basic authentication not implemented yet");
-            }
         }
 
         if (notifierConfiguration.contains("pronly")) {

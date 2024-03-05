@@ -26,6 +26,7 @@ module {
     test {
         requires 'org.junit.jupiter.api'
         requires 'org.openjdk.skara.test'
+        requires 'org.openjdk.skara.proxy'
         opens 'org.openjdk.skara.bots.notify' to 'org.junit.platform.commons'
         opens 'org.openjdk.skara.bots.notify.mailinglist' to 'org.junit.platform.commons'
         opens 'org.openjdk.skara.bots.notify.json' to 'org.junit.platform.commons'
@@ -55,4 +56,5 @@ dependencies {
     implementation project(':bots:common')
 
     testImplementation project(':test')
+    testImplementation project(':proxy')
 }
