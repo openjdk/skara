@@ -20,7 +20,7 @@
 # questions.
 
 [alias]
-        skara = ! sh \"$(dirname $(git config --get-all include.path | grep 'skara.gitconfig' | sed 's@~@'$HOME'@'))/skara.sh\"
+        skara = ! sh \"$(dirname $(git config --get-all include.path | grep 'skara.gitconfig' | tail -1 | sed 's@~@'$HOME'@'))/skara.sh\"
         jcheck = ! git skara jcheck
         webrev = ! git skara webrev
         defpath = ! git skara defpath
