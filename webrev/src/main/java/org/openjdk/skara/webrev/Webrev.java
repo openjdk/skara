@@ -168,18 +168,18 @@ public class Webrev {
             return this;
         }
 
-        public void generate(Hash tailEnd) throws IOException {
+        public void generate(Hash tailEnd) throws IOException, DiffTooLargeException {
             generate(tailEnd, null);
         }
 
-        public void generate(Hash tailEnd, Hash head) throws IOException {
+        public void generate(Hash tailEnd, Hash head) throws IOException, DiffTooLargeException {
             var diff = head == null ?
                     repository.diff(tailEnd, files, similarity) :
                     repository.diff(tailEnd, head, files, similarity);
             generate(diff, tailEnd, head);
         }
 
-        public void generateJSON(Hash tailEnd, Hash head) throws IOException {
+        public void generateJSON(Hash tailEnd, Hash head) throws IOException, DiffTooLargeException {
             if (head == null) {
                 head = repository.head();
             }
@@ -187,11 +187,11 @@ public class Webrev {
             generateJSON(diff, tailEnd, head);
         }
 
-        public void generate(Diff diff) throws IOException {
+        public void generate(Diff diff) throws IOException, DiffTooLargeException {
             generate(diff, diff.from(), diff.to());
         }
 
-        public void generateJSON(Diff diff) throws IOException {
+        public void generateJSON(Diff diff) throws IOException, DiffTooLargeException {
             generateJSON(diff, diff.from(), diff.to());
         }
 
@@ -200,17 +200,20 @@ public class Webrev {
             return commits.stream().anyMatch(CommitMetadata::isMerge);
         }
 
-        private void generateJSON(Diff diff, Hash tailEnd, Hash head) throws IOException {
+        private boolean diffTooLarge(Diff diff) {
             var totalChanges = diff.patches().stream()
                     .filter(Patch::isTextual)
                     .map(Patch::asTextualPatch)
                     .flatMap(textualPatch -> textualPatch.hunks().stream())
                     .mapToInt(Hunk::changes)
                     .sum();
-            if (totalChanges > 300000) {
-                return;
-            }
+            return totalChanges > 300000;
+        }
 
+        private void generateJSON(Diff diff, Hash tailEnd, Hash head) throws IOException, DiffTooLargeException {
+            if (diffTooLarge(diff)) {
+                throw new DiffTooLargeException();
+            }
             if (head == null) {
                 throw new IllegalArgumentException("Must supply a head hash");
             }
@@ -331,7 +334,10 @@ public class Webrev {
             Files.writeString(output.resolve("commits.json"), commits.toString(), StandardCharsets.UTF_8);
         }
 
-        private void generate(Diff diff, Hash tailEnd, Hash head) throws IOException {
+        private void generate(Diff diff, Hash tailEnd, Hash head) throws IOException, DiffTooLargeException {
+            if (diffTooLarge(diff)) {
+                throw new DiffTooLargeException();
+            }
             Files.createDirectories(output);
 
             copyResource(ANCNAV_HTML);

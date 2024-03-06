@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,6 +30,7 @@ import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 import org.openjdk.skara.version.Version;
+import org.openjdk.skara.webrev.DiffTooLargeException;
 import org.openjdk.skara.webrev.Webrev;
 
 import java.io.*;
@@ -89,7 +90,7 @@ class WebrevStorage {
         this.generateJSON = generateJSON;
     }
 
-    private void generateHTML(PullRequest pr, ReadOnlyRepository localRepository, Path folder, Diff diff, Hash base, Hash head) throws IOException {
+    private void generateHTML(PullRequest pr, ReadOnlyRepository localRepository, Path folder, Diff diff, Hash base, Hash head) throws IOException, DiffTooLargeException {
         Files.createDirectories(folder);
         var fullName = pr.author().fullName();
         var builder = Webrev.repository(localRepository)
@@ -127,7 +128,7 @@ class WebrevStorage {
         }
     }
 
-    private void generateJSON(PullRequest pr, ReadOnlyRepository localRepository, Path folder, Diff diff, Hash base, Hash head) throws IOException {
+    private void generateJSON(PullRequest pr, ReadOnlyRepository localRepository, Path folder, Diff diff, Hash base, Hash head) throws IOException, DiffTooLargeException {
         Files.createDirectories(folder);
         var builder = Webrev.repository(localRepository)
                             .output(folder)
@@ -286,7 +287,7 @@ class WebrevStorage {
 
     private URI createAndArchive(PullRequest pr, Repository localRepository, Path jsonScratchPath, Path htmlScratchPath,
                                  Diff diff, Hash base, Hash head, String identifier,
-                                 Repository jsonLocalStorage, Repository htmlLocalStorage) {
+                                 Repository jsonLocalStorage, Repository htmlLocalStorage) throws DiffTooLargeException {
         try {
             if (!generateHTML && !generateJSON) {
                 return null;
@@ -353,15 +354,23 @@ class WebrevStorage {
             @Override
             public WebrevDescription generate(Hash base, Hash head, String identifier, WebrevDescription.Type type) {
                 initializeLocalStorage();
-                var uri = createAndArchive(pr, localRepository, jsonScratchPath, htmlScratchPath, null, base, head, identifier, jsonLocalStorage, htmlLocalStorage);
-                return new WebrevDescription(uri, type);
+                try {
+                    var uri = createAndArchive(pr, localRepository, jsonScratchPath, htmlScratchPath, null, base, head, identifier, jsonLocalStorage, htmlLocalStorage);
+                    return new WebrevDescription(uri, type, false);
+                } catch (DiffTooLargeException e) {
+                    return new WebrevDescription(null, type, true);
+                }
             }
 
             @Override
             public WebrevDescription generate(Diff diff, String identifier, WebrevDescription.Type type, String description) {
                 initializeLocalStorage();
-                var uri = createAndArchive(pr, localRepository, jsonScratchPath, htmlScratchPath, diff, diff.from(), diff.to(), identifier, jsonLocalStorage, htmlLocalStorage);
-                return new WebrevDescription(uri, type, description);
+                try {
+                    var uri = createAndArchive(pr, localRepository, jsonScratchPath, htmlScratchPath, diff, diff.from(), diff.to(), identifier, jsonLocalStorage, htmlLocalStorage);
+                    return new WebrevDescription(uri, type, description, false);
+                } catch (DiffTooLargeException e) {
+                    return new WebrevDescription(null, type, description, true);
+                }
             }
         };
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -176,7 +176,7 @@ class ArchiveWorkItem implements WorkItem {
     private static final String webrevListMarker = "<!-- mlbridge webrev list -->";
 
     private void updateWebrevComment(List<Comment> comments, int index, List<WebrevDescription> webrevs) {
-        if (webrevs.stream().noneMatch(w -> w.uri() != null)) {
+        if (webrevs.stream().noneMatch(w -> (w.uri() != null || w.diffTooLarge()))) {
             return;
         }
         var existing = comments.stream()
@@ -184,8 +184,10 @@ class ArchiveWorkItem implements WorkItem {
                                .filter(comment -> comment.body().contains(WEBREV_COMMENT_MARKER))
                                .findAny();
         var webrevDescriptions = webrevs.stream()
-                                        .map(d -> String.format("[%s](%s)", d.label(), d.uri()))
-                                        .collect(Collectors.joining(" - "));
+                .map(d -> d.diffTooLarge() ?
+                        String.format("[%s](%s)", d.label(), "Webrev is not available because diff is too large") :
+                        String.format("[%s](%s)", d.label(), d.uri()))
+                .collect(Collectors.joining(" - "));
         var comment = WEBREV_COMMENT_MARKER + "\n";
         comment += webrevHeaderMarker + "\n";
         comment += "### Webrevs" + "\n";
