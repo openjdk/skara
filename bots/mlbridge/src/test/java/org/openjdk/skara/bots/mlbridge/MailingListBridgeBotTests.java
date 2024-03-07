@@ -4028,7 +4028,7 @@ class MailingListBridgeBotTests {
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
             localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
 
-            // Make a change with a corresponding PR
+            // Make a very big change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change\n".repeat(300001),
                     "Change msg\n\nWith several lines");
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
@@ -4043,7 +4043,7 @@ class MailingListBridgeBotTests {
             var ignoredPr = ignored.pullRequest(pr.id());
             ignoredPr.addComment("ready");
 
-            // Run another archive pass
+            // Run an archive pass
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should now contain an entry

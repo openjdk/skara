@@ -51,6 +51,8 @@ public class Webrev {
 
     private static final Logger log = Logger.getLogger("org.openjdk.skara.webrev");
 
+    private static final int TOTAL_CHANGES_THRESHOLD = 300000;
+
     public static final Set<String> STATIC_FILES =
         Set.of(ANCNAV_HTML, ANCNAV_JS, ICON, CSS, INDEX);
 
@@ -207,7 +209,7 @@ public class Webrev {
                     .flatMap(textualPatch -> textualPatch.hunks().stream())
                     .mapToInt(Hunk::changes)
                     .sum();
-            return totalChanges > 300000;
+            return totalChanges > TOTAL_CHANGES_THRESHOLD;
         }
 
         private void generateJSON(Diff diff, Hash tailEnd, Hash head) throws IOException, DiffTooLargeException {

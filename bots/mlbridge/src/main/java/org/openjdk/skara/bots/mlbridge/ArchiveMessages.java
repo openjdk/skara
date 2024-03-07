@@ -40,6 +40,7 @@ import static org.openjdk.skara.bots.common.PatternEnum.COMMENT_PATTERN;
 
 class ArchiveMessages {
 
+    private static final String WEBREV_UNAVAILABLE_COMMENT = "Webrev is not available because diff is too large";
     private static String filterCommentsAndCommands(String body) {
         var parsedBody = PullRequestBody.parse(body);
         body = parsedBody.bodyText();
@@ -326,7 +327,7 @@ class ArchiveMessages {
                 formatCommitMessagesBrief(commits, commitsLink).orElse("") + "\n\n" +
                 "Changes: " + pr.changeUrl() + "\n" +
                 (webrev.diffTooLarge() ?
-                        "  Webrev: Webrev is not available because diff is too large\n" :
+                        "  Webrev: " + WEBREV_UNAVAILABLE_COMMENT + "\n" :
                         (webrev.uri() == null ? "" : "  Webrev: " + webrev.uri().toString() + "\n")) +
                 issueString +
                 "  Stats: " + stats(localRepo, base, head) + "\n" +
@@ -354,7 +355,7 @@ class ArchiveMessages {
                         + ":\n" +
                         webrevs.stream()
                                 .map(d -> d.diffTooLarge() ?
-                                        String.format(" - %s: %s", d.shortLabel(), "Webrev is not available because diff is too large") :
+                                        String.format(" - %s: %s", d.shortLabel(), WEBREV_UNAVAILABLE_COMMENT) :
                                         String.format(" - %s: %s", d.shortLabel(), d.uri()))
                                 .collect(Collectors.joining("\n")) + "\n\n";
             }
@@ -374,7 +375,7 @@ class ArchiveMessages {
     static String composeRebasedFooter(PullRequest pr, Repository localRepo, WebrevDescription fullWebrev, Hash base, Hash head) {
         return "Changes: " + pr.changeUrl() + "\n" +
                 (fullWebrev.diffTooLarge() ?
-                        "  Webrev: Webrev is not available because diff is too large\n" :
+                        "  Webrev: " + WEBREV_UNAVAILABLE_COMMENT + "\n" :
                         (fullWebrev.uri() == null ? "" : "  Webrev: " + fullWebrev.uri().toString() + "\n")) +
                 "  Stats: " + stats(localRepo, base, head) + "\n" +
                 "  Patch: " + pr.diffUrl().toString() + "\n" +
@@ -387,9 +388,9 @@ class ArchiveMessages {
                 "  - all: " + pr.changeUrl() + "\n" +
                 "  - new: " + pr.changeUrl(lastHead) + "\n\n" +
                 (fullWebrev.diffTooLarge() ? "Webrevs:\n" : fullWebrev.uri() == null ? "" : "Webrevs:\n") +
-                (fullWebrev.diffTooLarge() ? " - full: Webrev is not available because diff is too large\n" :
+                (fullWebrev.diffTooLarge() ? " - full: " + WEBREV_UNAVAILABLE_COMMENT + "\n" :
                         fullWebrev.uri() == null ? "" : " - full: " + fullWebrev.uri().toString() + "\n") +
-                (incrementalWebrev.diffTooLarge() ? " - incr: Webrev is not available because diff is too large\n\n" :
+                (incrementalWebrev.diffTooLarge() ? " - incr: " + WEBREV_UNAVAILABLE_COMMENT + "\n\n" :
                         incrementalWebrev.uri() == null ? "" : " - incr: " + incrementalWebrev.uri().toString() + "\n\n") +
                 "  Stats: " + stats(localRepo, lastHead, head) + "\n" +
                 "  Patch: " + pr.diffUrl().toString() + "\n" +
