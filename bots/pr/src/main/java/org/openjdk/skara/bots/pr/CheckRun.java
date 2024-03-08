@@ -64,7 +64,8 @@ class CheckRun {
     private final CheckablePullRequest checkablePullRequest;
 
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
-    private static final String MERGE_READY_MARKER = "<!-- PullRequestBot merge is ready comment -->";
+    protected static final String MERGE_READY_MARKER = "<!-- PullRequestBot merge is ready comment -->";
+    protected static final String PLACEHOLDER_MARKER = "<!-- PullRequestBot placeholder -->";
     private static final String OUTDATED_HELP_MARKER = "<!-- PullRequestBot outdated help comment -->";
     private static final String SOURCE_BRANCH_WARNING_MARKER = "<!-- PullRequestBot source branch warning comment -->";
     private static final String MERGE_COMMIT_WARNING_MARKER = "<!-- PullRequestBot merge commit warning comment -->";
@@ -1124,7 +1125,7 @@ class CheckRun {
                     log.info("Merge ready comment already exists, no need to update");
                 }
             }
-        } else if (existing.isPresent()) {
+        } else if (existing.isPresent() && !existing.get().body().contains(PLACEHOLDER_MARKER)) {
             var message = getMergeNoLongerReadyComment();
             if (!existing.get().body().equals(message)) {
                 log.info("Updating no longer ready comment");

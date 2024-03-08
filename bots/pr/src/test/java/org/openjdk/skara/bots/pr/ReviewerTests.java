@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertFirstCommentContains;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
 class ReviewerTests {
@@ -495,6 +496,7 @@ class ReviewerTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+            TestBotRunner.runPeriodicItems(prBot);
 
             // Credit two additional reviewers
             pr.addComment("/reviewer credit integrationreviewer1 integrationcommitter3");
@@ -510,7 +512,7 @@ class ReviewerTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // Check the ready comment
-            assertLastCommentContains(pr, "Reviewed-by: integrationreviewer2, integrationreviewer1, integrationcommitter3");
+            assertFirstCommentContains(pr, "Reviewed-by: integrationreviewer2, integrationreviewer1, integrationcommitter3");
 
             // Check the PR body
             assertTrue(pr.store().body().contains(" * Generated Reviewer 1 - **Reviewer** ⚠️ Added manually"));

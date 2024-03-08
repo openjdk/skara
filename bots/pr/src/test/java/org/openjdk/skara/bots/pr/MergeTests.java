@@ -1642,7 +1642,7 @@ class MergeTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // Merging latest master should not trigger a warning
-            assertEquals(0, pr.comments().size());
+            assertEquals(1, pr.comments().size());
 
             localRepo.merge(otherHash2);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
@@ -1815,9 +1815,8 @@ class MergeTests {
 
             // Let the bot check the status
             TestBotRunner.runPeriodicItems(mergeBot);
-            var comment = pr.store().comments().get(pr.store().comments().size() - 1);
-            assertEquals(1, pr.store().comments().size());
-            assertTrue(comment.body().contains("can not be source repo for merge-style pull requests in this repository."));
+            assertEquals(2, pr.comments().size());
+            assertLastCommentContains(pr, "can not be source repo for merge-style pull requests in this repository.");
         }
     }
 

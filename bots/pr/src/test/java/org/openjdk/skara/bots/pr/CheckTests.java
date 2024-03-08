@@ -43,6 +43,8 @@ import static org.openjdk.skara.bots.common.PullRequestConstants.WEBREV_COMMENT_
 import static org.openjdk.skara.bots.pr.CheckWorkItem.FORCE_PUSH_MARKER;
 import static org.openjdk.skara.bots.pr.CheckWorkItem.FORCE_PUSH_SUGGESTION;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
+import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertFirstCommentContains;
+import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
 class CheckTests {
     @Test
@@ -2000,10 +2002,8 @@ class CheckTests {
             // The bot should respond with an integration message and a warning about different authors
             var comments = pr.comments();
             var numComments = comments.size();
-            var lastComment = comments.get(comments.size() - 1).body();
-            assertTrue(lastComment.contains("This change now passes all *automated* pre-integration checks."));
-            var nextToLastComment = comments.get(comments.size() - 2).body();
-            assertTrue(nextToLastComment.contains("the full name on your profile does not match the author name"));
+            assertLastCommentContains(pr, "the full name on your profile does not match the author name");
+            assertFirstCommentContains(pr, "This change now passes all *automated* pre-integration checks.");
 
             // Run the bot again, should not result in any new comments
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -2308,13 +2308,12 @@ class CheckTests {
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
-            var comments = pr.store().comments();
-            assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " No `.jcheck/conf` found in the target branch of this pull request. "
-                    + "Until that is resolved, this pull request cannot be processed. Please notify the repository owner."));
+            assertLastCommentContains(pr, " ⚠️ @" + pr.author().username() + " No `.jcheck/conf` found in the target branch of this pull request. "
+                    + "Until that is resolved, this pull request cannot be processed. Please notify the repository owner.");
             // Make sure the warning message will be sent only once
             TestBotRunner.runPeriodicItems(checkBot);
             TestBotRunner.runPeriodicItems(checkBot);
-            assertEquals(1, pr.store().comments().size());
+            assertEquals(2, pr.comments().size());
 
             // Restore .jcheck/conf
             localRepo.checkout(masterHash);
@@ -2369,30 +2368,29 @@ class CheckTests {
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
-            var comments = pr.store().comments();
-            assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " The `.jcheck/conf` in the target branch of this pull request is invalid. "
-                    + "Until that is resolved, this pull request cannot be processed. Please notify the repository owner."));
+            assertLastCommentContains(pr, " ⚠️ @" + pr.author().username() + " The `.jcheck/conf` in the target branch of this pull request is invalid. "
+                    + "Until that is resolved, this pull request cannot be processed. Please notify the repository owner.");
             // Make sure the warning message will be sent only once
             TestBotRunner.runPeriodicItems(checkBot);
             TestBotRunner.runPeriodicItems(checkBot);
-            assertEquals(1, pr.store().comments().size());
+            assertEquals(2, pr.comments().size());
 
             var reviewerPr = reviewer.pullRequest(pr.id());
             // Close the pr so we can skip CheckWorkItem
             pr.setState(Issue.State.CLOSED);
             reviewerPr.addComment("/reviewers 2");
             TestBotRunner.runPeriodicItems(checkBot);
-            assertEquals("<!-- Jmerge command reply message (1) -->\n" +
+            assertEquals("<!-- Jmerge command reply message (2) -->\n" +
                     "@user2 JCheck configuration is invalid in the target branch of this pull request. " +
-                    "Please issue this command again once the problem has been resolved.", pr.store().comments().get(2).body());
+                    "Please issue this command again once the problem has been resolved.", pr.comments().get(3).body());
 
             pr.setTargetRef("notExist");
             reviewerPr.addComment("/reviewers 2");
             TestBotRunner.runPeriodicItems(checkBot);
-            assertEquals("<!-- Jmerge command reply message (3) -->\n" +
+            assertEquals("<!-- Jmerge command reply message (4) -->\n" +
                     "@user2 The target branch of this pull request no longer exists. " +
                     "Please retarget this pull request. " +
-                    "Please issue this command again once the problem has been resolved.", pr.store().comments().get(4).body());
+                    "Please issue this command again once the problem has been resolved.", pr.comments().get(5).body());
 
             pr.setTargetRef("master");
             pr.setState(Issue.State.OPEN);
@@ -2458,22 +2456,21 @@ class CheckTests {
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             TestBotRunner.runPeriodicItems(checkBot);
-            var comments = pr.store().comments();
-            assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository could not be found. "
-                    + "Until that is resolved, this pull request cannot be processed. Please notify a Skara admin."));
+            assertLastCommentContains(pr, " ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository could not be found. "
+                    + "Until that is resolved, this pull request cannot be processed. Please notify a Skara admin.");
             // Make sure the warning message will be sent only once
             TestBotRunner.runPeriodicItems(checkBot);
             TestBotRunner.runPeriodicItems(checkBot);
-            assertEquals(1, pr.store().comments().size());
+            assertEquals(2, pr.comments().size());
 
             var reviewerPr = reviewer.pullRequest(pr.id());
             // Close the pr so we can skip CheckWorkItem
             pr.setState(Issue.State.CLOSED);
             reviewerPr.addComment("/reviewers 2");
             TestBotRunner.runPeriodicItems(checkBot);
-            assertEquals("<!-- Jmerge command reply message (1) -->\n" +
+            assertEquals("<!-- Jmerge command reply message (2) -->\n" +
                     "@user2 The JCheck configuration has been overridden, but is missing. Skara admins have been notified. " +
-                    "Please issue this command again once the problem has been resolved.", pr.store().comments().get(2).body());
+                    "Please issue this command again once the problem has been resolved.", pr.comments().get(3).body());
             pr.setState(Issue.State.OPEN);
 
             // Upload .jcheck/conf to jcheck-branch
@@ -2537,13 +2534,12 @@ class CheckTests {
 
             // Check the status (should become ready immediately as reviewercount is overridden to 0)
             TestBotRunner.runPeriodicItems(checkBot);
-            var comments = pr.store().comments();
-            assertTrue(comments.get(comments.size() - 1).body().contains(" ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository is invalid. "
-                    + "Until that is resolved, this pull request cannot be processed. Please notify a Skara admin."));
+            assertLastCommentContains(pr, " ⚠️ @" + pr.author().username() + " The external jcheck configuration for this repository is invalid. "
+                    + "Until that is resolved, this pull request cannot be processed. Please notify a Skara admin.");
             // Make sure the warning message will be sent only once
             TestBotRunner.runPeriodicItems(checkBot);
             TestBotRunner.runPeriodicItems(checkBot);
-            assertEquals(1, pr.store().comments().size());
+            assertEquals(2, pr.comments().size());
 
             // restore jcheck.conf to jcheck-branch
             localRepo.checkout(jCheckBranch);
@@ -2607,11 +2603,12 @@ class CheckTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+            TestBotRunner.runPeriodicItems(checkBot);
             pr.addComment("initial");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR shouldn't have the force-push suggestion comment
-            assertEquals(1, pr.comments().size());
+            assertEquals(2, pr.comments().size());
             var lastComment = pr.comments().get(pr.comments().size() - 1);
             assertTrue(lastComment.body().contains("initial"));
             assertFalse(lastComment.body().contains(FORCE_PUSH_MARKER));
@@ -2624,7 +2621,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR shouldn't have the force-push suggestion comment.
-            assertEquals(2, pr.comments().size());
+            assertEquals(3, pr.comments().size());
             lastComment = pr.comments().get(pr.comments().size() - 1);
             assertTrue(lastComment.body().contains("Normally push"));
             assertFalse(lastComment.body().contains(FORCE_PUSH_MARKER));
@@ -2641,7 +2638,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The last comment of the PR should be the force-push suggestion comment.
-            assertEquals(4, pr.comments().size());
+            assertEquals(5, pr.comments().size());
             lastComment = pr.comments().get(pr.comments().size() - 1);
             assertFalse(lastComment.body().contains("Force-push"));
             assertTrue(lastComment.body().contains(FORCE_PUSH_MARKER));
@@ -2657,7 +2654,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The last comment of the PR shouldn't be the force-push suggestion comment.
-            assertEquals(5, pr.comments().size());
+            assertEquals(6, pr.comments().size());
             lastComment = pr.comments().get(pr.comments().size() - 1);
             assertTrue(lastComment.body().contains("Normally push in draft"));
             assertFalse(lastComment.body().contains(FORCE_PUSH_MARKER));
@@ -2674,7 +2671,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The last comment of the PR should not be the force-push suggestion comment.
-            assertEquals(6, pr.comments().size());
+            assertEquals(7, pr.comments().size());
             lastComment = pr.comments().get(pr.comments().size() - 1);
             assertTrue(lastComment.body().contains("Force-push in draft"));
             assertFalse(lastComment.body().contains(FORCE_PUSH_MARKER));
@@ -2685,7 +2682,7 @@ class CheckTests {
 
             // Nothing should happen
             TestBotRunner.runPeriodicItems(checkBot);
-            assertEquals(6, pr.comments().size());
+            assertEquals(7, pr.comments().size());
             lastComment = pr.comments().get(pr.comments().size() - 1);
             assertTrue(lastComment.body().contains("Force-push in draft"));
             assertFalse(lastComment.body().contains(FORCE_PUSH_MARKER));
@@ -2702,7 +2699,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The last comment of the PR should be the force-push suggestion comment.
-            assertEquals(8, pr.comments().size());
+            assertEquals(9, pr.comments().size());
             lastComment = pr.comments().get(pr.comments().size() - 1);
             assertFalse(lastComment.body().contains("Force-push"));
             assertTrue(lastComment.body().contains(FORCE_PUSH_MARKER));
@@ -2972,19 +2969,19 @@ class CheckTests {
             // Check the status
             TestBotRunner.runPeriodicItems(prBot);
 
-            var comment = pr.store().comments().get(pr.store().comments().size() - 1);
-            assertEquals(1, pr.store().comments().size());
+            var comment = pr.comments().get(pr.comments().size() - 1);
+            assertEquals(2, pr.comments().size());
             assertTrue(comment.body().contains("Merge-style pull requests are not allowed in this repository"));
 
             pr.setTitle("Merge test:dev");
             TestBotRunner.runPeriodicItems(prBot);
-            comment = pr.store().comments().get(pr.store().comments().size() - 1);
-            assertEquals(1, pr.store().comments().size());
+            comment = pr.comments().get(pr.comments().size() - 1);
+            assertEquals(2, pr.comments().size());
             assertTrue(comment.body().contains("Merge-style pull requests are not allowed in this repository"));
 
             pr.setTitle("SKARA-123");
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(1, pr.store().comments().size());
+            assertEquals(2, pr.comments().size());
         }
     }
 
@@ -3020,19 +3017,19 @@ class CheckTests {
             // Check the status
             TestBotRunner.runPeriodicItems(prBot);
 
-            var comment = pr.store().comments().get(pr.store().comments().size() - 1);
-            assertEquals(1, pr.store().comments().size());
+            var comment = pr.comments().get(pr.comments().size() - 1);
+            assertEquals(2, pr.comments().size());
             assertTrue(comment.body().contains("backports are not allowed in this repository"));
 
             pr.setTitle("Backport 123");
             TestBotRunner.runPeriodicItems(prBot);
-            comment = pr.store().comments().get(pr.store().comments().size() - 1);
-            assertEquals(1, pr.store().comments().size());
+            comment = pr.comments().get(pr.comments().size() - 1);
+            assertEquals(2, pr.comments().size());
             assertTrue(comment.body().contains("backports are not allowed in this repository"));
 
             pr.setTitle("SKARA-123");
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(1, pr.store().comments().size());
+            assertEquals(2, pr.comments().size());
         }
     }
 
