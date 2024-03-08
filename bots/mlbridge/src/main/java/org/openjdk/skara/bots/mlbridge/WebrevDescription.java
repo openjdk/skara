@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,17 +36,20 @@ public class WebrevDescription {
     private final URI uri;
     private final Type type;
     private final String description;
+    private final boolean diffTooLarge;
 
-    public WebrevDescription(URI uri, Type type, String description) {
+    public WebrevDescription(URI uri, Type type, String description, boolean diffTooLarge) {
         this.uri = uri;
         this.type = type;
         this.description = description;
+        this.diffTooLarge = diffTooLarge;
     }
 
-    public WebrevDescription(URI uri, Type type) {
+    public WebrevDescription(URI uri, Type type, boolean diffTooLarge) {
         this.uri = uri;
         this.type = type;
         this.description = null;
+        this.diffTooLarge = diffTooLarge;
     }
 
     public Type type() {
@@ -57,6 +60,9 @@ public class WebrevDescription {
         return uri;
     }
 
+    public boolean diffTooLarge() {
+        return diffTooLarge;
+    }
     public String label() {
         switch (type) {
             case FULL:

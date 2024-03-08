@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -50,6 +50,8 @@ public class Webrev {
     private static final String INDEX = "index.html";
 
     private static final Logger log = Logger.getLogger("org.openjdk.skara.webrev");
+
+    private static final int TOTAL_CHANGES_THRESHOLD = 300000;
 
     public static final Set<String> STATIC_FILES =
         Set.of(ANCNAV_HTML, ANCNAV_JS, ICON, CSS, INDEX);
@@ -168,18 +170,18 @@ public class Webrev {
             return this;
         }
 
-        public void generate(Hash tailEnd) throws IOException {
+        public void generate(Hash tailEnd) throws IOException, DiffTooLargeException {
             generate(tailEnd, null);
         }
 
-        public void generate(Hash tailEnd, Hash head) throws IOException {
+        public void generate(Hash tailEnd, Hash head) throws IOException, DiffTooLargeException {
             var diff = head == null ?
                     repository.diff(tailEnd, files, similarity) :
                     repository.diff(tailEnd, head, files, similarity);
             generate(diff, tailEnd, head);
         }
 
-        public void generateJSON(Hash tailEnd, Hash head) throws IOException {
+        public void generateJSON(Hash tailEnd, Hash head) throws IOException, DiffTooLargeException {
             if (head == null) {
                 head = repository.head();
             }
@@ -187,11 +189,11 @@ public class Webrev {
             generateJSON(diff, tailEnd, head);
         }
 
-        public void generate(Diff diff) throws IOException {
+        public void generate(Diff diff) throws IOException, DiffTooLargeException {
             generate(diff, diff.from(), diff.to());
         }
 
-        public void generateJSON(Diff diff) throws IOException {
+        public void generateJSON(Diff diff) throws IOException, DiffTooLargeException {
             generateJSON(diff, diff.from(), diff.to());
         }
 
@@ -200,7 +202,20 @@ public class Webrev {
             return commits.stream().anyMatch(CommitMetadata::isMerge);
         }
 
-        private void generateJSON(Diff diff, Hash tailEnd, Hash head) throws IOException {
+        private boolean diffTooLarge(Diff diff) {
+            var totalChanges = diff.patches().stream()
+                    .filter(Patch::isTextual)
+                    .map(Patch::asTextualPatch)
+                    .flatMap(textualPatch -> textualPatch.hunks().stream())
+                    .mapToInt(Hunk::changes)
+                    .sum();
+            return totalChanges > TOTAL_CHANGES_THRESHOLD;
+        }
+
+        private void generateJSON(Diff diff, Hash tailEnd, Hash head) throws IOException, DiffTooLargeException {
+            if (diffTooLarge(diff)) {
+                throw new DiffTooLargeException();
+            }
             if (head == null) {
                 throw new IllegalArgumentException("Must supply a head hash");
             }
@@ -321,7 +336,10 @@ public class Webrev {
             Files.writeString(output.resolve("commits.json"), commits.toString(), StandardCharsets.UTF_8);
         }
 
-        private void generate(Diff diff, Hash tailEnd, Hash head) throws IOException {
+        private void generate(Diff diff, Hash tailEnd, Hash head) throws IOException, DiffTooLargeException {
+            if (diffTooLarge(diff)) {
+                throw new DiffTooLargeException();
+            }
             Files.createDirectories(output);
 
             copyResource(ANCNAV_HTML);

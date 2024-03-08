@@ -40,6 +40,7 @@ import static org.openjdk.skara.bots.common.PatternEnum.COMMENT_PATTERN;
 
 class ArchiveMessages {
 
+    private static final String WEBREV_UNAVAILABLE_COMMENT = "Webrev is not available because diff is too large";
     private static String filterCommentsAndCommands(String body) {
         var parsedBody = PullRequestBody.parse(body);
         body = parsedBody.bodyText();
@@ -325,7 +326,9 @@ class ArchiveMessages {
                 "Commit messages:\n" +
                 formatCommitMessagesBrief(commits, commitsLink).orElse("") + "\n\n" +
                 "Changes: " + pr.changeUrl() + "\n" +
-                (webrev.uri() == null ? "" : " Webrev: " + webrev.uri().toString() + "\n") +
+                (webrev.diffTooLarge() ?
+                        "  Webrev: " + WEBREV_UNAVAILABLE_COMMENT + "\n" :
+                        (webrev.uri() == null ? "" : "  Webrev: " + webrev.uri().toString() + "\n")) +
                 issueString +
                 "  Stats: " + stats(localRepo, base, head) + "\n" +
                 "  Patch: " + pr.diffUrl().toString() + "\n" +
@@ -338,7 +341,7 @@ class ArchiveMessages {
         var commitsLink = commitsLink(pr, base, head);
         String webrevLinks;
         if (webrevs.size() > 0) {
-            if (webrevs.stream().noneMatch(w -> w.uri() != null)) {
+            if (webrevs.stream().noneMatch(w -> w.uri() != null || w.diffTooLarge())) {
                 webrevLinks = "";
             } else {
                 var containsConflicts = webrevs.stream().anyMatch(w -> w.type().equals(WebrevDescription.Type.MERGE_CONFLICT));
@@ -351,7 +354,9 @@ class ArchiveMessages {
                         (containsMergeDiffs ? "the adjustments done while merging with regards to each parent branch" : "")
                         + ":\n" +
                         webrevs.stream()
-                                .map(d -> String.format(" - %s: %s", d.shortLabel(), d.uri()))
+                                .map(d -> d.diffTooLarge() ?
+                                        String.format(" - %s: %s", d.shortLabel(), WEBREV_UNAVAILABLE_COMMENT) :
+                                        String.format(" - %s: %s", d.shortLabel(), d.uri()))
                                 .collect(Collectors.joining("\n")) + "\n\n";
             }
         } else {
@@ -369,7 +374,9 @@ class ArchiveMessages {
 
     static String composeRebasedFooter(PullRequest pr, Repository localRepo, WebrevDescription fullWebrev, Hash base, Hash head) {
         return "Changes: " + pr.changeUrl() + "\n" +
-                (fullWebrev.uri() == null ? "" : " Webrev: " + fullWebrev.uri().toString() + "\n") +
+                (fullWebrev.diffTooLarge() ?
+                        "  Webrev: " + WEBREV_UNAVAILABLE_COMMENT + "\n" :
+                        (fullWebrev.uri() == null ? "" : "  Webrev: " + fullWebrev.uri().toString() + "\n")) +
                 "  Stats: " + stats(localRepo, base, head) + "\n" +
                 "  Patch: " + pr.diffUrl().toString() + "\n" +
                 "  Fetch: " + fetchCommand(pr) + "\n\n" +
@@ -380,9 +387,11 @@ class ArchiveMessages {
         return "Changes:\n" +
                 "  - all: " + pr.changeUrl() + "\n" +
                 "  - new: " + pr.changeUrl(lastHead) + "\n\n" +
-                (fullWebrev.uri() == null ? "" : "Webrevs:\n") +
-                (fullWebrev.uri() == null ? "" : " - full: " + fullWebrev.uri().toString() + "\n") +
-                (incrementalWebrev.uri() == null ? "" : " - incr: " + incrementalWebrev.uri().toString() + "\n\n") +
+                (fullWebrev.diffTooLarge() ? "Webrevs:\n" : fullWebrev.uri() == null ? "" : "Webrevs:\n") +
+                (fullWebrev.diffTooLarge() ? " - full: " + WEBREV_UNAVAILABLE_COMMENT + "\n" :
+                        fullWebrev.uri() == null ? "" : " - full: " + fullWebrev.uri().toString() + "\n") +
+                (incrementalWebrev.diffTooLarge() ? " - incr: " + WEBREV_UNAVAILABLE_COMMENT + "\n\n" :
+                        incrementalWebrev.uri() == null ? "" : " - incr: " + incrementalWebrev.uri().toString() + "\n\n") +
                 "  Stats: " + stats(localRepo, lastHead, head) + "\n" +
                 "  Patch: " + pr.diffUrl().toString() + "\n" +
                 "  Fetch: " + fetchCommand(pr) + "\n\n" +

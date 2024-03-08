@@ -43,7 +43,7 @@ class WebrevTests {
 
     @ParameterizedTest
     @EnumSource(VCS.class)
-    void simple(VCS vcs) throws IOException {
+    void simple(VCS vcs) throws IOException, DiffTooLargeException {
         try (var repoFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory()) {
             var repo = TestableRepository.init(repoFolder.path(), vcs);
@@ -63,7 +63,7 @@ class WebrevTests {
 
     @ParameterizedTest
     @EnumSource(VCS.class)
-    void middle(VCS vcs) throws IOException {
+    void middle(VCS vcs) throws IOException, DiffTooLargeException {
         try (var repoFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory()) {
             var repo = TestableRepository.init(repoFolder.path(), vcs);
@@ -82,7 +82,7 @@ class WebrevTests {
 
     @ParameterizedTest
     @EnumSource(VCS.class)
-    void emptySourceHunk(VCS vcs) throws IOException {
+    void emptySourceHunk(VCS vcs) throws IOException, DiffTooLargeException {
         try (var repoFolder = new TemporaryDirectory();
         var webrevFolder = new TemporaryDirectory()) {
             var repo = TestableRepository.init(repoFolder.path(), vcs);
@@ -101,7 +101,7 @@ class WebrevTests {
 
     @ParameterizedTest
     @EnumSource(VCS.class)
-    void removedHeader(VCS vcs) throws IOException {
+    void removedHeader(VCS vcs) throws IOException, DiffTooLargeException {
         try (var repoFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory()) {
             var repo = TestableRepository.init(repoFolder.path(), vcs);
@@ -120,7 +120,7 @@ class WebrevTests {
 
     @ParameterizedTest
     @EnumSource(VCS.class)
-    void removeBinaryFile(VCS vcs) throws IOException {
+    void removeBinaryFile(VCS vcs) throws IOException, DiffTooLargeException {
         try (var tmp = new TemporaryDirectory()) {
             var repo = TestableRepository.init(tmp.path().resolve("repo"), vcs);
             var binaryFile = repo.root().resolve("x.jpg");
@@ -137,7 +137,7 @@ class WebrevTests {
 
     @ParameterizedTest
     @EnumSource(VCS.class)
-    void addBinaryFile(VCS vcs) throws IOException {
+    void addBinaryFile(VCS vcs) throws IOException, DiffTooLargeException {
         try (var tmp = new TemporaryDirectory()) {
             var repo = TestableRepository.init(tmp.path().resolve("repo"), vcs);
             var readme = repo.root().resolve("README");
@@ -157,7 +157,7 @@ class WebrevTests {
 
     @ParameterizedTest
     @EnumSource(VCS.class)
-    void modifyBinaryFile(VCS vcs) throws IOException {
+    void modifyBinaryFile(VCS vcs) throws IOException, DiffTooLargeException {
         try (var tmp = new TemporaryDirectory()) {
             var repo = TestableRepository.init(tmp.path().resolve("repo"), vcs);
             var readme = repo.root().resolve("README");
@@ -178,7 +178,7 @@ class WebrevTests {
 
     @ParameterizedTest
     @EnumSource(VCS.class)
-    void reservedName(VCS vcs) throws IOException {
+    void reservedName(VCS vcs) throws IOException, DiffTooLargeException {
         try (var repoFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory()) {
             var repo = TestableRepository.init(repoFolder.path(), vcs);

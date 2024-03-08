@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -448,26 +448,34 @@ public class GitWebrev {
             }
             var upstreamName = upstreamPullPath.getPath().substring(1);
             var originName = originPullPath.getPath().substring(1);
-            Webrev.repository(repo)
-                  .output(output)
-                  .upstream(upstreamPullPath, upstreamName)
-                  .fork(originPullPath, originName)
-                  .similarity(similarity)
-                  .generateJSON(base, head);
+            try {
+                Webrev.repository(repo)
+                      .output(output)
+                      .upstream(upstreamPullPath, upstreamName)
+                      .fork(originPullPath, originName)
+                      .similarity(similarity)
+                      .generateJSON(base, head);
+            } catch (DiffTooLargeException e) {
+                System.out.println("Webrev is not available because diff is too large.");
+            }
         } else {
-            Webrev.repository(repo)
-                  .output(output)
-                  .title(title)
-                  .upstream(upstream)
-                  .username(author.name())
-                  .commitLinker(hash -> upstreamURL == null ? null : upstreamURL + "/commit/" + hash)
-                  .issueLinker(id -> jbs + (isDigit(id.charAt(0)) ? jbsProject + "-" : "") + id)
-                  .issue(issue)
-                  .version(version)
-                  .files(files)
-                  .similarity(similarity)
-                  .comments(comments)
-                  .generate(base, head);
+            try {
+                Webrev.repository(repo)
+                      .output(output)
+                      .title(title)
+                      .upstream(upstream)
+                      .username(author.name())
+                      .commitLinker(hash -> upstreamURL == null ? null : upstreamURL + "/commit/" + hash)
+                      .issueLinker(id -> jbs + (isDigit(id.charAt(0)) ? jbsProject + "-" : "") + id)
+                      .issue(issue)
+                      .version(version)
+                      .files(files)
+                      .similarity(similarity)
+                      .comments(comments)
+                      .generate(base, head);
+            } catch (DiffTooLargeException e) {
+                System.out.println("Webrev is not available because diff is too large.");
+            }
         }
         if (!quiet) {
             System.out.println("Webrev executed successfully, details are in the link below:");
