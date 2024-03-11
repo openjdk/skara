@@ -725,7 +725,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                 .anyMatch(ci -> !handled.contains(ci.id()));
     }
 
-    private List<Comment> postPlaceholderMessageForReadyComment(List<Comment> comments) {
+    private List<Comment> postPlaceholderForReadyComment(List<Comment> comments) {
         var existing = comments.stream()
                 .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))
                 .filter(comment -> comment.body().contains(MERGE_READY_MARKER))
