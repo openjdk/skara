@@ -417,7 +417,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
         CensusInstance census;
         var comments = prComments();
-        comments = postPlaceholderMessageForReadyComment(comments);
+        comments = postPlaceholderForReadyComment(comments);
 
         try {
             census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchArea.getCensus(), pr,
@@ -733,9 +733,9 @@ class CheckWorkItem extends PullRequestWorkItem {
         if (existing.isPresent()) {
             return comments;
         }
+        log.info("Posting placeholder comment");
         String message = "❗ This change is not yet ready to be integrated.\n" +
                 "See the **Progress** checklist in the description for automated requirements.\n" +
-                "This project also has non-automated pre-integration requirements. Please see the file CONTRIBUTING.md for details.\n" +
                 MERGE_READY_MARKER + "\n" + PLACEHOLDER_MARKER;
         // If the bot posted a placeholder comment, we should update comments otherwise the bot will not be able to find
         // comment with MERGE_READY_MARKER later and post merge ready comment again
