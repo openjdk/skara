@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,6 +32,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertFirstCommentContains;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
 public class LabelTests {
@@ -227,7 +228,7 @@ public class LabelTests {
             // The bot will not add any label automatically
             TestBotRunner.runPeriodicItems(prBot);
             assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.store().labelNames()));
-            assertEquals(1, pr.comments().size());
+            assertEquals(2, pr.comments().size());
             assertLastCommentContains(pr, "The `1` label was successfully added.");
 
             // Add another file to trigger a group match
@@ -391,6 +392,7 @@ public class LabelTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
+            TestBotRunner.runPeriodicItems(prBot);
 
             // Add a label with -dev suffix
             pr.addComment("/label add 1");
@@ -405,9 +407,9 @@ public class LabelTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a integration message
-            assertLastCommentContains(pr,"This change now passes all *automated* pre-integration checks");
-            assertLastCommentContains(pr,":mag: One or more changes in this pull request modifies files");
-            assertLastCommentContains(pr,"in areas of the source code that often require two reviewers.");
+            assertFirstCommentContains(pr, "This change now passes all *automated* pre-integration checks");
+            assertFirstCommentContains(pr, ":mag: One or more changes in this pull request modifies files");
+            assertFirstCommentContains(pr, "in areas of the source code that often require two reviewers.");
         }
     }
 
@@ -445,6 +447,7 @@ public class LabelTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
+            TestBotRunner.runPeriodicItems(prBot);
 
             // Add a label with 24h hint
             pr.addComment("/label add 1");
@@ -459,10 +462,10 @@ public class LabelTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a integration message
-            assertLastCommentContains(pr,"This change now passes all *automated* pre-integration checks");
-            assertLastCommentContains(pr,":earth_americas: Applicable reviewers for one or more changes ");
-            assertLastCommentContains(pr,"in this pull request are spread across multiple different time zones.");
-            assertLastCommentContains(pr,"been out for review for at least 24 hours");
+            assertFirstCommentContains(pr,"This change now passes all *automated* pre-integration checks");
+            assertFirstCommentContains(pr,":earth_americas: Applicable reviewers for one or more changes ");
+            assertFirstCommentContains(pr,"in this pull request are spread across multiple different time zones.");
+            assertFirstCommentContains(pr,"been out for review for at least 24 hours");
         }
     }
 

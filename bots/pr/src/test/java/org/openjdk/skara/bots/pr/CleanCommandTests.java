@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -127,7 +127,7 @@ public class CleanCommandTests {
             // The bot should reply with a backport message
             TestBotRunner.runPeriodicItems(bot);
             var comments = pr.comments();
-            var backportComment = comments.get(0).body();
+            var backportComment = comments.get(1).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
             assertEquals(issue1Number + ": An issue", pr.store().title());
@@ -203,7 +203,7 @@ public class CleanCommandTests {
             // The bot should reply with a backport message
             TestBotRunner.runPeriodicItems(bot);
             var comments = pr.comments();
-            var backportComment = comments.get(0).body();
+            var backportComment = comments.get(1).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
             assertEquals(issue2Number + ": Another issue", pr.store().title());
@@ -283,7 +283,7 @@ public class CleanCommandTests {
             // The bot should reply with a backport message
             TestBotRunner.runPeriodicItems(bot);
             var comments = pr.comments();
-            var backportComment = comments.get(0).body();
+            var backportComment = comments.get(1).body();
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
             assertEquals(issue2Number + ": Another issue", pr.store().title());

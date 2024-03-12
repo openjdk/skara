@@ -139,19 +139,19 @@ class PullRequestCommandTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // Each command should get a separate reply
-            assertEquals(4, pr.comments().size());
-            assertTrue(pr.comments().get(1).body().contains("Contributor `A <a@b.c>` successfully added"), pr.comments().get(1).body());
-            assertTrue(pr.comments().get(2).body().contains("Setting summary to:\n" +
+            assertEquals(5, pr.comments().size());
+            assertTrue(pr.comments().get(2).body().contains("Contributor `A <a@b.c>` successfully added"), pr.comments().get(2).body());
+            assertTrue(pr.comments().get(3).body().contains("Setting summary to:\n" +
                                                                     "\n" +
                                                                     "```\n" +
                                                                     "line 1\n" +
-                                                                    "line 2"), pr.comments().get(2).body());
-            assertTrue(pr.comments().get(3).body().contains("Contributor `B <b@c.d>` successfully added"), pr.comments().get(3).body());
+                                                                    "line 2"), pr.comments().get(3).body());
+            assertTrue(pr.comments().get(4).body().contains("Contributor `B <b@c.d>` successfully added"), pr.comments().get(4).body());
 
             // They should only be executed once
             TestBotRunner.runPeriodicItems(mergeBot);
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertEquals(4, pr.comments().size());
+            assertEquals(5, pr.comments().size());
         }
     }
 
@@ -184,14 +184,14 @@ class PullRequestCommandTests {
             // The bot should not reply
             assertEquals(1, pr.comments().size());
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertEquals(1, pr.comments().size());
+            assertEquals(2, pr.comments().size());
 
             // But if we add an overriding marker, it should
             botPr.addComment("/help\n<!-- Valid self-command -->");
 
-            assertEquals(2, pr.comments().size());
-            TestBotRunner.runPeriodicItems(mergeBot);
             assertEquals(3, pr.comments().size());
+            TestBotRunner.runPeriodicItems(mergeBot);
+            assertEquals(4, pr.comments().size());
 
             var help = pr.comments().stream()
                          .filter(comment -> comment.body().contains("Available commands"))
@@ -301,8 +301,7 @@ class PullRequestCommandTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should not reply since the external command will be handled by another bot
-            var lastComment = pr.comments().get(pr.comments().size() - 1);
-            assertEquals(externalCommandComment, lastComment);
+            assertLastCommentContains(pr, "This change is not yet ready to be integrated.");
 
             // Issue the help command
             pr.addComment("/help");

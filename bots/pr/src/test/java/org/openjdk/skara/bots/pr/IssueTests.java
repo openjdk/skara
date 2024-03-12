@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -760,11 +760,11 @@ class IssueTests {
             assertTrue(pr.title().startsWith(issue1.id().split("-")[1] + ": "));
 
             var comments = pr.comments();
-            assertEquals(3, comments.size());
+            assertEquals(4, comments.size());
 
-            assertTrue(comments.get(0).body().contains("current title does not contain an issue reference"));
-            assertTrue(comments.get(1).body().contains("Adding additional issue to"));
+            assertTrue(comments.get(1).body().contains("current title does not contain an issue reference"));
             assertTrue(comments.get(2).body().contains("Adding additional issue to"));
+            assertTrue(comments.get(3).body().contains("Adding additional issue to"));
         }
     }
 

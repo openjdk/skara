@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1027,8 +1027,8 @@ class CSRCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().body().contains("- [ ] " + generateCSRProgressMessage(backportCsr)));
             assertFalse(pr.store().labelNames().contains("csr"));
-            assertTrue(pr.comments().get(pr.comments().size() - 2).body().contains("determined that a [CSR](https://wiki.openjdk.org/display/csr/Main) request " +
-                    "is not needed for this pull request."));
+            assertLastCommentContains(pr, "determined that a [CSR](https://wiki.openjdk.org/display/csr/Main) request " +
+                    "is not needed for this pull request.");
 
             // re-run prBot.
             pr.addComment("/csr");
