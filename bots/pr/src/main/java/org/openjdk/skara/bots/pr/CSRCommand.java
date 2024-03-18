@@ -165,7 +165,7 @@ public class CSRCommand implements CommandHandler {
             reply.println(CSR_NEEDED_MARKER);
         } else {
             csrReply(reply);
-            var issues = SolvesTracker.currentSolved(pr.repository().forge().currentUser(), pr.comments(), pr.title());
+            var issues = SolvesTracker.currentSolved(pr.repository().forge().currentUser(), allComments, pr.title());
             if (issues.isEmpty()) {
                 singleIssueLinkReply(pr, jbsMainIssueOpt.get(), reply);
             } else {
