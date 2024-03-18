@@ -48,7 +48,7 @@
             "make/langtools/",
             "make/modules/jdk.compiler/",
             "make/scripts/generate-symbol-data.sh",
-            "src/java.base/share/classes/jdk/internal/PreviewFeature.java",
+            "src/java.base/share/classes/jdk/internal/javac/",
             "src/java.compiler/",
             "src/jdk.compiler/",
             "src/jdk.jartool/(?!.*/jarsigner)",
