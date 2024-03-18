@@ -34,6 +34,7 @@ import java.io.PrintWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.time.format.DateTimeFormatter;
@@ -42,11 +43,13 @@ import static org.openjdk.skara.bots.common.CommandNameEnum.backport;
 
 public class BackportCommand implements CommandHandler {
     private void showHelp(PrintWriter reply) {
-        reply.println("Usage: `/backport <repository> [<branch>]`");
+        reply.println("Usage:  `/backport <repository> [<branch>]` " +
+                "or `/backport [<repository>]:<branch>`");
     }
 
     private void showHelpInPR(PrintWriter reply) {
-        reply.println("Usage: `/backport [disable] <repository> [<branch>]`");
+        reply.println("Usage: `/backport [disable] <repository> [<branch>]` " +
+                "or `/backport [disable] [<repository>]:<branch>`");
     }
 
     @Override
@@ -91,6 +94,21 @@ public class BackportCommand implements CommandHandler {
         }
 
         var parts = args.split(" ");
+
+        // Preprocess args to support "repo:branch" argument
+        if (parts[0].equals("disable")) {
+            if (parts.length == 2 && parts[1].contains(":")) {
+                List<String> tempList = new ArrayList<>();
+                tempList.add("disable");
+                tempList.addAll(Arrays.asList(parts[1].split(":")));
+                parts = tempList.toArray(new String[0]);
+            }
+        } else {
+            if (parts.length == 1 && parts[0].contains(":")) {
+                parts = parts[0].split(":");
+            }
+        }
+
         boolean argIsValid = parts[0].equals("disable") ? parts.length == 2 || parts.length == 3 : parts.length <= 2;
         if (!argIsValid) {
             showHelpInPR(reply);
@@ -158,6 +176,9 @@ public class BackportCommand implements CommandHandler {
 
     private HostedRepository getTargetRepo(PullRequestBot bot, String repoName, PrintWriter reply) {
         var forge = bot.repo().forge();
+        if (repoName.isEmpty()) {
+            repoName = bot.repo().name();
+        }
         var repoNameArg = repoName.replace("http://", "")
                 .replace("https://", "")
                 .replace(forge.hostname() + "/", "");
@@ -210,6 +231,11 @@ public class BackportCommand implements CommandHandler {
         if (parts.length > 2) {
             showHelp(reply);
             return;
+        }
+
+        // Preprocess args to support "repo:branch" argument
+        if (parts.length == 1 && parts[0].contains(":")) {
+            parts = parts[0].split(":");
         }
 
         // Get target repo

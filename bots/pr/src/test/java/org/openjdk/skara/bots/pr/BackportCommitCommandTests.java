@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -77,6 +77,24 @@ public class BackportCommitCommandTests {
             assertTrue(botReply.body().contains("with this backport"));
             assertTrue(botReply.body().contains("@" + botReply.author().username()));
             assertEquals(botReply.body().indexOf("@" + botReply.author().username()), botReply.body().lastIndexOf("@" + botReply.author().username()));
+
+            // Add a backport command
+            author.addCommitComment(editHash, "/backport " + author.name() + ":" + author.defaultBranchName());
+            TestBotRunner.runPeriodicItems(bot);
+            recentCommitComments = author.recentCommitComments();
+            assertEquals(4, recentCommitComments.size());
+            botReply = recentCommitComments.get(0);
+            assertTrue(botReply.body().contains("To create a pull request with this backport targeting " +
+                    "[" + author.name() + ":" + author.defaultBranchName() + "]"));
+
+            // Add a backport command
+            author.addCommitComment(editHash, "/backport :" + author.defaultBranchName());
+            TestBotRunner.runPeriodicItems(bot);
+            recentCommitComments = author.recentCommitComments();
+            assertEquals(6, recentCommitComments.size());
+            botReply = recentCommitComments.get(0);
+            assertTrue(botReply.body().contains("To create a pull request with this backport targeting " +
+                    "[" + author.name() + ":" + author.defaultBranchName() + "]"));
         }
     }
 
