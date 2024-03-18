@@ -451,11 +451,10 @@ class CheckRun {
         }
 
         var botUser = pr.repository().forge().currentUser();
-        var isCleanLabelManuallyAdded =
-            pr.comments()
-              .stream()
-              .filter(c -> c.author().equals(botUser))
-              .anyMatch(c -> c.body().contains("This backport pull request is now marked as clean"));
+        var isCleanLabelManuallyAdded = comments
+                .stream()
+                .filter(c -> c.author().equals(botUser))
+                .anyMatch(c -> c.body().contains("This backport pull request is now marked as clean"));
 
         if (!isCleanLabelManuallyAdded && !isClean && hasCleanLabel) {
             log.info("Removing label clean");
@@ -1437,7 +1436,7 @@ class CheckRun {
             }
 
             // Calculate current metadata to avoid unnecessary future checks
-            var metadata = workItem.getMetadata(workItem.getPRMetadata(censusInstance, title, updatedBody, pr.comments(), activeReviews,
+            var metadata = workItem.getMetadata(workItem.getPRMetadata(censusInstance, title, updatedBody, comments, activeReviews,
                     newLabels, pr.targetRef(), pr.isDraft()), workItem.getIssueMetadata(updatedBody), expiresIn);
             checkBuilder.metadata(metadata);
         } catch (Exception e) {
@@ -1548,7 +1547,7 @@ class CheckRun {
                 existingApprovedCSR = true;
             }
         }
-        if (notExistingUnresolvedCSR && (!isCSRNeeded(pr.comments()) || existingApprovedCSR) && pr.labelNames().contains(CSR_LABEL)) {
+        if (notExistingUnresolvedCSR && (!isCSRNeeded(comments) || existingApprovedCSR) && pr.labelNames().contains(CSR_LABEL)) {
             log.info("All CSR issues closed and approved for " + describe(pr) + ", removing CSR label");
             newLabels.remove(CSR_LABEL);
         }
