@@ -1356,6 +1356,27 @@ class CheckRun {
             // Check the status of csr issues and determine whether to add or remove csr label here
             updateCSRLabel(version, issueToCsrMap);
 
+            // In a backport PR, Check if one of associated issues has a resolved CSR for a different fixVersion
+            if (newLabels.contains("backport") && !newLabels.contains("csr") && issueToCsrMap.isEmpty() && !isCSRManuallyUnneeded(comments)) {
+                boolean hasResolvedCSR = regularIssuesMap.values().stream()
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .map(Backports::csrLink)
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .map(Link::issue)
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .anyMatch(csrIssue -> csrIssue.state() == org.openjdk.skara.issuetracker.Issue.State.CLOSED &&
+                                csrIssue.resolution().map(res -> res.equals("Approved")).orElse(false));
+
+                if (hasResolvedCSR) {
+                    newLabels.add("csr");
+                    pr.addComment("At least one of the associated issues of this backport has a resolved CSR. " +
+                            "This backport might also need a CSR. \"csr\" label will be added to this PR.");
+                }
+            }
+
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             var readyForReview = updateReadyForReview(visitor, additionalErrors, regularIssuesMap);
 
@@ -1561,6 +1582,19 @@ class CheckRun {
             }
             if (comment.body().contains(CSR_UNNEEDED_MARKER)) {
                 return false;
+            }
+        }
+        return false;
+    }
+
+    private boolean isCSRManuallyUnneeded(List<Comment> comments) {
+        for (int i = comments.size() - 1; i >= 0; i--) {
+            var comment = comments.get(i);
+            if (comment.body().contains(CSR_NEEDED_MARKER)) {
+                return false;
+            }
+            if (comment.body().contains(CSR_UNNEEDED_MARKER)) {
+                return true;
             }
         }
         return false;
