@@ -294,7 +294,7 @@ class CheckRun {
                 .filter(issue -> issue.properties().get("issuetype").asString().equals("CSR"))
                 .filter(issue -> !isWithdrawnCSR(issue))
                 .toList();
-        if (csrIssues.isEmpty() && pr.labelNames().contains("csr")) {
+        if (csrIssues.isEmpty() && newLabels.contains("csr")) {
             ret.put("Change requires a CSR request matching fixVersion " + (version != null ? version.raw() : "(No fixVersion in .jcheck/conf)")
                     + " to be approved (needs to be created)", false);
         }
@@ -753,7 +753,7 @@ class CheckRun {
                             setExpiration(Duration.ofMinutes(10));
                         }
                         if (!issueTrackerIssue.get().isOpen()) {
-                            if (!pr.labelNames().contains("backport") &&
+                            if (!newLabels.contains("backport") &&
                                     (issueType == null || !List.of("CSR", "JEP").contains(issueType.asString()))) {
                                 if (issueTrackerIssue.get().isFixed()) {
                                     progressBody.append(" ⚠️ Issue is already resolved. " +
@@ -1349,32 +1349,15 @@ class CheckRun {
             var jepIssue = jepIssue().orElse(null);
             var issueToCsrMap = issueToCsrMap(regularIssuesMap, version);
             var csrIssues = issueToCsrMap.values().stream().toList();
-            if (needUpdateAdditionalProgresses) {
-                additionalProgresses = botSpecificProgresses(regularIssuesMap, csrIssues, jepIssue, version);
-            }
 
             // Check the status of csr issues and determine whether to add or remove csr label here
             updateCSRLabel(version, issueToCsrMap);
 
             // In a backport PR, Check if one of associated issues has a resolved CSR for a different fixVersion
-            if (newLabels.contains("backport") && !newLabels.contains("csr") && issueToCsrMap.isEmpty() && !isCSRManuallyUnneeded(comments)) {
-                boolean hasResolvedCSR = regularIssuesMap.values().stream()
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
-                        .map(Backports::csrLink)
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
-                        .map(Link::issue)
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
-                        .anyMatch(csrIssue -> csrIssue.state() == org.openjdk.skara.issuetracker.Issue.State.CLOSED &&
-                                csrIssue.resolution().map(res -> res.equals("Approved")).orElse(false));
+            updateBackportCSRLabel(regularIssuesMap, issueToCsrMap);
 
-                if (hasResolvedCSR) {
-                    newLabels.add("csr");
-                    pr.addComment("At least one of the associated issues of this backport has a resolved CSR. " +
-                            "This backport might also need a CSR. \"csr\" label will be added to this PR.");
-                }
+            if (needUpdateAdditionalProgresses) {
+                additionalProgresses = botSpecificProgresses(regularIssuesMap, csrIssues, jepIssue, version);
             }
 
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
@@ -1527,7 +1510,7 @@ class CheckRun {
             var resolutionOpt = csr.resolution();
             if (resolutionOpt.isEmpty()) {
                 notExistingUnresolvedCSR = false;
-                if (!pr.labelNames().contains(CSR_LABEL)) {
+                if (!newLabels.contains(CSR_LABEL)) {
                     log.info("CSR issue resolution is null for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
                     newLabels.add(CSR_LABEL);
                 } else {
@@ -1540,7 +1523,7 @@ class CheckRun {
 
             if (csr.state() != org.openjdk.skara.issuetracker.Issue.State.CLOSED) {
                 notExistingUnresolvedCSR = false;
-                if (!pr.labelNames().contains(CSR_LABEL)) {
+                if (!newLabels.contains(CSR_LABEL)) {
                     log.info("CSR issue state is not closed for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
                     newLabels.add(CSR_LABEL);
                 } else {
@@ -1556,7 +1539,7 @@ class CheckRun {
                     // Because the PR author with the role of Committer may withdraw a CSR that
                     // a Reviewer had requested and integrate it without satisfying that requirement.
                     log.info("CSR closed and withdrawn for csr issue " + csr.id() + " for " + describe(pr));
-                } else if (!pr.labelNames().contains(CSR_LABEL)) {
+                } else if (!newLabels.contains(CSR_LABEL)) {
                     notExistingUnresolvedCSR = false;
                     log.info("CSR issue resolution is not 'Approved' for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
                     newLabels.add(CSR_LABEL);
@@ -1568,9 +1551,31 @@ class CheckRun {
                 existingApprovedCSR = true;
             }
         }
-        if (notExistingUnresolvedCSR && (!isCSRNeeded(comments) || existingApprovedCSR) && pr.labelNames().contains(CSR_LABEL)) {
+        if (notExistingUnresolvedCSR && (!isCSRNeeded(comments) || existingApprovedCSR) && newLabels.contains(CSR_LABEL)) {
             log.info("All CSR issues closed and approved for " + describe(pr) + ", removing CSR label");
             newLabels.remove(CSR_LABEL);
+        }
+    }
+
+    private void updateBackportCSRLabel(Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap, Map<String, IssueTrackerIssue> issueToCsrMap) {
+        if (newLabels.contains("backport") && !newLabels.contains("csr") && issueToCsrMap.isEmpty() && !isCSRManuallyUnneeded(comments)) {
+            boolean hasResolvedCSR = regularIssuesMap.values().stream()
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .map(Backports::csrLink)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .map(Link::issue)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .anyMatch(csrIssue -> csrIssue.state() == org.openjdk.skara.issuetracker.Issue.State.CLOSED &&
+                            csrIssue.resolution().map(res -> res.equals("Approved")).orElse(false));
+
+            if (hasResolvedCSR) {
+                newLabels.add("csr");
+                pr.addComment("At least one of the associated issues of this backport has a resolved CSR.\n" +
+                        "This backport might also need a CSR. \"csr\" label will be added to this PR.");
+            }
         }
     }
 

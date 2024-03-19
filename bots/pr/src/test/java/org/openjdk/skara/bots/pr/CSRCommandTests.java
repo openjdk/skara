@@ -847,6 +847,15 @@ class CSRCommandTests {
             var pr = credentials.createPullRequest(author, "master", "edit1", "Backport " + commitHash);
             PullRequestUtils.postPullRequestLinkComment(issue, pr);
 
+            // "csr" label should be added automatically because the main issue has a resolved CSR
+            TestBotRunner.runPeriodicItems(prBot);
+            assertEquals(3 ,pr.store().comments().size());
+            assertTrue(pr.store().body().contains("- [ ] Change requires a CSR request matching fixVersion (No fixVersion in .jcheck/conf) to be approved (needs to be created)"));
+            assertLastCommentContains(pr, "At least one of the associated issues of this backport has a resolved CSR.\n" +
+                    "This backport might also need a CSR. \"csr\" label will be added to this PR.");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertEquals(3 ,pr.store().comments().size());
+
             // Run prBot. Request a CSR.
             pr.addComment("/csr");
             TestBotRunner.runPeriodicItems(prBot);
@@ -861,6 +870,12 @@ class CSRCommandTests {
             assertFalse(pr.store().labelNames().contains("csr"));
             assertLastCommentContains(pr, "determined that a [CSR](https://wiki.openjdk.org/display/csr/Main) request " +
                     "is not needed for this pull request.");
+
+            // Run pr bot again, "csr" label should not be added because reviewer issued "/csr unneeded"
+            assertEquals(7 ,pr.store().comments().size());
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(prBot);
+            assertEquals(7 ,pr.store().comments().size());
 
             // Add `version=bla` to `.jcheck/conf`, set the version as a wrong value
             localRepo.checkout(localRepo.defaultBranch());
