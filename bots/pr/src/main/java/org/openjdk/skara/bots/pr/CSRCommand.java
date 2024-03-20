@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,6 +33,7 @@ import java.util.regex.Pattern;
 
 import static org.openjdk.skara.bots.common.CommandNameEnum.csr;
 import static org.openjdk.skara.bots.common.PullRequestConstants.*;
+import static org.openjdk.skara.bots.pr.CheckRun.CSR_PROCESS_LINK;
 
 public class CSRCommand implements CommandHandler {
 
@@ -40,36 +41,36 @@ public class CSRCommand implements CommandHandler {
     private static final Pattern RESOLVED_CSR_PROGRESS_PATTERN = Pattern.compile("- \\[x\\] Change requires CSR request \\[(.*?)\\]\\((.*?)\\) to be approved");
 
     private static void showHelp(PrintWriter writer) {
-        writer.println("usage: `/csr [needed|unneeded]`, requires that the issue the pull request refers to links to an approved [CSR](https://wiki.openjdk.org/display/csr/Main) request.");
+        writer.println("usage: `/csr [needed|unneeded]`, requires that the issue the pull request refers to links to an approved [CSR](" + CSR_PROCESS_LINK + ") request.");
     }
 
     private static void csrReply(PrintWriter writer) {
         writer.println("has indicated that a " +
-                      "[compatibility and specification](https://wiki.openjdk.org/display/csr/Main) (CSR) request " +
-                      "is needed for this pull request.");
+                "[compatibility and specification](" + CSR_PROCESS_LINK + ") (CSR) request " +
+                "is needed for this pull request.");
         writer.println(CSR_NEEDED_MARKER);
     }
 
     private static void jbsReply(PullRequest pr, PrintWriter writer) {
         writer.println("@" + pr.author().username() + " this pull request must refer to an issue in " +
-                      "[JBS](https://bugs.openjdk.org) to be able to link it to a [CSR](https://wiki.openjdk.org/display/csr/Main) request. To refer this pull request to " +
-                      "an issue in JBS, please update the title of this pull request to just the issue ID.");
+                "[JBS](https://bugs.openjdk.org) to be able to link it to a [CSR](" + CSR_PROCESS_LINK + ") request. To refer this pull request to " +
+                "an issue in JBS, please update the title of this pull request to just the issue ID.");
     }
 
     private static void multipleIssueReply(PullRequest pr, PrintWriter writer) {
-        writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request, " +
+        writer.println("@" + pr.author().username() + " please create a [CSR](" + CSR_PROCESS_LINK + ") request, " +
                 "with the correct fix version, for at least one of the issues associated with this pull request." +
                 " This pull request cannot be integrated until all the CSR request are approved.");
     }
 
     private static void singleIssueLinkReply(PullRequest pr, IssueTrackerIssue issue, PrintWriter writer) {
-        writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.org/display/csr/Main) request for issue " +
+        writer.println("@" + pr.author().username() + " please create a [CSR](" + CSR_PROCESS_LINK + ") request for issue " +
                 "[" + issue.id() + "](" + issue.webUrl() + ") with the correct fix version. " +
                 "This pull request cannot be integrated until the CSR request is approved.");
     }
 
     private static void csrUnneededReply(PullRequest pr, PrintWriter writer) {
-        writer.println("determined that a [CSR](https://wiki.openjdk.org/display/csr/Main) request " +
+        writer.println("determined that a [CSR](" + CSR_PROCESS_LINK + ") request " +
                 "is not needed for this pull request.");
         writer.println(CSR_UNNEEDED_MARKER);
         if (pr.labelNames().contains(CSR_LABEL)) {
@@ -126,7 +127,7 @@ public class CSRCommand implements CommandHandler {
         }
 
         if (labels.contains(CSR_LABEL)) {
-            reply.println("an approved [CSR](https://wiki.openjdk.org/display/csr/Main) request " +
+            reply.println("an approved [CSR](" + CSR_PROCESS_LINK + ") request " +
                     "is already required for this pull request.");
             reply.println(CSR_NEEDED_MARKER);
             return;

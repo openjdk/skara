@@ -74,6 +74,7 @@ class CheckRun {
     private static final String FULL_NAME_WARNING_MARKER = "<!-- PullRequestBot full name warning comment -->";
     private static final String APPROVAL_NEEDED_MARKER = "<!-- PullRequestBot approval needed comment -->";
     private static final Set<String> PRIMARY_TYPES = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
+    protected static final String CSR_PROCESS_LINK = "https://wiki.openjdk.org/display/csr/Main";
     private final Set<String> newLabels;
     private final boolean reviewCleanBackport;
     private final Approval approval;
@@ -1575,7 +1576,8 @@ class CheckRun {
                 newLabels.add("csr");
                 pr.addComment("At least one of the associated issues of this backport has a resolved CSR.\n" +
                         "This backport might also need a CSR. `csr` label will be added to this PR.\n" +
-                        "Please go through the [CSR](https://wiki.openjdk.org/display/csr/Main) process or using command `csr unneeded` to remove the CSR requirement.");
+                        "Please go through the [CSR](" + CSR_PROCESS_LINK +
+                        ") process or using command `csr unneeded` to remove the CSR requirement.");
             }
         }
     }
