@@ -1574,7 +1574,8 @@ class CheckRun {
             if (hasResolvedCSR) {
                 newLabels.add("csr");
                 pr.addComment("At least one of the associated issues of this backport has a resolved CSR.\n" +
-                        "This backport might also need a CSR. \"csr\" label will be added to this PR.");
+                        "This backport might also need a CSR. `csr` label will be added to this PR.\n" +
+                        "Please go through the [CSR](https://wiki.openjdk.org/display/csr/Main) process or using command `csr unneeded` to remove the CSR requirement.");
             }
         }
     }
