@@ -852,7 +852,7 @@ class CSRCommandTests {
             assertEquals(3 ,pr.store().comments().size());
             assertTrue(pr.store().body().contains("- [ ] Change requires a CSR request matching fixVersion (No fixVersion in .jcheck/conf) to be approved (needs to be created)"));
             assertLastCommentContains(pr, "At least one of the associated issues of this backport has a resolved CSR.\n" +
-                    "This backport might also need a CSR. \"csr\" label will be added to this PR.");
+                    "This backport might also need a CSR. `csr` label will be added to this PR.");
             TestBotRunner.runPeriodicItems(prBot);
             assertEquals(3 ,pr.store().comments().size());
 
