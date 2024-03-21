@@ -1574,10 +1574,11 @@ class CheckRun {
 
             if (hasResolvedCSR) {
                 newLabels.add("csr");
-                pr.addComment("At least one of the associated issues of this backport has a resolved CSR.\n" +
-                        "This backport might also need a CSR. `csr` label will be added to this PR.\n" +
-                        "Please go through the [CSR](" + CSR_PROCESS_LINK +
-                        ") process or using command `csr unneeded` to remove the CSR requirement.");
+                pr.addComment("At least one of the issues associated with this backport has a resolved " +
+                        "[CSR](" + CSR_PROCESS_LINK + ") for a different version. As this means that this " +
+                        "backport may also need a CSR, the `csr` label is being added to this pull request " +
+                        "to signal this potential requirement. The command `/csr unneeded` can be used to " + 
+                        "remove the label in case a CSR is not needed.");
             }
         }
     }
