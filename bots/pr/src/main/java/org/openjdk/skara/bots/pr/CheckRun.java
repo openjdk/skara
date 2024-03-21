@@ -1574,11 +1574,11 @@ class CheckRun {
                             csrIssue.resolution().map(res -> res.equals("Approved")).orElse(false));
 
             if (hasResolvedCSR) {
+                newLabels.add("csr");
                 var existing = findComment(BACKPORT_CSR_MARKER);
                 if (existing.isPresent()) {
                     return;
                 }
-                newLabels.add("csr");
                 pr.addComment("At least one of the issues associated with this backport has a resolved " +
                         "[CSR](" + CSR_PROCESS_LINK + ") for a different version. As this means that this " +
                         "backport may also need a CSR, the `csr` label is being added to this pull request " +
