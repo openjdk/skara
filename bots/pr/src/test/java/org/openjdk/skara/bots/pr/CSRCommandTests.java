@@ -852,8 +852,7 @@ class CSRCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertEquals(3 ,pr.store().comments().size());
             assertTrue(pr.store().body().contains("- [ ] Change requires a CSR request matching fixVersion (No fixVersion in .jcheck/conf) to be approved (needs to be created)"));
-            assertLastCommentContains(pr, "At least one of the associated issues of this backport has a resolved CSR.\n" +
-                    "This backport might also need a CSR. `csr` label will be added to this PR.");
+            assertLastCommentContains(pr, "this backport may also need a CSR");
             TestBotRunner.runPeriodicItems(prBot);
             assertEquals(3 ,pr.store().comments().size());
 
@@ -1366,7 +1365,7 @@ class CSRCommandTests {
             assertTrue(pr.store().body().contains("- [ ] Change requires CSR request [TEST-4](http://localhost/project/testTEST-4) to be approved"));
             assertTrue(pr.store().labelNames().contains("csr"));
             // The bot shouldn't post backport csr comment because there is a backport csr
-            assertTrue(pr.store().comments().stream().noneMatch(comment -> comment.body().contains("This backport might also need a CSR")));
+            assertTrue(pr.store().comments().stream().noneMatch(comment -> comment.body().contains("this backport may also need a CSR")));
 
             // Change the fixVersion of the backportCSR
             backportCsr.setProperty("fixVersions", JSON.array().add("19"));
@@ -1375,7 +1374,7 @@ class CSRCommandTests {
             assertTrue(pr.store().body().contains("- [ ] Change requires a CSR request matching fixVersion 17 to be approved (needs to be created)"));
             assertTrue(pr.store().labelNames().contains("csr"));
             // The bot shouldn't post backport csr comment because csr label is still there
-            assertTrue(pr.store().comments().stream().noneMatch(comment -> comment.body().contains("This backport might also need a CSR")));
+            assertTrue(pr.store().comments().stream().noneMatch(comment -> comment.body().contains("this backport may also need a CSR")));
 
             // Use '/csr unneeded'
             var prAsReviewer = reviewer.pullRequest(pr.id());
@@ -1384,7 +1383,7 @@ class CSRCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().labelNames().contains("csr"));
             // The bot shouldn't post backport csr comment because csr label has been removed by command
-            assertTrue(pr.store().comments().stream().noneMatch(comment -> comment.body().contains("This backport might also need a CSR")));
+            assertTrue(pr.store().comments().stream().noneMatch(comment -> comment.body().contains("this backport may also need a CSR")));
 
             // Require CSR again
             prAsReviewer.addComment("/csr");
@@ -1392,7 +1391,7 @@ class CSRCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertTrue(pr.store().labelNames().contains("csr"));
             // The bot shouldn't post backport csr comment because csr label has been added by command
-            assertTrue(pr.store().comments().stream().noneMatch(comment -> comment.body().contains("This backport might also need a CSR")));
+            assertTrue(pr.store().comments().stream().noneMatch(comment -> comment.body().contains("this backport may also need a CSR")));
         }
     }
 }

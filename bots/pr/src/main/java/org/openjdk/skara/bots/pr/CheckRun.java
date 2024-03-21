@@ -73,6 +73,7 @@ class CheckRun {
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private static final String FULL_NAME_WARNING_MARKER = "<!-- PullRequestBot full name warning comment -->";
     private static final String APPROVAL_NEEDED_MARKER = "<!-- PullRequestBot approval needed comment -->";
+    private static final String BACKPORT_CSR_MARKER = "<!-- PullRequestBot backport csr comment -->";
     private static final Set<String> PRIMARY_TYPES = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     protected static final String CSR_PROCESS_LINK = "https://wiki.openjdk.org/display/csr/Main";
     private final Set<String> newLabels;
@@ -1573,12 +1574,17 @@ class CheckRun {
                             csrIssue.resolution().map(res -> res.equals("Approved")).orElse(false));
 
             if (hasResolvedCSR) {
+                var existing = findComment(BACKPORT_CSR_MARKER);
+                if (existing.isPresent()) {
+                    return;
+                }
                 newLabels.add("csr");
                 pr.addComment("At least one of the issues associated with this backport has a resolved " +
                         "[CSR](" + CSR_PROCESS_LINK + ") for a different version. As this means that this " +
                         "backport may also need a CSR, the `csr` label is being added to this pull request " +
-                        "to signal this potential requirement. The command `/csr unneeded` can be used to " + 
-                        "remove the label in case a CSR is not needed.");
+                        "to signal this potential requirement. The command `/csr unneeded` can be used to " +
+                        "remove the label in case a CSR is not needed." +
+                        BACKPORT_CSR_MARKER);
             }
         }
     }
