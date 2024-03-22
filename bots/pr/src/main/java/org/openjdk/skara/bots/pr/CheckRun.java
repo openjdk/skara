@@ -1643,9 +1643,7 @@ class CheckRun {
     }
 
     /**
-     * Iterate through each entry in the regularIssuesMap. If the value is present, get all CSR links associated with this issue.
-     * "all CSR links" means that the CSR linked with the primary issue and the CSRs linked with any backport issues of the primary issue.
-     * Constructs a map from main issue ID to all CSR links.
+     * Creates a map from issue ID to a list of all CSRs linked from the issue or any backport of the issue.
      */
     private Map<String, List<Link>> issueToCsrLinksMap(Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap) {
         Map<String, List<Link>> issueToCsrLinksMap = new HashMap<>();
