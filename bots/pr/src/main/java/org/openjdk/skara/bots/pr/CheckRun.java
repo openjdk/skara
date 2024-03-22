@@ -1351,15 +1351,15 @@ class CheckRun {
             // issues without CSR issues and JEP issues
             var regularIssuesMap = regularIssuesMap();
             var jepIssue = jepIssue().orElse(null);
-            var issueToCsrLinksMap = issueToCsrLinksMap(regularIssuesMap);
-            var issueToCsrMap = issueToCsrMap(issueToCsrLinksMap, version);
+            var issueToAllCsrLinksMap = issueToCsrLinksMap(regularIssuesMap);
+            var issueToCsrMap = issueToCsrMap(issueToAllCsrLinksMap, version);
             var csrIssues = issueToCsrMap.values().stream().toList();
 
             // Check the status of csr issues and determine whether to add or remove csr label here
             updateCSRLabel(version, issueToCsrMap);
 
             // In a backport PR, Check if one of associated issues has a resolved CSR for a different fixVersion
-            updateBackportCSRLabel(issueToCsrLinksMap, issueToCsrMap);
+            updateBackportCSRLabel(issueToAllCsrLinksMap, issueToCsrMap);
 
             if (needUpdateAdditionalProgresses) {
                 additionalProgresses = botSpecificProgresses(regularIssuesMap, csrIssues, jepIssue, version);
@@ -1642,6 +1642,11 @@ class CheckRun {
         pr.addComment(message);
     }
 
+    /**
+     * Iterate through each entry in the regularIssuesMap. If the value is present, get all CSR links associated with this issue.
+     * "all CSR links" means that the CSR linked with the primary issue and the CSRs linked with any backport issues of the primary issue.
+     * Constructs a map from main issue ID to all CSR links.
+     */
     private Map<String, List<Link>> issueToCsrLinksMap(Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap) {
         Map<String, List<Link>> issueToCsrLinksMap = new HashMap<>();
         for (var issue : regularIssuesMap.values()) {
