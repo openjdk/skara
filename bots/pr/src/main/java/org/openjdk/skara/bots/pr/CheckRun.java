@@ -167,17 +167,13 @@ class CheckRun {
     /**
      * Constructs a map from main issue ID to CSR issue.
      */
-    private Map<String, IssueTrackerIssue> issueToCsrMap(Map<String, List<Link>> issueToCsrLinksMap, JdkVersion version) {
+    private Map<String, IssueTrackerIssue> issueToCsrMap(Map<String, List<IssueTrackerIssue>> issueToAllCsrsMap, JdkVersion version) {
         var csrIssueMap = new HashMap<String, IssueTrackerIssue>();
         if (version == null) {
             return Map.of();
         }
-        for (var entry : issueToCsrLinksMap.entrySet()) {
-            var csrList = entry.getValue().stream()
-                    .map(Link::issue)
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .toList();
+        for (var entry : issueToAllCsrsMap.entrySet()) {
+            var csrList = entry.getValue();
             Backports.findClosestIssue(csrList, version).ifPresent(csr -> csrIssueMap.put(entry.getKey(), csr));
         }
         return csrIssueMap;
@@ -1351,15 +1347,15 @@ class CheckRun {
             // issues without CSR issues and JEP issues
             var regularIssuesMap = regularIssuesMap();
             var jepIssue = jepIssue().orElse(null);
-            var issueToAllCsrLinksMap = issueToCsrLinksMap(regularIssuesMap);
-            var issueToCsrMap = issueToCsrMap(issueToAllCsrLinksMap, version);
+            var issueToAllCsrsMap = issueToAllCsrsMap(regularIssuesMap);
+            var issueToCsrMap = issueToCsrMap(issueToAllCsrsMap, version);
             var csrIssues = issueToCsrMap.values().stream().toList();
 
             // Check the status of csr issues and determine whether to add or remove csr label here
             updateCSRLabel(version, issueToCsrMap);
 
             // In a backport PR, Check if one of associated issues has a resolved CSR for a different fixVersion
-            updateBackportCSRLabel(issueToAllCsrLinksMap, issueToCsrMap);
+            updateBackportCSRLabel(issueToAllCsrsMap, issueToCsrMap);
 
             if (needUpdateAdditionalProgresses) {
                 additionalProgresses = botSpecificProgresses(regularIssuesMap, csrIssues, jepIssue, version);
@@ -1562,13 +1558,10 @@ class CheckRun {
         }
     }
 
-    private void updateBackportCSRLabel(Map<String, List<Link>> issueToCsrLinksMap, Map<String, IssueTrackerIssue> issueToCsrMap) {
+    private void updateBackportCSRLabel(Map<String, List<IssueTrackerIssue>> issueToAllCsrsMap, Map<String, IssueTrackerIssue> issueToCsrMap) {
         if (newLabels.contains("backport") && !newLabels.contains("csr") && issueToCsrMap.isEmpty() && !isCSRManuallyUnneeded(comments)) {
-            boolean hasResolvedCSR = issueToCsrLinksMap.values().stream()
+            boolean hasResolvedCSR = issueToAllCsrsMap.values().stream()
                     .flatMap(List::stream)
-                    .map(Link::issue)
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
                     .anyMatch(csrIssue -> csrIssue.state() == org.openjdk.skara.issuetracker.Issue.State.CLOSED &&
                             csrIssue.resolution().map(res -> res.equals("Approved")).orElse(false));
 
@@ -1646,17 +1639,25 @@ class CheckRun {
      * Creates a map from issue ID to a list of all CSRs linked from the issue or any backport of the issue.
      */
     private Map<String, List<IssueTrackerIssue>> issueToAllCsrsMap(Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap) {
-        Map<String, List<Link>> issueToCsrLinksMap = new HashMap<>();
-        for (var issue : regularIssuesMap.values()) {
-            if (issue.isPresent()) {
-                Backports.csrLink(issue.get())
-                        .ifPresent(link -> issueToCsrLinksMap.computeIfAbsent(issue.get().id(), k -> new ArrayList<>()).add(link));
-                for (var backportIssue : Backports.findBackports(issue.get(), false)) {
-                    Backports.csrLink(backportIssue)
-                            .ifPresent(backportCsrlink -> issueToCsrLinksMap.computeIfAbsent(issue.get().id(), k -> new ArrayList<>()).add(backportCsrlink));
-                }
-            }
-        }
-        return issueToCsrLinksMap;
+        Map<String, List<IssueTrackerIssue>> issueToAllCsrsMap = new HashMap<>();
+        regularIssuesMap.values().stream()
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .forEach(issue -> {
+                    Backports.csrLink(issue)
+                            .flatMap(Link::issue)
+                            .ifPresent(csr -> issueToAllCsrsMap.computeIfAbsent(issue.id(), k -> new ArrayList<>()).add(csr));
+
+                    Backports.findBackports(issue, false).stream()
+                            .map(Backports::csrLink)
+                            .filter(Optional::isPresent)
+                            .map(Optional::get)
+                            .map(Link::issue)
+                            .filter(Optional::isPresent)
+                            .map(Optional::get)
+                            .forEach(backportCsr -> issueToAllCsrsMap.computeIfAbsent(issue.id(), k -> new ArrayList<>()).add(backportCsr));
+
+                });
+        return issueToAllCsrsMap;
     }
 }
