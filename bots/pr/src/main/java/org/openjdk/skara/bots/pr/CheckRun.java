@@ -1645,7 +1645,7 @@ class CheckRun {
     /**
      * Creates a map from issue ID to a list of all CSRs linked from the issue or any backport of the issue.
      */
-    private Map<String, List<Link>> issueToCsrLinksMap(Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap) {
+    private Map<String, List<IssueTrackerIssue>> issueToAllCsrsMap(Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap) {
         Map<String, List<Link>> issueToCsrLinksMap = new HashMap<>();
         for (var issue : regularIssuesMap.values()) {
             if (issue.isPresent()) {
