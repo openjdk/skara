@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -491,9 +491,7 @@ class MergeBot implements Bot, WorkItem {
                     var status = repo.status();
                     repo.abortMerge();
 
-                    var fromRepoName = Path.of(fromRepo.webUrl().getPath()).getFileName();
-
-                    var numBranchesInFork = repo.remoteBranches(fork.webUrl().toString()).size();
+                    var numBranchesInFork = repo.remoteBranches(fork.authenticatedUrl().toString()).size();
                     var branchDesc = Integer.toString(numBranchesInFork + 1);
                     repo.push(fetchHead, fork.authenticatedUrl(), branchDesc);
 
