@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -316,7 +316,7 @@ public class Backports {
     /**
      * Find the CSR of the provided issue
      */
-    private static Optional<Link> csrLink(IssueTrackerIssue issue) {
+    public static Optional<Link> csrLink(IssueTrackerIssue issue) {
         return issue == null ? Optional.empty() : issue.links().stream()
                 .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
     }

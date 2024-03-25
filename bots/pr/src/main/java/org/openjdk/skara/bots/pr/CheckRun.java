@@ -73,7 +73,9 @@ class CheckRun {
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private static final String FULL_NAME_WARNING_MARKER = "<!-- PullRequestBot full name warning comment -->";
     private static final String APPROVAL_NEEDED_MARKER = "<!-- PullRequestBot approval needed comment -->";
+    private static final String BACKPORT_CSR_MARKER = "<!-- PullRequestBot backport csr comment -->";
     private static final Set<String> PRIMARY_TYPES = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
+    protected static final String CSR_PROCESS_LINK = "https://wiki.openjdk.org/display/csr/Main";
     private final Set<String> newLabels;
     private final boolean reviewCleanBackport;
     private final Approval approval;
@@ -165,16 +167,14 @@ class CheckRun {
     /**
      * Constructs a map from main issue ID to CSR issue.
      */
-    private Map<String, IssueTrackerIssue> issueToCsrMap(Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap, JdkVersion version) {
+    private Map<String, IssueTrackerIssue> issueToCsrMap(Map<String, List<IssueTrackerIssue>> issueToAllCsrsMap, JdkVersion version) {
         var csrIssueMap = new HashMap<String, IssueTrackerIssue>();
         if (version == null) {
             return Map.of();
         }
-        for (var issue : regularIssuesMap.values()) {
-            if (issue.isPresent()) {
-                var csrIssue = Backports.findCsr(issue.get(), version);
-                csrIssue.ifPresent(csr -> csrIssueMap.put(issue.get().id(), csr));
-            }
+        for (var entry : issueToAllCsrsMap.entrySet()) {
+            var csrList = entry.getValue();
+            Backports.findClosestIssue(csrList, version).ifPresent(csr -> csrIssueMap.put(entry.getKey(), csr));
         }
         return csrIssueMap;
     }
@@ -294,7 +294,7 @@ class CheckRun {
                 .filter(issue -> issue.properties().get("issuetype").asString().equals("CSR"))
                 .filter(issue -> !isWithdrawnCSR(issue))
                 .toList();
-        if (csrIssues.isEmpty() && pr.labelNames().contains("csr")) {
+        if (csrIssues.isEmpty() && newLabels.contains("csr")) {
             ret.put("Change requires a CSR request matching fixVersion " + (version != null ? version.raw() : "(No fixVersion in .jcheck/conf)")
                     + " to be approved (needs to be created)", false);
         }
@@ -753,7 +753,7 @@ class CheckRun {
                             setExpiration(Duration.ofMinutes(10));
                         }
                         if (!issueTrackerIssue.get().isOpen()) {
-                            if (!pr.labelNames().contains("backport") &&
+                            if (!newLabels.contains("backport") &&
                                     (issueType == null || !List.of("CSR", "JEP").contains(issueType.asString()))) {
                                 if (issueTrackerIssue.get().isFixed()) {
                                     progressBody.append(" ⚠️ Issue is already resolved. " +
@@ -1347,14 +1347,19 @@ class CheckRun {
             // issues without CSR issues and JEP issues
             var regularIssuesMap = regularIssuesMap();
             var jepIssue = jepIssue().orElse(null);
-            var issueToCsrMap = issueToCsrMap(regularIssuesMap, version);
+            var issueToAllCsrsMap = issueToAllCsrsMap(regularIssuesMap);
+            var issueToCsrMap = issueToCsrMap(issueToAllCsrsMap, version);
             var csrIssues = issueToCsrMap.values().stream().toList();
-            if (needUpdateAdditionalProgresses) {
-                additionalProgresses = botSpecificProgresses(regularIssuesMap, csrIssues, jepIssue, version);
-            }
 
             // Check the status of csr issues and determine whether to add or remove csr label here
             updateCSRLabel(version, issueToCsrMap);
+
+            // In a backport PR, Check if one of associated issues has a resolved CSR for a different fixVersion
+            updateBackportCSRLabel(issueToAllCsrsMap, issueToCsrMap);
+
+            if (needUpdateAdditionalProgresses) {
+                additionalProgresses = botSpecificProgresses(regularIssuesMap, csrIssues, jepIssue, version);
+            }
 
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             var readyForReview = updateReadyForReview(visitor, additionalErrors, regularIssuesMap);
@@ -1506,7 +1511,7 @@ class CheckRun {
             var resolutionOpt = csr.resolution();
             if (resolutionOpt.isEmpty()) {
                 notExistingUnresolvedCSR = false;
-                if (!pr.labelNames().contains(CSR_LABEL)) {
+                if (!newLabels.contains(CSR_LABEL)) {
                     log.info("CSR issue resolution is null for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
                     newLabels.add(CSR_LABEL);
                 } else {
@@ -1519,7 +1524,7 @@ class CheckRun {
 
             if (csr.state() != org.openjdk.skara.issuetracker.Issue.State.CLOSED) {
                 notExistingUnresolvedCSR = false;
-                if (!pr.labelNames().contains(CSR_LABEL)) {
+                if (!newLabels.contains(CSR_LABEL)) {
                     log.info("CSR issue state is not closed for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
                     newLabels.add(CSR_LABEL);
                 } else {
@@ -1535,7 +1540,7 @@ class CheckRun {
                     // Because the PR author with the role of Committer may withdraw a CSR that
                     // a Reviewer had requested and integrate it without satisfying that requirement.
                     log.info("CSR closed and withdrawn for csr issue " + csr.id() + " for " + describe(pr));
-                } else if (!pr.labelNames().contains(CSR_LABEL)) {
+                } else if (!newLabels.contains(CSR_LABEL)) {
                     notExistingUnresolvedCSR = false;
                     log.info("CSR issue resolution is not 'Approved' for csr issue " + csr.id() + " for " + describe(pr) + ", adding the CSR label");
                     newLabels.add(CSR_LABEL);
@@ -1547,9 +1552,32 @@ class CheckRun {
                 existingApprovedCSR = true;
             }
         }
-        if (notExistingUnresolvedCSR && (!isCSRNeeded(comments) || existingApprovedCSR) && pr.labelNames().contains(CSR_LABEL)) {
+        if (notExistingUnresolvedCSR && (!isCSRNeeded(comments) || existingApprovedCSR) && newLabels.contains(CSR_LABEL)) {
             log.info("All CSR issues closed and approved for " + describe(pr) + ", removing CSR label");
             newLabels.remove(CSR_LABEL);
+        }
+    }
+
+    private void updateBackportCSRLabel(Map<String, List<IssueTrackerIssue>> issueToAllCsrsMap, Map<String, IssueTrackerIssue> issueToCsrMap) {
+        if (newLabels.contains("backport") && !newLabels.contains("csr") && issueToCsrMap.isEmpty() && !isCSRManuallyUnneeded(comments)) {
+            boolean hasResolvedCSR = issueToAllCsrsMap.values().stream()
+                    .flatMap(List::stream)
+                    .anyMatch(csrIssue -> csrIssue.state() == org.openjdk.skara.issuetracker.Issue.State.CLOSED &&
+                            csrIssue.resolution().map(res -> res.equals("Approved")).orElse(false));
+
+            if (hasResolvedCSR) {
+                newLabels.add("csr");
+                var existing = findComment(BACKPORT_CSR_MARKER);
+                if (existing.isPresent()) {
+                    return;
+                }
+                pr.addComment("At least one of the issues associated with this backport has a resolved " +
+                        "[CSR](" + CSR_PROCESS_LINK + ") for a different version. As this means that this " +
+                        "backport may also need a CSR, the `csr` label is being added to this pull request " +
+                        "to signal this potential requirement. The command `/csr unneeded` can be used to " +
+                        "remove the label in case a CSR is not needed." +
+                        BACKPORT_CSR_MARKER);
+            }
         }
     }
 
@@ -1561,6 +1589,19 @@ class CheckRun {
             }
             if (comment.body().contains(CSR_UNNEEDED_MARKER)) {
                 return false;
+            }
+        }
+        return false;
+    }
+
+    private boolean isCSRManuallyUnneeded(List<Comment> comments) {
+        for (int i = comments.size() - 1; i >= 0; i--) {
+            var comment = comments.get(i);
+            if (comment.body().contains(CSR_NEEDED_MARKER)) {
+                return false;
+            }
+            if (comment.body().contains(CSR_UNNEEDED_MARKER)) {
+                return true;
             }
         }
         return false;
@@ -1594,4 +1635,29 @@ class CheckRun {
         pr.addComment(message);
     }
 
+    /**
+     * Creates a map from issue ID to a list of all CSRs linked from the issue or any backport of the issue.
+     */
+    private Map<String, List<IssueTrackerIssue>> issueToAllCsrsMap(Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap) {
+        Map<String, List<IssueTrackerIssue>> issueToAllCsrsMap = new HashMap<>();
+        regularIssuesMap.values().stream()
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .forEach(issue -> {
+                    Backports.csrLink(issue)
+                            .flatMap(Link::issue)
+                            .ifPresent(csr -> issueToAllCsrsMap.computeIfAbsent(issue.id(), k -> new ArrayList<>()).add(csr));
+
+                    Backports.findBackports(issue, false).stream()
+                            .map(Backports::csrLink)
+                            .filter(Optional::isPresent)
+                            .map(Optional::get)
+                            .map(Link::issue)
+                            .filter(Optional::isPresent)
+                            .map(Optional::get)
+                            .forEach(backportCsr -> issueToAllCsrsMap.computeIfAbsent(issue.id(), k -> new ArrayList<>()).add(backportCsr));
+
+                });
+        return issueToAllCsrsMap;
+    }
 }
