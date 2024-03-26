@@ -1559,7 +1559,11 @@ class CheckRun {
     }
 
     private void updateBackportCSRLabel(Map<String, List<IssueTrackerIssue>> issueToAllCsrsMap, Map<String, IssueTrackerIssue> issueToCsrMap) {
-        if (newLabels.contains("backport") && !newLabels.contains("csr") && issueToCsrMap.isEmpty() && !isCSRManuallyUnneeded(comments)) {
+        // Ignore withdrawn CSRs
+        boolean associatedWithValidCSR = issueToCsrMap.values().stream()
+                .anyMatch(value -> !isWithdrawnCSR(value));
+
+        if (newLabels.contains("backport") && !newLabels.contains("csr") && !associatedWithValidCSR && !isCSRManuallyUnneeded(comments)) {
             boolean hasResolvedCSR = issueToAllCsrsMap.values().stream()
                     .flatMap(List::stream)
                     .anyMatch(csrIssue -> csrIssue.state() == org.openjdk.skara.issuetracker.Issue.State.CLOSED &&
