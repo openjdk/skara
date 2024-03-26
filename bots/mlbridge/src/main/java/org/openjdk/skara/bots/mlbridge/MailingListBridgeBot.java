@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -93,7 +93,7 @@ public class MailingListBridgeBot implements Bot {
 
         webrevStorage = new WebrevStorage(webrevStorageHTMLRepository, webrevStorageJSONRepository, webrevStorageRef,
                                           webrevStorageBase, webrevStorageBaseUri, from,
-                                          webrevGenerateHTML, webrevGenerateJSON);
+                                          webrevGenerateHTML, webrevGenerateJSON, issueTracker);
         poller = new PullRequestPoller(codeRepo, true);
     }
 
