@@ -1379,7 +1379,7 @@ class CheckRun {
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
 
-            var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace(), original.map(Commit::hash).orElse(null));
+            var amendedHash = checkablePullRequest.amendManualReviewersAndStaleReviewers(localHash, censusInstance.namespace(), original.map(Commit::hash).orElse(null));
             var commit = localRepo.lookup(amendedHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
 

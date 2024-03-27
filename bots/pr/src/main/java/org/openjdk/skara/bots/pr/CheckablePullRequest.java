@@ -67,7 +67,7 @@ public class CheckablePullRequest {
         }
     }
 
-    private String commitMessage(Hash head, List<Review> activeReviews, Namespace namespace, boolean manualReviewers, Hash original) throws IOException {
+    private String commitMessage(Hash head, List<Review> activeReviews, Namespace namespace, boolean manualReviewersAndStaleReviewers, Hash original) throws IOException {
         var eligibleReviews = activeReviews.stream()
                                            // Reviews without a hash are never valid as they referred to no longer
                                            // existing commits.
@@ -79,13 +79,16 @@ public class CheckablePullRequest {
         var reviewers = reviewerNames(eligibleReviews, namespace);
         var currentUser = pr.repository().forge().currentUser();
 
-        if (manualReviewers) {
-            var allReviewers = reviewerNames(activeReviews, namespace);
-            var additionalReviewers = Reviewers.reviewers(currentUser, comments);
-            for (var additionalReviewer : additionalReviewers) {
-                if (!allReviewers.contains(additionalReviewer)) {
-                    reviewers.add(additionalReviewer);
+        if (manualReviewersAndStaleReviewers) {
+            reviewers.addAll(Reviewers.reviewers(currentUser, comments));
+            if (ignoreStaleReviews) {
+                var staleReviews = new ArrayList<Review>();
+                for (var review : activeReviews) {
+                    if (review.verdict() == Review.Verdict.APPROVED && !eligibleReviews.contains(review)) {
+                        staleReviews.add(review);
+                    }
                 }
+                reviewers.addAll(reviewerNames(staleReviews, namespace));
             }
         }
 
@@ -193,7 +196,7 @@ public class CheckablePullRequest {
         return PullRequestUtils.createCommit(pr, localRepo, finalHead, author, committer, commitMessage);
     }
 
-    Hash amendManualReviewers(Hash commit, Namespace namespace, Hash original) throws IOException {
+    Hash amendManualReviewersAndStaleReviewers(Hash commit, Namespace namespace, Hash original) throws IOException {
         var activeReviews = filterActiveReviews(pr.reviews(), pr.targetRef());
         var originalCommitMessage = commitMessage(commit, activeReviews, namespace, false, original);
         var amendedCommitMessage = commitMessage(commit, activeReviews, namespace, true, original);
