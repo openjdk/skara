@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1511,10 +1511,15 @@ class CheckTests {
 
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
+            var reviewer2 = credentials.getHostedRepository();
+            var reviewer3 = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.forge().currentUser().id())
-                                           .addReviewer(reviewer.forge().currentUser().id());
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addReviewer(reviewer2.forge().currentUser().id())
+                    .addReviewer(reviewer3.forge().currentUser().id());
+
             var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).ignoreStaleReviews(true).build();
 
             // Populate the projects repository
@@ -1530,9 +1535,13 @@ class CheckTests {
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
-            // Approve it as another user
             var approvalPr = reviewer.pullRequest(pr.id());
+            var approvalPr2 = reviewer2.pullRequest(pr.id());
+            var approvalPr3 = reviewer3.pullRequest(pr.id());
+
+            // Approve it as another user
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+            approvalPr2.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
@@ -1548,12 +1557,12 @@ class CheckTests {
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
 
-            // The PR should no longer be ready, as the review is stale
+            // The PR should no longer be ready, as the reviews are stale
             assertFalse(pr.store().labelNames().contains("ready"));
             assertTrue(pr.store().labelNames().contains("rfr"));
             assertTrue(pr.store().body().contains("Re-review required"));
 
-            // Approve again
+            // Approve again by reviewer1
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved again");
 
             // Change the target ref of the PR
@@ -1570,13 +1579,14 @@ class CheckTests {
 
             // Approve yet again
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved again");
+            approvalPr3.addReview(Review.Verdict.APPROVED, "Approved when target ref is other-branch");
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should be flagged as ready
             assertTrue(pr.store().labelNames().contains("ready"));
-            assertFalse(pr.store().body().contains("Re-review required"));
+            assertTrue(pr.store().body().contains("Re-review required"));
 
             // Change target ref back to the original branch
             pr.setTargetRef("master");
@@ -1586,7 +1596,9 @@ class CheckTests {
 
             // The PR should be flagged as ready, since the old review with that target is now valid again
             assertTrue(pr.store().labelNames().contains("ready"));
-            assertFalse(pr.store().body().contains("Re-review required"));
+            assertTrue(pr.store().body().contains("Re-review required"));
+            // Credit line should include reviewers with stale reviews
+            assertLastCommentContains(pr, "Reviewed-by: integrationreviewer2, integrationreviewer3, integrationreviewer4");
         }
     }
 
