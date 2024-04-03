@@ -25,7 +25,6 @@ package org.openjdk.skara.forge.gitlab;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
-import java.util.Properties;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -327,8 +326,7 @@ class GitLabIntegrationTests {
     }
 
     @Test
-    @EnabledIfTestProperties({"gitlab.user", "gitlab.pat", "gitlab.uri", "gitlab.group",
-                              "gitlab.user"})
+    @EnabledIfTestProperties({"gitlab.user", "gitlab.pat", "gitlab.uri", "gitlab.group"})
     void testGetUser() {
         var userName = props.get("gitlab.user");
         var userByName = gitLabHost.user(userName).orElseThrow();

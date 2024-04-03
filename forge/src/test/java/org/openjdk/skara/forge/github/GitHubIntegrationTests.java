@@ -23,7 +23,6 @@
 package org.openjdk.skara.forge.github;
 
 import java.time.Duration;
-import java.util.Properties;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.forge.Forge;
