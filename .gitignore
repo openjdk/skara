@@ -31,4 +31,4 @@
 build/
 out/
 bin/
-manual-test-settings.properties
+test.properties

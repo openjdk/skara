@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,8 +23,8 @@
 package org.openjdk.skara.forge.github;
 
 import java.time.Duration;
-import java.util.Properties;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.MemberState;
@@ -33,7 +33,8 @@ import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.proxy.HttpProxy;
-import org.openjdk.skara.test.ManualTestSettings;
+import org.openjdk.skara.test.TestProperties;
+import org.openjdk.skara.test.EnabledIfTestProperties;
 import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Diff;
 import org.openjdk.skara.vcs.DiffComparator;
@@ -46,28 +47,27 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-/**
- * To be able to run the tests, you need to remove or comment out the @Disabled annotation first.
- */
-@Disabled("Manual")
-public class GitHubRestApiTests {
+class GitHubIntegrationTests {
     private static final String GITHUB_REST_URI = "https://github.com";
-    Forge githubHost;
-    private Properties settings;
+    private static Forge githubHost;
+    private static TestProperties props;
 
-    @BeforeEach
-    void setupHost() throws IOException {
-        HttpProxy.setup();
-        settings = ManualTestSettings.loadManualTestSettings();
-        // Here use the OAuth2 token. To use a GitHub App, please see ManualForgeTests#gitHubLabels.
-        var username = settings.getProperty("github.user");
-        var token = settings.getProperty("github.pat");
-        var credential = new Credential(username, token);
-        var uri = URIBuilder.base(GITHUB_REST_URI).build();
-        githubHost = new GitHubForgeFactory().create(uri, credential, null);
+    @BeforeAll
+    static void beforeAll() throws IOException {
+        props = TestProperties.load();
+        if (props.contains("github.user", "github.pat")) {
+            HttpProxy.setup();
+            // Here use the OAuth2 token. To use a GitHub App, please see ManualForgeTests#gitHubLabels.
+            var username = props.get("github.user");
+            var token = props.get("github.pat");
+            var credential = new Credential(username, token);
+            var uri = URIBuilder.base(GITHUB_REST_URI).build();
+            githubHost = new GitHubForgeFactory().create(uri, credential, null);
+        }
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat"})
     void testDiffEqual() throws IOException {
         var githubRepoOpt = githubHost.repository("openjdk/jfx");
         assumeTrue(githubRepoOpt.isPresent());
@@ -105,6 +105,7 @@ public class GitHubRestApiTests {
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat"})
     void testLastForcePushTime() {
         var githubRepoOpt = githubHost.repository("openjdk/playground");
         assumeTrue(githubRepoOpt.isPresent());
@@ -115,6 +116,7 @@ public class GitHubRestApiTests {
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat"})
     void testFindIntegratedCommitHash() {
         var playgroundRepoOpt = githubHost.repository("openjdk/playground");
         assumeTrue(playgroundRepoOpt.isPresent());
@@ -138,6 +140,7 @@ public class GitHubRestApiTests {
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat"})
     void testOversizeComment() {
         var testRepoOpt = githubHost.repository("openjdk/playground");
         assumeTrue(testRepoOpt.isPresent());
@@ -156,6 +159,7 @@ public class GitHubRestApiTests {
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat"})
     void testForcePushTimeWhenPRInDraft() {
         var testRepoOpt = githubHost.repository("openjdk/playground");
         assumeTrue(testRepoOpt.isPresent());
@@ -167,18 +171,22 @@ public class GitHubRestApiTests {
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat",
+                              "github.repository", "github.repository.branch"})
     void fileContentsNonExisting() {
-        var gitHubRepo = githubHost.repository(settings.getProperty("github.repository")).orElseThrow();
-        var branch = new Branch(settings.getProperty("github.repository.branch"));
+        var gitHubRepo = githubHost.repository(props.get("github.repository")).orElseThrow();
+        var branch = new Branch(props.get("github.repository.branch"));
         var fileName = "testfile-that-does-not-exist.txt";
         var returnedContents = gitHubRepo.fileContents(fileName, branch.name());
         assertTrue(returnedContents.isEmpty());
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat",
+                              "github.repository", "github.repository.branch"})
     void writeFileContents() {
-        var gitHubRepo = githubHost.repository(settings.getProperty("github.repository")).orElseThrow();
-        var branch = new Branch(settings.getProperty("github.repository.branch"));
+        var gitHubRepo = githubHost.repository(props.get("github.repository")).orElseThrow();
+        var branch = new Branch(props.get("github.repository.branch"));
 
         var fileName = "testfile.txt";
 
@@ -215,6 +223,7 @@ public class GitHubRestApiTests {
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat"})
     void testLastMarkedAsDraftTime() {
         var githubRepoOpt = githubHost.repository("openjdk/playground");
         assumeTrue(githubRepoOpt.isPresent());
@@ -225,6 +234,7 @@ public class GitHubRestApiTests {
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat"})
     void testClosedBy() {
         var githubRepoOpt = githubHost.repository("openjdk/playground");
         assumeTrue(githubRepoOpt.isPresent());
@@ -235,9 +245,10 @@ public class GitHubRestApiTests {
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat"})
     void testGeneratingUrl() {
-        var username = settings.getProperty("github.user");
-        var token = settings.getProperty("github.pat");
+        var username = props.get("github.user");
+        var token = props.get("github.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(GITHUB_REST_URI).build();
         var configuration = JSON.object().put("weburl", JSON.object().put("pattern", "^https://github.com/openjdk/(.*)$").put("replacement", "https://git.openjdk.org/$1"));
@@ -262,24 +273,28 @@ public class GitHubRestApiTests {
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat", "github.repository"})
     void testDeleteDeployKey() {
-        var githubRepoOpt = githubHost.repository("zhaosongzs/Test");
+        var githubRepoOpt = githubHost.repository(props.get("github.repository"));
         assumeTrue(githubRepoOpt.isPresent());
         var githubRepo = githubRepoOpt.get();
         githubRepo.deleteDeployKeys(Duration.ofHours(24));
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat",
+                              "github.repository", "github.repository.branch", "github.user2"})
     void restrictPushAccess() {
-        var gitHubRepo = githubHost.repository(settings.getProperty("github.repository")).orElseThrow();
-        var branch = new Branch(settings.getProperty("github.repository.branch"));
-        var user = githubHost.user(settings.getProperty("github.user2")).orElseThrow();
+        var gitHubRepo = githubHost.repository(props.get("github.repository")).orElseThrow();
+        var branch = new Branch(props.get("github.repository.branch"));
+        var user = githubHost.user(props.get("github.user2")).orElseThrow();
         gitHubRepo.restrictPushAccess(branch, user);
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat", "github.repository"})
     void testDeployKeyTitles() {
-        var githubRepoOpt = githubHost.repository("zhaosongzs/Test");
+        var githubRepoOpt = githubHost.repository(props.get("github.repository"));
         assumeTrue(githubRepoOpt.isPresent());
         var githubRepo = githubRepoOpt.get();
         var expiredDeployKeys = githubRepo.deployKeyTitles(Duration.ofMinutes(5));
@@ -289,11 +304,13 @@ public class GitHubRestApiTests {
 
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat",
+                              "github.repository", "github.prId", "github.commitHash"})
     void testBackportCleanIgnoreCopyRight() {
-        var gitHubRepo = githubHost.repository(settings.getProperty("github.repository")).orElseThrow();
+        var gitHubRepo = githubHost.repository(props.get("github.repository")).orElseThrow();
 
-        var pr = gitHubRepo.pullRequest(settings.getProperty("github.prId"));
-        var hash = new Hash(settings.getProperty("github.commitHash"));
+        var pr = gitHubRepo.pullRequest(props.get("github.prId"));
+        var hash = new Hash(props.get("github.commitHash"));
         var repoName = pr.repository().forge().search(hash, true);
         assertTrue(repoName.isPresent());
         var repository = pr.repository().forge().repository(repoName.get());
@@ -306,21 +323,25 @@ public class GitHubRestApiTests {
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat",
+                              "github.repository", "github.repository.branch"})
     void testDefaultBranchName() {
-        var gitHubRepo = githubHost.repository(settings.getProperty("github.repository")).orElseThrow();
-        assertEquals(settings.getProperty("github.repository.branch"), gitHubRepo.defaultBranchName());
+        var gitHubRepo = githubHost.repository(props.get("github.repository")).orElseThrow();
+        assertEquals(props.get("github.repository.branch"), gitHubRepo.defaultBranchName());
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat", "github.repository"})
     void testCollaborators() {
-        var gitHubRepo = githubHost.repository(settings.getProperty("github.repository")).orElseThrow();
+        var gitHubRepo = githubHost.repository(props.get("github.repository")).orElseThrow();
         var collaborators = gitHubRepo.collaborators();
         assertNotNull(collaborators);
     }
 
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat"})
     void testGetUser() {
-        var userName = settings.getProperty("github.user");
+        var userName = props.get("github.user");
         var userByName = githubHost.user(userName).orElseThrow();
         var userById = githubHost.userById(userByName.id()).orElseThrow();
         assertEquals(userByName, userById);
@@ -331,8 +352,9 @@ public class GitHubRestApiTests {
      * github.group: Name of GitHub organization with at least one member
      */
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat", "github.group"})
     void testGroupMembers() {
-        var groupName = settings.getProperty("github.group");
+        var groupName = props.get("github.group");
         var membersList = githubHost.groupMembers(groupName);
         assertNotNull(membersList);
         assertNotEquals(0, membersList.size());
@@ -345,10 +367,12 @@ public class GitHubRestApiTests {
      * github.group.notmember: Name of user which is not a member of the organization
      */
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat",
+                              "github.group", "github.group.member", "github.group.notmember"})
     void testGroupMemberState() {
-        var groupName = settings.getProperty("github.group");
-        var memberName = settings.getProperty("github.group.member");
-        var notMemberName = settings.getProperty("github.group.notmember");
+        var groupName = props.get("github.group");
+        var memberName = props.get("github.group.member");
+        var notMemberName = props.get("github.group.notmember");
         var member = githubHost.user(memberName).orElseThrow();
         var notMember = githubHost.user(notMemberName).orElseThrow();
         assertEquals(MemberState.ACTIVE, githubHost.groupMemberState(groupName, member));
@@ -362,9 +386,11 @@ public class GitHubRestApiTests {
      *                    but cannot be an owner
      */
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat",
+                              "github.group", "github.group.user"})
     void testAddGroupMember() {
-        var groupName = settings.getProperty("github.group");
-        var userName = settings.getProperty("github.group.user");
+        var groupName = props.get("github.group");
+        var userName = props.get("github.group.user");
         var user = githubHost.user(userName).orElseThrow();
         githubHost.addGroupMember(groupName, user);
         assertNotEquals(MemberState.MISSING, githubHost.groupMemberState(groupName, user));
@@ -376,9 +402,11 @@ public class GitHubRestApiTests {
      * github.collaborators.user: User not currently a collaborator in repository
      */
     @Test
+    @EnabledIfTestProperties({"github.user", "github.pat",
+                              "github.collaborators.repository", "github.collaborators.user"})
     void addRemoveCollaborator() {
-        var gitHubRepo = githubHost.repository(settings.getProperty("github.collaborators.repository")).orElseThrow();
-        var userName = settings.getProperty("github.collaborators.user");
+        var gitHubRepo = githubHost.repository(props.get("github.collaborators.repository")).orElseThrow();
+        var userName = props.get("github.collaborators.user");
         var user = gitHubRepo.forge().user(userName).orElseThrow();
         gitHubRepo.addCollaborator(user, false);
         // On Github, the user has to accept an invitation before becoming a collaborator
