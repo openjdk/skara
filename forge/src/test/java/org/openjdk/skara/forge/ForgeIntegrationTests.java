@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.forge;
 
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.forge.github.GitHubApplication;
 import org.openjdk.skara.forge.github.GitHubHost;
@@ -31,7 +31,8 @@ import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.issuetracker.Label;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.proxy.HttpProxy;
-import org.openjdk.skara.test.ManualTestSettings;
+import org.openjdk.skara.test.TestProperties;
+import org.openjdk.skara.test.EnabledIfTestProperties;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -43,47 +44,43 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * This class contains manual tests for interactions with different forges
- * (GitHub and GitLab). To be able to run them, you need to provide a
- * properties file with the necessary connection details for running these
- * tests. See ManualTestSettings.
- *
- * To be able to run the tests, you need to remove or comment out the @Disabled
- * annotation first.
- */
-@Disabled("Manual")
-public class ManualForgeTests {
+class ForgeIntegrationTests {
+    private static TestProperties props;
+
+    @BeforeAll
+    static void beforeAll() {
+        HttpProxy.setup();
+        props = TestProperties.load();
+    }
 
     @Test
+    @EnabledIfTestProperties({"github.app.id", "github.app.installation", "github.app.key.file", "github.repository"})
     void gitHubLabels() throws IOException {
-        HttpProxy.setup();
-        var settings = ManualTestSettings.loadManualTestSettings();
         var uri = URIBuilder.base("https://github.com/").build();
-        var id = settings.getProperty("github.app.id");
-        var installation = settings.getProperty("github.app.installation");
-        var keyFile = Paths.get(settings.getProperty("github.app.key.file"));
+        var id = props.get("github.app.id");
+        var installation = props.get("github.app.installation");
+        var keyFile = Paths.get(props.get("github.app.key.file"));
 
         var keyContents = Files.readString(keyFile, StandardCharsets.UTF_8);
         var app = new GitHubApplication(keyContents, id, installation);
         var gitHubHost = new GitHubHost(uri, app, null, null, null, Set.of());
 
-        var repo = gitHubHost.repository(settings.getProperty("github.repository")).orElseThrow();
+        var repo = gitHubHost.repository(props.get("github.repository")).orElseThrow();
 
         verifyLabels(repo, true);
     }
 
     @Test
+    @EnabledIfTestProperties({"gitlab.uri", "gitlab.user", "gitlab.pat", "gitlab.repository"})
     void gitLabLabels() throws IOException {
-        var settings = ManualTestSettings.loadManualTestSettings();
-        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
-        var user = settings.getProperty("gitlab.user");
-        var pat = settings.getProperty("gitlab.pat");
+        var uri = URIBuilder.base(props.get("gitlab.uri")).build();
+        var user = props.get("gitlab.user");
+        var pat = props.get("gitlab.pat");
         var credential = new Credential(user, pat);
 
         var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
 
-        var repo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
+        var repo = gitLabHost.repository(props.get("gitlab.repository")).orElseThrow();
 
         verifyLabels(repo, false);
     }
