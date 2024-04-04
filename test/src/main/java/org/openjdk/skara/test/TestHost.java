@@ -26,7 +26,8 @@ import java.time.Duration;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.json.JSONValue;
+import org.openjdk.skara.json.*;
+import org.openjdk.skara.network.RestRequest;
 import org.openjdk.skara.vcs.*;
 
 import java.io.*;
@@ -40,8 +41,85 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
+import static org.openjdk.skara.issuetracker.jira.JiraProject.RESOLVED_IN_BUILD;
 
 public class TestHost implements Forge, IssueTracker {
+    /***
+     * TestBackportEndpoint simulates the JBS custom endpoint for creating backports in JBS
+     */
+    private static class TestBackportEndpoint implements IssueTracker.CustomEndpoint, IssueTracker.CustomEndpointRequest {
+        private final TestHost host;
+
+        private JSONValue body;
+
+        private TestBackportEndpoint(TestHost host) {
+            this.host = host;
+        }
+
+        @Override
+        public IssueTracker.CustomEndpointRequest post() {
+            return this;
+        }
+
+        @Override
+        public IssueTracker.CustomEndpointRequest body(JSONValue body) {
+            this.body = body;
+            return this;
+        }
+
+        @Override
+        public IssueTracker.CustomEndpointRequest header(String value, String name) {
+            // Not needed
+            return this;
+        }
+
+        @Override
+        public IssueTracker.CustomEndpointRequest onError(RestRequest.ErrorTransform transform) {
+            // Not needed
+            return this;
+        }
+
+        @Override
+        public JSONValue execute() {
+            if (body == null) {
+                throw new IllegalStateException("Must set body");
+            }
+
+            // A TestHost can only handle a single project and since a backport
+            // requires a primary issue to exist, then there must already exist
+            // a project for the primary issue
+            var project = host.data.issueProjects.entrySet().stream().findFirst().orElseThrow().getValue();
+            var primary = project.issue(body.get("parentIssueKey").asString()).orElseThrow();
+
+            var props = new HashMap<String, JSONValue>();
+            props.put("issuetype", JSON.of("Backport"));
+            // Propagate properties set in POST request body
+            if (body.contains("assignee")) {
+                props.put("assignee", body.get("assignee"));
+            }
+            if (body.contains("level")) {
+                props.put("security", body.get("level"));
+            }
+            if (body.contains("fixVersion")) {
+                props.put("fixVersion", body.get("fixVersion"));
+            }
+
+            // Propagate properties from the primary issue *except* those
+            // that can be set via the POST request body. The custom
+            // RESOLVED_IN_BUILD property should also not propagate
+            var ignore = Set.of("assignee", "security", "fixVersion", RESOLVED_IN_BUILD);
+            for (var entry : primary.properties().entrySet()) {
+                if (!ignore.contains(entry.getKey())) {
+                    props.put(entry.getKey(), entry.getValue());
+                }
+            }
+
+            var backport = project.createIssue(primary.title(), Arrays.asList(primary.body().split("\n")), props);
+            backport.addLink(Link.create(primary, "backport of").build());
+            primary.addLink(Link.create(backport, "backported by").build());
+            return JSON.object().put("key", backport.id());
+        }
+    }
 
     /**
      * If test needs to name a repository that should not exist on the TestHost,
@@ -104,6 +182,16 @@ public class TestHost implements Forge, IssueTracker {
     private TestHost(HostData data, int currentUser) {
         this.data = data;
         this.currentUser = currentUser;
+    }
+
+    @Override
+    public Optional<IssueTracker.CustomEndpoint> lookupCustomEndpoint(String path) {
+        switch (path) {
+            case "/rest/jbs/1.0/backport/":
+                return Optional.of(new TestBackportEndpoint(this));
+            default:
+                return Optional.empty();
+        }
     }
 
     @Override

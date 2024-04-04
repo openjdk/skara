@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,62 +30,33 @@ import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.openjdk.skara.issuetracker.jira.JiraProject.RESOLVED_IN_BUILD;
-
 public class JbsBackport {
-    private final RestRequest backportRequest;
+    private final IssueTracker.CustomEndpoint backportEndpoint;
 
-    private static URI backportRequest(URI uri) {
-        return URIBuilder.base(uri)
-                         .setPath("/rest/jbs/1.0/backport/")
-                         .build();
+    JbsBackport(IssueTracker tracker) {
+        this.backportEndpoint = tracker.lookupCustomEndpoint("/rest/jbs/1.0/backport/").orElseThrow(() ->
+            new IllegalArgumentException("Issue tracker does not support backport endpoint")
+        );
     }
 
-    JbsBackport(URI uri, JbsVault vault) {
-        if (vault != null) {
-            backportRequest = new RestRequest(backportRequest(uri), vault.authId(), (r) -> Arrays.asList("Cookie", vault.getCookie()));
-        } else {
-            backportRequest = null;
-        }
-    }
+    IssueTrackerIssue createBackport(IssueTrackerIssue primary, String fixVersion, String assignee, String defaultSecurity) {
+        var body = JSON.object()
+                       .put("parentIssueKey", primary.id())
+                       .put("fixVersion", fixVersion);
 
-    private IssueTrackerIssue createBackportIssue(IssueTrackerIssue primary, String fixVersion, String defaultSecurity) {
-        var finalProperties = new HashMap<>(primary.properties());
-        finalProperties.put("issuetype", JSON.of("Backport"));
-        finalProperties.put("fixVersion", JSON.of(fixVersion));
-        if (!primary.properties().containsKey("security") && defaultSecurity != null) {
-            finalProperties.put("security", JSON.of(defaultSecurity));
-        }
-        finalProperties.remove(RESOLVED_IN_BUILD);
-
-        var backport = primary.project().createIssue(primary.title(), primary.body().lines().collect(Collectors.toList()), finalProperties);
-
-        var backportLink = Link.create(backport, "backported by").build();
-        primary.addLink(backportLink);
-        return backport;
-    }
-
-    public IssueTrackerIssue createBackport(IssueTrackerIssue primary, String fixVersion, String assignee, String defaultSecurity) {
-        if (backportRequest == null) {
-            if (primary.project().webUrl().toString().contains("openjdk.org")) {
-                throw new RuntimeException("Backports on JBS require vault authentication");
-            } else {
-                return createBackportIssue(primary, fixVersion, defaultSecurity);
-            }
-        }
-
-        var request = backportRequest.post()
-                                     .body("parentIssueKey", primary.id())
-                                     .body("fixVersion", fixVersion);
         if (assignee != null) {
-            request.body("assignee", assignee);
+            body = body.put("assignee", assignee);
         }
+
         if (primary.properties().containsKey("security")) {
-            request.body("level", primary.properties().get("security").asString());
+            body = body.put("level", primary.properties().get("security").asString());
         } else if (defaultSecurity != null) {
-            request.body("level", defaultSecurity);
+            body = body.put("level", defaultSecurity);
         }
-        var response = request.execute();
+
+        var response = backportEndpoint.post()
+                                       .body(body)
+                                       .execute();
         var issue = primary.project().issue(response.get("key").asString()).orElseThrow();
 
         // The backport should not have any labels set - if it does, clear them
@@ -93,6 +64,7 @@ public class JbsBackport {
         if (!labels.isEmpty()) {
             issue.setLabels(List.of());
         }
+
         return issue;
     }
 }
