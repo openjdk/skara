@@ -50,6 +50,7 @@ public class JiraIssueTrackerFactory implements IssueTrackerFactory {
                 return new JiraHost(uri, jiraVault);
             } else {
                 if (credential.username().isEmpty() && !credential.password().isEmpty()) {
+                    // This branch is only used to support test code
                     return createWithPat(uri, credential.password());
                 } else {
                     throw new RuntimeException("basic authentication not implemented yet");
@@ -67,8 +68,10 @@ public class JiraIssueTrackerFactory implements IssueTrackerFactory {
     }
 
     /**
-     * Get the issue tracker according to personal access token
-     * This method is only used by the manual test code.
+     * Get the issue tracker according to personal access token.
+     * This method is only used to support to test code (it is
+     * called from a branch in production code that is only
+     * used to support test code).
      */
     public IssueTracker createWithPat(URI uri, String pat) {
         return new JiraHost(uri, "Authorization", pat);
