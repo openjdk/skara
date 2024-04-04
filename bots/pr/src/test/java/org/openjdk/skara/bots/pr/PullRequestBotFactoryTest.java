@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -156,6 +156,7 @@ class PullRequestBotFactoryTest {
                               }
                           },
                           "versionMismatchWarning": true,
+                          "cleanCommandEnabled": false,
                         }
                       },
                       "forks": {
@@ -208,6 +209,7 @@ class PullRequestBotFactoryTest {
             assertFalse(pullRequestBot5.jcheckMerge());
             assertTrue(pullRequestBot5.enableBackport());
             assertFalse(pullRequestBot5.versionMismatchWarning());
+            assertTrue(pullRequestBot5.cleanCommandEnabled());
 
             var pullRequestBot6 = (PullRequestBot) bots.stream()
                     .filter(bot -> bot.toString().equals("PullRequestBot@repo6"))
@@ -242,6 +244,7 @@ class PullRequestBotFactoryTest {
             assertFalse(pullRequestBot7.jcheckMerge());
             assertEquals("https://example.com", pullRequestBot7.approval().documentLink());
             assertTrue(pullRequestBot7.versionMismatchWarning());
+            assertFalse(pullRequestBot7.cleanCommandEnabled());
 
             var csrIssueBot1 = (CSRIssueBot) bots.stream()
                     .filter(bot -> bot.toString().equals("CSRIssueBot@TEST"))

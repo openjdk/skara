@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -67,6 +67,7 @@ public class PullRequestBotBuilder {
     private Map<String, List<PRRecord>> issuePRMap;
     private Approval approval = null;
     private boolean versionMismatchWarning = false;
+    private boolean cleanCommandEnabled = true;
 
     PullRequestBotBuilder() {
     }
@@ -251,12 +252,17 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder cleanCommandEnabled(boolean cleanCommandEnabled) {
+        this.cleanCommandEnabled = cleanCommandEnabled;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration, externalPullRequestCommands,
                 externalCommitCommands, blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
                 readyComments, issueProject, ignoreStaleReviews, allowedTargetBranches, seedStorage, confOverrideRepo,
                 confOverrideName, confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom, enableCsr,
                 enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge, processPR, processCommit, enableMerge,
-                mergeSources, jcheckMerge, enableBackport, issuePRMap, approval, versionMismatchWarning);
+                mergeSources, jcheckMerge, enableBackport, issuePRMap, approval, versionMismatchWarning, cleanCommandEnabled);
     }
 }
