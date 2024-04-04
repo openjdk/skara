@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -80,6 +80,7 @@ class PullRequestBot implements Bot {
     private final Approval approval;
     private boolean initialRun = true;
     private final boolean versionMismatchWarning;
+    private final boolean cleanCommandEnabled;
 
     private Instant lastFullUpdate;
 
@@ -94,7 +95,7 @@ class PullRequestBot implements Bot {
                    Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr, boolean enableJep,
                    boolean reviewCleanBackport, String mlbridgeBotName, MergePullRequestReviewConfiguration reviewMerge, boolean processPR, boolean processCommit,
                    boolean enableMerge, Set<String> mergeSources, boolean jcheckMerge, boolean enableBackport,
-                   Map<String, List<PRRecord>> issuePRMap, Approval approval, boolean versionMismatchWarning) {
+                   Map<String, List<PRRecord>> issuePRMap, Approval approval, boolean versionMismatchWarning, boolean cleanCommandEnabled) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -131,6 +132,7 @@ class PullRequestBot implements Bot {
         this.issuePRMap = issuePRMap;
         this.approval = approval;
         this.versionMismatchWarning = versionMismatchWarning;
+        this.cleanCommandEnabled = cleanCommandEnabled;
 
         autoLabelled = new HashSet<>();
         poller = new PullRequestPoller(repo, true);
@@ -401,6 +403,10 @@ class PullRequestBot implements Bot {
 
     public boolean versionMismatchWarning() {
         return versionMismatchWarning;
+    }
+
+    public boolean cleanCommandEnabled() {
+        return cleanCommandEnabled;
     }
 
     public void addIssuePRMapping(String issueId, PRRecord prRecord) {

@@ -347,4 +347,74 @@ public class CleanCommandTests {
             assertLastCommentContains(pr, ", with an original hash, as clean");
         }
     }
+
+    @Test
+    void cleanCommandDisabled(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory(false)) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(integrator.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .cleanCommandEnabled(false)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+
+            var newFile = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile, "a\nb\nc\nd");
+            localRepo.add(newFile);
+            var issue1 = credentials.createIssue(issues, "An issue");
+            var issue1Number = issue1.id().split("-")[1];
+            var originalMessage = issue1Number + ": An issue\n" +
+                    "\n" +
+                    "Reviewed-by: integrationreviewer2";
+            var masterHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
+
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            var releaseBranch = localRepo.branch(masterHash, "release");
+            localRepo.checkout(releaseBranch);
+            Files.writeString(newFile, "a\nb\nc\nd\ne");
+            localRepo.add(newFile);
+            var issue2 = credentials.createIssue(issues, "Another issue");
+            var issue2Number = issue2.id().split("-")[1];
+            var upstreamMessage = issue2Number + ": Another issue\n" +
+                    "\n" +
+                    "Reviewed-by: integrationreviewer2";
+            var upstreamHash = localRepo.commit(upstreamMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
+            localRepo.push(upstreamHash, author.authenticatedUrl(), "refs/heads/release", true);
+
+            // "backport" the new file to the master branch
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            Files.writeString(newFile, "a\nb\nc\nd\nd");
+            localRepo.add(newFile);
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + upstreamHash.hex());
+
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The bot should not have added the "clean" label
+            assertFalse(pr.store().labelNames().contains("clean"));
+
+            // Use the "/clean" pull request command to mark the backport PR as clean
+            pr.addComment("/clean");
+            TestBotRunner.runPeriodicItems(bot);
+            // The pr shouldn't have clean label since clean command is disabled
+            assertFalse(pr.store().labelNames().contains("clean"));
+            assertLastCommentContains(pr, "The `/clean` pull request command is not enabled for this repository");
+        }
+    }
 }

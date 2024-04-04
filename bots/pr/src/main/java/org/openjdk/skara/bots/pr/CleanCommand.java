@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,6 +53,11 @@ public class CleanCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply)
     {
+        if (!bot.cleanCommandEnabled()) {
+            reply.println("The `/clean` pull request command is not enabled for this repository");
+            return;
+        }
+
         if (!censusInstance.isCommitter(command.user())) {
             reply.println("Only OpenJDK [Committers](https://openjdk.org/bylaws#committer) can use the `/clean` command");
             return;
