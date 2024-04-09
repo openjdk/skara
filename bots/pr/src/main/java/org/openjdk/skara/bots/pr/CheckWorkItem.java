@@ -706,7 +706,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                                                 issueFixVersion.get().raw() + "` has been created." +
                                                 "\n\n" +
                                                 "If you wish to revert this action then set the fix version for [" + issue.get().title() + "](" + issue.get().webUrl() + ")" +
-                                                " to `" + issueFixVersion.get().raw() + "` and close the backport issue [" + backport.id() + "](" + backport.webUrl() + ")." + 
+                                                " to `" + issueFixVersion.get().raw() + "` and close the backport issue [" + backport.id() + "](" + backport.webUrl() + ")." +
                                                 " Be aware however that if you revert this action then a \"forward backport\" will be created if this pull request is integrated" +
                                                 " (this is most likely _not_ what you want).");
                                 }
