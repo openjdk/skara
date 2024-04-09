@@ -857,7 +857,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR title should contain the issue title without trailing space
-            assertEquals("TEST-2: My second issue ending in space", prCutOff2.store().title());
+            assertEquals("2: My second issue ending in space", prCutOff2.store().title());
         }
     }
 
@@ -1848,6 +1848,18 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, bugPR.checks(bugHash).get("jcheck").status());
 
             // Verify that the title is expanded
+            assertEquals(numericId + ": " + bug.title(), bugPR.store().title());
+
+            // Now update pr title to non-canonical form
+            bugPR.setTitle(bug.id() + " " + bug.title());
+            TestBotRunner.runPeriodicItems(checkBot);
+            // Verify that the title is in canonical form
+            assertEquals(numericId + ": " + bug.title(), bugPR.store().title());
+
+            // Now update pr title to another non-canonical form
+            bugPR.setTitle(bug.id() + ": " + bug.title());
+            TestBotRunner.runPeriodicItems(checkBot);
+            // Verify that the title is in canonical form
             assertEquals(numericId + ": " + bug.title(), bugPR.store().title());
         }
     }

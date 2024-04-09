@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -137,12 +137,27 @@ public class IssueBotTests {
             // issue metadata should not be updated because no update in the issue
             assertEquals(issueMetadata2, issueMetadata3);
 
+            // Update issue title and run prBot first
+            // There should be no update in the check
+            issue.setTitle("This is an Issue");
+            TestBotRunner.runPeriodicItems(prBot);
+            check = pr.checks(editHash).get("jcheck");
+            var completedTime7 = check.completedAt().get();
+            assertEquals(completedTime6, completedTime7);
+
+            // Run issueBot
+            TestBotRunner.runPeriodicItems(issueBot);
+            check = pr.checks(editHash).get("jcheck");
+            var completedTime8 = check.completedAt().get();
+            assertNotEquals(completedTime7, completedTime8);
+            assertEquals("1: This is an Issue", pr.store().title());
+
             // Extra run of prBot and issueBot
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(issueBot);
             check = pr.checks(editHash).get("jcheck");
-            var completedTime7 = check.completedAt().get();
-            assertEquals(completedTime6, completedTime7);
+            var completedTime9 = check.completedAt().get();
+            assertEquals(completedTime8, completedTime9);
         }
     }
 

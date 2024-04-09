@@ -648,7 +648,7 @@ class CheckRun {
         }
     }
 
-    private boolean relaxedEquals(String s1, String s2) {
+    static boolean relaxedEquals(String s1, String s2) {
         return s1.trim()
                  .replaceAll("\\s+", " ")
                  .equalsIgnoreCase(s2.trim()
