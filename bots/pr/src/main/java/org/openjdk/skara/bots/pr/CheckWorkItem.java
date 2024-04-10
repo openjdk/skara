@@ -58,7 +58,7 @@ import static org.openjdk.skara.forge.PullRequestUtils.mergeSourcePattern;
 class CheckWorkItem extends PullRequestWorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     static final Pattern ISSUE_ID_PATTERN = Pattern.compile("^(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)"
-            + "(?::(?<space>[\\s\u00A0\u2007\u202F]+)(?<title>.+))?$");
+            + "(?::?(?<space>[\\s\u00A0\u2007\u202F]+)(?<title>.+))?$");
     private static final Pattern BACKPORT_HASH_TITLE_PATTERN = Pattern.compile("^Backport\\s*([0-9a-z]{40})\\s*$", Pattern.CASE_INSENSITIVE);
     private static final Pattern BACKPORT_ISSUE_TITLE_PATTERN = Pattern.compile("^Backport\\s*(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)\\s*$", Pattern.CASE_INSENSITIVE);
     private static final Pattern METADATA_COMMENTS_PATTERN = Pattern.compile("<!-- (?:backport)|(?:(add|remove) (?:contributor|reviewer))|(?:summary: ')|(?:solves: ')|(?:additional required reviewers)|(?:jep: ')|(?:csr: ')");
@@ -213,6 +213,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     .map(issue -> {
                         var issueData = new StringBuilder();
                         issueData.append(issue.id());
+                        issueData.append(issue.title());
                         issueData.append(issue.status());
                         issue.resolution().ifPresent(issueData::append);
                         var properties = issue.properties();
@@ -339,7 +340,8 @@ class CheckWorkItem extends PullRequestWorkItem {
      * @return true if the PR was modified
      */
     private boolean updateTitle() {
-        var m = ISSUE_ID_PATTERN.matcher(pr.title());
+        var oldPrTitle = pr.title();
+        var m = ISSUE_ID_PATTERN.matcher(oldPrTitle.trim());
         var project = bot.issueProject();
 
         if (m.matches() && project != null) {
@@ -357,10 +359,10 @@ class CheckWorkItem extends PullRequestWorkItem {
             var issue = issueTrackerIssue(id);
             if (issue.isPresent()) {
                 var issueTitle = issue.get().title();
+                var newPrTitle = id + ": " + issueTitle;
                 if (title.isEmpty()) {
                     // If the title is in the form of "[project-]<bugid>" only
                     // we add the title from JBS
-                    var newPrTitle = id + ": " + issueTitle;
                     pr.setTitle(newPrTitle);
                     return true;
                 } else {
@@ -370,14 +372,23 @@ class CheckWorkItem extends PullRequestWorkItem {
                         title = title.substring(0, title.length() - 1);
                     }
                     if (issueTitle.startsWith(title) && issueTitle.length() > title.length()) {
-                        var newPrTitle = id + ": " + issueTitle;
                         pr.setTitle(newPrTitle);
                         var remainingTitle = issueTitle.substring(title.length());
                         if (pr.body().startsWith(ELLIPSIS + remainingTitle + "\n\n")) {
-                            // Remove remaning title, plus decorations
+                            // Remove remaining title, plus decorations
                             var newPrBody = pr.body().substring(remainingTitle.length() + 3);
                             pr.setBody(newPrBody);
                         }
+                        return true;
+                    }
+                    // Automatically update PR title if it's not in canonical form
+                    if (title.equals(issueTitle) && !oldPrTitle.equals(newPrTitle)) {
+                        pr.setTitle(newPrTitle);
+                        return true;
+                    }
+                    // Automatically update PR title if titles are a relaxed match but not an exact match
+                    if (!title.equals(issueTitle) && CheckRun.relaxedEquals(title, issueTitle)) {
+                        pr.setTitle(newPrTitle);
                         return true;
                     }
                 }
