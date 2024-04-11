@@ -101,13 +101,13 @@ public class TestHost implements Forge, IssueTracker {
                 props.put("security", body.get("level"));
             }
             if (body.contains("fixVersion")) {
-                props.put("fixVersion", body.get("fixVersion"));
+                props.put("fixVersions", JSON.array().add(body.get("fixVersion")));
             }
 
             // Propagate properties from the primary issue *except* those
             // that can be set via the POST request body. The custom
             // RESOLVED_IN_BUILD property should also not propagate
-            var ignore = Set.of("assignee", "security", "fixVersion", RESOLVED_IN_BUILD);
+            var ignore = Set.of("issuetype", "assignee", "security", "fixVersions", RESOLVED_IN_BUILD);
             for (var entry : primary.properties().entrySet()) {
                 if (!ignore.contains(entry.getKey())) {
                     props.put(entry.getKey(), entry.getValue());
