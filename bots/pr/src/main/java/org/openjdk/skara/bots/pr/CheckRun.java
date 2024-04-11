@@ -76,6 +76,7 @@ class CheckRun {
     private static final String BACKPORT_CSR_MARKER = "<!-- PullRequestBot backport csr comment -->";
     private static final Set<String> PRIMARY_TYPES = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     protected static final String CSR_PROCESS_LINK = "https://wiki.openjdk.org/display/csr/Main";
+    private static final Path JCHECK_CONF_PATH = Path.of(".jcheck", "conf");
     private final Set<String> newLabels;
     private final boolean reviewCleanBackport;
     private final Approval approval;
@@ -1244,14 +1245,9 @@ class CheckRun {
                     localRepo.lookup(pr.headHash()).ifPresent(this::updateMergeClean);
                 }
 
-                var commits = localRepo.commitMetadata(localRepo.mergeBase(targetHash, pr.headHash()), pr.headHash(), true);
-                isJCheckConfUpdatedInMergePR = commits.stream().anyMatch(c -> {
-                    try {
-                        return isFileUpdated(Path.of(".jcheck", "conf"), c.hash());
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                });
+                var mergeBaseHash = localRepo.mergeBase(targetHash, pr.headHash());
+                var commits = localRepo.commitMetadata(mergeBaseHash, pr.headHash(), true);
+                isJCheckConfUpdatedInMergePR = isFileUpdated(JCHECK_CONF_PATH, mergeBaseHash, pr.headHash());
 
                 // JCheck all commits in "Merge PR"
                 if (workItem.bot.jcheckMerge()) {
@@ -1313,12 +1309,11 @@ class CheckRun {
                 // Determine current status
                 jcheckType = "target jcheck";
                 checkablePullRequest.executeChecks(localHash, censusInstance, visitor, targetJCheckConf);
-
                 // If the PR updates .jcheck/conf then Need to run JCheck again using the configuration
                 // from the resulting commit. Not needed if we are overriding the JCheck configuration since
                 // then we won't use the one in the repo anyway.
                 if (!hasOverridingJCheckConf &&
-                    (isFileUpdated(Path.of(".jcheck", "conf"), localHash) || isJCheckConfUpdatedInMergePR)) {
+                        (isFileUpdated(JCHECK_CONF_PATH, localRepo.mergeBase(pr.headHash(), targetHash), pr.headHash()) || isJCheckConfUpdatedInMergePR)) {
                     jcheckType = "source jcheck";
                     var localJCheckConf = checkablePullRequest.parseJCheckConfiguration(localHash);
                     var localVisitor = checkablePullRequest.createVisitor(localJCheckConf);
@@ -1334,7 +1329,7 @@ class CheckRun {
                 needUpdateAdditionalProgresses = true;
             }
 
-            var confFile = localRepo.lines(Path.of(".jcheck", "conf"), localHash);
+            var confFile = localRepo.lines(JCHECK_CONF_PATH, localHash);
             JdkVersion version = null;
             if (confFile.isPresent()) {
                 var configuration = JCheckConfiguration.parse(confFile.get());
@@ -1476,13 +1471,8 @@ class CheckRun {
         }
     }
 
-    private boolean isFileUpdated(Path filename, Hash hash) throws IOException {
-        return !localRepo.files(hash, filename).isEmpty() &&
-                localRepo.commits(hash.hex(), 1).stream()
-                        .anyMatch(commit -> commit.parentDiffs().stream()
-                                .anyMatch(diff -> diff.patches().stream()
-                                        .anyMatch(patch -> (patch.source().path().isPresent() && patch.source().path().get().equals(filename))
-                                                || ((patch.target().path().isPresent() && patch.target().path().get().equals(filename))))));
+    private boolean isFileUpdated(Path filename, Hash from, Hash to) throws IOException {
+        return !localRepo.diff(from, to, List.of(filename)).patches().isEmpty();
     }
 
     private void updateCSRLabel(JdkVersion version, Map<String, IssueTrackerIssue> csrIssueTrackerIssueMap) {

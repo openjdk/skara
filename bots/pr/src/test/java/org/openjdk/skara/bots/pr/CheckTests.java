@@ -2846,6 +2846,66 @@ class CheckTests {
     }
 
     @Test
+    void testNotRunJcheckTwice(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .build();
+
+            // Populate the projects repository
+            // set the .jcheck/conf without whitespace check
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"), Set.of("author", "reviewers"), "0.1");
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR, add a line with whitespace issue
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "An additional line\r\n");
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check succeeded
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.SUCCESS, check.status());
+            // pr body should not have the process for whitespace
+            assertFalse(pr.store().body().contains("whitespace"));
+
+            localRepo.checkout(masterHash);
+            // Add whitespace check to .jcheck/conf
+            var checkConf = tempFolder.path().resolve(".jcheck/conf");
+            writeToCheckConf(checkConf);
+            localRepo.add(checkConf);
+            var updateHash = localRepo.commit("enable whitespace issue check", "testauthor", "ta@none.none");
+            localRepo.push(updateHash, author.authenticatedUrl(), "master", true);
+            CheckableRepository.appendAndCommit(localRepo, "An additional line1\r\n");
+            CheckableRepository.appendAndCommit(localRepo, "An additional line2\r\n");
+            updateHash = CheckableRepository.appendAndCommit(localRepo, "An additional line3\r\n");
+            localRepo.push(updateHash, author.authenticatedUrl(), "master", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // pr body should not have the integrationBlocker for whitespace and reviewer check
+            assertFalse(pr.store().body().contains("Whitespace errors (failed with updated jcheck configuration in pull request)"));
+            assertFalse(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with updated jcheck configuration in pull request)"));
+        }
+    }
+
+    @Test
     void testRunJcheckTwiceWithBadConfiguration(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
