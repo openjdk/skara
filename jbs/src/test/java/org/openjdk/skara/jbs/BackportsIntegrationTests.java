@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.notify.issue;
+package org.openjdk.skara.jbs;
 
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.issuetracker.IssueTracker;
@@ -40,37 +40,45 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 
-class JbsBackportIntegrationTests {
+class BackportsIntegrationTests {
     private static TestProperties props;
     private static IssueTracker tracker;
 
     @BeforeAll
     static void beforeAll() {
         props = TestProperties.load();
-        if (props.contains("jira.uri", "jira.pat")) {
+        if (props.contains("jbs.uri", "jbs.pat")) {
             var factory = IssueTrackerFactory.getIssueTrackerFactories().stream().filter(f -> f.name().equals("jira")).findFirst();
             if (factory.isEmpty()) {
-                throw new IllegalStateException("'jira.uri' and 'jira.pat' has been configured but could not find IssueTrackerFactory for 'jira'");
+                throw new IllegalStateException("'jbs.uri' and 'jbs.pat' has been configured but could not find IssueTrackerFactory for 'jira'");
             }
             HttpProxy.setup();
-            var uri = URIBuilder.base(props.get("jira.uri")).build();
-            var credential = new Credential("", "Bearer " + props.get("jira.pat"));
+            var uri = URIBuilder.base(props.get("jbs.uri")).build();
+            var credential = new Credential("", "Bearer " + props.get("jbs.pat"));
             tracker = factory.get().create(uri, credential, new JSONObject());
         }
     }
 
     @Test
-    @EnabledIfTestProperties({"jira.uri", "jira.pat"})
+    @EnabledIfTestProperties({"jbs.uri", "jbs.pat"})
     void testBackportCreation() {
         var project = tracker.project("SKARA");
         var issue = project.createIssue("Issue to backport", List.of("This is just a test issue for testing backport"), new HashMap<String, JSONValue>());
 
-        var jbsBackport = new JbsBackport(tracker);
-        var backport = jbsBackport.createBackport(issue, "1.0", "duke", null);
+        var backport = Backports.createBackport(issue, "1.0", "duke", null);
+        assertEquals(JSON.of("Backport"), backport.properties().get("issuetype"));
+        assertEquals(JSON.array().add("1.0"), backport.properties().get("fixVersions"));
         assertNotEquals(issue.id(), backport.id());
+
         var backportOfLink = backport.links().stream().filter(l -> l.relationship().equals(Optional.of("backport of"))).findFirst();
         assertTrue(backportOfLink.isPresent());
         assertTrue(backportOfLink.get().issue().isPresent());
         assertEquals(issue.id(), backportOfLink.get().issue().get().id());
+
+        issue = project.issue(issue.id()).orElseThrow();
+        var backportedByLink = issue.links().stream().filter(l -> l.relationship().equals(Optional.of("backported by"))).findFirst();
+        assertTrue(backportedByLink.isPresent());
+        assertTrue(backportedByLink.get().issue().isPresent());
+        assertEquals(backport.id(), backportedByLink.get().issue().get().id());
     }
 }
