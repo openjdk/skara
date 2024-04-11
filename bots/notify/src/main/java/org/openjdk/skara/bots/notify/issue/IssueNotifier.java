@@ -364,7 +364,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                             }
                         }
                         log.info("Setting fixVersion for " + issue.id() + " to " + requestedVersion);
-                        issue.setProperty("fixVersions", JSON.of(requestedVersion));
+                        issue.setProperty("fixVersions", JSON.array().add(requestedVersion));
                     }
                 }
             }
