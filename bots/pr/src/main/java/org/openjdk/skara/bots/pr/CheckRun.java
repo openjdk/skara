@@ -1309,6 +1309,7 @@ class CheckRun {
                 // Determine current status
                 jcheckType = "target jcheck";
                 checkablePullRequest.executeChecks(localHash, censusInstance, visitor, targetJCheckConf);
+
                 // If the PR updates .jcheck/conf then Need to run JCheck again using the configuration
                 // from the resulting commit. Not needed if we are overriding the JCheck configuration since
                 // then we won't use the one in the repo anyway.
