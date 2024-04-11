@@ -24,6 +24,7 @@ package org.openjdk.skara.jbs;
 
 import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 import org.openjdk.skara.issuetracker.Link;
+import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.json.JSONValue;
 
 import java.util.*;
@@ -539,5 +540,48 @@ public class Backports {
         }
 
         return ret;
+    }
+
+    public static IssueTrackerIssue createBackport(IssueTrackerIssue primary, String fixVersion) {
+        return createBackport(primary, fixVersion, null);
+    }
+
+    public static IssueTrackerIssue createBackport(IssueTrackerIssue primary, String fixVersion, String assignee) {
+        return createBackport(primary, fixVersion, assignee, null);
+    }
+
+    public static IssueTrackerIssue createBackport(IssueTrackerIssue primary, String fixVersion, String assignee, String defaultSecurity) {
+        var backportEndpoint = primary.project()
+                                      .issueTracker()
+                                      .lookupCustomEndpoint("/rest/jbs/1.0/backport/")
+                                      .orElseThrow(() ->
+            new IllegalArgumentException("Issue tracker does not support backport endpoint")
+        );
+        var body = JSON.object()
+                       .put("parentIssueKey", primary.id())
+                       .put("fixVersion", fixVersion);
+
+        if (assignee != null) {
+            body = body.put("assignee", assignee);
+        }
+
+        if (primary.properties().containsKey("security")) {
+            body = body.put("level", primary.properties().get("security").asString());
+        } else if (defaultSecurity != null) {
+            body = body.put("level", defaultSecurity);
+        }
+
+        var response = backportEndpoint.post()
+                                       .body(body)
+                                       .execute();
+        var issue = primary.project().issue(response.get("key").asString()).orElseThrow();
+
+        // The backport should not have any labels set - if it does, clear them
+        var labels = issue.labelNames();
+        if (!labels.isEmpty()) {
+            issue.setLabels(List.of());
+        }
+
+        return issue;
     }
 }

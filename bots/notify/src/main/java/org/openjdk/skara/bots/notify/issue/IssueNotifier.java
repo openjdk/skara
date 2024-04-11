@@ -52,7 +52,6 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     private final boolean setFixVersion;
     private final LinkedHashMap<Pattern, String> fixVersions;
     private final LinkedHashMap<Pattern, List<Pattern>> altFixVersions;
-    private final JbsBackport jbsBackport;
     private final boolean prOnly;
     private final boolean repoOnly;
     private final String buildName;
@@ -90,7 +89,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
 
     IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
                   boolean setFixVersion, LinkedHashMap<Pattern, String> fixVersions, LinkedHashMap<Pattern, List<Pattern>> altFixVersions,
-                  JbsBackport jbsBackport, boolean prOnly, boolean repoOnly, String buildName,
+                  boolean prOnly, boolean repoOnly, String buildName,
                   HostedRepository censusRepository, String censusRef, String namespace, boolean useHeadVersion,
                   HostedRepository originalRepository, boolean resolve, Set<String> tagIgnoreOpt,
                   boolean tagMatchPrefix, List<BranchSecurity> defaultSecurity) {
@@ -102,7 +101,6 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.setFixVersion = setFixVersion;
         this.fixVersions = fixVersions;
         this.altFixVersions = altFixVersions;
-        this.jbsBackport = jbsBackport;
         this.prOnly = prOnly;
         this.repoOnly = repoOnly;
         this.buildName = buildName;
@@ -307,7 +305,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                             if (existing.isEmpty()) {
                                 log.info("Creating new backport for " + issue.id() + " with fixVersion " + requestedVersion);
                                 try {
-                                    issue = jbsBackport.createBackport(issue, requestedVersion, username.orElse(null), defaultSecurity(branch));
+                                    issue = Backports.createBackport(issue, requestedVersion, username.orElse(null), defaultSecurity(branch));
                                 } catch (UncheckedRestException e) {
                                     existing = Backports.findIssue(issue, fixVersion);
                                     if (existing.isPresent()) {
