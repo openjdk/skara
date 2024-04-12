@@ -94,9 +94,6 @@ public class TestHost implements Forge, IssueTracker {
             var props = new HashMap<String, JSONValue>();
             props.put("issuetype", JSON.of("Backport"));
             // Propagate properties set in POST request body
-            if (body.contains("assignee")) {
-                props.put("assignee", body.get("assignee"));
-            }
             if (body.contains("level")) {
                 props.put("security", body.get("level"));
             }
@@ -115,6 +112,10 @@ public class TestHost implements Forge, IssueTracker {
             }
 
             var backport = project.createIssue(primary.title(), Arrays.asList(primary.body().split("\n")), props);
+            if (body.contains("assignee")) {
+                var user = host.user(body.get("assignee").asString()).orElseThrow();
+                backport.setAssignees(List.of(user));
+            }
             backport.addLink(Link.create(primary, "backport of").build());
             primary.addLink(Link.create(backport, "backported by").build());
             return JSON.object().put("key", backport.id());
