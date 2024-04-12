@@ -135,6 +135,10 @@ public class IssueNotifierFactory implements NotifierFactory {
             builder.defaultSecurity(defaultSecurity);
         }
 
+        if (notifierConfiguration.contains("avoidforwardports")) {
+            builder.avoidForwardports(notifierConfiguration.get("avoidforwardports").asBoolean());
+        }
+
         return builder.build();
     }
 }

@@ -50,6 +50,7 @@ class IssueNotifierBuilder {
     private Set<String> tagIgnoreOpt = Set.of();
     private boolean tagMatchPrefix = false;
     private List<IssueNotifier.BranchSecurity> defaultSecurity = List.of();
+    private boolean avoidForwardports = false;
 
     IssueNotifierBuilder issueProject(IssueProject issueProject) {
         this.issueProject = issueProject;
@@ -152,6 +153,11 @@ class IssueNotifierBuilder {
         return this;
     }
 
+    public IssueNotifierBuilder avoidForwardports(boolean avoidForwardports) {
+        this.avoidForwardports = avoidForwardports;
+        return this;
+    }
+
     public boolean prOnly() {
         return prOnly;
     }
@@ -164,6 +170,6 @@ class IssueNotifierBuilder {
         return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
                 setFixVersion, fixVersions, altFixVersions, prOnly,
                 repoOnly, buildName, censusRepository, censusRef, namespace, useHeadVersion, originalRepository,
-                resolve, tagIgnoreOpt, tagMatchPrefix, defaultSecurity);
+                resolve, tagIgnoreOpt, tagMatchPrefix, defaultSecurity, avoidForwardports);
     }
 }
