@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -78,28 +78,28 @@ class JCheckCLIVisitor implements IssueVisitor {
                          .collect(Collectors.toList());
             println(i, "issue id '" + id + "' in commit " + hash + " is already used in commits:");
             other.forEach(System.out::println);
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
     public void visit(TagIssue i) {
         if (!ignore.contains(i.check().name()) && !isLax) {
             println(i, "illegal tag name: " + i.tag().name());
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
     public void visit(BranchIssue i) {
         if (!ignore.contains(i.check().name())) {
             println(i, "illegal branch name: " + i.branch().name());
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
     public void visit(SelfReviewIssue i) {
         if (!ignore.contains(i.check().name()) && !isLax) {
             println(i, "self-reviews are not allowed");
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
@@ -109,7 +109,7 @@ class JCheckCLIVisitor implements IssueVisitor {
             var actual = i.numActual();
             var reviewers = required == 1 ? " reviewer" : " reviewers";
             println(i, required + reviewers + " required, found " + actual);
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
@@ -118,20 +118,20 @@ class JCheckCLIVisitor implements IssueVisitor {
             var invalid = String.join(", ", i.invalid());
             var wording = i.invalid().size() == 1 ? " is" : " are";
             println(i, invalid + wording + " not part of OpenJDK");
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
     public void visit(MergeMessageIssue i) {
         if (!ignore.contains(i.check().name()) && !isLax) {
             println(i, "merge commits should only use the commit message '" + i.expected() + "'");
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
     public void visit(HgTagCommitIssue i) {
         if (!ignore.contains(i.check().name()) && !isLax) {
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
             switch (i.error()) {
                 case TOO_MANY_LINES:
                     println(i, "message should only be one line");
@@ -154,7 +154,7 @@ class JCheckCLIVisitor implements IssueVisitor {
             var committer = i.commit().committer().name();
             var project = i.project().name();
             println(i, committer + " is not committer in project " + project);
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
@@ -212,7 +212,7 @@ class JCheckCLIVisitor implements IssueVisitor {
             var indent = prefix.replaceAll(".", " ");
             System.out.println(indent + i.escapeLine());
             System.out.println(indent + i.hints());
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
@@ -222,7 +222,7 @@ class JCheckCLIVisitor implements IssueVisitor {
             for (var line : i.message().additional()) {
                 System.out.println("> " + line);
             }
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
@@ -238,7 +238,7 @@ class JCheckCLIVisitor implements IssueVisitor {
             }
             println(i, "contains " + desc + " on line " + i.line() + " in commit message:");
             System.out.println("> " + i.commit().message().get(i.line() - 1));
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
@@ -248,42 +248,42 @@ class JCheckCLIVisitor implements IssueVisitor {
             for (var line : i.commit().message()) {
                 System.out.println("> " + line);
             }
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
     public void visit(ExecutableIssue i) {
         if (!ignore.contains(i.check().name())) {
             println(i, "file " + i.path() + " is executable");
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
     public void visit(SymlinkIssue i) {
         if (!ignore.contains(i.check().name())) {
             println(i, "file " + i.path() + " is symbolic link");
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
     public void visit(AuthorNameIssue i) {
         if (!ignore.contains(i.check().name())) {
             println(i, "missing author name");
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
     public void visit(AuthorEmailIssue i) {
         if (!ignore.contains(i.check().name()) && !isMercurial) {
             println(i, "missing author email");
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
     public void visit(CommitterNameIssue i) {
         if (!ignore.contains(i.check().name())) {
             println(i, "missing committer name");
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
@@ -291,22 +291,33 @@ class JCheckCLIVisitor implements IssueVisitor {
         if (!ignore.contains(i.check().name()) && !isMercurial) {
             var domain = i.expectedDomain();
             println(i, "missing committer email from domain " + domain);
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
     public void visit(BinaryIssue i) {
         if (!ignore.contains(i.check().name())) {
             println(i, "adds binary file: " + i.path().toString());
-            hasDisplayedErrors = true;
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 
     @Override
     public void visit(ProblemListsIssue i) {
         if (!ignore.contains(i.check().name())) {
-            println(i,  i.issue() + " is used in problem lists " + i.files());
-            hasDisplayedErrors = true;
+            println(i, i.issue() + " is used in problem lists " + i.files());
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
+        }
+    }
+
+    @Override
+    public void visit(IssuesTitleIssue i) {
+        if (!ignore.contains(i.check().name()) && !isLax) {
+            println(i, "Trailing period in issue title");
+            for (var line : i.commit().message()) {
+                System.out.println("> " + line);
+            }
+            hasDisplayedErrors = i.severity().equals(Severity.ERROR);
         }
     }
 

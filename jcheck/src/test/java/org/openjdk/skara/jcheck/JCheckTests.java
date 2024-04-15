@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -235,6 +235,11 @@ class JCheckTests {
 
         @Override
         public void visit(ProblemListsIssue e) {
+            issues.add(e);
+        }
+
+        @Override
+        public void visit(IssuesTitleIssue e) {
             issues.add(e);
         }
 
