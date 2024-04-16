@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
 class PullRequestCheckIssueVisitor implements IssueVisitor {
     private final List<CheckAnnotation> annotations = new LinkedList<>();
     private final Set<Check> enabledChecks;
-    private final Map<Class<? extends Check>, String> failedChecks = new HashMap<>();
-    private final Map<Class<? extends Check>, String> warningChecks = new HashMap<>();
+    private final Map<Class<? extends Check>, String> errorFailedChecks = new HashMap<>();
+    private final Map<Class<? extends Check>, String> warningFailedChecks = new HashMap<>();
     private boolean readyForReview;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
@@ -56,21 +56,25 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     private void addMessage(Check check, String message, Severity severity, boolean readyForReviewWhenFailedAsError) {
         if (severity.equals(Severity.ERROR)) {
-            failedChecks.put(check.getClass(), message);
+            errorFailedChecks.put(check.getClass(), message);
             if (this.readyForReview) {
                 this.readyForReview = readyForReviewWhenFailedAsError;
             }
         } else if (severity.equals(Severity.WARNING)) {
-            warningChecks.put(check.getClass(), message);
+            warningFailedChecks.put(check.getClass(), message);
         }
     }
 
-    List<String> messages() {
-        return new ArrayList<>(failedChecks.values());
+    List<String> errorFailedChecksMessages() {
+        return new ArrayList<>(errorFailedChecks.values());
+    }
+
+    List<String> warningFailedChecksMessages() {
+        return new ArrayList<>(warningFailedChecks.values());
     }
 
     List<String> hiddenMessages() {
-        return failedChecks.entrySet().stream()
+        return errorFailedChecks.entrySet().stream()
                            .filter(entry -> !displayedChecks.contains(entry.getKey()))
                            .map(Map.Entry::getValue)
                            .sorted()
@@ -84,7 +88,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
         return enabledChecks.stream()
                             .filter(check -> displayedChecks.contains(check.getClass()))
                             .collect(Collectors.toMap(this::checkDescription,
-                                                      check -> !failedChecks.containsKey(check.getClass())));
+                                                      check -> !errorFailedChecks.containsKey(check.getClass())));
     }
 
     /**
@@ -96,7 +100,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
                             .filter(check -> displayedChecks.contains(check.getClass()))
                             .filter(check -> !(check instanceof ReviewersCheck))
                             .collect(Collectors.toMap(this::checkDescription,
-                                                      check -> !failedChecks.containsKey(check.getClass())));
+                                                      check -> !errorFailedChecks.containsKey(check.getClass())));
     }
 
     private String checkDescription(Check check) {
@@ -286,6 +290,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(IssuesTitleIssue issue) {
-        addMessage(issue.check(), "Found trailing period in issue titles", issue.severity(), true);
+        addMessage(issue.check(), "Found trailing period in " + String.join(" ,", issue.getIssuesWithTrailingPeriod()),
+                issue.severity(), true);
     }
 }

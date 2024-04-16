@@ -401,7 +401,7 @@ class CheckRun {
             checkBuilder.complete(true);
         } else {
             checkBuilder.title("Required");
-            var summary = Stream.concat(visitor.messages().stream(), additionalErrors.stream())
+            var summary = Stream.concat(visitor.errorFailedChecksMessages().stream(), additionalErrors.stream())
                                 .sorted()
                                 .map(m -> "- " + m)
                                 .collect(Collectors.joining("\n"));
@@ -658,7 +658,7 @@ class CheckRun {
 
     private String getStatusMessage(PullRequestCheckIssueVisitor visitor,
             List<String> additionalErrors, Map<String, Boolean> additionalProgresses,
-            List<String> integrationBlockers, boolean reviewNeeded,
+            List<String> integrationBlockers, List<String> warnings, boolean reviewNeeded,
             Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap,
             IssueTrackerIssue jepIssue, Collection<IssueTrackerIssue> csrIssues, JdkVersion version) {
         var progressBody = new StringBuilder();
@@ -685,6 +685,16 @@ class CheckRun {
             }
             progressBody.append("\n");
             progressBody.append(warningListToText(integrationBlockers));
+        }
+
+        var allWarnings = Stream.concat(visitor.warningFailedChecksMessages().stream(), warnings.stream()).toList();
+        if (!allWarnings.isEmpty()) {
+            progressBody.append("\n\n### Warning");
+            if (allWarnings.size() > 1) {
+                progressBody.append("s");
+            }
+            progressBody.append("\n");
+            progressBody.append(warningListToText(allWarnings));
         }
 
         // All the issues this pr related(except CSR and JEP)
@@ -1234,6 +1244,7 @@ class CheckRun {
                 rebasePossible = false;
             }
 
+            var warnings = new ArrayList<String>();
             var mergeJCheckMessageWithTargetConf = new ArrayList<String>();
             var mergeJCheckMessageWithCommitConf = new ArrayList<String>();
             var targetHash = checkablePullRequest.targetHash();
@@ -1256,7 +1267,12 @@ class CheckRun {
                         jcheckType = "merge jcheck with target conf in commit " + hash.hex();
                         var targetVisitor = checkablePullRequest.createVisitor(targetJCheckConf);
                         checkablePullRequest.executeChecks(hash, censusInstance, targetVisitor, targetJCheckConf);
-                        mergeJCheckMessageWithTargetConf.addAll(targetVisitor.messages().stream()
+                        mergeJCheckMessageWithTargetConf.addAll(targetVisitor.errorFailedChecksMessages().stream()
+                                .map(StringBuilder::new)
+                                .map(e -> e.append(" (in commit `").append(hash.hex()).append("` with target configuration)"))
+                                .map(StringBuilder::toString)
+                                .toList());
+                        warnings.addAll(targetVisitor.warningFailedChecksMessages().stream()
                                 .map(StringBuilder::new)
                                 .map(e -> e.append(" (in commit `").append(hash.hex()).append("` with target configuration)"))
                                 .map(StringBuilder::toString)
@@ -1267,9 +1283,14 @@ class CheckRun {
                             var commitVisitor = checkablePullRequest.createVisitor(commitJCheckConf);
                             jcheckType = "merge jcheck with commit conf in commit " + hash.hex();
                             checkablePullRequest.executeChecks(hash, censusInstance, commitVisitor, commitJCheckConf);
-                            mergeJCheckMessageWithCommitConf.addAll(commitVisitor.messages().stream()
+                            mergeJCheckMessageWithCommitConf.addAll(commitVisitor.errorFailedChecksMessages().stream()
                                     .map(StringBuilder::new)
                                     .map(e -> e.append(" (in commit `").append(hash.hex()).append("` with commit configuration)"))
+                                    .map(StringBuilder::toString)
+                                    .toList());
+                            warnings.addAll(commitVisitor.warningFailedChecksMessages().stream()
+                                    .map(StringBuilder::new)
+                                    .map(e -> e.append(" (in commit `").append(hash.hex()).append("` with target configuration)"))
                                     .map(StringBuilder::toString)
                                     .toList());
                         }
@@ -1320,7 +1341,12 @@ class CheckRun {
                     var localVisitor = checkablePullRequest.createVisitor(localJCheckConf);
                     log.info("Run JCheck against localHash with configuration from localHash");
                     checkablePullRequest.executeChecks(localHash, censusInstance, localVisitor, localJCheckConf);
-                    secondJCheckMessage.addAll(localVisitor.messages().stream()
+                    secondJCheckMessage.addAll(localVisitor.errorFailedChecksMessages().stream()
+                            .map(StringBuilder::new)
+                            .map(e -> e.append(" (failed with updated jcheck configuration in pull request)"))
+                            .map(StringBuilder::toString)
+                            .toList());
+                    warnings.addAll(localVisitor.warningFailedChecksMessages().stream()
                             .map(StringBuilder::new)
                             .map(e -> e.append(" (failed with updated jcheck configuration in pull request)"))
                             .map(StringBuilder::toString)
@@ -1370,7 +1396,7 @@ class CheckRun {
             var reviewNeeded = !isCleanBackport || reviewCleanBackport || reviewersCommandIssued;
 
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers,
+            var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, warnings,
                     reviewNeeded, regularIssuesMap, jepIssue, issueToCsrMap.values(), version);
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
@@ -1380,7 +1406,7 @@ class CheckRun {
             var commitMessage = String.join("\n", commit.message());
 
             var readyToPostApprovalNeededComment = readyForReview &&
-                    (!reviewNeeded || visitor.messages().isEmpty()) &&
+                    (!reviewNeeded || visitor.errorFailedChecksMessages().isEmpty()) &&
                     integrationBlockers.isEmpty() &&
                     !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
 

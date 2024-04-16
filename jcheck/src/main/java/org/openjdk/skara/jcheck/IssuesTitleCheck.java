@@ -26,6 +26,7 @@ import org.openjdk.skara.census.Census;
 import org.openjdk.skara.vcs.Commit;
 import org.openjdk.skara.vcs.openjdk.CommitMessage;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.logging.Logger;
 
@@ -43,12 +44,15 @@ public class IssuesTitleCheck extends CommitCheck {
             return iterator();
         }
 
+        var issuesWithTrailingPeriod = new ArrayList<String>();
         for (var issue : message.issues()) {
             if (issue.description().endsWith(".")) {
-                return iterator(new IssuesTitleIssue(metadata));
+                issuesWithTrailingPeriod.add(issue.toString());
             }
         }
-
+        if (!issuesWithTrailingPeriod.isEmpty()) {
+            return iterator(new IssuesTitleIssue(metadata, issuesWithTrailingPeriod));
+        }
         return iterator();
     }
 

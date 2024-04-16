@@ -22,13 +22,22 @@
  */
 package org.openjdk.skara.jcheck;
 
+import java.util.List;
+
 public class IssuesTitleIssue extends CommitIssue {
-    IssuesTitleIssue(CommitIssue.Metadata metadata) {
+    List<String> issuesWithTrailingPeriod;
+
+    IssuesTitleIssue(CommitIssue.Metadata metadata, List<String> issuesWithTrailingPeriod) {
         super(metadata);
+        this.issuesWithTrailingPeriod = issuesWithTrailingPeriod;
     }
 
     @Override
     public void accept(IssueVisitor visitor) {
         visitor.visit(this);
+    }
+
+    public List<String> getIssuesWithTrailingPeriod() {
+        return issuesWithTrailingPeriod;
     }
 }

@@ -313,7 +313,7 @@ class JCheckCLIVisitor implements IssueVisitor {
     @Override
     public void visit(IssuesTitleIssue i) {
         if (!ignore.contains(i.check().name()) && !isLax) {
-            println(i, "Trailing period in issue title");
+            println(i, "Found trailing period in " + String.join(" ,", i.getIssuesWithTrailingPeriod()));
             for (var line : i.commit().message()) {
                 System.out.println("> " + line);
             }

@@ -3385,4 +3385,70 @@ class CheckTests {
             assertFalse(pr.store().body().contains("(⚠️ The fixVersion"));
         }
     }
+
+    @Test
+    void issuesTitleCheck(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(issuePRMap)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"));
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // An issue with trailing period
+            var issue1 = issues.createIssue("This is an issue.", List.of("Hello"), Map.of());
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue1.id(), List.of("Body"), false);
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(prBot);
+
+            assertTrue(pr.store().body().contains("Warning"));
+            assertTrue(pr.store().body().contains("Found trailing period in 1: This is an issue."));
+
+            // Remove the trailing period in the title
+            pr.setTitle("1: This is an issue");
+            issue1.setTitle("This is an issue");
+
+            TestBotRunner.runPeriodicItems(prBot);
+            assertFalse(pr.store().body().contains("Warning"));
+            assertFalse(pr.store().body().contains("Found trailing period in 1: This is an issue."));
+
+            // Create another issue with trailing period
+            var issue2 = issues.createIssue("This is an issue2 etc.", List.of("Hello"), Map.of());
+            pr.addComment("/issue add " + issue2.id());
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().body().contains("Found trailing period in 2: This is an issue2 etc."));
+
+            // Approve it as Reviewer, warnings shouldn't prevent adding ready label to the pr
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addReview(Review.Verdict.APPROVED, "LGTM");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().labelNames().contains("ready"));
+
+            // Should be able to integrate with warnings
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().labelNames().contains("integrated"));
+        }
+    }
 }
