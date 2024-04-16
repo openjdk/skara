@@ -85,6 +85,7 @@ class CheckRun {
     // Only set if approval is configured for the repo
     private String realTargetRef;
     private boolean missingApprovalRequest = false;
+    private final boolean reviewersCommandIssued;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
@@ -103,6 +104,12 @@ class CheckRun {
         this.integrators = integrators;
         this.reviewCleanBackport = reviewCleanBackport;
         this.approval = approval;
+        this.reviewersCommandIssued = ReviewersTracker.additionalRequiredReviewers(pr.repository().forge().currentUser(), comments).isPresent();
+
+        // If reviewers command is issued, enable reviewers check for merge pull requests
+        if (reviewersCommandIssued) {
+            reviewMerge = MergePullRequestReviewConfiguration.ALWAYS;
+        }
 
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
         checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews,
@@ -1364,8 +1371,6 @@ class CheckRun {
             integrationBlockers.addAll(secondJCheckMessage);
             integrationBlockers.addAll(mergeJCheckMessageWithTargetConf);
             integrationBlockers.addAll(mergeJCheckMessageWithCommitConf);
-
-            var reviewersCommandIssued = ReviewersTracker.additionalRequiredReviewers(pr.repository().forge().currentUser(), comments).isPresent();
 
             var reviewNeeded = !isCleanBackport || reviewCleanBackport || reviewersCommandIssued;
 

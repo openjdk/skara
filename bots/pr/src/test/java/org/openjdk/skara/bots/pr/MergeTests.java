@@ -224,6 +224,99 @@ class MergeTests {
         }
     }
 
+    @Test
+    void branchMergeWithReviewersCommand(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(integrator.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make more changes in another branch
+            var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other_/-1.2",
+                    "First other_/-1.2\n\nReviewed-by: integrationreviewer2");
+            localRepo.push(otherHash1, author.authenticatedUrl(), "other_/-1.2", true);
+            var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other_/-1.2",
+                    "Second other_/-1.2\n\nReviewed-by: integrationreviewer2");
+            localRepo.push(otherHash2, author.authenticatedUrl(), "other_/-1.2");
+
+            // Go back to the original master
+            localRepo.checkout(masterHash, true);
+
+            // Make a change with a corresponding PR
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            localRepo.add(unrelated);
+            var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
+            localRepo.merge(otherHash2);
+            localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
+
+            var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other_/-1.2");
+
+            pr.addComment("/reviewers 1");
+
+            // Let the bot check the status
+            TestBotRunner.runPeriodicItems(mergeBot);
+            assertTrue(pr.store().labelNames().contains("clean"));
+            assertFalse(pr.store().labelNames().contains("ready"));
+            assertTrue(pr.store().body().contains("[ ] Change must be properly reviewed (1 review required, with at least 1 [Reviewer](https://openjdk.org/bylaws#reviewer))"));
+
+            // Approve it
+            var reviewerPr = integrator.pullRequest(pr.id());
+            reviewerPr.addReview(Review.Verdict.APPROVED, "LGTM");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            assertTrue(pr.store().labelNames().contains("ready"));
+            assertTrue(pr.store().body().contains("[x] Change must be properly reviewed (1 review required, with at least 1 [Reviewer](https://openjdk.org/bylaws#reviewer))"));
+
+            // Push it
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an ok message
+            var pushed = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
+            assertEquals(1, pushed);
+
+            // The change should now be present on the master branch
+            var pushedRepoFolder = tempFolder.path().resolve("pushedrepo");
+            var pushedRepo = Repository.materialize(pushedRepoFolder, author.authenticatedUrl(), "master");
+            assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
+
+            // The commits from the "other" branch should be preserved and not squashed (but not the merge commit)
+            var headHash = pushedRepo.resolve("HEAD").orElseThrow();
+            Set<Hash> commits;
+            try (var tempCommits = pushedRepo.commits(masterHash.hex() + ".." + headHash.hex())) {
+                commits = tempCommits.stream()
+                        .map(Commit::hash)
+                        .collect(Collectors.toSet());
+            }
+            assertTrue(commits.contains(otherHash1));
+            assertTrue(commits.contains(otherHash2));
+            assertFalse(commits.contains(mergeHash));
+
+            // Author and committer should updated in the merge commit
+            var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
+            assertEquals("Merge " + author.name() + ":other_/-1.2", headCommit.message().get(0));
+            assertEquals("Generated Committer 1", headCommit.author().name());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
+            assertEquals("Generated Committer 1", headCommit.committer().name());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
+        }
+    }
+
 
     @Test
     void runJCheckTwiceInMergePR(TestInfo testInfo) throws IOException {
