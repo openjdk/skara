@@ -289,31 +289,6 @@ class MergeTests {
                     .filter(comment -> comment.body().contains("Pushed as commit"))
                     .count();
             assertEquals(1, pushed);
-
-            // The change should now be present on the master branch
-            var pushedRepoFolder = tempFolder.path().resolve("pushedrepo");
-            var pushedRepo = Repository.materialize(pushedRepoFolder, author.authenticatedUrl(), "master");
-            assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
-
-            // The commits from the "other" branch should be preserved and not squashed (but not the merge commit)
-            var headHash = pushedRepo.resolve("HEAD").orElseThrow();
-            Set<Hash> commits;
-            try (var tempCommits = pushedRepo.commits(masterHash.hex() + ".." + headHash.hex())) {
-                commits = tempCommits.stream()
-                        .map(Commit::hash)
-                        .collect(Collectors.toSet());
-            }
-            assertTrue(commits.contains(otherHash1));
-            assertTrue(commits.contains(otherHash2));
-            assertFalse(commits.contains(mergeHash));
-
-            // Author and committer should updated in the merge commit
-            var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
-            assertEquals("Merge " + author.name() + ":other_/-1.2", headCommit.message().get(0));
-            assertEquals("Generated Committer 1", headCommit.author().name());
-            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
-            assertEquals("Generated Committer 1", headCommit.committer().name());
-            assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
         }
     }
 

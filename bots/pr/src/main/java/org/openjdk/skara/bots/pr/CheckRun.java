@@ -80,12 +80,12 @@ class CheckRun {
     private final Set<String> newLabels;
     private final boolean reviewCleanBackport;
     private final Approval approval;
+    private final boolean reviewersCommandIssued;
 
     private Duration expiresIn;
     // Only set if approval is configured for the repo
     private String realTargetRef;
     private boolean missingApprovalRequest = false;
-    private final boolean reviewersCommandIssued;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
