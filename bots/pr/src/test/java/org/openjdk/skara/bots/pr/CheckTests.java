@@ -2587,6 +2587,9 @@ class CheckTests {
             output.append("[checks]\n");
             output.append("error=");
             output.append(String.join(",", Set.of("author", "reviewers", "whitespace")));
+            output.append("\n");
+            output.append("warning=");
+            output.append(String.join(",", Set.of("issuestitle")));
             output.append("\n\n");
             output.append("[census]\n");
             output.append("version=0\n");
@@ -2788,6 +2791,7 @@ class CheckTests {
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
 
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id())
@@ -2798,18 +2802,21 @@ class CheckTests {
                     .censusRepo(censusBuilder.build())
                     .censusLink("https://census.com/{{contributor}}-profile")
                     .seedStorage(seedFolder)
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
                     .build();
 
             // Populate the projects repository
-            // set the .jcheck/conf without whitespace check
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"), Set.of("author", "reviewers"), "0.1");
+            // set the .jcheck/conf without whitespace and issuestitle check
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"), Set.of("author", "reviewers"), Set.of(), "0.1");
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
+            var issue = issues.createIssue("This is an issue.", List.of("Test"), Map.of());
             // Make a change with a corresponding PR, add a line with whitespace issue
             var editHash = CheckableRepository.appendAndCommit(localRepo, "An additional line\r\n");
             localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id());
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
@@ -2821,8 +2828,9 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
             // pr body should not have the process for whitespace
             assertFalse(pr.store().body().contains("whitespace"));
+            assertFalse(pr.store().body().contains("Warning"));
 
-            // Add whitespace check to .jcheck/conf
+            // Add whitespace and issuestitle check to .jcheck/conf
             var checkConf = tempFolder.path().resolve(".jcheck/conf");
             writeToCheckConf(checkConf);
             localRepo.add(checkConf);
@@ -2831,9 +2839,10 @@ class CheckTests {
 
             TestBotRunner.runPeriodicItems(checkBot);
 
-            // pr body should have the integrationBlocker for whitespace and reviewer check
+            // pr body should have the integrationBlocker for whitespace and reviewer check, also warning for issuestitle check
             assertTrue(pr.store().body().contains("Whitespace errors (failed with updated jcheck configuration in pull request)"));
             assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with updated jcheck configuration in pull request)"));
+            assertTrue(pr.store().body().contains("Found trailing period in 1: This is an issue. (failed with updated jcheck configuration in pull request)"));
 
             var approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -2959,7 +2968,7 @@ class CheckTests {
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
-            assertEquals("line 18: entry must be of form 'key = value'", check.summary().get());
+            assertEquals("line 19: entry must be of form 'key = value'", check.summary().get());
             assertEquals("Exception occurred during source jcheck - the operation will be retried", check.title().get());
 
             // Restore .jcheck/conf and add whitespace issue check

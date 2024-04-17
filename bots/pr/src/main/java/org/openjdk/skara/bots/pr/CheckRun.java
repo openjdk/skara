@@ -1290,7 +1290,7 @@ class CheckRun {
                                     .toList());
                             warnings.addAll(commitVisitor.warningFailedChecksMessages().stream()
                                     .map(StringBuilder::new)
-                                    .map(e -> e.append(" (in commit `").append(hash.hex()).append("` with target configuration)"))
+                                    .map(e -> e.append(" (in commit `").append(hash.hex()).append("` with commit configuration)"))
                                     .map(StringBuilder::toString)
                                     .toList());
                         }
