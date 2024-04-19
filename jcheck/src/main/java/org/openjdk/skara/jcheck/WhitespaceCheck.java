@@ -71,7 +71,6 @@ public class WhitespaceCheck extends CommitCheck {
                                     }
                                 }
                                 Collections.reverse(errors);
-                                log.finer("issue: bad whitespace");
                                 issues.add(new WhitespaceIssue(path, line, row, errors, metadata));
                             }
                         }
