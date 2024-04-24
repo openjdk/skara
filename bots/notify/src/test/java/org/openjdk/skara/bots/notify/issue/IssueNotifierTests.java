@@ -2459,8 +2459,8 @@ public class IssueNotifierTests {
             issue.addLabel("test");
             issue.addLabel("temporary");
 
-            // Create an explicit "forwardport"
-            var backport = issueProject.createIssue("This is a forwardport", List.of("Indeed"),
+            // Create an explicit backport
+            var backport = issueProject.createIssue("This is a backport", List.of("Indeed"),
                     Map.of("issuetype", JSON.of("Backport")));
             backport.setProperty("fixVersions", JSON.array().add("21"));
 
