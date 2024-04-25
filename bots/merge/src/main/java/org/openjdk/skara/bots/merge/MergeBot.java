@@ -581,13 +581,12 @@ class MergeBot implements Bot, WorkItem {
                     message.add("");
                     message.add("/integrate auto");
 
-                    var prFromFork = fork.createPullRequest(prTarget,
-                                                            toBranch.name(),
-                                                            branchDesc,
-                                                            title,
-                                                            message);
-                    var prFromTarget = target.pullRequest(prFromFork.id());
-                    prFromTarget.addLabel("failed-auto-merge");
+                    var pr = fork.createPullRequest(prTarget,
+                            toBranch.name(),
+                            branchDesc,
+                            title,
+                            message);
+                    pr.addLabel("failed-auto-merge");
                 }
             }
         } catch (IOException e) {

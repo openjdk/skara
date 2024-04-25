@@ -121,11 +121,9 @@ public class GitHubRepository implements HostedRepository {
         }
 
         var upstream = (GitHubRepository) target;
-        var user = forge().currentUser().username();
-        var namespace = user.endsWith("[bot]") ? "" : user + ":";
         var params = JSON.object()
                          .put("title", title)
-                         .put("head", namespace + sourceRef)
+                         .put("head", group() + ":" + sourceRef)
                          .put("base", targetRef)
                          .put("body", String.join("\n", body))
                          .put("draft", draft);
@@ -133,7 +131,7 @@ public class GitHubRepository implements HostedRepository {
                                  .body(params)
                                  .execute();
 
-        return new GitHubPullRequest(upstream, pr, request);
+        return new GitHubPullRequest(upstream, pr, upstream.request);
     }
 
     @Override
