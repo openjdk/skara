@@ -39,6 +39,7 @@ public class JiraIssue implements IssueTrackerIssue {
     private final JiraProject jiraProject;
     private final RestRequest request;
     private final JSONValue json;
+    private final boolean needSecurity;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.issuetracker.jira");
 
@@ -54,6 +55,7 @@ public class JiraIssue implements IssueTrackerIssue {
         this.labels = json.get("fields").get("labels").stream()
                 .map(s -> new Label(s.asString()))
                 .collect(Collectors.toList());
+        this.needSecurity = jiraProject.jiraHost().visibilityRole().isPresent();
     }
 
     @Override
@@ -84,6 +86,11 @@ public class JiraIssue implements IssueTrackerIssue {
 
     @Override
     public void setTitle(String title) {
+        if (needSecurity) {
+            log.warning("Issue title does not support setting a visibility role - ignoring");
+            return;
+        }
+
         var query = JSON.object()
                         .put("fields", JSON.object()
                                            .put("summary", title));
@@ -101,6 +108,11 @@ public class JiraIssue implements IssueTrackerIssue {
 
     @Override
     public void setBody(String body) {
+        if (needSecurity) {
+            log.warning("Issue body does not support setting a visibility role - ignoring");
+            return;
+        }
+
         var query = JSON.object()
                         .put("fields", JSON.object()
                                            .put("description", body));
@@ -479,7 +491,7 @@ public class JiraIssue implements IssueTrackerIssue {
     }
 
     private void addWebLink(Link link) {
-        if (jiraProject.jiraHost().visibilityRole().isPresent()) {
+        if () {
             addWebLinkAsComment(link);
             return;
         }
