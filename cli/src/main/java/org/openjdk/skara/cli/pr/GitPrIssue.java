@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,10 +53,6 @@ public class GitPrIssue {
               .helptext("Component for issue")
               .optional(),
         Switch.shortcut("")
-              .fullname("create")
-              .helptext("Create an issue for this pull request")
-              .optional(),
-        Switch.shortcut("")
               .fullname("verbose")
               .helptext("Turn on verbose output")
               .optional(),
@@ -94,22 +90,8 @@ public class GitPrIssue {
             var issueId = ForgeUtils.getOption("remove", arguments);
             var comment = pr.addComment("/issue remove" + " " + issueId);
             showReply(awaitReplyTo(pr, comment));
-        } else if (arguments.contains("create")) {
-            if (!arguments.contains("component")) {
-                System.err.println("error: no component specified, use --component");
-                System.exit(1);
-            }
-            var component = ForgeUtils.getOption("component", arguments);
-            var prio = ForgeUtils.getOption("priority", arguments, "4");
-            if (!List.of("1", "2", "3", "4", "5").contains(prio)) {
-                System.err.println("error: unsupported priority: " + prio);
-                System.err.println("       Supported priorities are: 1,2,3,4,5");
-                System.exit(1);
-            }
-            var comment = pr.addComment("/issue create P" + prio + " " + component);
-            showReply(awaitReplyTo(pr, comment));
         } else {
-            System.err.println("error: must use either --add, --remove or --create");
+            System.err.println("error: must use either --add or --remove");
             System.exit(1);
         }
     }

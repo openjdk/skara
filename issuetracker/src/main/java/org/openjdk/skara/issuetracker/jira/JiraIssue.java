@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,7 +39,6 @@ public class JiraIssue implements IssueTrackerIssue {
     private final JiraProject jiraProject;
     private final RestRequest request;
     private final JSONValue json;
-    private final boolean needSecurity;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.issuetracker.jira");
 
@@ -55,7 +54,6 @@ public class JiraIssue implements IssueTrackerIssue {
         this.labels = json.get("fields").get("labels").stream()
                 .map(s -> new Label(s.asString()))
                 .collect(Collectors.toList());
-        needSecurity = jiraProject.jiraHost().securityLevel().isPresent();
     }
 
     @Override
@@ -86,10 +84,6 @@ public class JiraIssue implements IssueTrackerIssue {
 
     @Override
     public void setTitle(String title) {
-        if (needSecurity) {
-            log.warning("Issue title does not support setting a security level - ignoring");
-            return;
-        }
         var query = JSON.object()
                         .put("fields", JSON.object()
                                            .put("summary", title));
@@ -107,10 +101,6 @@ public class JiraIssue implements IssueTrackerIssue {
 
     @Override
     public void setBody(String body) {
-        if (needSecurity) {
-            log.warning("Issue body does not support setting a security level - ignoring");
-            return;
-        }
         var query = JSON.object()
                         .put("fields", JSON.object()
                                            .put("description", body));
@@ -489,7 +479,7 @@ public class JiraIssue implements IssueTrackerIssue {
     }
 
     private void addWebLink(Link link) {
-        if (needSecurity) {
+        if (jiraProject.jiraHost().visibilityRole().isPresent()) {
             addWebLinkAsComment(link);
             return;
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -387,8 +387,6 @@ public class JiraProject implements IssueProject {
                                                                                        finalProperties,
                                                                                        null)));
         query.put("fields", fields);
-        jiraHost.securityLevel().ifPresent(securityLevel -> fields.put("security", JSON.object()
-                                                                                       .put("id", securityLevel)));
         var data = request.post("issue")
                           .body(query)
                           .execute();
