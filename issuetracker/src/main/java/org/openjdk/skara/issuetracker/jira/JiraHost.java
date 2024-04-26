@@ -35,14 +35,12 @@ import java.util.*;
 public class JiraHost implements IssueTracker {
     private static class BackportEndpoint implements CustomEndpoint, CustomEndpointRequest {
         private final RestRequest request;
-        private final String securityLevel;
 
         private RestRequest.QueryBuilder query;
         private JSONValue body;
 
-        private BackportEndpoint(RestRequest request, String securityLevel) {
+        private BackportEndpoint(RestRequest request) {
             this.request = request;
-            this.securityLevel = securityLevel;
         }
 
         @Override
@@ -75,10 +73,6 @@ public class JiraHost implements IssueTracker {
                 throw new IllegalStateException("Body must be a JSON object with at least the field 'parentIssueKey' set");
             }
 
-            if (securityLevel != null) {
-                body = body.contains("level") ? body : body.asObject().put("level", securityLevel);
-            }
-
             return query.body(body).execute();
         }
     }
@@ -88,7 +82,6 @@ public class JiraHost implements IssueTracker {
 
     private final URI uri;
     private final String visibilityRole;
-    private final String securityLevel;
     private final RestRequest request;
     private final RestRequest backportRequest;
 
@@ -98,7 +91,6 @@ public class JiraHost implements IssueTracker {
     JiraHost(URI uri) {
         this.uri = uri;
         this.visibilityRole = null;
-        this.securityLevel = null;
 
         var baseApi = URIBuilder.base(uri)
                                 .appendPath(REST_API_ENDPOINT_PATH)
@@ -117,7 +109,6 @@ public class JiraHost implements IssueTracker {
     JiraHost(URI uri, String header, String value) {
         this.uri = uri;
         this.visibilityRole = null;
-        this.securityLevel = null;
 
         var baseApi = URIBuilder.base(uri)
                                 .appendPath(REST_API_ENDPOINT_PATH)
@@ -131,13 +122,12 @@ public class JiraHost implements IssueTracker {
     }
 
     JiraHost(URI uri, JiraVault jiraVault) {
-        this(uri, jiraVault, null, null);
+        this(uri, jiraVault, null);
     }
 
-    JiraHost(URI uri, JiraVault jiraVault, String visibilityRole, String securityLevel) {
+    JiraHost(URI uri, JiraVault jiraVault, String visibilityRole) {
         this.uri = uri;
         this.visibilityRole = visibilityRole;
-        this.securityLevel = securityLevel;
 
         var baseApi = URIBuilder.base(uri)
                                 .appendPath(REST_API_ENDPOINT_PATH)
@@ -158,7 +148,7 @@ public class JiraHost implements IssueTracker {
     @Override
     public Optional<CustomEndpoint> lookupCustomEndpoint(String path) {
         var endpoint = switch (path) {
-            case BACKPORT_ENDPOINT_PATH -> new BackportEndpoint(backportRequest, securityLevel);
+            case BACKPORT_ENDPOINT_PATH -> new BackportEndpoint(backportRequest);
             default -> null;
         };
         return Optional.ofNullable(endpoint);
@@ -166,10 +156,6 @@ public class JiraHost implements IssueTracker {
 
     Optional<String> visibilityRole() {
         return Optional.ofNullable(visibilityRole);
-    }
-
-    Optional<String> securityLevel() {
-        return Optional.ofNullable(securityLevel);
     }
 
     @Override

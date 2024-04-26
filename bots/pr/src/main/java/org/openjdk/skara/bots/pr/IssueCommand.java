@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -61,15 +61,12 @@ public class IssueCommand implements CommandHandler {
         reply.println("Command syntax:");
         reply.println(" * `/" + name + " [add|remove] <id>[,<id>,...]`");
         reply.println(" * `/" + name + " [add] <id>: <description>`");
-        reply.println(" * `/" + name + " create [PX] <component>/[subcomponent]");
         reply.println();
         reply.println("Some examples:");
         reply.println();
         reply.println(" * `/" + name + " add JDK-1234567,4567890`");
         reply.println(" * `/" + name + " remove JDK-4567890`");
         reply.println(" * `/" + name + " 1234567: Use this exact title`");
-        reply.println(" * `/" + name + " create hotspot/jfr");
-        reply.println(" * `/" + name + " create P4 core-libs/java.nio");
         reply.println();
         reply.print("If issues are specified only by their ID, the title will be automatically retrieved from JBS. ");
         reply.print("The project prefix (`JDK-` in the above examples) is optional. ");
@@ -77,7 +74,7 @@ public class IssueCommand implements CommandHandler {
     }
 
     private static final Pattern SHORT_ISSUE_PATTERN = Pattern.compile("((?:[A-Za-z]+-)?[0-9]+)(?:,| |$)");
-    private static final Pattern SUBCOMMAND_PATTERN = Pattern.compile("^(add|remove|delete|create|(?:[A-Za-z]+-)?[0-9]+:?)[ ,]?.*$");
+    private static final Pattern SUBCOMMAND_PATTERN = Pattern.compile("^(add|remove|delete|(?:[A-Za-z]+-)?[0-9]+:?)[ ,]?.*$");
 
     private List<Issue> parseIssueList(String allowedPrefix, String issueList) throws InvalidIssue {
         List<Issue> ret;
@@ -210,65 +207,6 @@ public class IssueCommand implements CommandHandler {
         }
     }
 
-    private void createIssue(PullRequestBot bot, PullRequest pr, String args, CensusInstance censusInstance, HostUser author, PrintWriter reply) {
-        if (!censusInstance.isAuthor(author)) {
-            reply.println("Only [Authors](https://openjdk.org/bylaws#author) are allowed to create issues.");
-            return;
-        }
-
-        var currentTitleIssue = Issue.fromString(pr.title());
-        if (currentTitleIssue.isPresent()) {
-            reply.println("The PR title already references an issue (`" + currentTitleIssue.get().shortId() + "`) - will not create a new one.");
-            return;
-        }
-
-        var argSplit = new LinkedList<>(Arrays.asList(args.split("(?:\\s+|/)")));
-        argSplit.pollFirst();
-
-        String priority = null;
-        String subComponent = null;
-
-        // First argument can be a priority
-        var next = argSplit.pollFirst();
-        if (next != null && next.matches("^[pP]\\d$")) {
-            priority = next.substring(1);
-            next = argSplit.pollFirst();
-        }
-
-        // Next argument is the mandatory component name
-        if (next == null) {
-            showHelp(reply);
-            return;
-        }
-        var component = next;
-        next = argSplit.pollFirst();
-
-        // Finally there can be a subcomponent present
-        if (next != null) {
-            subComponent = next;
-        }
-
-        var properties = new HashMap<String, JSONValue>();
-        properties.put("components", JSON.array().add(JSON.of(component)));
-        if (subComponent != null) {
-            properties.put(SUBCOMPONENT, JSON.of(subComponent));
-        }
-        if (priority != null) {
-            properties.put("priority", JSON.of(priority));
-        }
-        properties.put("issuetype", JSON.of("enhancement"));
-
-        var bodyText = PullRequestBody.parse(pr).bodyText();
-        try {
-            var issue = bot.issueProject().createIssue(pr.title(), bodyText.lines().collect(Collectors.toList()), properties);
-            reply.println("The issue `" + issue.id() + "` was successfully created - the title of this PR will be updated to reference it. ");
-            var shortId = issue.id().contains("-") ? issue.id().split("-", 2)[1] : issue.id();
-            pr.setTitle(shortId + ": " + issue.title());
-        } catch (RuntimeException e) {
-            reply.println("An error occurred when attempting to create an issue: " + e.getMessage());
-        }
-    }
-
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!command.user().equals(pr.author())) {
@@ -292,8 +230,6 @@ public class IssueCommand implements CommandHandler {
         try {
             if (args.startsWith("remove") || args.startsWith("delete")) {
                 removeIssue(bot, args, currentSolved, reply);
-            } else if (args.startsWith("create")) {
-                createIssue(bot, pr, args, censusInstance, command.user(), reply);
             } else {
                 addIssue(bot, pr, args, currentSolved, reply);
             }
