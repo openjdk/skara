@@ -44,7 +44,7 @@ public class JiraIssueTrackerFactory implements IssueTrackerFactory {
                 var vaultUrl = URIBuilder.base(credential.username()).build();
                 var jiraVault = new JiraVault(vaultUrl, credential.password(), uri);
 
-                if (configuration.contains("security") && configuration.contains("visibility")) {
+                if (configuration.contains("visibility")) {
                     return new JiraHost(uri, jiraVault, configuration.get("visibility").asString());
                 }
                 return new JiraHost(uri, jiraVault);
