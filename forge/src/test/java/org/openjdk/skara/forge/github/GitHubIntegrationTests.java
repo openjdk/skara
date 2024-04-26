@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.MemberState;
+import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.json.JSON;
@@ -412,5 +413,77 @@ class GitHubIntegrationTests {
         // On Github, the user has to accept an invitation before becoming a collaborator
         // so we cannot verify automatically here.
         gitHubRepo.removeCollaborator(user);
+    }
+
+    /**
+     * Expects:
+     * github.repository: Github repository where pull requests can be made, e.g. playground
+     * github.repository.branch: Branch in github.repository to create pull request from
+     */
+    @Test
+    @EnabledIfTestProperties({"github.user", "github.pat", "github.repository",
+            "github.repository.branch"})
+    void createPullRequestSameRepo() {
+        var gitHubRepo = githubHost.repository((props.get("github.repository"))).orElseThrow();
+        var sourceBranch = props.get("github.repository.branch");
+        var pr = gitHubRepo.createPullRequest(gitHubRepo, "master", sourceBranch,
+                "Skara test PR from same repo", List.of("Skara test PR from same repo"));
+        assertEquals(gitHubRepo.name(), pr.repository().name());
+        assertEquals(gitHubRepo.group(), pr.repository().group());
+        assertEquals("master", pr.targetRef());
+        assertEquals(gitHubRepo.name(), pr.sourceRepository().orElseThrow().name());
+        assertEquals(gitHubRepo.group(), pr.sourceRepository().orElseThrow().group());
+        pr.setState(PullRequest.State.CLOSED);
+    }
+
+    /**
+     * Expects:
+     * github.repository: Github repository where pull requests can be made, e.g. playground
+     * github.user: User with a fork of github.repository with permission to create PR in github.respository
+     * github.user.fork.branch: Name of branch in user fork to create pull request from
+     */
+    @Test
+    @EnabledIfTestProperties({"github.user", "github.pat", "github.repository",
+            "github.user.fork.branch"})
+    void createPullRequestUserFork() {
+        var gitHubRepo = githubHost.repository((props.get("github.repository"))).orElseThrow();
+        var sourceBranch = props.get("github.user.fork.branch");
+        var userName = props.get("github.user");
+        String name = gitHubRepo.name().split("/")[1];
+        var sourceRepo = githubHost.repository(userName + "/" + name).orElseThrow();
+        var pr = sourceRepo.createPullRequest(gitHubRepo, "master", sourceBranch,
+                "Skara test PR from user fork", List.of("Skara test PR from user fork"));
+        assertEquals(gitHubRepo.name(), pr.repository().name());
+        assertEquals(gitHubRepo.group(), pr.repository().group());
+        assertEquals("master", pr.targetRef());
+        assertEquals(sourceRepo.name(), pr.sourceRepository().orElseThrow().name());
+        assertEquals(sourceRepo.group(), pr.sourceRepository().orElseThrow().group());
+        pr.setState(PullRequest.State.CLOSED);
+    }
+
+    /**
+     * Expects:
+     * github.repository: Github repository where pull requests can be made, e.g. playground
+     * github.user: User with a fork of github.repository with permission to create PR in github.respository
+     * github.group: Group with fork of github.repository
+     * github.group.fork.branch: Name of branch in group fork to create pull request from
+     */
+    @Test
+    @EnabledIfTestProperties({"github.user", "github.pat", "github.repository",
+            "github.group", "github.group.fork.branch"})
+    void createPullRequestGroupFork() {
+        var gitHubRepo = githubHost.repository((props.get("github.repository"))).orElseThrow();
+        var groupName = props.get("github.group");
+        var sourceBranch = props.get("github.group.fork.branch");
+        String name = gitHubRepo.name().split("/")[1];
+        var sourceRepo = githubHost.repository(groupName + "/" + name).orElseThrow();
+        var pr = sourceRepo.createPullRequest(gitHubRepo, "master", sourceBranch,
+                "Skara test PR from group fork", List.of("Skara test PR from group fork"));
+        assertEquals(gitHubRepo.name(), pr.repository().name());
+        assertEquals(gitHubRepo.group(), pr.repository().group());
+        assertEquals("master", pr.targetRef());
+        assertEquals(sourceRepo.name(), pr.sourceRepository().orElseThrow().name());
+        assertEquals(sourceRepo.group(), pr.sourceRepository().orElseThrow().group());
+        pr.setState(PullRequest.State.CLOSED);
     }
 }
