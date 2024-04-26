@@ -491,7 +491,7 @@ public class JiraIssue implements IssueTrackerIssue {
     }
 
     private void addWebLink(Link link) {
-        if () {
+        if (needSecurity) {
             addWebLinkAsComment(link);
             return;
         }
