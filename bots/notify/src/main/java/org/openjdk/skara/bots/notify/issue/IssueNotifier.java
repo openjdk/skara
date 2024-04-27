@@ -87,12 +87,15 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     // Lazy loaded
     private CensusInstance census = null;
 
+    // If true, avoid creating a "forward backport" when creating a new backport
+    private boolean avoidForwardports;
+
     IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
                   boolean setFixVersion, LinkedHashMap<Pattern, String> fixVersions, LinkedHashMap<Pattern, List<Pattern>> altFixVersions,
                   boolean prOnly, boolean repoOnly, String buildName,
                   HostedRepository censusRepository, String censusRef, String namespace, boolean useHeadVersion,
                   HostedRepository originalRepository, boolean resolve, Set<String> tagIgnoreOpt,
-                  boolean tagMatchPrefix, List<BranchSecurity> defaultSecurity) {
+                  boolean tagMatchPrefix, List<BranchSecurity> defaultSecurity, boolean avoidForwardports) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -113,6 +116,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.tagIgnoreOpt = tagIgnoreOpt;
         this.tagMatchPrefix = tagMatchPrefix;
         this.defaultSecurity = defaultSecurity;
+        this.avoidForwardports = avoidForwardports;
     }
 
     static IssueNotifierBuilder newBuilder() {
@@ -303,9 +307,15 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                             var fixVersion = JdkVersion.parse(requestedVersion).orElseThrow();
                             var existing = Backports.findIssue(issue, fixVersion);
                             if (existing.isEmpty()) {
-                                log.info("Creating new backport for " + issue.id() + " with fixVersion " + requestedVersion);
+                                var issueFixVersion = Backports.mainFixVersion(issue);
                                 try {
-                                    issue = Backports.createBackport(issue, requestedVersion, username.orElse(null), defaultSecurity(branch));
+                                    if (avoidForwardports && issueFixVersion.isPresent() && fixVersion.compareTo(issueFixVersion.get()) > 0) {
+                                        log.info("Avoiding 'forwardport', creating new backport for " + issue.id() + " with fixVersion " + issueFixVersion.get().raw());
+                                        Backports.createBackport(issue, issueFixVersion.get().raw() , username.orElse(null), defaultSecurity(branch));
+                                    } else {
+                                        log.info("Creating new backport for " + issue.id() + " with fixVersion " + requestedVersion);
+                                        issue = Backports.createBackport(issue, requestedVersion, username.orElse(null), defaultSecurity(branch));
+                                    }
                                 } catch (UncheckedRestException e) {
                                     existing = Backports.findIssue(issue, fixVersion);
                                     if (existing.isPresent()) {
