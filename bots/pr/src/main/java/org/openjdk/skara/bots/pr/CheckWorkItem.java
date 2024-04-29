@@ -688,7 +688,7 @@ class CheckWorkItem extends PullRequestWorkItem {
             }
         }
 
-        if (pr.labelNames().contains("auto") && pr.labelNames().contains("ready")
+        if (pr.isOpen() && pr.labelNames().contains("auto") && pr.labelNames().contains("ready")
                 && !pr.labelNames().contains("sponsor") && !unhandledIntegrateCommand(comments)) {
             var comment = pr.addComment("/integrate\n" + PullRequestCommandWorkItem.VALID_BOT_COMMAND_MARKER);
             var autoAdded = pr.labelAddedAt("auto").orElseThrow();
