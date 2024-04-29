@@ -433,7 +433,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         if (pr.headHash().hex() == null) {
             String text = "The head hash of this pull request is missing.\n" +
                     "Until this is resolved, this pull request cannot be processed.\n" +
-                    "Please try to use the following command to push an empty commit.\n" +
+                    "This is likely caused by a caching problem in the server and can usually be worked around by pushing another commit to the pull request branch. The commit can be empty. Example:\n" +
                     "```bash\n" +
                     "$ git commit --allow-empty -m \"Empty commit\"\n" +
                     "$ git push\n" +
