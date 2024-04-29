@@ -438,7 +438,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     "$ git commit --allow-empty -m \"Empty commit\"\n" +
                     "$ git push\n" +
                     "```\n" +
-                    "If the issue still exists, please notify skara admins.";
+                    "If the issue still exists, please notify Skara admins.";
             addErrorComment(text, comments);
             return List.of();
         }
