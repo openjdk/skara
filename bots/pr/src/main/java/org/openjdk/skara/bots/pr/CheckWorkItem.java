@@ -430,6 +430,21 @@ class CheckWorkItem extends PullRequestWorkItem {
         var comments = prComments();
         comments = postPlaceholderForReadyComment(comments);
 
+        if (pr.headHash().hex() == null) {
+            String text = "The head hash of this pull request is missing. " +
+                    "Until this is resolved, this pull request cannot be processed." +
+                    "This is likely caused by a caching problem in the server " +
+                    "and can usually be worked around by pushing another commit to the pull request branch. " +
+                    "The commit can be empty. Example:\n" +
+                    "```bash\n" +
+                    "$ git commit --allow-empty -m \"Empty commit\"\n" +
+                    "$ git push\n" +
+                    "```\n" +
+                    "If the issue still exists, please notify Skara admins.";
+            addErrorComment(text, comments);
+            return List.of();
+        }
+
         try {
             census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchArea.getCensus(), pr,
                     bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
