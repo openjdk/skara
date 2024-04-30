@@ -611,7 +611,7 @@
             "src/hotspot/share/memory/\\w*inspection",
             "src/hotspot/share/memory/metaspace/\\w*print",
             "src/hotspot/share/prims/(jvmti|forte).*",
-            "src/hotspot/share/services/(attach|management)",
+            "src/hotspot/share/services/(attach|management|heapdumper|diagnostic)",
             "src/java.instrument/",
             "src/java.management.rmi/",
             "src/java.management/",
