@@ -3432,7 +3432,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             assertTrue(pr.store().body().contains("Warning"));
-            assertTrue(pr.store().body().contains("Found trailing period in 1: This is an issue."));
+            assertTrue(pr.store().body().contains("Found trailing period in `1: This is an issue.`"));
 
             // Remove the trailing period in the title
             pr.setTitle("1: This is an issue");
@@ -3443,10 +3443,11 @@ class CheckTests {
             assertFalse(pr.store().body().contains("Found trailing period in 1: This is an issue."));
 
             // Create another issue with trailing period
-            var issue2 = issues.createIssue("This is an issue2 etc.", List.of("Hello"), Map.of());
+            var issue2 = issues.createIssue("this is an issue2 etc.", List.of("Hello"), Map.of());
             pr.addComment("/issue add " + issue2.id());
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.store().body().contains("Found trailing period in 2: This is an issue2 etc."));
+            assertTrue(pr.store().body().contains("Found trailing period in `2: this is an issue2 etc.`"));
+            assertTrue(pr.store().body().contains("Found leading lowercase letter in `2: this is an issue2 etc.`"));
 
             // Approve it as Reviewer, warnings shouldn't prevent adding ready label to the pr
             var reviewerPr = reviewer.pullRequest(pr.id());

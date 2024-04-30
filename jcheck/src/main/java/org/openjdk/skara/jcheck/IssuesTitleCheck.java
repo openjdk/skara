@@ -49,10 +49,10 @@ public class IssuesTitleCheck extends CommitCheck {
 
         for (var issue : message.issues()) {
             if (issue.description().endsWith(".")) {
-                issuesWithTrailingPeriod.add(issue.toString());
+                issuesWithTrailingPeriod.add("`" + issue + "`");
             }
-            if(Character.isLowerCase(issue.description().charAt(0))){
-                issuesWithLeadingLowerCaseLetter.add(issue.toString());
+            if (Character.isLowerCase(issue.description().charAt(0))) {
+                issuesWithLeadingLowerCaseLetter.add("`" + issue + "`");
             }
         }
         if (!issuesWithTrailingPeriod.isEmpty()) {
