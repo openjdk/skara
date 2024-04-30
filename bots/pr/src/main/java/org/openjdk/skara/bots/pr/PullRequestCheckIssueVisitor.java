@@ -290,7 +290,14 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(IssuesTitleIssue issue) {
-        addMessage(issue.check(), "Found trailing period in " + String.join(" ,", issue.getIssuesWithTrailingPeriod()),
+        List<String> messages = new ArrayList<>();
+        if (!issue.issuesWithTrailingPeriod().isEmpty()) {
+            messages.add("Found trailing period in " + String.join(" ,", issue.issuesWithTrailingPeriod()));
+        }
+        if (!issue.issuesWithLeadingLowerCaseLetter().isEmpty()) {
+            messages.add("Found leading lowercase letter in " + String.join(" ,", issue.issuesWithLeadingLowerCaseLetter()));
+        }
+        addMessage(issue.check(), String.join("\n", messages),
                 issue.severity(), true);
     }
 }

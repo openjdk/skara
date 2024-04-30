@@ -313,7 +313,12 @@ class JCheckCLIVisitor implements IssueVisitor {
     @Override
     public void visit(IssuesTitleIssue i) {
         if (!ignore.contains(i.check().name()) && !isLax) {
-            println(i, "Found trailing period in " + String.join(" ,", i.getIssuesWithTrailingPeriod()));
+            if (!i.issuesWithTrailingPeriod().isEmpty()) {
+                println(i, "Found trailing period in " + String.join(" ,", i.issuesWithTrailingPeriod()));
+            }
+            if (!i.issuesWithLeadingLowerCaseLetter().isEmpty()) {
+                println(i, "Found leading lowercase letter in " + String.join(" ,", i.issuesWithLeadingLowerCaseLetter()));
+            }
             for (var line : i.commit().message()) {
                 System.out.println("> " + line);
             }

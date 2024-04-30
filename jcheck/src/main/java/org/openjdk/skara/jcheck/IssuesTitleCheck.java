@@ -45,13 +45,18 @@ public class IssuesTitleCheck extends CommitCheck {
         }
 
         var issuesWithTrailingPeriod = new ArrayList<String>();
+        var issuesWithLeadingLowerCaseLetter = new ArrayList<String>();
+
         for (var issue : message.issues()) {
             if (issue.description().endsWith(".")) {
                 issuesWithTrailingPeriod.add(issue.toString());
             }
+            if(Character.isLowerCase(issue.description().charAt(0))){
+                issuesWithLeadingLowerCaseLetter.add(issue.toString());
+            }
         }
         if (!issuesWithTrailingPeriod.isEmpty()) {
-            return iterator(new IssuesTitleIssue(metadata, issuesWithTrailingPeriod));
+            return iterator(new IssuesTitleIssue(metadata, issuesWithTrailingPeriod, issuesWithLeadingLowerCaseLetter));
         }
         return iterator();
     }

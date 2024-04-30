@@ -26,10 +26,12 @@ import java.util.List;
 
 public class IssuesTitleIssue extends CommitIssue {
     List<String> issuesWithTrailingPeriod;
+    List<String> issuesWithLeadingLowerCaseLetter;
 
-    IssuesTitleIssue(CommitIssue.Metadata metadata, List<String> issuesWithTrailingPeriod) {
+    IssuesTitleIssue(CommitIssue.Metadata metadata, List<String> issuesWithTrailingPeriod, List<String> issuesWithLeadingLowerCaseLetter) {
         super(metadata);
         this.issuesWithTrailingPeriod = issuesWithTrailingPeriod;
+        this.issuesWithLeadingLowerCaseLetter = issuesWithLeadingLowerCaseLetter;
     }
 
     @Override
@@ -37,7 +39,11 @@ public class IssuesTitleIssue extends CommitIssue {
         visitor.visit(this);
     }
 
-    public List<String> getIssuesWithTrailingPeriod() {
+    public List<String> issuesWithTrailingPeriod() {
         return issuesWithTrailingPeriod;
+    }
+
+    public List<String> issuesWithLeadingLowerCaseLetter() {
+        return issuesWithLeadingLowerCaseLetter;
     }
 }
