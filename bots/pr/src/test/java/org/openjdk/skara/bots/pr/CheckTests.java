@@ -2842,7 +2842,7 @@ class CheckTests {
             // pr body should have the integrationBlocker for whitespace and reviewer check, also warning for issuestitle check
             assertTrue(pr.store().body().contains("Whitespace errors (failed with updated jcheck configuration in pull request)"));
             assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with updated jcheck configuration in pull request)"));
-            assertTrue(pr.store().body().contains("Found trailing period in 1: This is an issue. (failed with updated jcheck configuration in pull request)"));
+            assertTrue(pr.store().body().contains("Found trailing period in `1: This is an issue.` (failed with updated jcheck configuration in pull request)"));
 
             var approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
