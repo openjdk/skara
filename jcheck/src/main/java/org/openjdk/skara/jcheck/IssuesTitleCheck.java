@@ -68,7 +68,7 @@ public class IssuesTitleCheck extends CommitCheck {
 
     @Override
     public String description() {
-        return "Issue's title shouldn't have trailing period";
+        return "Issue's title should be properly formatted";
     }
 
 }

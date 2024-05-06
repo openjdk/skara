@@ -666,7 +666,7 @@ class CheckRun {
         progressBody.append("### Progress\n");
         progressBody.append(getChecksList(visitor, reviewNeeded, additionalProgresses));
 
-        var allAdditionalErrors = Stream.concat(visitor.hiddenMessages().stream(), additionalErrors.stream())
+        var allAdditionalErrors = Stream.concat(visitor.hiddenErrorMessages().stream(), additionalErrors.stream())
                                         .sorted()
                                         .collect(Collectors.toList());
         if (!allAdditionalErrors.isEmpty()) {

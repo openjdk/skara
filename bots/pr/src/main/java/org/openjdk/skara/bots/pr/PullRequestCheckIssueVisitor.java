@@ -54,13 +54,16 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
         readyForReview = true;
     }
 
-    private void addMessage(Check check, String message, Severity severity, boolean readyForReviewWhenFailedAsError) {
-        if (severity.equals(Severity.ERROR)) {
+    private void setNotReadyForReviewOnError(Severity severity) {
+        if (severity == Severity.ERROR) {
+            readyForReview = false;
+        }
+    }
+
+    private void addMessage(Check check, String message, Severity severity) {
+        if (severity == Severity.ERROR) {
             errorFailedChecks.put(check.getClass(), message);
-            if (this.readyForReview) {
-                this.readyForReview = readyForReviewWhenFailedAsError;
-            }
-        } else if (severity.equals(Severity.WARNING)) {
+        } else if (severity == Severity.WARNING) {
             warningFailedChecks.put(check.getClass(), message);
         }
     }
@@ -73,7 +76,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
         return new ArrayList<>(warningFailedChecks.values());
     }
 
-    List<String> hiddenMessages() {
+    List<String> hiddenErrorMessages() {
         return errorFailedChecks.entrySet().stream()
                            .filter(entry -> !displayedChecks.contains(entry.getKey()))
                            .map(Map.Entry::getValue)
@@ -131,7 +134,8 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
         var output = new StringBuilder();
         output.append("Issue id ").append(id).append(" is already used in these commits:\n");
         other.forEach(h -> output.append(" * ").append(h).append("\n"));
-        addMessage(issue.check(), output.toString(), issue.severity(), false);
+        addMessage(issue.check(), output.toString(), issue.severity());
+        setNotReadyForReviewOnError(issue.severity());
     }
 
     @Override
@@ -147,19 +151,20 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     @Override
     public void visit(SelfReviewIssue issue)
     {
-        addMessage(issue.check(), "Self-reviews are not allowed", issue.severity(), false);
+        addMessage(issue.check(), "Self-reviews are not allowed", issue.severity());
+        setNotReadyForReviewOnError(issue.severity());
     }
 
     @Override
     public void visit(TooFewReviewersIssue issue) {
         addMessage(issue.check(), String.format("Too few reviewers with at least role %s found (have %d, need at least %d)",
-                issue.role(), issue.numActual(), issue.numRequired()), issue.severity(), true);
+                issue.role(), issue.numActual(), issue.numRequired()), issue.severity());
     }
 
     @Override
     public void visit(InvalidReviewersIssue issue) {
         var invalid = String.join(", ", issue.invalid());
-        addMessage(issue.check(), "Invalid reviewers " + invalid, issue.severity(), true);
+        addMessage(issue.check(), "Invalid reviewers " + invalid, issue.severity());
     }
 
     @Override
@@ -174,7 +179,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
                     message +
                     "```";
         }
-        addMessage(issue.check(), desc, issue.severity(), true);
+        addMessage(issue.check(), desc, issue.severity());
     }
 
     @Override
@@ -200,13 +205,15 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     @Override
     public void visit(AuthorNameIssue issue) {
         // We only get here for contributors without an OpenJDK username
-        addMessage(issue.check(), "Pull request's HEAD commit must contain a full name", issue.severity(), false);
+        addMessage(issue.check(), "Pull request's HEAD commit must contain a full name", issue.severity());
+        setNotReadyForReviewOnError(issue.severity());
     }
 
     @Override
     public void visit(AuthorEmailIssue issue) {
         // We only get here for contributors without an OpenJDK username
-        addMessage(issue.check(), "Pull request's HEAD commit must contain a valid e-mail", issue.severity(), false);
+        addMessage(issue.check(), "Pull request's HEAD commit must contain a valid e-mail", issue.severity());
+        setNotReadyForReviewOnError(issue.severity());
     }
 
     @Override
@@ -237,14 +244,15 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
         var annotation = annotationBuilder.title("Whitespace error").build();
         annotations.add(annotation);
 
-        addMessage(issue.check(), "Whitespace errors", issue.severity(), false);
+        addMessage(issue.check(), "Whitespace errors", issue.severity());
+        setNotReadyForReviewOnError(issue.severity());
     }
 
     @Override
     public void visit(MessageIssue issue) {
         var message = String.join("\n", issue.commit().message());
         log.warning("Incorrectly formatted commit message: " + message);
-        addMessage(issue.check(), "Incorrectly formatted commit message", issue.severity(), true);
+        addMessage(issue.check(), "Incorrectly formatted commit message", issue.severity());
     }
 
     @Override
@@ -259,45 +267,50 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
         } else {
             desc = "an unknown kind of whitespace (" + issue.kind().name() + ")";
         }
-        addMessage(issue.check(), "The commit message contains " + desc + " on line " + issue.line(), issue.severity(), false);
+        addMessage(issue.check(), "The commit message contains " + desc + " on line " + issue.line(), issue.severity());
+        setNotReadyForReviewOnError(issue.severity());
     }
 
     @Override
     public void visit(IssuesIssue issue) {
         addMessage(issue.check(), "The commit message does not reference any issue. To add an issue reference to this PR, " +
-                "edit the title to be of the format `issue number`: `message`.", issue.severity(), false);
+                "edit the title to be of the format `issue number`: `message`.", issue.severity());
+        setNotReadyForReviewOnError(issue.severity());
     }
 
     @Override
     public void visit(ExecutableIssue issue) {
-        addMessage(issue.check(), String.format("Executable files are not allowed (file: %s)", issue.path()), issue.severity(), false);
+        addMessage(issue.check(), String.format("Executable files are not allowed (file: %s)", issue.path()), issue.severity());
+        setNotReadyForReviewOnError(issue.severity());
     }
 
     @Override
     public void visit(SymlinkIssue issue) {
-        addMessage(issue.check(), String.format("Symbolic links are not allowed (file: %s)", issue.path()), issue.severity(), false);
+        addMessage(issue.check(), String.format("Symbolic links are not allowed (file: %s)", issue.path()), issue.severity());
+        setNotReadyForReviewOnError(issue.severity());
     }
 
     @Override
     public void visit(BinaryIssue issue) {
-        addMessage(issue.check(), String.format("Binary files are not allowed (file: %s)", issue.path()), issue.severity(), false);
+        addMessage(issue.check(), String.format("Binary files are not allowed (file: %s)", issue.path()), issue.severity());
+        setNotReadyForReviewOnError(issue.severity());
     }
 
     @Override
     public void visit(ProblemListsIssue issue) {
-        addMessage(issue.check(), issue.issue() + " is used in problem lists: " + issue.files(), issue.severity(), true);
+        addMessage(issue.check(), issue.issue() + " is used in problem lists: " + issue.files(), issue.severity());
     }
 
     @Override
     public void visit(IssuesTitleIssue issue) {
         List<String> messages = new ArrayList<>();
         if (!issue.issuesWithTrailingPeriod().isEmpty()) {
-            messages.add("Found trailing period in " + String.join(" ,", issue.issuesWithTrailingPeriod()));
+            messages.add("Found trailing period in issue title for " + String.join(", ", issue.issuesWithTrailingPeriod()));
         }
         if (!issue.issuesWithLeadingLowerCaseLetter().isEmpty()) {
-            messages.add("Found leading lowercase letter in " + String.join(" ,", issue.issuesWithLeadingLowerCaseLetter()));
+            messages.add("Found leading lowercase letter in issue title for " + String.join(", ", issue.issuesWithLeadingLowerCaseLetter()));
         }
         addMessage(issue.check(), String.join("\n", messages),
-                issue.severity(), true);
+                issue.severity());
     }
 }
