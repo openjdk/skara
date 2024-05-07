@@ -266,10 +266,10 @@ public class IntegrateCommand implements CommandHandler {
         var jcheckConf = checkablePr.parseJCheckConfiguration(targetHash);
         var visitor = checkablePr.createVisitor(jcheckConf);
         checkablePr.executeChecks(localHash, censusInstance, visitor, jcheckConf);
-        if (!visitor.messages().isEmpty()) {
+        if (!visitor.errorFailedChecksMessages().isEmpty()) {
             reply.print("Your integration request cannot be fulfilled at this time, as ");
             reply.println("your changes failed the final jcheck:");
-            visitor.messages().stream()
+            visitor.errorFailedChecksMessages().stream()
                   .map(line -> " * " + line)
                   .forEach(reply::println);
             return true;

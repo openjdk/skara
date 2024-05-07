@@ -2587,6 +2587,9 @@ class CheckTests {
             output.append("[checks]\n");
             output.append("error=");
             output.append(String.join(",", Set.of("author", "reviewers", "whitespace")));
+            output.append("\n");
+            output.append("warning=");
+            output.append(String.join(",", Set.of("issuestitle")));
             output.append("\n\n");
             output.append("[census]\n");
             output.append("version=0\n");
@@ -2788,6 +2791,7 @@ class CheckTests {
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
 
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id())
@@ -2798,18 +2802,21 @@ class CheckTests {
                     .censusRepo(censusBuilder.build())
                     .censusLink("https://census.com/{{contributor}}-profile")
                     .seedStorage(seedFolder)
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
                     .build();
 
             // Populate the projects repository
-            // set the .jcheck/conf without whitespace check
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"), Set.of("author", "reviewers"), "0.1");
+            // set the .jcheck/conf without whitespace and issuestitle check
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"), Set.of("author", "reviewers"), Set.of(), "0.1");
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
+            var issue = issues.createIssue("This is an issue.", List.of("Test"), Map.of());
             // Make a change with a corresponding PR, add a line with whitespace issue
             var editHash = CheckableRepository.appendAndCommit(localRepo, "An additional line\r\n");
             localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id());
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
@@ -2821,8 +2828,9 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
             // pr body should not have the process for whitespace
             assertFalse(pr.store().body().contains("whitespace"));
+            assertFalse(pr.store().body().contains("Warning"));
 
-            // Add whitespace check to .jcheck/conf
+            // Add whitespace and issuestitle check to .jcheck/conf
             var checkConf = tempFolder.path().resolve(".jcheck/conf");
             writeToCheckConf(checkConf);
             localRepo.add(checkConf);
@@ -2831,9 +2839,10 @@ class CheckTests {
 
             TestBotRunner.runPeriodicItems(checkBot);
 
-            // pr body should have the integrationBlocker for whitespace and reviewer check
+            // pr body should have the integrationBlocker for whitespace and reviewer check, also warning for issuestitle check
             assertTrue(pr.store().body().contains("Whitespace errors (failed with updated jcheck configuration in pull request)"));
             assertTrue(pr.store().body().contains("Too few reviewers with at least role reviewer found (have 0, need at least 1) (failed with updated jcheck configuration in pull request)"));
+            assertTrue(pr.store().body().contains("Found trailing period in issue title for `1: This is an issue.` (failed with updated jcheck configuration in pull request)"));
 
             var approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -2959,7 +2968,7 @@ class CheckTests {
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
-            assertEquals("line 18: entry must be of form 'key = value'", check.summary().get());
+            assertEquals("line 19: entry must be of form 'key = value'", check.summary().get());
             assertEquals("Exception occurred during source jcheck - the operation will be retried", check.title().get());
 
             // Restore .jcheck/conf and add whitespace issue check
@@ -3383,6 +3392,73 @@ class CheckTests {
             // Populate the projects repository
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().body().contains("(⚠️ The fixVersion"));
+        }
+    }
+
+    @Test
+    void issuesTitleCheck(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(issuePRMap)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"));
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // An issue with trailing period
+            var issue1 = issues.createIssue("This is an issue.", List.of("Hello"), Map.of());
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue1.id(), List.of("Body"), false);
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(prBot);
+
+            assertTrue(pr.store().body().contains("Warning"));
+            assertTrue(pr.store().body().contains("Found trailing period in issue title for `1: This is an issue.`"));
+
+            // Remove the trailing period in the title
+            pr.setTitle("1: This is an issue");
+            issue1.setTitle("This is an issue");
+
+            TestBotRunner.runPeriodicItems(prBot);
+            assertFalse(pr.store().body().contains("Warning"));
+            assertFalse(pr.store().body().contains("Found trailing period in issue title for 1: This is an issue."));
+
+            // Create another issue with trailing period
+            var issue2 = issues.createIssue("this is an issue2 etc.", List.of("Hello"), Map.of());
+            pr.addComment("/issue add " + issue2.id());
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().body().contains("Found trailing period in issue title for `2: this is an issue2 etc.`"));
+            assertTrue(pr.store().body().contains("Found leading lowercase letter in issue title for `2: this is an issue2 etc.`"));
+
+            // Approve it as Reviewer, warnings shouldn't prevent adding ready label to the pr
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addReview(Review.Verdict.APPROVED, "LGTM");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().labelNames().contains("ready"));
+
+            // Should be able to integrate with warnings
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().labelNames().contains("integrated"));
         }
     }
 }

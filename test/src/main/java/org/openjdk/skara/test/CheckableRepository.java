@@ -39,7 +39,7 @@ public class CheckableRepository {
         }
     }
 
-    public static Repository init(Path path, VCS vcs, Path appendableFilePath, Set<String> checks, String version) throws IOException {
+    public static Repository init(Path path, VCS vcs, Path appendableFilePath, Set<String> errorChecks, Set<String> warningChecks, String version) throws IOException {
         var repo = Repository.init(path, vcs);
 
         Files.createDirectories(path.resolve(".checkable"));
@@ -68,7 +68,10 @@ public class CheckableRepository {
             output.append("\n");
             output.append("[checks]\n");
             output.append("error=");
-            output.append(String.join(",", checks));
+            output.append(String.join(",", errorChecks));
+            output.append("\n");
+            output.append("warning=");
+            output.append(String.join(",", warningChecks));
             output.append("\n\n");
             output.append("[census]\n");
             output.append("version=0\n");
@@ -87,8 +90,12 @@ public class CheckableRepository {
         return repo;
     }
 
+    public static Repository init(Path path, VCS vcs, Path appendableFilePath, Set<String> errorChecks, String version) throws IOException {
+        return init(path, vcs, appendableFilePath, errorChecks, Set.of("issuestitle"), version);
+    }
+
     public static Repository init(Path path, VCS vcs, Path appendableFilePath) throws IOException {
-        return init(path, vcs, appendableFilePath, Set.of("author", "reviewers", "whitespace"), "0.1");
+        return init(path, vcs, appendableFilePath, Set.of("author", "reviewers", "whitespace"), Set.of("issuestitle"), "0.1");
     }
 
     public static Repository init(Path path, VCS vcs) throws IOException {
