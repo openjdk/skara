@@ -766,7 +766,10 @@ class CheckRun {
                                         "a new backport will be created when this pr is integrated.)");
                             }
                         }
-                        if (!relaxedEquals(issueTrackerIssue.get().title(), issue.description())) {
+                        var titleIssue = Issue.fromStringRelaxed(pr.title());
+                        var isTitleIssue = titleIssue.isPresent() && titleIssue.get().shortId().equals(issue.shortId());
+                        // Only check title mismatch for title issue
+                        if (isTitleIssue && !relaxedEquals(issueTrackerIssue.get().title(), issue.description())) {
                             progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
                             setExpiration(Duration.ofMinutes(10));
                         }
