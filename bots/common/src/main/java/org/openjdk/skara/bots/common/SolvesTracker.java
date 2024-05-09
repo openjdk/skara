@@ -69,7 +69,7 @@ public class SolvesTracker {
         return new ArrayList<>(current.values());
     }
 
-    public static Optional<Comment> getLatestSolvesAction(HostUser botUser, List<Comment> comments, Issue issue) {
+    public static Optional<Comment> getLatestSolvesActionComment(HostUser botUser, List<Comment> comments, Issue issue) {
         return comments.stream()
                 .filter(comment -> comment.author().equals(botUser))
                 .filter(comment -> comment.body().contains("<!-- solves: '" + issue.shortId() + "'"))

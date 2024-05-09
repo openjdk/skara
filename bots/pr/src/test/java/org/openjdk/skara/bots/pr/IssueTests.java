@@ -223,10 +223,12 @@ class IssueTests {
             assertLastCommentContains(pr, ": Second");
             assertLastCommentContains(pr, ": Third");
 
+            // Update the title of issue2 and issue3
             issue2.setTitle("Second2");
             issue3.setTitle("Third3");
             pr.setBody("update this pr");
             TestBotRunner.runPeriodicItems(prBot);
+            // PR body shouldn't contain title mismatch warning
             assertFalse(pr.store().body().contains("Title mismatch between PR and JBS for issue"));
 
             // Remove one

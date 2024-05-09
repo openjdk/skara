@@ -46,7 +46,6 @@ import java.time.*;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -414,7 +413,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         var botUser = pr.repository().forge().currentUser();
         var issues = SolvesTracker.currentSolved(botUser, comments, pr.title());
         for (var issue : issues) {
-            var solvesComment = SolvesTracker.getLatestSolvesAction(botUser, comments, issue);
+            var solvesComment = SolvesTracker.getLatestSolvesActionComment(botUser, comments, issue);
             if (solvesComment.isPresent()) {
                 var issueTrackerIssue = issueTrackerIssue(issue.shortId());
                 if (issueTrackerIssue.isPresent() && !issue.description().equals(issueTrackerIssue.get().title())) {
