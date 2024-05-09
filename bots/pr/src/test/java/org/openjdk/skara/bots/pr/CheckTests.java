@@ -3449,6 +3449,14 @@ class CheckTests {
             assertTrue(pr.store().body().contains("Found trailing period in issue title for `2: this is an issue2 etc.`"));
             assertTrue(pr.store().body().contains("Found leading lowercase letter in issue title for `2: this is an issue2 etc.`"));
 
+            // Change the leading letter to upper case
+            issue2.setTitle("This is an issue2 etc.");
+            pr.setBody("update this pr");
+            TestBotRunner.runPeriodicItems(prBot);
+            // The additional issue marker should be updated, so the warning of leading lowercase letter no longer exists
+            assertFalse(pr.store().body().contains("Found leading lowercase letter in issue title for `2: this is an issue2 etc.`"));
+            assertTrue(pr.store().body().contains("Found trailing period in issue title for `2: This is an issue2 etc.`"));
+
             // Approve it as Reviewer, warnings shouldn't prevent adding ready label to the pr
             var reviewerPr = reviewer.pullRequest(pr.id());
             reviewerPr.addReview(Review.Verdict.APPROVED, "LGTM");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,7 +29,6 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.*;
-import java.util.stream.Collectors;
 
 public class SolvesTracker {
     private static final String SOLVES_MARKER = "<!-- solves: '%s' '%s' -->";
@@ -50,7 +49,7 @@ public class SolvesTracker {
                 .flatMap(comment -> comment.body().lines())
                 .map(MARKER_PATTERN::matcher)
                 .filter(Matcher::find)
-                .collect(Collectors.toList());
+                .toList();
         var current = new LinkedHashMap<String, Issue>();
         var titleIssue = Issue.fromStringRelaxed(title);
         for (var action : solvesActions) {
@@ -68,5 +67,12 @@ public class SolvesTracker {
         }
 
         return new ArrayList<>(current.values());
+    }
+
+    public static Optional<Comment> getLatestSolvesActionComment(HostUser botUser, List<Comment> comments, Issue issue) {
+        return comments.stream()
+                .filter(comment -> comment.author().equals(botUser))
+                .filter(comment -> comment.body().contains("<!-- solves: '" + issue.shortId() + "'"))
+                .max(Comparator.comparing(Comment::createdAt));
     }
 }

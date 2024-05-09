@@ -223,6 +223,14 @@ class IssueTests {
             assertLastCommentContains(pr, ": Second");
             assertLastCommentContains(pr, ": Third");
 
+            // Update the title of issue2 and issue3
+            issue2.setTitle("Second2");
+            issue3.setTitle("Third3");
+            pr.setBody("update this pr");
+            TestBotRunner.runPeriodicItems(prBot);
+            // PR body shouldn't contain title mismatch warning
+            assertFalse(pr.store().body().contains("Title mismatch between PR and JBS for issue"));
+
             // Remove one
             pr.addComment("/issue remove " + issue2.id());
             TestBotRunner.runPeriodicItems(prBot);
@@ -242,7 +250,7 @@ class IssueTests {
                             .findFirst()
                             .orElseThrow();
             assertTrue(preview.contains(issue1Number + ": Main"));
-            assertTrue(preview.contains(issue3Number + ": Third"));
+            assertTrue(preview.contains(issue3Number + ": Third3"));
             assertFalse(preview.contains("Second"));
 
             // Integrate
@@ -262,7 +270,7 @@ class IssueTests {
 
             // The additional issues should be present in the commit message
             assertEquals(List.of(issue1Number + ": Main",
-                                 issue3Number + ": Third",
+                                 issue3Number + ": Third3",
                                  "",
                                  "Reviewed-by: integrationreviewer1"), headCommit.message());
         }
