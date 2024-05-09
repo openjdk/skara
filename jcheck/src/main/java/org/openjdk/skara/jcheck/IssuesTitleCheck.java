@@ -55,7 +55,7 @@ public class IssuesTitleCheck extends CommitCheck {
                 issuesWithLeadingLowerCaseLetter.add("`" + issue + "`");
             }
         }
-        if (!issuesWithTrailingPeriod.isEmpty()) {
+        if (!issuesWithTrailingPeriod.isEmpty() || !issuesWithLeadingLowerCaseLetter.isEmpty()) {
             return iterator(new IssuesTitleIssue(metadata, issuesWithTrailingPeriod, issuesWithLeadingLowerCaseLetter));
         }
         return iterator();
