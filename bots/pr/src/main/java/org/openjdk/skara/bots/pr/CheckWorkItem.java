@@ -46,6 +46,7 @@ import java.time.*;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -405,6 +406,28 @@ class CheckWorkItem extends PullRequestWorkItem {
         return false;
     }
 
+    private boolean updateAdditionalIssuesTitle(List<Comment> comments) {
+        if (bot.issueProject() == null) {
+            return false;
+        }
+        var issueTitleUpdated = false;
+        var botUser = pr.repository().forge().currentUser();
+        var issues = SolvesTracker.currentSolved(botUser, comments, pr.title());
+        for (var issue : issues) {
+            var solvesComment = SolvesTracker.getLatestSolvesAction(botUser, comments, issue);
+            if (solvesComment.isPresent()) {
+                var issueTrackerIssue = issueTrackerIssue(issue.shortId());
+                if (issueTrackerIssue.isPresent() && !issue.description().equals(issueTrackerIssue.get().title())) {
+                    pr.updateComment(solvesComment.get().id(),
+                            solvesComment.get().body().replace(SolvesTracker.setSolvesMarker(issue),
+                                    SolvesTracker.setSolvesMarker(new Issue(issue.shortId(), issueTrackerIssue.get().title()))));
+                    issueTitleUpdated = true;
+                }
+            }
+        }
+        return issueTitleUpdated;
+    }
+
     private void initializeIssuePRMap() {
         // When bot restarts, the issuePRMap needs to get updated with this pr
         if (!bot.initializedPRs().containsKey(prId)) {
@@ -663,6 +686,12 @@ class CheckWorkItem extends PullRequestWorkItem {
             if (updateTitle()) {
                 var updatedPr = bot.repo().pullRequest(prId);
                 logLatency("Time from PR updated to title corrected ", updatedPr.updatedAt(), log);
+                return List.of(CheckWorkItem.fromWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
+            }
+
+            if (updateAdditionalIssuesTitle(comments)) {
+                var updatedPr = bot.repo().pullRequest(prId);
+                logLatency("Time from PR updated to additional issue's title corrected ", updatedPr.updatedAt(), log);
                 return List.of(CheckWorkItem.fromWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
             }
 
