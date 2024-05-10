@@ -284,7 +284,7 @@ public class BackportCommand implements CommandHandler {
         try {
             var hash = commit.hash();
             Hash backportHash;
-            var backportBranchName = "backport-" + realUser.username() + "-" + hash.abbreviate();
+            var backportBranchName = "backport-" + realUser.username() + "-" + hash.abbreviate() + "-" + targetBranchName;
             var backportBranchHash = fork.branchHash(backportBranchName);
 
             var message = CommitMessageParsers.v1.parse(commit);
