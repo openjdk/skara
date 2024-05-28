@@ -330,6 +330,10 @@ public class RestRequest {
                 response = cache.send(authId, request, skipLimiter);
                 // If the status code is 301(Moved Permanently), follow the redirect link
                 if (response.statusCode() == 301) {
+                    // Break the loop if the server keeps responding 301
+                    if (retryCount >= 2) {
+                        break;
+                    }
                     var location = response.headers().firstValue("location");
                     if (location.isPresent()) {
                         request = request.uri(URI.create(location.get()));
