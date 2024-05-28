@@ -333,13 +333,12 @@ public class RestRequest {
                     var location = response.headers().firstValue("location");
                     if (location.isPresent()) {
                         request = request.uri(URI.create(location.get()));
-                        continue;
                     }
                 }
                 // If we are using authorization and get a 401, we need to retry to give
                 // the authorization mechanism a chance to refresh stale tokens. Retry if
                 // we get a new set of authorization headers.
-                if (response.statusCode() == 401 && retryCount < 2 && authHeaders != null
+                else if (response.statusCode() == 401 && retryCount < 2 && authHeaders != null
                         && !authHeaders.equals(addAuthHeaders(request))) {
                     log.info("Failed authorization for request: " + request.build().uri()
                             + ", retry count: " + retryCount);
