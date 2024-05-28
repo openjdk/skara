@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -328,6 +328,14 @@ public class RestRequest {
         while (true) {
             try {
                 response = cache.send(authId, request, skipLimiter);
+                // If the status code is 301(Moved Permanently), follow the redirect link
+                if (response.statusCode() == 301) {
+                    var location = response.headers().firstValue("location");
+                    if (location.isPresent()) {
+                        request = request.uri(URI.create(location.get()));
+                        continue;
+                    }
+                }
                 // If we are using authorization and get a 401, we need to retry to give
                 // the authorization mechanism a chance to refresh stale tokens. Retry if
                 // we get a new set of authorization headers.

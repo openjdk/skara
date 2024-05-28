@@ -486,4 +486,12 @@ class GitHubIntegrationTests {
         assertEquals(sourceRepo.group(), pr.sourceRepository().orElseThrow().group());
         pr.setState(PullRequest.State.CLOSED);
     }
+
+    @Test
+    @EnabledIfTestProperties({"github.user", "github.pat", "github.stale.repository", "github.stale.commitHash"})
+    void testRedirectLink() {
+        var githubRepoOpt = githubHost.repository(props.get("github.stale.repository"));
+        var checks = githubRepoOpt.get().allChecks(new Hash(props.get("github.stale.commitHash")));
+        assertFalse(checks.isEmpty());
+    }
 }
