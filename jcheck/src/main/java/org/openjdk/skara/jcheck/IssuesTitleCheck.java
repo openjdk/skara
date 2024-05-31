@@ -28,10 +28,15 @@ import org.openjdk.skara.vcs.openjdk.CommitMessage;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 public class IssuesTitleCheck extends CommitCheck {
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.issuesTitle");
+    private final static List<String> VALID_WORD_WITH_TRAILING_PERIOD = List.of("et al.", "etc.", "...");
+    private final static List<String> EXECUTABLE_NAMES = List.of("javac", "dpkg");
+    private final static Pattern FILE_OR_FUNCTION_PATTERN = Pattern.compile(".*[()/._].*");
 
     @Override
     Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf, Census census) {
@@ -48,10 +53,10 @@ public class IssuesTitleCheck extends CommitCheck {
         var issuesWithLeadingLowerCaseLetter = new ArrayList<String>();
 
         for (var issue : message.issues()) {
-            if (issue.description().endsWith(".")) {
+            if (hasTrailingPeriod(issue.description())) {
                 issuesWithTrailingPeriod.add("`" + issue + "`");
             }
-            if (Character.isLowerCase(issue.description().charAt(0))) {
+            if (hasLeadingLowerCaseLetter(issue.description())) {
                 issuesWithLeadingLowerCaseLetter.add("`" + issue + "`");
             }
         }
@@ -71,4 +76,33 @@ public class IssuesTitleCheck extends CommitCheck {
         return "Issue's title should be properly formatted";
     }
 
+    private boolean hasTrailingPeriod(String description) {
+        if (!description.endsWith(".")) {
+            return false;
+        }
+        for (String phrase : VALID_WORD_WITH_TRAILING_PERIOD) {
+            if (description.endsWith(phrase)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean hasLeadingLowerCaseLetter(String description) {
+        if (Character.isUpperCase(description.charAt(0))) {
+            return false;
+        }
+        var firstWord = description.split(" ")[0];
+        // If first word is valid executable name, ignore it
+        for (String name : EXECUTABLE_NAMES) {
+            if (firstWord.equals(name)) {
+                return false;
+            }
+        }
+        // If first word contains special character, it's very likely a reference to file or function, ignore it
+        if (FILE_OR_FUNCTION_PATTERN.matcher(firstWord).matches()) {
+            return false;
+        }
+        return true;
+    }
 }
