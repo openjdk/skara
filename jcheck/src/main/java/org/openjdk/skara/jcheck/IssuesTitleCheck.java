@@ -36,7 +36,7 @@ public class IssuesTitleCheck extends CommitCheck {
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.issuesTitle");
     private final static List<String> VALID_WORD_WITH_TRAILING_PERIOD = List.of("et al.", "etc.", "...");
     private final static List<String> EXECUTABLE_NAMES = List.of("javac", "dpkg");
-    private final static Pattern FILE_OR_FUNCTION_PATTERN = Pattern.compile(".*[()/._].*");
+    private final static Pattern FILE_OR_FUNCTION_PATTERN = Pattern.compile(".*[()/._:].*");
 
     @Override
     Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf, Census census) {
