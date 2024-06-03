@@ -35,7 +35,6 @@ import java.util.regex.Pattern;
 public class IssuesTitleCheck extends CommitCheck {
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.issuesTitle");
     private final static List<String> VALID_WORD_WITH_TRAILING_PERIOD = List.of("et al.", "etc.", "...");
-    private final static List<String> EXECUTABLE_NAMES = List.of("javac", "dpkg");
     private final static Pattern FILE_OR_FUNCTION_PATTERN = Pattern.compile(".*[()/._:].*");
 
     @Override
@@ -93,16 +92,7 @@ public class IssuesTitleCheck extends CommitCheck {
             return false;
         }
         var firstWord = description.split(" ")[0];
-        // If first word is valid executable name, ignore it
-        for (String name : EXECUTABLE_NAMES) {
-            if (firstWord.equals(name)) {
-                return false;
-            }
-        }
         // If first word contains special character, it's very likely a reference to file or function, ignore it
-        if (FILE_OR_FUNCTION_PATTERN.matcher(firstWord).matches()) {
-            return false;
-        }
-        return true;
+        return !FILE_OR_FUNCTION_PATTERN.matcher(firstWord).matches();
     }
 }
