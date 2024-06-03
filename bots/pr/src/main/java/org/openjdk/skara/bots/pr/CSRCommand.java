@@ -110,9 +110,17 @@ public class CSRCommand implements CommandHandler {
                     .filter(Matcher::matches)
                     .toList();
 
-            if (!csrs.isEmpty()) {
+            // PR's body could be stale, so fetch the csr from jbs to check if the csr has been withdrawn
+            var issueProject = bot.issueProject();
+            var filteredCsrs = csrs.stream()
+                    .filter(csr -> issueProject.issue(csr.group(1))
+                            .filter(issueTrackerIssue -> !CheckRun.isWithdrawnCSR(issueTrackerIssue))
+                            .isPresent())
+                    .toList();
+
+            if (!filteredCsrs.isEmpty()) {
                 var csrLinks = new StringBuilder();
-                for (Matcher csr : csrs) {
+                for (Matcher csr : filteredCsrs) {
                     csrLinks.append("[").append(csr.group(1)).append("](").append(csr.group(2)).append(")").append(" ");
                 }
                 reply.println("The CSR requirement cannot be removed as CSR issues already exist. Please withdraw " + csrLinks +

@@ -260,7 +260,7 @@ class CheckRun {
         return ret;
     }
 
-    private boolean isWithdrawnCSR(IssueTrackerIssue csr) {
+    public static boolean isWithdrawnCSR(IssueTrackerIssue csr) {
         if (csr.isClosed()) {
             var resolution = csr.resolution();
             if (resolution.isPresent()) {
