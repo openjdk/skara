@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
 public class IssuesTitleCheck extends CommitCheck {
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.issuesTitle");
     private final static List<String> VALID_WORD_WITH_TRAILING_PERIOD = List.of("et al.", "etc.", "...");
-    private final static Pattern FILE_OR_FUNCTION_PATTERN = Pattern.compile(".*[()/._:].*");
+    private final static Pattern ALL_LOWER_CASE_PATTERN = Pattern.compile("[a-z]+");
 
     @Override
     Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf, Census census) {
@@ -88,11 +88,6 @@ public class IssuesTitleCheck extends CommitCheck {
     }
 
     private boolean hasLeadingLowerCaseLetter(String description) {
-        if (!Character.isLowerCase(description.charAt(0))) {
-            return false;
-        }
-        var firstWord = description.split(" ")[0];
-        // If first word contains special character, it's very likely a reference to file or function, ignore it
-        return !FILE_OR_FUNCTION_PATTERN.matcher(firstWord).matches();
+        return ALL_LOWER_CASE_PATTERN.matcher(description.split(" ")[0]).matches();
     }
 }
