@@ -88,7 +88,7 @@ public class IssuesTitleCheck extends CommitCheck {
     }
 
     private boolean hasLeadingLowerCaseLetter(String description) {
-        if (Character.isUpperCase(description.charAt(0))) {
+        if (!Character.isLowerCase(description.charAt(0))) {
             return false;
         }
         var firstWord = description.split(" ")[0];
