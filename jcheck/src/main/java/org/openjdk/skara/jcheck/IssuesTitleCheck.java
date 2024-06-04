@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
 public class IssuesTitleCheck extends CommitCheck {
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.issuesTitle");
     private final static List<String> VALID_WORD_WITH_TRAILING_PERIOD = List.of("et al.", "etc.", "...");
-    private final static Pattern ALL_LOWER_CASE_PATTERN = Pattern.compile("[a-z]+");
+    private final static Pattern FIRST_WORD_ALL_LOWER_CASE_PATTERN = Pattern.compile("[a-z]+(?:\\h.*)?");
 
     @Override
     Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf, Census census) {
@@ -55,7 +55,7 @@ public class IssuesTitleCheck extends CommitCheck {
             if (hasTrailingPeriod(issue.description())) {
                 issuesWithTrailingPeriod.add("`" + issue + "`");
             }
-            if (hasLeadingLowerCaseLetter(issue.description())) {
+            if (FIRST_WORD_ALL_LOWER_CASE_PATTERN.matcher(issue.description()).matches()) {
                 issuesWithLeadingLowerCaseLetter.add("`" + issue + "`");
             }
         }
@@ -85,9 +85,5 @@ public class IssuesTitleCheck extends CommitCheck {
             }
         }
         return true;
-    }
-
-    private boolean hasLeadingLowerCaseLetter(String description) {
-        return ALL_LOWER_CASE_PATTERN.matcher(description.split(" ")[0]).matches();
     }
 }
