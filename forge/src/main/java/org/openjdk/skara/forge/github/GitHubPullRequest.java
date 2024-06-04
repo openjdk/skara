@@ -349,7 +349,7 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     private Comment parseComment(JSONValue comment) {
-        var ret = new Comment(Integer.toString(comment.get("id").asInt()),
+        var ret = new Comment(Long.toString(comment.get("id").asLong()),
                               comment.get("body").asString(),
                               host.parseUserField(comment),
                               ZonedDateTime.parse(comment.get("created_at").asString()),
