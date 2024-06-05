@@ -3421,7 +3421,7 @@ class CheckTests {
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // An issue with trailing period
-            var issue1 = issues.createIssue("This is an issue.", List.of("Hello"), Map.of());
+            var issue1 = issues.createIssue("    This is an issue.   ", List.of("Hello"), Map.of());
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
@@ -3435,15 +3435,15 @@ class CheckTests {
             assertTrue(pr.store().body().contains("Found trailing period in issue title for `1: This is an issue.`"));
 
             // Remove the trailing period in the title
-            pr.setTitle("1: This is an issue");
-            issue1.setTitle("This is an issue");
+            pr.setTitle("1:     This is an issue");
+            issue1.setTitle("    This is an issue");
 
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().body().contains("Warning"));
             assertFalse(pr.store().body().contains("Found trailing period in issue title for 1: This is an issue."));
 
             // Create another issue with trailing period
-            var issue2 = issues.createIssue("this is an issue2 etc.", List.of("Hello"), Map.of());
+            var issue2 = issues.createIssue("   this is an issue2 etc.    ", List.of("Hello"), Map.of());
             pr.addComment("/issue add " + issue2.id());
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.store().body().contains("Found trailing period in issue title for `2: this is an issue2 etc.`"));
