@@ -41,6 +41,7 @@ public class JCheck {
     private final CommitMessageParser parser;
     private final String revisionRange;
     private final List<CommitCheck> commitChecks;
+    private final List<CommitCheck> commitChecksForStagedOrWorkingTree;
     private final List<RepositoryCheck> repositoryChecks;
     private final List<String> additionalConfiguration;
     private final JCheckConfiguration overridingConfiguration;
@@ -83,6 +84,21 @@ public class JCheck {
             new BinaryCheck(),
             new ProblemListsCheck(repository),
             new IssuesTitleCheck()
+        );
+        commitChecksForStagedOrWorkingTree = List.of(
+                new AuthorCheck(),
+                new CommitterCheck(),
+                new WhitespaceCheck(),
+                new MergeMessageCheck(),
+                new HgTagCommitCheck(utils),
+                new DuplicateIssuesCheck(repository),
+                new ReviewersCheck(utils),
+                new MessageCheck(utils),
+                new IssuesCheck(utils),
+                new ExecutableCheck(),
+                new SymlinkCheck(),
+                new BinaryCheck(),
+                new IssuesTitleCheck()
         );
         repositoryChecks = List.of(
             new BranchesCheck(allowedBranches),
@@ -138,7 +154,8 @@ public class JCheck {
         }
         var finalCensus = census;
         var message = parser.parse(commit);
-        var enabled = conf.checks().enabled(commitChecks);
+        var availableChecks = (revisionRange.equals(STAGED_REV) || revisionRange.equals(WORKING_TREE_REV)) ? commitChecksForStagedOrWorkingTree : commitChecks;
+        var enabled = conf.checks().enabled(availableChecks);
         var iterator = new MapIterator<>(enabled.iterator(), c -> {
             log.finer("Running commit check '" + c.name() + "' for " + commit.hash().hex());
             return c.check(commit, message, conf, finalCensus);
