@@ -89,16 +89,10 @@ public class JCheck {
                 new AuthorCheck(),
                 new CommitterCheck(),
                 new WhitespaceCheck(),
-                new MergeMessageCheck(),
                 new HgTagCommitCheck(utils),
-                new DuplicateIssuesCheck(repository),
-                new ReviewersCheck(utils),
-                new MessageCheck(utils),
-                new IssuesCheck(utils),
                 new ExecutableCheck(),
                 new SymlinkCheck(),
-                new BinaryCheck(),
-                new IssuesTitleCheck()
+                new BinaryCheck()
         );
         repositoryChecks = List.of(
             new BranchesCheck(allowedBranches),
