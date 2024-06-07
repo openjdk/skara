@@ -41,6 +41,14 @@ public class JCheck {
     private final CommitMessageParser parser;
     private final String revisionRange;
     private final List<CommitCheck> commitChecks;
+    private final static List<CommitCheck> commitChecksForStagedOrWorkingTree = List.of(
+            new AuthorCheck(),
+            new CommitterCheck(),
+            new WhitespaceCheck(),
+            new ExecutableCheck(),
+            new SymlinkCheck(),
+            new BinaryCheck()
+    );
     private final List<RepositoryCheck> repositoryChecks;
     private final List<String> additionalConfiguration;
     private final JCheckConfiguration overridingConfiguration;
@@ -138,7 +146,8 @@ public class JCheck {
         }
         var finalCensus = census;
         var message = parser.parse(commit);
-        var enabled = conf.checks().enabled(commitChecks);
+        var availableChecks = (revisionRange.equals(STAGED_REV) || revisionRange.equals(WORKING_TREE_REV)) ? commitChecksForStagedOrWorkingTree : commitChecks;
+        var enabled = conf.checks().enabled(availableChecks);
         var iterator = new MapIterator<>(enabled.iterator(), c -> {
             log.finer("Running commit check '" + c.name() + "' for " + commit.hash().hex());
             return c.check(commit, message, conf, finalCensus);
@@ -310,5 +319,11 @@ public class JCheck {
                                 conf,
                                 null);
         return jcheck.checksForRange();
+    }
+
+    public static List<String> commitCheckNamesForStagedOrWorkingTree() {
+        return commitChecksForStagedOrWorkingTree.stream()
+                .map(Check::name)
+                .toList();
     }
 }

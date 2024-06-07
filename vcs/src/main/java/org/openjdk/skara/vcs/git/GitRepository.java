@@ -1716,7 +1716,7 @@ public class GitRepository implements Repository {
     public Commit staged() throws IOException {
         var author = new Author(username().orElse("jcheck"), email().orElse("jcheck@none.none"));
         var commitMetaData = new CommitMetadata(new Hash("staged"), List.of(head()), author, ZonedDateTime.now(),
-                author, ZonedDateTime.now(), List.of(""));
+                author, ZonedDateTime.now(), List.of("Fake commit message for staged"));
         return new Commit(commitMetaData, List.of(diffStaged()));
     }
 
@@ -1727,7 +1727,7 @@ public class GitRepository implements Repository {
     public Commit workingTree() throws IOException {
         var author = new Author(username().orElse("jcheck"), email().orElse("jcheck@none.none"));
         var commitMetaData = new CommitMetadata(new Hash("working-tree"), List.of(head()), author, ZonedDateTime.now(),
-                author, ZonedDateTime.now(), List.of(""));
+                author, ZonedDateTime.now(), List.of("Fake commit message for working-tree"));
         return new Commit(commitMetaData, List.of(diff(head())));
     }
 
