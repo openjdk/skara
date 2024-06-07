@@ -325,7 +325,8 @@ public class GitJCheck {
         if (staged) {
             ranges.clear();
             ranges.add(STAGED_REV);
-            System.out.println("When jcheck is running on staged, the following commit checks are available: " + JCheck.commitCheckNamesForStagedOrWorkingTree());
+            System.out.println("When jcheck is running on staged, only the following commit checks are available: " +
+                    JCheck.commitCheckNamesForStagedOrWorkingTree());
         }
         if (workingTree) {
             ranges.clear();
