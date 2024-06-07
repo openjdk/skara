@@ -325,10 +325,12 @@ public class GitJCheck {
         if (staged) {
             ranges.clear();
             ranges.add(STAGED_REV);
+            System.out.println("When jcheck is running on staged, the following checks are not available: DuplicateIssuesCheck, IssuesCheck, IssuesTitleCheck, MergeMessageCheck, MessageCheck, ProblemListsCheck, ReviewersCheck.");
         }
         if (workingTree) {
             ranges.clear();
             ranges.add(WORKING_TREE_REV);
+            System.out.println("When jcheck is running on working-tree, the following checks are not available: DuplicateIssuesCheck, IssuesCheck, IssuesTitleCheck, MergeMessageCheck, MessageCheck, ProblemListsCheck, ReviewersCheck.");
         }
 
         var isLax = getSwitch("lax", arguments);
