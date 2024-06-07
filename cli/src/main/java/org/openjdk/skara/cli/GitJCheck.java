@@ -331,7 +331,8 @@ public class GitJCheck {
         if (workingTree) {
             ranges.clear();
             ranges.add(WORKING_TREE_REV);
-            System.out.println("When jcheck is running on working-tree, the following commit checks are available: " + JCheck.commitCheckNamesForStagedOrWorkingTree());
+            System.out.println("When jcheck is running on working-tree, only the following commit checks are available: " +
+                    JCheck.commitCheckNamesForStagedOrWorkingTree());
         }
 
         var isLax = getSwitch("lax", arguments);
