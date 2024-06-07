@@ -41,7 +41,14 @@ public class JCheck {
     private final CommitMessageParser parser;
     private final String revisionRange;
     private final List<CommitCheck> commitChecks;
-    private final List<CommitCheck> commitChecksForStagedOrWorkingTree;
+    private final static List<CommitCheck> commitChecksForStagedOrWorkingTree = List.of(
+            new AuthorCheck(),
+            new CommitterCheck(),
+            new WhitespaceCheck(),
+            new ExecutableCheck(),
+            new SymlinkCheck(),
+            new BinaryCheck()
+    );
     private final List<RepositoryCheck> repositoryChecks;
     private final List<String> additionalConfiguration;
     private final JCheckConfiguration overridingConfiguration;
@@ -84,15 +91,6 @@ public class JCheck {
             new BinaryCheck(),
             new ProblemListsCheck(repository),
             new IssuesTitleCheck()
-        );
-        commitChecksForStagedOrWorkingTree = List.of(
-                new AuthorCheck(),
-                new CommitterCheck(),
-                new WhitespaceCheck(),
-                new HgTagCommitCheck(utils),
-                new ExecutableCheck(),
-                new SymlinkCheck(),
-                new BinaryCheck()
         );
         repositoryChecks = List.of(
             new BranchesCheck(allowedBranches),
@@ -321,5 +319,11 @@ public class JCheck {
                                 conf,
                                 null);
         return jcheck.checksForRange();
+    }
+
+    public static List<String> commitCheckNamesForStagedOrWorkingTree() {
+        return commitChecksForStagedOrWorkingTree.stream()
+                .map(Check::name)
+                .toList();
     }
 }

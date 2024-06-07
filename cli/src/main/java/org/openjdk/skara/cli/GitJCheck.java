@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -325,12 +325,12 @@ public class GitJCheck {
         if (staged) {
             ranges.clear();
             ranges.add(STAGED_REV);
-            System.out.println("When jcheck is running on staged, the following checks are not available: DuplicateIssuesCheck, IssuesCheck, IssuesTitleCheck, MergeMessageCheck, MessageCheck, ProblemListsCheck, ReviewersCheck.");
+            System.out.println("When jcheck is running on staged, the following commit checks are available: " + JCheck.commitCheckNamesForStagedOrWorkingTree());
         }
         if (workingTree) {
             ranges.clear();
             ranges.add(WORKING_TREE_REV);
-            System.out.println("When jcheck is running on working-tree, the following checks are not available: DuplicateIssuesCheck, IssuesCheck, IssuesTitleCheck, MergeMessageCheck, MessageCheck, ProblemListsCheck, ReviewersCheck.");
+            System.out.println("When jcheck is running on working-tree, the following commit checks are available: " + JCheck.commitCheckNamesForStagedOrWorkingTree());
         }
 
         var isLax = getSwitch("lax", arguments);
