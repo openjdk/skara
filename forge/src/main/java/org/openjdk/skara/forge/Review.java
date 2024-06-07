@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,11 +34,11 @@ public class Review {
     private final HostUser reviewer;
     private final Verdict verdict;
     private final Hash hash;
-    private final int id;
+    private final String id;
     private final String body;
     private final String targetRef;
 
-    public Review(ZonedDateTime createdAt, HostUser reviewer, Verdict verdict, Hash hash, int id, String body,
+    public Review(ZonedDateTime createdAt, HostUser reviewer, Verdict verdict, Hash hash, String id, String body,
             String targetRef) {
         this.createdAt = createdAt;
         this.reviewer = reviewer;
@@ -73,7 +73,7 @@ public class Review {
         return Optional.ofNullable(hash);
     }
 
-    public int id() {
+    public String id() {
         return id;
     }
 

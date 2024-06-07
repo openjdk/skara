@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -107,7 +107,7 @@ public class GitHubPullRequest implements PullRequest {
                             verdict = Review.Verdict.NONE;
                             break;
                     }
-                    var id = obj.get("id").asInt();
+                    var id = obj.get("id").toString();
                     var body = obj.get("body").asString();
                     var createdAt = ZonedDateTime.parse(obj.get("submitted_at").asString());
                     return new Review(createdAt, reviewer, verdict, hash, id, body, currentTargetRef);
@@ -349,7 +349,7 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     private Comment parseComment(JSONValue comment) {
-        var ret = new Comment(Long.toString(comment.get("id").asLong()),
+        var ret = new Comment(comment.get("id").toString(),
                               comment.get("body").asString(),
                               host.parseUserField(comment),
                               ZonedDateTime.parse(comment.get("created_at").asString()),

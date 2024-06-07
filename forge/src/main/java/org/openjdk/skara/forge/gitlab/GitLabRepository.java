@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -509,7 +509,7 @@ public class GitLabRepository implements HostedRepository {
             return new CommitComment(hash,
                     path,
                     line,
-                    String.valueOf(note.get("id").asInt()),
+                    note.get("id").toString(),
                     note.get("body").asString(),
                     gitLabHost.parseAuthorField(note),
                     ZonedDateTime.parse(note.get("created_at").asString()),
@@ -603,7 +603,7 @@ public class GitLabRepository implements HostedRepository {
 
         return notes.stream()
                 .map(o -> findComment(o.get("target_title").asString(),
-                        String.valueOf(o.get("note").get("id").asInt()), commitTitleToCommits))
+                        o.get("note").get("id").toString(), commitTitleToCommits))
                 .flatMap(Optional::stream)
                 .toList();
     }
