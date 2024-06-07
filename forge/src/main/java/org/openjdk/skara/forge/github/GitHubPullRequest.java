@@ -181,7 +181,7 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public void updateReview(int id, String body) {
+    public void updateReview(String id, String body) {
         request.put("pulls/" + json.get("number").toString() + "/reviews/" + id)
                .body("body", body)
                .execute();

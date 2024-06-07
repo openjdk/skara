@@ -199,7 +199,7 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
-    public void updateReview(int id, String body) {
+    public void updateReview(String id, String body) {
         throw new RuntimeException("not implemented yet");
     }
 
