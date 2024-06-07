@@ -50,7 +50,7 @@ public interface PullRequest extends Issue {
     /**
      * Updates the comment body of a review.
      */
-    void updateReview(int id, String body);
+    void updateReview(String id, String body);
 
     /**
      * Add a file specific comment.
