@@ -280,19 +280,19 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(ExecutableIssue issue) {
-        addMessage(issue.check(), String.format("Patch contains executable files (file: %s)", issue.path()), issue.severity());
+        addMessage(issue.check(), String.format("Patch contains an executable file (file: %s)", issue.path()), issue.severity());
         setNotReadyForReviewOnError(issue.severity());
     }
 
     @Override
     public void visit(SymlinkIssue issue) {
-        addMessage(issue.check(), String.format("Patch contains symbolic links (file: %s)", issue.path()), issue.severity());
+        addMessage(issue.check(), String.format("Patch contains a symbolic link (file: %s)", issue.path()), issue.severity());
         setNotReadyForReviewOnError(issue.severity());
     }
 
     @Override
     public void visit(BinaryIssue issue) {
-        addMessage(issue.check(), String.format("Patch contains binary files (file: %s)", issue.path()), issue.severity());
+        addMessage(issue.check(), String.format("Patch contains a binary file (file: %s)", issue.path()), issue.severity());
         setNotReadyForReviewOnError(issue.severity());
     }
 
