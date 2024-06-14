@@ -149,9 +149,10 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     }
 
     @Override
-    public void visit(SelfReviewIssue issue)
-    {
-        addMessage(issue.check(), "Self-reviews are not allowed", issue.severity());
+    public void visit(SelfReviewIssue issue) {
+        var message = issue.severity().equals(Severity.ERROR) ? "Self-reviews are not allowed" :
+                "Self-reviews are not recommended";
+        addMessage(issue.check(), message, issue.severity());
         setNotReadyForReviewOnError(issue.severity());
     }
 
@@ -205,14 +206,18 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     @Override
     public void visit(AuthorNameIssue issue) {
         // We only get here for contributors without an OpenJDK username
-        addMessage(issue.check(), "Pull request's HEAD commit must contain a full name", issue.severity());
+        var message = issue.severity().equals(Severity.ERROR) ? "Pull request's HEAD commit must contain a full name" :
+                "Pull request's HEAD commit doesn't contain a full name";
+        addMessage(issue.check(), message, issue.severity());
         setNotReadyForReviewOnError(issue.severity());
     }
 
     @Override
     public void visit(AuthorEmailIssue issue) {
         // We only get here for contributors without an OpenJDK username
-        addMessage(issue.check(), "Pull request's HEAD commit must contain a valid e-mail", issue.severity());
+        var message = issue.severity().equals(Severity.ERROR) ? "Pull request's HEAD commit must contain a valid e-mail" :
+                "Pull request's HEAD commit doesn't contain a valid e-mail";
+        addMessage(issue.check(), message, issue.severity());
         setNotReadyForReviewOnError(issue.severity());
     }
 
@@ -241,10 +246,10 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
             annotationBuilder.endColumn(endColumn);
         }
 
-        var annotation = annotationBuilder.title("Whitespace error").build();
+        var annotation = annotationBuilder.title("Whitespace " + issue.severity().toString()).build();
         annotations.add(annotation);
 
-        addMessage(issue.check(), "Whitespace errors", issue.severity());
+        addMessage(issue.check(), "Whitespace " + issue.severity().toString() + "s", issue.severity());
         setNotReadyForReviewOnError(issue.severity());
     }
 
@@ -280,19 +285,25 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(ExecutableIssue issue) {
-        addMessage(issue.check(), String.format("Executable files are not allowed (file: %s)", issue.path()), issue.severity());
+        var message = issue.severity().equals(Severity.ERROR) ? String.format("Executable files are not allowed (file: %s)", issue.path())
+                : String.format("Patch contains an executable file (%s)", issue.path());
+        addMessage(issue.check(), message, issue.severity());
         setNotReadyForReviewOnError(issue.severity());
     }
 
     @Override
     public void visit(SymlinkIssue issue) {
-        addMessage(issue.check(), String.format("Symbolic links are not allowed (file: %s)", issue.path()), issue.severity());
+        var message = issue.severity().equals(Severity.ERROR) ? String.format("Symbolic links are not allowed (file: %s)", issue.path())
+                : String.format("Patch contains a symbolic link (%s)", issue.path());
+        addMessage(issue.check(), message, issue.severity());
         setNotReadyForReviewOnError(issue.severity());
     }
 
     @Override
     public void visit(BinaryIssue issue) {
-        addMessage(issue.check(), String.format("Binary files are not allowed (file: %s)", issue.path()), issue.severity());
+        var message = issue.severity().equals(Severity.ERROR) ? String.format("Binary files are not allowed (file: %s)", issue.path())
+                : String.format("Patch contains a binary file (%s)", issue.path());
+        addMessage(issue.check(), message, issue.severity());
         setNotReadyForReviewOnError(issue.severity());
     }
 
