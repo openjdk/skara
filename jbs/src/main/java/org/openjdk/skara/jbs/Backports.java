@@ -111,24 +111,20 @@ public class Backports {
     }
 
     /**
-     * Return true if the issue's fixVersionList matches fixVersion.
+     * Return true if issueVersion matches fixVersion.
      *
      * fixVersionsList must contain one entry that is an exact match for fixVersions; any
      * other entries must be scratch values.
      */
-    private static boolean matchVersion(IssueTrackerIssue issue, JdkVersion fixVersion) {
-        var mainVersion = mainFixVersion(issue);
-        if (mainVersion.isEmpty()) {
-            return false;
-        }
-        return mainVersion.get().equals(fixVersion);
+    private static boolean matchVersion(JdkVersion issueVersion, JdkVersion fixVersion) {
+        return issueVersion.equals(fixVersion);
     }
 
     /**
      * If fixVersion has a major release of <N>, and opt string of <opt> it matches if
      * the fixVersionList has an <N>-pool-<opt> entry.
      */
-    private static boolean matchOptPoolVersion(IssueTrackerIssue issue, JdkVersion fixVersion) {
+    private static boolean matchOptPoolVersion(JdkVersion issueVersion, JdkVersion fixVersion) {
         // Remove any trailing 'u' from the feature version as that isn't used in *-pool versions
         var majorVersion = fixVersion.feature().replaceFirst("u$", "");
         if (fixVersion.opt().isPresent()) {
@@ -136,11 +132,7 @@ public class Backports {
             var poolVersion = JdkVersion.parse(majorVersion + poolSuffix);
             // fixVersion may be something that doesn't parse into a valid pool version
             if (poolVersion.isPresent()) {
-                var mainVersion = mainFixVersion(issue);
-                if (mainVersion.isEmpty()) {
-                    return false;
-                }
-                return mainVersion.get().equals(poolVersion.get());
+                return issueVersion.equals(poolVersion.get());
             }
         }
         return false;
@@ -150,17 +142,13 @@ public class Backports {
      * If fixVersion has a major release of <N>, it matches if the fixVersionList has an
      * <N>-pool entry.
      */
-    private static boolean matchPoolVersion(IssueTrackerIssue issue, JdkVersion fixVersion) {
+    private static boolean matchPoolVersion(JdkVersion issueVersion, JdkVersion fixVersion) {
         // Remove any trailing 'u' from the feature version as that isn't used in *-pool versions
         var majorVersion = fixVersion.feature().replaceFirst("u$", "");
         var poolVersion = JdkVersion.parse(majorVersion + "-pool");
         // fixVersion may be something that doesn't parse into a valid pool version
         if (poolVersion.isPresent()) {
-            var mainVersion = mainFixVersion(issue);
-            if (mainVersion.isEmpty()) {
-                return false;
-            }
-            if (mainVersion.get().equals(poolVersion.get())) {
+            if (issueVersion.equals(poolVersion.get())) {
                 return true;
             }
         }
@@ -170,11 +158,7 @@ public class Backports {
             if (!numericMajorVersion.equals(majorVersion)) {
                 var numericPoolVersion = JdkVersion.parse(numericMajorVersion + "-pool");
                 if (numericPoolVersion.isPresent()) {
-                    var mainVersion = mainFixVersion(issue);
-                    if (mainVersion.isEmpty()) {
-                        return false;
-                    }
-                    if (mainVersion.get().equals(numericPoolVersion.get())) {
+                    if (issueVersion.equals(numericPoolVersion.get())) {
                         return true;
                     }
                 }
@@ -184,12 +168,12 @@ public class Backports {
     }
 
     /**
-     * Return true if fixVersionList is empty or contains only scratch values.
+     * Return true if issueVersions is empty or contains only scratch values.
      */
-    private static boolean matchScratchVersion(IssueTrackerIssue issue) {
-        var nonScratch = fixVersions(issue).stream()
-                                           .filter(Backports::isNonScratchVersion)
-                                           .collect(Collectors.toList());
+    private static boolean matchScratchVersion(Set<String> issueVersions) {
+        var nonScratch = issueVersions.stream()
+                .filter(Backports::isNonScratchVersion)
+                .toList();
         return nonScratch.size() == 0;
     }
 
@@ -212,15 +196,15 @@ public class Backports {
         var candidates = Stream.concat(Stream.of(primary), findBackports(primary, false).stream()).toList();
         candidates.forEach(c -> log.fine("Candidate: " + c.id() + " with versions: " + String.join(",", fixVersions(c))));
         var matchingVersionIssue = candidates.stream()
-                                             .filter(i -> matchVersion(i, fixVersion))
-                                             .findFirst();
+                .filter(i -> mainFixVersion(i).filter(jdkVersion -> matchVersion(jdkVersion, fixVersion)).isPresent())
+                .findFirst();
         if (matchingVersionIssue.isPresent()) {
             log.fine("Issue " + matchingVersionIssue.get().id() + " has a correct fixVersion");
             return matchingVersionIssue;
         }
 
         var matchingOptPoolVersionIssue = candidates.stream()
-                .filter(i -> matchOptPoolVersion(i, fixVersion))
+                .filter(i -> mainFixVersion(i).filter(jdkVersion -> matchOptPoolVersion(jdkVersion, fixVersion)).isPresent())
                 .findFirst();
         if (matchingOptPoolVersionIssue.isPresent()) {
             log.fine("Issue " + matchingOptPoolVersionIssue.get().id() + " has a matching opt pool version");
@@ -228,16 +212,16 @@ public class Backports {
         }
 
         var matchingPoolVersionIssue = candidates.stream()
-                                                 .filter(i -> matchPoolVersion(i, fixVersion))
-                                                 .findFirst();
+                .filter(i -> mainFixVersion(i).filter(jdkVersion -> matchPoolVersion(jdkVersion, fixVersion)).isPresent())
+                .findFirst();
         if (matchingPoolVersionIssue.isPresent()) {
             log.fine("Issue " + matchingPoolVersionIssue.get().id() + " has a matching pool version");
             return matchingPoolVersionIssue;
         }
 
         var matchingScratchVersionIssue = candidates.stream()
-                                                    .filter(Backports::matchScratchVersion)
-                                                    .findFirst();
+                .filter(i -> matchScratchVersion(fixVersions(i)))
+                .findFirst();
         if (matchingScratchVersionIssue.isPresent()) {
             log.fine("Issue " + matchingScratchVersionIssue.get().id() + " has a scratch fixVersion");
             return matchingScratchVersionIssue;
@@ -274,31 +258,31 @@ public class Backports {
      */
     public static Optional<IssueTrackerIssue> findClosestIssue(List<IssueTrackerIssue> issueList, JdkVersion fixVersion) {
         var matchingVersionIssue = issueList.stream()
-                .filter(issue -> Backports.fixVersions(issue).stream().anyMatch(v -> v.equals(fixVersion.raw())))
+                .filter(issue -> Backports.fixVersions(issue).stream().anyMatch(
+                        v -> JdkVersion.parse(v).filter(jdkVersion -> matchVersion(jdkVersion, fixVersion)).isPresent()))
                 .findFirst();
         if (matchingVersionIssue.isPresent()) {
             return matchingVersionIssue;
         }
 
-        if (fixVersion.opt().isPresent()) {
-            var matchingOptPoolVersionIssue = issueList.stream()
-                    .filter(issue -> Backports.fixVersions(issue).stream().anyMatch(
-                            v -> v.equals(fixVersion.feature() + "-pool-" + fixVersion.opt().get())))
-                    .findFirst();
-            if (matchingOptPoolVersionIssue.isPresent()) {
-                return matchingOptPoolVersionIssue;
-            }
+        var matchingOptPoolVersionIssue = issueList.stream()
+                .filter(issue -> Backports.fixVersions(issue).stream().anyMatch(
+                        v -> JdkVersion.parse(v).filter(jdkVersion -> matchOptPoolVersion(jdkVersion, fixVersion)).isPresent()))
+                .findFirst();
+        if (matchingOptPoolVersionIssue.isPresent()) {
+            return matchingOptPoolVersionIssue;
         }
 
         var matchingPoolVersionIssue = issueList.stream()
-                .filter(issue -> Backports.fixVersions(issue).stream().anyMatch(v -> v.equals(fixVersion.feature() + "-pool")))
+                .filter(issue -> Backports.fixVersions(issue).stream().anyMatch(
+                        v -> JdkVersion.parse(v).filter(jdkVersion -> matchPoolVersion(jdkVersion, fixVersion)).isPresent()))
                 .findFirst();
         if (matchingPoolVersionIssue.isPresent()) {
             return matchingPoolVersionIssue;
         }
 
         return issueList.stream()
-                .filter(issue -> Backports.fixVersions(issue).stream().noneMatch(v -> !v.startsWith("tbd") && !v.equalsIgnoreCase("unknown")))
+                .filter(issue -> matchScratchVersion(fixVersions(issue)))
                 .findFirst();
     }
 
