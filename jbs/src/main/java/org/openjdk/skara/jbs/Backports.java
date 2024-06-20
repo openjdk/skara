@@ -112,17 +112,13 @@ public class Backports {
 
     /**
      * Return true if issueVersion matches fixVersion.
-     *
-     * fixVersionsList must contain one entry that is an exact match for fixVersions; any
-     * other entries must be scratch values.
      */
     private static boolean matchVersion(JdkVersion issueVersion, JdkVersion fixVersion) {
         return issueVersion.equals(fixVersion);
     }
 
     /**
-     * If fixVersion has a major release of <N>, and opt string of <opt> it matches if
-     * the fixVersionList has an <N>-pool-<opt> entry.
+     * If fixVersion has a major release of <N>, and opt string of <opt> it matches if the issueVersion equals to <N>-pool-<opt>.
      */
     private static boolean matchOptPoolVersion(JdkVersion issueVersion, JdkVersion fixVersion) {
         // Remove any trailing 'u' from the feature version as that isn't used in *-pool versions
@@ -139,8 +135,7 @@ public class Backports {
     }
 
     /**
-     * If fixVersion has a major release of <N>, it matches if the fixVersionList has an
-     * <N>-pool entry.
+     * If fixVersion has a major release of <N>, it matches if the issueVersion equals to <N>-pool.
      */
     private static boolean matchPoolVersion(JdkVersion issueVersion, JdkVersion fixVersion) {
         // Remove any trailing 'u' from the feature version as that isn't used in *-pool versions
