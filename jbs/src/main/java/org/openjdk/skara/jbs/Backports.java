@@ -166,10 +166,8 @@ public class Backports {
      * Return true if issueVersions is empty or contains only scratch values.
      */
     private static boolean matchScratchVersion(Set<String> issueVersions) {
-        var nonScratch = issueVersions.stream()
-                .filter(Backports::isNonScratchVersion)
-                .toList();
-        return nonScratch.size() == 0;
+        return issueVersions.stream()
+                .noneMatch(Backports::isNonScratchVersion);
     }
 
     /**
