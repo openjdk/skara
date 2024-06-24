@@ -622,13 +622,16 @@ class CheckTests {
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
-            Files.writeString(tempFolder.path().resolve("executable.exe"), "Executable file contents", StandardCharsets.UTF_8);
-            Files.setPosixFilePermissions(tempFolder.path().resolve("executable.exe"), Set.of(PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.OWNER_READ));
-            localRepo.add(Path.of("executable.exe"));
+            Files.writeString(tempFolder.path().resolve("executable1.exe"), "Executable file contents", StandardCharsets.UTF_8);
+            Files.setPosixFilePermissions(tempFolder.path().resolve("executable1.exe"), Set.of(PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.OWNER_READ));
+            localRepo.add(Path.of("executable1.exe"));
+            Files.writeString(tempFolder.path().resolve("executable2.exe"), "Executable file contents", StandardCharsets.UTF_8);
+            Files.setPosixFilePermissions(tempFolder.path().resolve("executable2.exe"), Set.of(PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.OWNER_READ));
+            localRepo.add(Path.of("executable2.exe"));
             var editHash = localRepo.commit("Make it executable", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Another PR");
-            pr.setBody("This should now be ready");
+            pr.setBody("This should not be ready");
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
@@ -638,19 +641,23 @@ class CheckTests {
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
-            assertTrue(check.summary().orElseThrow().contains("Executable files are not allowed (file: executable.exe)"));
+            assertTrue(check.summary().orElseThrow().contains("Executable files are not allowed (file: executable1.exe)"));
+            assertTrue(check.summary().orElseThrow().contains("Executable files are not allowed (file: executable2.exe)"));
 
             // Additional errors should be displayed in the body
             assertTrue(pr.store().body().contains("## Error"));
-            assertTrue(pr.store().body().contains("Executable files are not allowed (file: executable.exe)"));
+            assertTrue(pr.store().body().contains("Executable files are not allowed (file: executable1.exe)"));
+            assertTrue(pr.store().body().contains("Executable files are not allowed (file: executable2.exe)"));
 
             // The PR should not yet be ready for review
             assertFalse(pr.store().labelNames().contains("rfr"));
             assertFalse(pr.store().labelNames().contains("ready"));
 
             // Drop that error
-            Files.setPosixFilePermissions(tempFolder.path().resolve("executable.exe"), Set.of(PosixFilePermission.OWNER_READ));
-            localRepo.add(Path.of("executable.exe"));
+            Files.setPosixFilePermissions(tempFolder.path().resolve("executable1.exe"), Set.of(PosixFilePermission.OWNER_READ));
+            localRepo.add(Path.of("executable1.exe"));
+            Files.setPosixFilePermissions(tempFolder.path().resolve("executable2.exe"), Set.of(PosixFilePermission.OWNER_READ));
+            localRepo.add(Path.of("executable2.exe"));
             var updatedHash = localRepo.commit("Make it unexecutable", "duke", "duke@openjdk.org");
             localRepo.push(updatedHash, author.authenticatedUrl(), "edit");
             TestBotRunner.runPeriodicItems(checkBot);
