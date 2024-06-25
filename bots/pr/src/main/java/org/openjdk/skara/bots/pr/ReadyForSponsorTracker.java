@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.bots.common.PullRequestConstants;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.Hash;
@@ -31,21 +32,19 @@ import java.util.regex.*;
 import java.util.stream.Collectors;
 
 class ReadyForSponsorTracker {
-    private static final String MARKER = "<!-- integration requested: '%s' -->";
-    private static final Pattern MARKER_PATTERN = Pattern.compile("<!-- integration requested: '(.*?)' -->");
 
     static String addIntegrationMarker(Hash hash) {
-        return String.format(MARKER, hash.hex());
+        return String.format(PullRequestConstants.READY_FOR_SPONSOR_MARKER, hash.hex());
     }
 
     static Optional<Hash> latestReadyForSponsor(HostUser botUser, List<Comment> comments) {
         var ready = comments.stream()
-                                         .filter(comment -> comment.author().equals(botUser))
-                                         .map(comment -> MARKER_PATTERN.matcher(comment.body()))
-                                         .filter(Matcher::find)
-                            .map(matcher -> matcher.group(1))
-                            .map(Hash::new)
-                                         .collect(Collectors.toList());
+                .filter(comment -> comment.author().equals(botUser))
+                .map(comment -> PullRequestConstants.READY_FOR_SPONSOR_MARKER_PATTERN.matcher(comment.body()))
+                .filter(Matcher::find)
+                .map(matcher -> matcher.group(1))
+                .map(Hash::new)
+                .collect(Collectors.toList());
         if (ready.size() == 0) {
             return Optional.empty();
         } else {
