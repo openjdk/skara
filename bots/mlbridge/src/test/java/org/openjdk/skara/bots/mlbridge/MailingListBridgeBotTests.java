@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.mlbridge;
 
 import org.junit.jupiter.api.*;
+import org.openjdk.skara.bots.common.PullRequestConstants;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Issue;
@@ -358,10 +359,21 @@ class MailingListBridgeBotTests {
             // Add a comment quickly before integration - it should not be combined with the integration message
             pr.addComment("I will now integrate this PR");
 
-            // Mark it as integrated but skip adding the integration comment for now
+            // Add sponsor label and comment
             var ignoredPr = ignored.pullRequest(pr.id());
+            ignoredPr.addLabel("sponsor");
+            ignoredPr.addComment(String.format(PullRequestConstants.READY_FOR_SPONSOR_MARKER, editHash.hex()) +
+                    "@" + author.name() + " Your change (at version " + editHash.abbreviate() + ") is now ready to be sponsored by a Committer.");
+            TestBotRunner.runPeriodicItems(mlBot);
+            Repository.materialize(archiveFolder.path(), archive.authenticatedUrl(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "is now ready to be sponsored by a Committer."));
+
+            // Mark it as integrated but skip adding the integration comment for now
             ignoredPr.setBody("This has been integrated");
             ignoredPr.addLabel("integrated");
+            ignoredPr.removeLabel("sponsor");
+            ignoredPr.removeLabel("rfr");
+            ignoredPr.removeLabel("ready");
             ignoredPr.setState(Issue.State.CLOSED);
 
             // Run another archive pass
