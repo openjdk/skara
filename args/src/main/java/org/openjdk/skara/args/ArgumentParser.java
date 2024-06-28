@@ -215,7 +215,7 @@ public class ArgumentParser {
                         showUsage();
                         System.exit(1);
                     }
-                    var last = inputs.get(inputs.size() - 1);
+                    var last = inputs.getLast();
                     if ((last.getPosition() + last.getOccurrences()) <= argPos && !last.isTrailing()) {
                         // this input is not permitted
                         System.err.println("error: unexpected input: " + arg);

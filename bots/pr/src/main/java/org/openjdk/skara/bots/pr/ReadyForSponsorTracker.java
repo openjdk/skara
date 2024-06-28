@@ -49,7 +49,7 @@ class ReadyForSponsorTracker {
         if (ready.size() == 0) {
             return Optional.empty();
         } else {
-            return Optional.of(ready.get(ready.size() - 1));
+            return Optional.of(ready.getLast());
         }
     }
 }

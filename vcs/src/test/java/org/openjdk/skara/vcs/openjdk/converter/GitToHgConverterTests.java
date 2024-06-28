@@ -510,7 +510,7 @@ class GitToHgConverterTests {
             var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
             var marks = converter.convert(gitRepo, hgRepo);
-            var lastMark = marks.get(marks.size() - 1);
+            var lastMark = marks.getLast();
             assertEquals(second, lastMark.git());
             assertTrue(lastMark.tag().isPresent());
 

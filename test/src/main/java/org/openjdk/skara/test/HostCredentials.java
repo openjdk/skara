@@ -197,7 +197,7 @@ public class HostCredentials implements AutoCloseable {
             } else {
                 hosts.add(TestHost.createFromExisting(hosts.get(0), userIndex));
             }
-            return hosts.get(hosts.size() - 1);
+            return hosts.getLast();
         }
 
         @Override

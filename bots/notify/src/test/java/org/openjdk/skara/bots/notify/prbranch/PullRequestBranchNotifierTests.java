@@ -279,7 +279,7 @@ public class PullRequestBranchNotifierTests {
             assertEquals("master", followUpPr.store().targetRef());
 
             // Instructions on how to adapt to the newly integrated changes should have been posted
-            var lastComment = followUpPr.comments().get(followUpPr.comments().size() - 1);
+            var lastComment = followUpPr.comments().getLast();
             assertTrue(lastComment.body().contains("The parent pull request that this pull request "
                     + "depends on has been closed without being integrated"), lastComment.body());
 
@@ -302,7 +302,7 @@ public class PullRequestBranchNotifierTests {
 
             // The another follow-up PR should have been retargeted
             assertEquals("master", anotherFollowUpPr.store().targetRef());
-            lastComment = anotherFollowUpPr.comments().get(anotherFollowUpPr.comments().size() - 1);
+            lastComment = anotherFollowUpPr.comments().getLast();
             assertTrue(lastComment.body().contains("The parent pull request that this "
                     + "pull request depends on has now been integrated"), lastComment.body());
             assertTrue(lastComment.body().contains("git checkout another-followup"), lastComment.body());

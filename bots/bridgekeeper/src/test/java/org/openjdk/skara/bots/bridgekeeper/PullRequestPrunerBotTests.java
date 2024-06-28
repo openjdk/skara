@@ -81,7 +81,7 @@ class PullRequestPrunerBotTests {
             assertEquals(0, prs.size());
 
             // There should be a mention on how to reopen
-            var comment = pr.comments().get(pr.comments().size() - 1).body();
+            var comment = pr.comments().getLast().body();
             assertTrue(comment.contains("`/open`"), comment);
         }
     }

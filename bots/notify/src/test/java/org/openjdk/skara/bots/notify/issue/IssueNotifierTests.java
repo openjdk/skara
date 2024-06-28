@@ -1375,7 +1375,7 @@ public class IssueNotifierTests {
             assertEquals("b110", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Flag it as in need of retry
-            processed.remove(processed.size() - 1);
+            processed.removeLast();
             processed.add("jdk-16+10 issue retry");
             Files.writeString(repoFolder.resolve("test.tags.txt"), String.join("\n", processed), StandardCharsets.UTF_8);
             localRepo.add(historyFile);

@@ -965,7 +965,7 @@ class SponsorTests {
 
             TestBotRunner.runPeriodicItems(mergeBot);
 
-            assertTrue(pr.comments().get(pr.comments().size() - 1).body()
+            assertTrue(pr.comments().getLast().body()
                     .contains("can only be used in open pull requests"));
         }
     }

@@ -198,7 +198,7 @@ class MailingListNotifier implements Notifier, RepositoryListener {
         }
 
         var subject = commitsToSubject(repository, commits, branch);
-        var lastCommit = commits.get(commits.size() - 1);
+        var lastCommit = commits.getLast();
         var commitAddress = filteredAuthor(EmailAddress.from(lastCommit.committer().name(), lastCommit.committer().email()));
         var email = Email.create(subject, writer.toString())
                          .sender(sender)
@@ -246,13 +246,13 @@ class MailingListNotifier implements Notifier, RepositoryListener {
             return;
         }
         if (!reportNewBuilds) {
-            onNewTagCommit(repository, localRepository, scratchPath, commits.get(commits.size() - 1), tag.tag(), annotation);
+            onNewTagCommit(repository, localRepository, scratchPath, commits.getLast(), tag.tag(), annotation);
             return;
         }
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
-        var taggedCommit = commits.get(commits.size() - 1);
+        var taggedCommit = commits.getLast();
         if (annotation != null) {
             printer.println(tagAnnotationToText(repository, annotation));
         }
@@ -368,7 +368,7 @@ class MailingListNotifier implements Notifier, RepositoryListener {
         }
 
         var subject = newBranchSubject(repository, localRepository, commits, parent, branch);
-        var finalAuthor = commits.size() > 0 ? commitToAuthor(commits.get(commits.size() - 1)) : sender;
+        var finalAuthor = commits.size() > 0 ? commitToAuthor(commits.getLast()) : sender;
 
         var email = Email.create(subject, writer.toString())
                          .sender(sender)

@@ -112,7 +112,7 @@ class BackportTests {
             assertLastCommentContains(pr, "Pushed as commit");
 
             String hex = null;
-            var comment = pr.comments().get(pr.comments().size() - 1);
+            var comment = pr.comments().getLast();
             var lines = comment.body().split("\n");
             var pattern = Pattern.compile(".* Pushed as commit ([0-9a-z]{40}).*");
             for (var line : lines) {
@@ -214,7 +214,7 @@ class BackportTests {
             assertLastCommentContains(pr, "Pushed as commit");
 
             String hex = null;
-            var comment = pr.comments().get(pr.comments().size() - 1);
+            var comment = pr.comments().getLast();
             var lines = comment.body().split("\n");
             var pattern = Pattern.compile(".* Pushed as commit ([0-9a-z]{40}).*");
             for (var line : lines) {
@@ -318,7 +318,7 @@ class BackportTests {
             assertLastCommentContains(pr, "Pushed as commit");
 
             String hex = null;
-            var comment = pr.comments().get(pr.comments().size() - 1);
+            var comment = pr.comments().getLast();
             var lines = comment.body().split("\n");
             var pattern = Pattern.compile(".* Pushed as commit ([0-9a-z]{40}).*");
             for (var line : lines) {
@@ -883,7 +883,7 @@ class BackportTests {
             assertLastCommentContains(pr, "Pushed as commit");
 
             String hex = null;
-            var comment = pr.comments().get(pr.comments().size() - 1);
+            var comment = pr.comments().getLast();
             var lines = comment.body().split("\n");
             var pattern = Pattern.compile(".* Pushed as commit ([0-9a-z]{40}).*");
             for (var line : lines) {
@@ -992,7 +992,7 @@ class BackportTests {
             assertLastCommentContains(pr, "Pushed as commit");
 
             String hex = null;
-            var comment = pr.comments().get(pr.comments().size() - 1);
+            var comment = pr.comments().getLast();
             var lines = comment.body().split("\n");
             var pattern = Pattern.compile(".* Pushed as commit ([0-9a-z]{40}).*");
             for (var line : lines) {
@@ -1328,7 +1328,7 @@ class BackportTests {
             assertLastCommentContains(pr, "Pushed as commit");
 
             String hex = null;
-            var comment = pr.comments().get(pr.comments().size() - 1);
+            var comment = pr.comments().getLast();
             var lines = comment.body().split("\n");
             var pattern = Pattern.compile(".* Pushed as commit ([0-9a-z]{40}).*");
             for (var line : lines) {
@@ -1507,7 +1507,7 @@ class BackportTests {
             assertLastCommentContains(pr, "Pushed as commit");
 
             String hex = null;
-            var comment = pr.comments().get(pr.comments().size() - 1);
+            var comment = pr.comments().getLast();
             var lines = comment.body().split("\n");
             var pattern = Pattern.compile(".* Pushed as commit ([0-9a-z]{40}).*");
             for (var line : lines) {
@@ -1635,7 +1635,7 @@ class BackportTests {
             assertLastCommentContains(pr, "Pushed as commit");
 
             String hex = null;
-            var comment = pr.comments().get(pr.comments().size() - 1);
+            var comment = pr.comments().getLast();
             var lines = comment.body().split("\n");
             var pattern = Pattern.compile(".* Pushed as commit ([0-9a-z]{40}).*");
             for (var line : lines) {
@@ -1756,7 +1756,7 @@ class BackportTests {
             assertLastCommentContains(pr, "Pushed as commit");
 
             String hex = null;
-            var comment = pr.comments().get(pr.comments().size() - 1);
+            var comment = pr.comments().getLast();
             var lines = comment.body().split("\n");
             var pattern = Pattern.compile(".* Pushed as commit ([0-9a-z]{40}).*");
             for (var line : lines) {
@@ -1859,7 +1859,7 @@ class BackportTests {
             assertLastCommentContains(pr, "Pushed as commit");
 
             String hex = null;
-            var comment = pr.comments().get(pr.comments().size() - 1);
+            var comment = pr.comments().getLast();
             var lines = comment.body().split("\n");
             var pattern = Pattern.compile(".* Pushed as commit ([0-9a-z]{40}).*");
             for (var line : lines) {

@@ -740,7 +740,7 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with an instructional message and no link to CONTRIBUTING.md
-            var lastComment = pr.comments().get(pr.comments().size() - 1);
+            var lastComment = pr.comments().getLast();
             assertFalse(lastComment.body().contains("CONTRIBUTING.md"));
         }
     }
@@ -780,7 +780,7 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with an instructional message and no link to CONTRIBUTING.md
-            var lastComment = pr.comments().get(pr.comments().size() - 1);
+            var lastComment = pr.comments().getLast();
             assertTrue(lastComment.body().contains("CONTRIBUTING.md"));
         }
     }
@@ -1216,7 +1216,7 @@ class IntegrateTests {
 
             TestBotRunner.runPeriodicItems(mergeBot);
 
-            assertTrue(pr.comments().get(pr.comments().size() - 1).body()
+            assertTrue(pr.comments().getLast().body()
                     .contains("can only be used in open pull requests"));
         }
     }

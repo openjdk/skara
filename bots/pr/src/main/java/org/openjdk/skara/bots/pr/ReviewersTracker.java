@@ -120,7 +120,7 @@ class ReviewersTracker {
         if (reviewersActions.isEmpty()) {
             return Optional.empty();
         }
-        var last = reviewersActions.get(reviewersActions.size() - 1);
+        var last = reviewersActions.getLast();
         return Optional.of(new AdditionalRequiredReviewers(Integer.parseInt(last.group(1)), last.group(2)));
     }
 }

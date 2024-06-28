@@ -540,7 +540,7 @@ class IssueTests {
 
     private static IssueTrackerIssue issueFromLastComment(PullRequest pr, IssueProject issueProject) {
         var comments = pr.comments();
-        var lastComment = comments.get(comments.size() - 1);
+        var lastComment = comments.getLast();
         var addedIssueMatcher = addedIssuePattern.matcher(lastComment.body());
         assertTrue(addedIssueMatcher.find(), lastComment.body());
         return issueProject.issue(addedIssueMatcher.group(1)).orElseThrow();

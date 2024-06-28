@@ -418,7 +418,7 @@ class ArchiveItem {
             if (mentionedParent.isPresent()) {
                 return mentionedParent.get();
             } else {
-                return eligible.get(eligible.size() - 1);
+                return eligible.getLast();
             }
         }
     }

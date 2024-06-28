@@ -256,7 +256,7 @@ public interface PullRequest extends Issue {
         var sortedEvents = events.stream()
                 .sorted(Comparator.comparing(ReferenceChange::at))
                 .toList();
-        var lastTargetRef = sortedEvents.get(events.size() - 1).to();
+        var lastTargetRef = sortedEvents.getLast().to();
         return reviews.stream().map(orig -> {
                     for (var event : sortedEvents) {
                         if (event.at().isAfter(orig.createdAt())

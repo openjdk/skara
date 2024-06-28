@@ -76,7 +76,7 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
     public Collection<WorkItem> run(Path scratchPath) {
         var comments = pr.comments();
         if (comments.size() > 0) {
-            var lastComment = comments.get(comments.size() - 1);
+            var lastComment = comments.getLast();
             if (lastComment.author().equals(pr.repository().forge().currentUser()) && lastComment.body().contains(NOTICE_MARKER)) {
                 var message = "@" + pr.author().username() + " This pull request has been inactive for more than " +
                         formatDuration(maxAge.multipliedBy(2)) + " and will now be automatically closed. If you would " +
