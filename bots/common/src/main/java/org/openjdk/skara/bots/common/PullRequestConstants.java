@@ -33,6 +33,7 @@ public class PullRequestConstants {
     public static final String JEP_MARKER = "<!-- jep: '%s' '%s' '%s' -->"; // <!-- jep: 'JEP-ID' 'ISSUE-ID' 'ISSUE-TITLE' -->
     public static final String WEBREV_COMMENT_MARKER = "<!-- mlbridge webrev comment -->";
     public static final String TEMPORARY_ISSUE_FAILURE_MARKER = "<!-- temporary issue failure -->";
+    public static final String READY_FOR_SPONSOR_MARKER = "<!-- integration requested: '%s' -->";
 
     // LABELS
     public static final String CSR_LABEL = "csr";
@@ -41,4 +42,5 @@ public class PullRequestConstants {
 
     // PATTERNS
     public static final Pattern JEP_MARKER_PATTERN = Pattern.compile("<!-- jep: '(.*?)' '(.*?)' '(.*?)' -->");
+    public static final Pattern READY_FOR_SPONSOR_MARKER_PATTERN = Pattern.compile("<!-- integration requested: '(.*?)' -->");
 }

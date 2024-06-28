@@ -222,6 +222,9 @@ public class BackportsTests {
             backportFoo.setProperty("issuetype", JSON.of("Backport"));
             issue.addLink(Link.create(backportFoo, "backported by").build());
 
+            issue.setProperty("fixVersions", JSON.array().add("8-pool").add("11-pool"));
+            assertEquals(issue, Backports.findClosestIssue(List.of(issue), JdkVersion.parse("openjdk8u432").orElseThrow()).orElseThrow());
+
             issue.setProperty("fixVersions", JSON.array().add("11-pool"));
             backport.setProperty("fixVersions", JSON.array().add("12-pool"));
             backportFoo.setProperty("fixVersions", JSON.array().add("12-pool-foo"));

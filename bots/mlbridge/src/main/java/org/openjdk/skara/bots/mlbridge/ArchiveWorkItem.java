@@ -26,6 +26,7 @@ import java.util.logging.Level;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.bots.common.BotUtils;
 import org.openjdk.skara.bots.common.CommandNameEnum;
+import org.openjdk.skara.bots.common.PullRequestConstants;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
@@ -147,7 +148,7 @@ class ArchiveWorkItem implements WorkItem {
             return true;
         }
         if (bot.ignoredUsers().contains(author.username())) {
-            return true;
+            return !PullRequestConstants.READY_FOR_SPONSOR_MARKER_PATTERN.matcher(body).find();
         }
 
         // Check if this comment only contains command lines
