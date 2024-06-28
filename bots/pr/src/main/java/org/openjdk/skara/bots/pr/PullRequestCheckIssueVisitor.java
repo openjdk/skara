@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
 class PullRequestCheckIssueVisitor implements IssueVisitor {
     private final List<CheckAnnotation> annotations = new LinkedList<>();
     private final Set<Check> enabledChecks;
-    private final Map<Class<? extends Check>, String> errorFailedChecks = new HashMap<>();
-    private final Map<Class<? extends Check>, String> warningFailedChecks = new HashMap<>();
+    private final Map<Class<? extends Check>, List<String>> errorFailedChecks = new HashMap<>();
+    private final Map<Class<? extends Check>, List<String>> warningFailedChecks = new HashMap<>();
     private boolean readyForReview;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
@@ -62,26 +62,27 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     private void addMessage(Check check, String message, Severity severity) {
         if (severity == Severity.ERROR) {
-            errorFailedChecks.put(check.getClass(), message);
+            errorFailedChecks.computeIfAbsent(check.getClass(), k -> new ArrayList<>()).add(message);
         } else if (severity == Severity.WARNING) {
-            warningFailedChecks.put(check.getClass(), message);
+            warningFailedChecks.computeIfAbsent(check.getClass(), k -> new ArrayList<>()).add(message);
         }
     }
 
     List<String> errorFailedChecksMessages() {
-        return new ArrayList<>(errorFailedChecks.values());
+        return errorFailedChecks.values().stream().flatMap(List::stream).toList();
     }
 
     List<String> warningFailedChecksMessages() {
-        return new ArrayList<>(warningFailedChecks.values());
+        return warningFailedChecks.values().stream().flatMap(List::stream).toList();
     }
 
     List<String> hiddenErrorMessages() {
         return errorFailedChecks.entrySet().stream()
-                           .filter(entry -> !displayedChecks.contains(entry.getKey()))
-                           .map(Map.Entry::getValue)
-                           .sorted()
-                           .collect(Collectors.toList());
+                .filter(entry -> !displayedChecks.contains(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .flatMap(List::stream)
+                .sorted()
+                .collect(Collectors.toList());
     }
 
     /**

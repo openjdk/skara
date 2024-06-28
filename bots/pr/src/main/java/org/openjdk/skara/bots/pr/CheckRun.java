@@ -77,6 +77,7 @@ class CheckRun {
     private static final Set<String> PRIMARY_TYPES = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     protected static final String CSR_PROCESS_LINK = "https://wiki.openjdk.org/display/csr/Main";
     private static final Path JCHECK_CONF_PATH = Path.of(".jcheck", "conf");
+    private static final int MESSAGE_LIMIT = 50;
     private final Set<String> newLabels;
     private final boolean reviewCleanBackport;
     private final Approval approval;
@@ -581,10 +582,15 @@ class CheckRun {
     }
 
     private String warningListToText(List<String> additionalErrors) {
-        return additionalErrors.stream()
-                               .sorted()
-                               .map(err -> "&nbsp;⚠️ " + err)
-                               .collect(Collectors.joining("\n"));
+        var text = additionalErrors.stream()
+                .sorted()
+                .limit(MESSAGE_LIMIT)
+                .map(err -> "&nbsp;⚠️ " + err)
+                .collect(Collectors.joining("\n"));
+        if (additionalErrors.size() > MESSAGE_LIMIT) {
+            text = text + "\n...";
+        }
+        return text;
     }
 
     private Optional<String> getReviewersList() {
