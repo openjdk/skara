@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -197,7 +197,7 @@ public class HostCredentials implements AutoCloseable {
             } else {
                 hosts.add(TestHost.createFromExisting(hosts.get(0), userIndex));
             }
-            return hosts.get(hosts.size() - 1);
+            return hosts.getLast();
         }
 
         @Override

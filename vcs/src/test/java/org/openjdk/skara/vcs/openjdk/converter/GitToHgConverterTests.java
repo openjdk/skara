@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -510,7 +510,7 @@ class GitToHgConverterTests {
             var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
             var marks = converter.convert(gitRepo, hgRepo);
-            var lastMark = marks.get(marks.size() - 1);
+            var lastMark = marks.getLast();
             assertEquals(second, lastMark.git());
             assertTrue(lastMark.tag().isPresent());
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -94,14 +94,14 @@ class BotSlackHandlerTests {
             assertTrue(wasThrottled, "Did not get throttled, is maxDuration too low?");
 
             var requests = receiver.getRequests();
-            var lastRequest = requests.get(requests.size() - 1).asObject();
+            var lastRequest = requests.getLast().asObject();
             assertEquals("test", lastRequest.get("username").asString(), lastRequest.toString());
             assertTrue(lastRequest.get("text").asString().contains("Hello"), lastRequest.toString());
 
             Thread.sleep(maxDuration.toMillis());
             var record = new LogRecord(Level.INFO, "Hello a final time!");
             handler.publish(record);
-            lastRequest = requests.get(requests.size() - 1).asObject();
+            lastRequest = requests.getLast().asObject();
             assertEquals("test", lastRequest.get("username").asString(), lastRequest.toString());
             assertTrue(lastRequest.get("text").asString().contains("Hello a final time!"), lastRequest.toString());
             assertTrue(lastRequest.get("text").asString().contains("dropped"), lastRequest.toString());

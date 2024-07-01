@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -120,7 +120,7 @@ class ReviewersTracker {
         if (reviewersActions.isEmpty()) {
             return Optional.empty();
         }
-        var last = reviewersActions.get(reviewersActions.size() - 1);
+        var last = reviewersActions.getLast();
         return Optional.of(new AdditionalRequiredReviewers(Integer.parseInt(last.group(1)), last.group(2)));
     }
 }

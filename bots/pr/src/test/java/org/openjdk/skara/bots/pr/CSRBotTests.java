@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -567,7 +567,7 @@ class CSRBotTests {
             // Add issue2 to this pr
             pr.addComment("/issue " + issue2.id());
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.store().comments().get(pr.store().comments().size() - 1).body().contains("solves: '2'"));
+            assertTrue(pr.store().comments().getLast().body().contains("solves: '2'"));
 
             // Add a csr to issue2
             var csr2 = issueProject.createIssue("This is an CSR for issue2", List.of(), Map.of());
@@ -587,7 +587,7 @@ class CSRBotTests {
             // Add issue3 to this pr
             pr.addComment("/issue " + issue3.id());
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.store().comments().get(pr.store().comments().size() - 1).body().contains("solves: '4'"));
+            assertTrue(pr.store().comments().getLast().body().contains("solves: '4'"));
 
             // Withdrawn the csr for issue2
             csr2.setState(Issue.State.CLOSED);
@@ -684,7 +684,7 @@ class CSRBotTests {
             reviewer.pullRequest(pr.id()).addComment("/csr unneeded");
             TestBotRunner.runPeriodicItems(prBot);
 
-            assertTrue(pr.store().comments().get(pr.store().comments().size() - 1).body()
+            assertTrue(pr.store().comments().getLast().body()
                     .contains("@user2 The CSR requirement cannot be removed as CSR issues already exist. " +
                             "Please withdraw [TEST-2](http://localhost/project/testTEST-2) and then use the command `/csr unneeded` again."));
         }

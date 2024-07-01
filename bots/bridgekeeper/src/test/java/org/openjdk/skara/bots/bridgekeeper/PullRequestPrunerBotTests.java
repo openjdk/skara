@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -81,7 +81,7 @@ class PullRequestPrunerBotTests {
             assertEquals(0, prs.size());
 
             // There should be a mention on how to reopen
-            var comment = pr.comments().get(pr.comments().size() - 1).body();
+            var comment = pr.comments().getLast().body();
             assertTrue(comment.contains("`/open`"), comment);
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class CommitCommandAsserts {
     public static void assertLastCommentContains(List<CommitComment> comments, String contains) {
         assertTrue(!comments.isEmpty());
-        var lastComment = comments.get(comments.size() - 1);
+        var lastComment = comments.getLast();
         assertTrue(lastComment.body().contains(contains), lastComment.body());
     }
 }

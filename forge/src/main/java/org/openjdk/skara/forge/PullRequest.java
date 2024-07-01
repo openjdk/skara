@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -256,7 +256,7 @@ public interface PullRequest extends Issue {
         var sortedEvents = events.stream()
                 .sorted(Comparator.comparing(ReferenceChange::at))
                 .toList();
-        var lastTargetRef = sortedEvents.get(events.size() - 1).to();
+        var lastTargetRef = sortedEvents.getLast().to();
         return reviews.stream().map(orig -> {
                     for (var event : sortedEvents) {
                         if (event.at().isAfter(orig.createdAt())

@@ -30,7 +30,7 @@ public class PullRequestAsserts {
     public static void assertLastCommentContains(PullRequest pr, String contains) {
         var comments = pr.comments();
         assertTrue(!comments.isEmpty());
-        var lastComment = comments.get(comments.size() - 1);
+        var lastComment = comments.getLast();
         assertTrue(lastComment.body().contains(contains), lastComment.body());
     }
 

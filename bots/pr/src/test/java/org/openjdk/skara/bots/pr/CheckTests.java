@@ -2643,7 +2643,7 @@ class CheckTests {
 
             // The PR shouldn't have the force-push suggestion comment
             assertEquals(2, pr.comments().size());
-            var lastComment = pr.comments().get(pr.comments().size() - 1);
+            var lastComment = pr.comments().getLast();
             assertTrue(lastComment.body().contains("initial"));
             assertFalse(lastComment.body().contains(FORCE_PUSH_MARKER));
             assertFalse(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
@@ -2656,7 +2656,7 @@ class CheckTests {
 
             // The PR shouldn't have the force-push suggestion comment.
             assertEquals(3, pr.comments().size());
-            lastComment = pr.comments().get(pr.comments().size() - 1);
+            lastComment = pr.comments().getLast();
             assertTrue(lastComment.body().contains("Normally push"));
             assertFalse(lastComment.body().contains(FORCE_PUSH_MARKER));
             assertFalse(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
@@ -2673,7 +2673,7 @@ class CheckTests {
 
             // The last comment of the PR should be the force-push suggestion comment.
             assertEquals(5, pr.comments().size());
-            lastComment = pr.comments().get(pr.comments().size() - 1);
+            lastComment = pr.comments().getLast();
             assertFalse(lastComment.body().contains("Force-push"));
             assertTrue(lastComment.body().contains(FORCE_PUSH_MARKER));
             assertTrue(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
@@ -2689,7 +2689,7 @@ class CheckTests {
 
             // The last comment of the PR shouldn't be the force-push suggestion comment.
             assertEquals(6, pr.comments().size());
-            lastComment = pr.comments().get(pr.comments().size() - 1);
+            lastComment = pr.comments().getLast();
             assertTrue(lastComment.body().contains("Normally push in draft"));
             assertFalse(lastComment.body().contains(FORCE_PUSH_MARKER));
             assertFalse(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
@@ -2706,7 +2706,7 @@ class CheckTests {
 
             // The last comment of the PR should not be the force-push suggestion comment.
             assertEquals(7, pr.comments().size());
-            lastComment = pr.comments().get(pr.comments().size() - 1);
+            lastComment = pr.comments().getLast();
             assertTrue(lastComment.body().contains("Force-push in draft"));
             assertFalse(lastComment.body().contains(FORCE_PUSH_MARKER));
             assertFalse(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
@@ -2717,7 +2717,7 @@ class CheckTests {
             // Nothing should happen
             TestBotRunner.runPeriodicItems(checkBot);
             assertEquals(7, pr.comments().size());
-            lastComment = pr.comments().get(pr.comments().size() - 1);
+            lastComment = pr.comments().getLast();
             assertTrue(lastComment.body().contains("Force-push in draft"));
             assertFalse(lastComment.body().contains(FORCE_PUSH_MARKER));
             assertFalse(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
@@ -2734,7 +2734,7 @@ class CheckTests {
 
             // The last comment of the PR should be the force-push suggestion comment.
             assertEquals(9, pr.comments().size());
-            lastComment = pr.comments().get(pr.comments().size() - 1);
+            lastComment = pr.comments().getLast();
             assertFalse(lastComment.body().contains("Force-push"));
             assertTrue(lastComment.body().contains(FORCE_PUSH_MARKER));
             assertTrue(lastComment.body().contains(FORCE_PUSH_SUGGESTION));
@@ -3069,13 +3069,13 @@ class CheckTests {
             // Check the status
             TestBotRunner.runPeriodicItems(prBot);
 
-            var comment = pr.comments().get(pr.comments().size() - 1);
+            var comment = pr.comments().getLast();
             assertEquals(2, pr.comments().size());
             assertTrue(comment.body().contains("Merge-style pull requests are not allowed in this repository"));
 
             pr.setTitle("Merge test:dev");
             TestBotRunner.runPeriodicItems(prBot);
-            comment = pr.comments().get(pr.comments().size() - 1);
+            comment = pr.comments().getLast();
             assertEquals(2, pr.comments().size());
             assertTrue(comment.body().contains("Merge-style pull requests are not allowed in this repository"));
 
@@ -3117,13 +3117,13 @@ class CheckTests {
             // Check the status
             TestBotRunner.runPeriodicItems(prBot);
 
-            var comment = pr.comments().get(pr.comments().size() - 1);
+            var comment = pr.comments().getLast();
             assertEquals(2, pr.comments().size());
             assertTrue(comment.body().contains("backports are not allowed in this repository"));
 
             pr.setTitle("Backport 123");
             TestBotRunner.runPeriodicItems(prBot);
-            comment = pr.comments().get(pr.comments().size() - 1);
+            comment = pr.comments().getLast();
             assertEquals(2, pr.comments().size());
             assertTrue(comment.body().contains("backports are not allowed in this repository"));
 

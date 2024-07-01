@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -215,7 +215,7 @@ public class ArgumentParser {
                         showUsage();
                         System.exit(1);
                     }
-                    var last = inputs.get(inputs.size() - 1);
+                    var last = inputs.getLast();
                     if ((last.getPosition() + last.getOccurrences()) <= argPos && !last.isTrailing()) {
                         // this input is not permitted
                         System.err.println("error: unexpected input: " + arg);

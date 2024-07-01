@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -145,7 +145,7 @@ class HunkCoalescer {
 
         while (!hunks.isEmpty()) {
             var next = hunks.peekFirst();
-            var last = hunksInRange.get(hunksInRange.size() - 1);
+            var last = hunksInRange.getLast();
             var destEnd = last.target().range().end() + numContextLines;
             var sourceEnd = last.source().range().end() + numContextLines;
             var nextDestStart = next.target().range().start() - numContextLines;
@@ -297,7 +297,7 @@ class HunkCoalescer {
             var hunkGroup = nextGroup(worklist);
 
             var first = hunkGroup.get(0);
-            var last = hunkGroup.get(hunkGroup.size() - 1);
+            var last = hunkGroup.getLast();
             var header = calculateCoalescedHeader(first, last);
 
             var contextBefore = createContextBeforeGroup(header, first);
