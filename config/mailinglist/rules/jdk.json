@@ -225,6 +225,7 @@
         ],
         "graal": [
             "src/hotspot/share/jvmci/",
+            "src/hotspot/share/opto/library_call.cpp",
             "src/jdk.internal.vm.ci/",
             "src/jdk.internal.vm.compiler/",
             "src/jdk.internal.vm.compiler.management/"
