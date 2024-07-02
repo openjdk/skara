@@ -153,7 +153,7 @@ public class BackportCommitCommandTests {
             var botReply = recentCommitComments.get(0);
             assertTrue(botReply.body().contains("target repository"));
             assertTrue(botReply.body().contains("is not a valid target for backports"));
-            assertTrue(botReply.body().contains("List of valid target repositories: foobar/other-repo, test"));
+            assertTrue(botReply.body().contains("List of valid target repositories: `foobar/other-repo`, `test`"));
             assertEquals(List.of(), author.openPullRequests());
         }
     }
@@ -194,7 +194,7 @@ public class BackportCommitCommandTests {
             assertEquals(2, recentCommitComments.size());
             var botReply = recentCommitComments.get(0);
             assertTrue(botReply.body().contains("is not a valid target for backports"));
-            assertTrue(botReply.body().contains("List of valid target repositories: foobar/other-repo"));
+            assertTrue(botReply.body().contains("List of valid target repositories: `foobar/other-repo`"));
             assertEquals(List.of(), author.openPullRequests());
         }
     }
