@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.forge.HostedBranch;
 import org.openjdk.skara.forge.HostedCommit;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.PullRequest;
@@ -35,6 +36,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.time.format.DateTimeFormatter;
@@ -73,6 +75,8 @@ public class BackportCommand implements CommandHandler {
             + "(https://wiki.openjdk.org/display/skara#Skara-AssociatingyourGitHubaccountandyourOpenJDKusername)).";
 
     private static final String INSUFFICIENT_ACCESS_WARNING = "The backport can not be created because you don't have access to the target repository.";
+
+    private static final int BRANCHES_LIMIT = 10;
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command,
@@ -194,9 +198,19 @@ public class BackportCommand implements CommandHandler {
 
         var potentialTargetRepo = repoNameOptional.flatMap(forge::repository);
         if (potentialTargetRepo.isEmpty()) {
+            var branchNamesInCurrentRepo = bot.repo().branches().stream().map(HostedBranch::name).toList();
+            if (branchNamesInCurrentRepo.contains(repoName)) {
+                reply.println("There is a branch `" + repoName + "` in current repository `" + bot.repo().name() + "`.");
+                reply.println("To target a backport to this branch in current repository:");
+                reply.println("`/backport :" + repoName + "`");
+                reply.println();
+            }
             reply.println("The target repository `" + repoNameArg + "` is not a valid target for backports. ");
             reply.print("List of valid target repositories: ");
-            reply.println(String.join(", ", bot.forks().keySet().stream().sorted().toList()) + ".");
+            reply.println(String.join(", ", bot.forks().keySet().stream()
+                    .sorted()
+                    .map(repo -> "`" + repo + "`")
+                    .toList()) + ".");
             reply.println("Supplying the organization/group prefix is optional.");
             return null;
         }
@@ -208,6 +222,16 @@ public class BackportCommand implements CommandHandler {
         var targetBranchHash = targetRepo.branchHash(targetBranchName);
         if (targetBranchHash.isEmpty()) {
             reply.println("The target branch `" + targetBranchName + "` does not exist");
+            reply.print("List of target branches: ");
+            var branches = targetRepo.branches().stream()
+                    .map(HostedBranch::name)
+                    .filter(name -> !name.startsWith("pr/"))
+                    .sorted(Comparator.reverseOrder())
+                    .toList();
+            reply.println(String.join(", ", branches.stream()
+                    .limit(BRANCHES_LIMIT)
+                    .map(branch -> "`" + branch + "`")
+                    .toList()) + (branches.size() > BRANCHES_LIMIT ? "..." : "."));
             return null;
         }
         return new Branch(targetBranchName);

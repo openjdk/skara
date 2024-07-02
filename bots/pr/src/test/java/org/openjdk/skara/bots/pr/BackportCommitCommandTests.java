@@ -63,7 +63,10 @@ public class BackportCommitCommandTests {
             // Make a change in another branch
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit");
-
+            // Create more branches
+            for (int i = 1; i <= 20; i++) {
+                localRepo.push(editHash, author.authenticatedUrl(), "jdk" + i, true);
+            }
             // Add a backport command
             author.addCommitComment(editHash, "/backport " + author.name());
             TestBotRunner.runPeriodicItems(bot);
@@ -95,6 +98,21 @@ public class BackportCommitCommandTests {
             botReply = recentCommitComments.get(0);
             assertTrue(botReply.body().contains("To create a pull request with this backport targeting " +
                     "[" + author.name() + ":" + author.defaultBranchName() + "]"));
+
+            author.addCommitComment(editHash, "/backport jdk11");
+            TestBotRunner.runPeriodicItems(bot);
+            recentCommitComments = author.recentCommitComments();
+            assertEquals(8, recentCommitComments.size());
+            botReply = recentCommitComments.get(0);
+            assertTrue(botReply.body().contains("There is a branch `jdk11` in current repository `test`."));
+
+            author.addCommitComment(editHash, "/backport :jdk31");
+            TestBotRunner.runPeriodicItems(bot);
+            recentCommitComments = author.recentCommitComments();
+            assertEquals(10, recentCommitComments.size());
+            botReply = recentCommitComments.get(0);
+            assertTrue(botReply.body().contains("List of target branches:"));
+
         }
     }
 
