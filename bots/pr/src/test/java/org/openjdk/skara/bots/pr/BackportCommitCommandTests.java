@@ -104,15 +104,14 @@ public class BackportCommitCommandTests {
             recentCommitComments = author.recentCommitComments();
             assertEquals(8, recentCommitComments.size());
             botReply = recentCommitComments.get(0);
-            assertTrue(botReply.body().contains("There is a branch `jdk11` in current repository `test`."));
+            assertTrue(botReply.body().contains("There is a branch `jdk11` in the current repository `test`."));
 
             author.addCommitComment(editHash, "/backport :jdk31");
             TestBotRunner.runPeriodicItems(bot);
             recentCommitComments = author.recentCommitComments();
             assertEquals(10, recentCommitComments.size());
             botReply = recentCommitComments.get(0);
-            assertTrue(botReply.body().contains("List of target branches:"));
-
+            assertTrue(botReply.body().contains("List of valid branches:"));
         }
     }
 

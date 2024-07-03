@@ -198,13 +198,6 @@ public class BackportCommand implements CommandHandler {
 
         var potentialTargetRepo = repoNameOptional.flatMap(forge::repository);
         if (potentialTargetRepo.isEmpty()) {
-            var branchNamesInCurrentRepo = bot.repo().branches().stream().map(HostedBranch::name).toList();
-            if (branchNamesInCurrentRepo.contains(repoName)) {
-                reply.println("There is a branch `" + repoName + "` in the current repository `" + bot.repo().name() + "`.");
-                reply.println("To target a backport to this branch in the current repository use:");
-                reply.println("`/backport :" + repoName + "`");
-                reply.println();
-            }
             reply.println("The target repository `" + repoNameArg + "` is not a valid target for backports. ");
             reply.print("List of valid target repositories: ");
             reply.println(String.join(", ", bot.forks().keySet().stream()
@@ -212,6 +205,13 @@ public class BackportCommand implements CommandHandler {
                     .map(repo -> "`" + repo + "`")
                     .toList()) + ".");
             reply.println("Supplying the organization/group prefix is optional.");
+            var branchNamesInCurrentRepo = bot.repo().branches().stream().map(HostedBranch::name).toList();
+            if (branchNamesInCurrentRepo.contains(repoName)) {
+                reply.println();
+                reply.println("There is a branch `" + repoName + "` in the current repository `" + bot.repo().name() + "`.");
+                reply.println("To target a backport to this branch in the current repository use:");
+                reply.println("`/backport :" + repoName + "`");
+            }
             return null;
         }
         return potentialTargetRepo.get();
