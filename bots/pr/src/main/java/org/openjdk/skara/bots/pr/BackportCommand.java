@@ -222,7 +222,7 @@ public class BackportCommand implements CommandHandler {
         var targetBranchHash = targetRepo.branchHash(targetBranchName);
         if (targetBranchHash.isEmpty()) {
             reply.println("The target branch `" + targetBranchName + "` does not exist");
-            reply.print("List of target branches: ");
+            reply.print("List of valid branches: ");
             var branches = targetRepo.branches().stream()
                     .map(HostedBranch::name)
                     .filter(name -> !name.startsWith("pr/"))
