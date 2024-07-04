@@ -198,7 +198,8 @@ public class IntegrateCommand implements CommandHandler {
                     bot.confOverrideName(),
                     bot.confOverrideRef(),
                     allComments,
-                    bot.reviewMerge());
+                    bot.reviewMerge(),
+                    new ReviewCoverage(bot.ignoreStaleReviews(), bot.includeSimpleMerges(), localRepo));
 
             if (targetHash != null && !checkablePr.targetHash().equals(targetHash)) {
                 reply.print("The head of the target branch is no longer at the requested hash " + targetHash);

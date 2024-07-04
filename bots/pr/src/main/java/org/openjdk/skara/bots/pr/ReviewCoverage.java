@@ -1,0 +1,94 @@
+/*
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+package org.openjdk.skara.bots.pr;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.forge.PullRequestUtils;
+import org.openjdk.skara.forge.Review;
+import org.openjdk.skara.vcs.Repository;
+import org.openjdk.skara.vcs.git.GitRepository;
+
+public class ReviewCoverage {
+
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
+    private final boolean ignoreStaleReviews;
+    private final boolean includeSimpleMerges;
+    private final Repository repo;
+
+    public ReviewCoverage(boolean ignoreStaleReviews, boolean includeSimpleMerges, Repository repo) {
+        this.ignoreStaleReviews = ignoreStaleReviews;
+        this.includeSimpleMerges = includeSimpleMerges;
+        this.repo = repo;
+    }
+
+    public boolean covers(Review review, PullRequest pr) {
+        var r = review.hash();
+        // Reviews without a hash are never valid as they referred to no longer
+        // existing commits.
+        if (r.isEmpty() || review.verdict() != Review.Verdict.APPROVED
+                || !review.targetRef().equals(pr.targetRef()))
+            return false;
+        if (!ignoreStaleReviews || r.get().equals(pr.headHash()))
+            return true;
+        if (!includeSimpleMerges)
+            return false;
+        if (!(repo instanceof GitRepository gitRepo)) {
+            log.fine("Merge re-review check is unavailable on '" + repo.getClass() + "' repo");
+            return false;
+        }
+        boolean seenAtLeastOneCommit = false;
+        try {
+            var targetHash = PullRequestUtils.targetHash(gitRepo);
+            try (var commits = gitRepo.commits(List.of(pr.headHash()), List.of(r.get(), targetHash))) {
+                for (var c : commits) {
+                    seenAtLeastOneCommit = true;
+                    if (!c.isMerge() || c.numParents() != 2)
+                        return false;
+                    // from https://git-scm.com/book/en/v2/Git-Tools-Revision-Selection
+                    // we expect that ^1 has to belong to the PR and ^2 to the target
+                    // branch; the former seems obvious and enforced by Git, while
+                    // the latter should be checked
+                    var secondParent = c.parents().get(1);
+                    if (!gitRepo.isAncestor(secondParent, targetHash)) {
+                        return false;
+                    }
+                    if (!gitRepo.isRemergeDiffEmpty(c.hash())) {
+                        return false;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            log.log(Level.FINE, "Error while looking for simple merges in a PR " + pr, e);
+            return false;
+        }
+        if (seenAtLeastOneCommit) {
+            log.finest("Saved a merge from review: " + pr.repository() + ", " + pr.id());
+        }
+        return seenAtLeastOneCommit;
+    }
+}

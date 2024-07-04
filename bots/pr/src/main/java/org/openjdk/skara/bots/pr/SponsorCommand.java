@@ -101,7 +101,8 @@ public class SponsorCommand implements CommandHandler {
                     bot.confOverrideName(),
                     bot.confOverrideRef(),
                     allComments,
-                    bot.reviewMerge());
+                    bot.reviewMerge(),
+                    new ReviewCoverage(bot.ignoreStaleReviews(), bot.includeSimpleMerges(), localRepo));
 
             // Validate the target hash if requested
             if (!command.args().isBlank()) {

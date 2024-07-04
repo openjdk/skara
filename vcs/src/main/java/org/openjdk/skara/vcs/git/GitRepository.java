@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -178,6 +178,10 @@ public class GitRepository implements Repository {
     @Override
     public Commits commits(int n, boolean reverse) throws IOException {
         return new GitCommits(dir, "--all", reverse, n);
+    }
+
+    public Commits commits(List<Hash> reachableFrom, List<Hash> unreachableFrom) throws IOException {
+        return new GitCommits(dir, reachableFrom, unreachableFrom);
     }
 
     @Override
@@ -994,6 +998,15 @@ public class GitRepository implements Repository {
                             .environ(currentEnv)
                             .execute()) {
             await(p);
+        }
+    }
+
+    public boolean isRemergeDiffEmpty(Hash hash) throws IOException {
+        try (var p = Process.capture("git", "show", "--remerge-diff", "--format=%b", hash.hex())
+                .workdir(dir)
+                .environ(currentEnv)
+                .execute()) {
+            return String.join("", await(p).stdout()).isEmpty();
         }
     }
 

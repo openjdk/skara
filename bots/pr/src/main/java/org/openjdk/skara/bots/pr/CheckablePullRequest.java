@@ -49,14 +49,16 @@ public class CheckablePullRequest {
     private final List<String> confOverride;
     private final List<Comment> comments;
     private final MergePullRequestReviewConfiguration reviewMerge;
+    private final ReviewCoverage reviewCoverage;
 
     CheckablePullRequest(PullRequest pr, Repository localRepo, boolean ignoreStaleReviews,
-            HostedRepository jcheckRepo, String jcheckName, String jcheckRef, List<Comment> comments, MergePullRequestReviewConfiguration reviewMerge) {
+            HostedRepository jcheckRepo, String jcheckName, String jcheckRef, List<Comment> comments, MergePullRequestReviewConfiguration reviewMerge, ReviewCoverage reviewCoverage) {
         this.pr = pr;
         this.localRepo = localRepo;
         this.ignoreStaleReviews = ignoreStaleReviews;
         this.comments = comments;
         this.reviewMerge = reviewMerge;
+        this.reviewCoverage = reviewCoverage;
 
         if (jcheckRepo != null) {
             confOverride = jcheckRepo.fileContents(jcheckName, jcheckRef).orElseThrow(
@@ -69,12 +71,7 @@ public class CheckablePullRequest {
 
     private String commitMessage(Hash head, List<Review> activeReviews, Namespace namespace, boolean manualReviewersAndStaleReviewers, Hash original) throws IOException {
         var eligibleReviews = activeReviews.stream()
-                                           // Reviews without a hash are never valid as they referred to no longer
-                                           // existing commits.
-                                           .filter(review -> review.hash().isPresent())
-                                           .filter(review -> review.targetRef().equals(pr.targetRef()))
-                                           .filter(review -> !ignoreStaleReviews || review.hash().orElseThrow().equals(pr.headHash()))
-                                           .filter(review -> review.verdict() == Review.Verdict.APPROVED)
+                                           .filter(review -> reviewCoverage.covers(review, pr))
                                            .collect(Collectors.toList());
         var reviewers = reviewerNames(eligibleReviews, namespace);
         var currentUser = pr.repository().forge().currentUser();

@@ -50,6 +50,7 @@ class PullRequestBot implements Bot {
     private final Map<String, Pattern> readyComments;
     private final IssueProject issueProject;
     private final boolean ignoreStaleReviews;
+    private final boolean includeSimpleMerges;
     private final Pattern allowedTargetBranches;
     private final Path seedStorage;
     private final HostedRepository confOverrideRepo;
@@ -89,7 +90,7 @@ class PullRequestBot implements Bot {
                    Map<String, String> blockingCheckLabels, Set<String> readyLabels,
                    Set<String> twoReviewersLabels, Set<String> twentyFourHoursLabels,
                    Map<String, Pattern> readyComments, IssueProject issueProject,
-                   boolean ignoreStaleReviews, Pattern allowedTargetBranches,
+                   boolean ignoreStaleReviews, boolean includeSimpleMerges, Pattern allowedTargetBranches,
                    Path seedStorage, HostedRepository confOverrideRepo, String confOverrideName,
                    String confOverrideRef, String censusLink, Map<String, HostedRepository> forks,
                    Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr, boolean enableJep,
@@ -109,6 +110,7 @@ class PullRequestBot implements Bot {
         this.issueProject = issueProject;
         this.readyComments = readyComments;
         this.ignoreStaleReviews = ignoreStaleReviews;
+        this.includeSimpleMerges = includeSimpleMerges;
         this.allowedTargetBranches = allowedTargetBranches;
         this.seedStorage = seedStorage;
         this.confOverrideRepo = confOverrideRepo;
@@ -300,6 +302,10 @@ class PullRequestBot implements Bot {
 
     boolean ignoreStaleReviews() {
         return ignoreStaleReviews;
+    }
+
+    boolean includeSimpleMerges() {
+        return includeSimpleMerges;
     }
 
     Pattern allowedTargetBranches() {

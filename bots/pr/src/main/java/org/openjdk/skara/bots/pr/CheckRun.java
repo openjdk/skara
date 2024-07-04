@@ -82,6 +82,7 @@ class CheckRun {
     private final boolean reviewCleanBackport;
     private final Approval approval;
     private final boolean reviewersCommandIssued;
+    private final ReviewCoverage reviewCoverage;
 
     private Duration expiresIn;
     // Only set if approval is configured for the repo
@@ -112,13 +113,15 @@ class CheckRun {
             reviewMerge = MergePullRequestReviewConfiguration.ALWAYS;
         }
 
+        reviewCoverage = new ReviewCoverage(workItem.bot.ignoreStaleReviews(), workItem.bot.includeSimpleMerges(), localRepo);
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
         checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews,
                 workItem.bot.confOverrideRepository().orElse(null),
                 workItem.bot.confOverrideName(),
                 workItem.bot.confOverrideRef(),
                 comments,
-                reviewMerge);
+                reviewMerge,
+                reviewCoverage);
     }
 
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
@@ -604,14 +607,12 @@ class CheckRun {
                                    } else {
                                        var hash = review.hash();
                                        if (hash.isPresent()) {
-                                           if (!hash.get().equals(pr.headHash())) {
-                                               if (ignoreStaleReviews) {
-                                                   entry += " 🔄 Re-review required (review applies to [" + hash.get().abbreviate()
-                                                           + "](" + pr.filesUrl(hash.get()) + "))";
-                                               } else {
-                                                   entry += " ⚠️ Review applies to [" + hash.get().abbreviate()
-                                                           + "](" + pr.filesUrl(hash.get()) + ")";
-                                               }
+                                           if (!reviewCoverage.covers(review, pr)) {
+                                               entry += " 🔄 Re-review required (review applies to [" + hash.get().abbreviate()
+                                                       + "](" + pr.filesUrl(hash.get()) + "))";
+                                           } else {
+                                               entry += " ⚠️ Review applies to [" + hash.get().abbreviate()
+                                                       + "](" + pr.filesUrl(hash.get()) + ")";
                                            }
                                        } else {
                                            entry += " 🔄 Re-review required (review applies to a commit that is no longer present)";
