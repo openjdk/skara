@@ -34,7 +34,6 @@ import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.*;
 import java.util.*;
@@ -55,7 +54,7 @@ class MailingListBridgeBotTests {
             if (mbox.isEmpty()) {
                 return Optional.empty();
             }
-            return Optional.of(Files.readString(mbox.get(), StandardCharsets.UTF_8));
+            return Optional.of(Files.readString(mbox.get()));
         } catch (IOException e) {
             return Optional.empty();
         }
@@ -96,7 +95,7 @@ class MailingListBridgeBotTests {
             if (index.isEmpty()) {
                 return false;
             }
-            var lines = Files.readString(index.get(), StandardCharsets.UTF_8);
+            var lines = Files.readString(index.get());
             return lines.contains(text);
         } catch (IOException e) {
             return false;
@@ -1139,7 +1138,7 @@ class MailingListBridgeBotTests {
             var reviewFile1 = Path.of("reviewfile.txt");
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile1);
             var reviewFile2 = Path.of("aardvark_reviewfile.txt");
-            Files.writeString(localRepo.root().resolve(reviewFile2), "1\n2\n3\n4\n5\n6\n", StandardCharsets.UTF_8);
+            Files.writeString(localRepo.root().resolve(reviewFile2), "1\n2\n3\n4\n5\n6\n");
             localRepo.add(reviewFile2);
             var masterHash = localRepo.commit("Another one", "duke", "duke@openjdk.org");
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
@@ -1471,10 +1470,10 @@ class MailingListBridgeBotTests {
             localRepo.push(initialHash, author.authenticatedUrl(), "master");
 
             // Make a change with a corresponding PR
-            var current = Files.readString(localRepo.root().resolve(reviewFile), StandardCharsets.UTF_8);
+            var current = Files.readString(localRepo.root().resolve(reviewFile));
             var updated = current.replaceAll("Line 2", "Line 2 edit\nLine 2.5");
             updated = updated.replaceAll("Line 13", "Line 12.5\nLine 13 edit");
-            Files.writeString(localRepo.root().resolve(reviewFile), updated, StandardCharsets.UTF_8);
+            Files.writeString(localRepo.root().resolve(reviewFile), updated);
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");

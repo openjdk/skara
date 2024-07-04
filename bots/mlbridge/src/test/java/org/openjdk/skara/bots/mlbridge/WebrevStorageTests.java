@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,7 +31,6 @@ import org.openjdk.skara.vcs.*;
 import org.junit.jupiter.api.*;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.UUID;
 
@@ -165,7 +164,7 @@ class WebrevStorageTests {
 
                 try {
                     var repo = Repository.materialize(scratchPath, archive.authenticatedUrl(), ref);
-                    Files.writeString(repo.root().resolve("intercept.txt"), UUID.randomUUID().toString(), StandardCharsets.UTF_8);
+                    Files.writeString(repo.root().resolve("intercept.txt"), UUID.randomUUID().toString());
                     repo.add(repo.root().resolve("intercept.txt"));
                     var commit = repo.commit("Concurrent unrelated commit", "duke", "duke@openjdk.org");
                     repo.push(commit, archive.authenticatedUrl(), ref);

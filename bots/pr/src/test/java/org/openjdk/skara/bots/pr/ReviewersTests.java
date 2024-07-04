@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,7 +28,6 @@ import org.openjdk.skara.test.*;
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -452,7 +451,7 @@ public class ReviewersTests {
 
             // Change the jcheck configuration
             var confPath = localRepo.root().resolve(".jcheck/conf");
-            var defaultConf = Files.readString(confPath, StandardCharsets.UTF_8);
+            var defaultConf = Files.readString(confPath);
             var newConf = defaultConf.replace("reviewers=1", """
                                                     lead=1
                                                     reviewers=1
@@ -579,7 +578,7 @@ public class ReviewersTests {
 
             // Change the jcheck configuration
             var confPath = localRepo.root().resolve(".jcheck/conf");
-            var defaultConf = Files.readString(confPath, StandardCharsets.UTF_8);
+            var defaultConf = Files.readString(confPath);
             var newConf = defaultConf.replace("reviewers=1", """
                                                     lead=0
                                                     reviewers=0

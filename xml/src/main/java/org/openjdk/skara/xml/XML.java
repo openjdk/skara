@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,6 @@
 package org.openjdk.skara.xml;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import org.w3c.dom.*;
@@ -39,7 +38,7 @@ public class XML {
         try {
             var factory = DocumentBuilderFactory.newInstance();
             var builder = factory.newDocumentBuilder();
-            return builder.parse(new InputSource(new ByteArrayInputStream(p.getBytes(StandardCharsets.UTF_8))));
+            return builder.parse(new InputSource(new StringReader(p)));
         } catch (ParserConfigurationException | SAXException e) {
             throw new RuntimeException(e);
         }

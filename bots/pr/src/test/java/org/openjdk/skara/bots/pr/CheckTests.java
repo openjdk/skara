@@ -31,7 +31,6 @@ import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.PosixFilePermission;
 import java.time.*;
@@ -622,10 +621,10 @@ class CheckTests {
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Make a change with a corresponding PR
-            Files.writeString(tempFolder.path().resolve("executable1.exe"), "Executable file contents", StandardCharsets.UTF_8);
+            Files.writeString(tempFolder.path().resolve("executable1.exe"), "Executable file contents");
             Files.setPosixFilePermissions(tempFolder.path().resolve("executable1.exe"), Set.of(PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.OWNER_READ));
             localRepo.add(Path.of("executable1.exe"));
-            Files.writeString(tempFolder.path().resolve("executable2.exe"), "Executable file contents", StandardCharsets.UTF_8);
+            Files.writeString(tempFolder.path().resolve("executable2.exe"), "Executable file contents");
             Files.setPosixFilePermissions(tempFolder.path().resolve("executable2.exe"), Set.of(PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.OWNER_READ));
             localRepo.add(Path.of("executable2.exe"));
             var editHash = localRepo.commit("Make it executable", "duke", "duke@openjdk.org");
@@ -1083,9 +1082,9 @@ class CheckTests {
 
             // Set the version to 17
             localRepo.checkout(localRepo.defaultBranch());
-            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"));
             var newConf = defaultConf.replace("project=test", "project=test\nversion=17");
-            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             var confHash = localRepo.commit("Set version as 17", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.authenticatedUrl(), "master", true);
@@ -1414,7 +1413,7 @@ class CheckTests {
 
             // Break the jcheck configuration on the "edit" branch
             var confPath = tempFolder.path().resolve(".jcheck/conf");
-            Files.writeString(confPath, "Hello there!", StandardCharsets.UTF_8);
+            Files.writeString(confPath, "Hello there!");
             localRepo.add(confPath);
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A change");
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
@@ -1935,9 +1934,9 @@ class CheckTests {
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Create a different conf on a different branch
-            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"));
             var newConf = defaultConf.replace("reviewers=1", "reviewers=0");
-            Files.writeString(localRepo.root().resolve("jcheck.conf"), newConf, StandardCharsets.UTF_8);
+            Files.writeString(localRepo.root().resolve("jcheck.conf"), newConf);
             localRepo.add(localRepo.root().resolve("jcheck.conf"));
             var confHash = localRepo.commit("Separate conf", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.authenticatedUrl(), "jcheck-branch", true);
@@ -1977,9 +1976,9 @@ class CheckTests {
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Create a different conf on a different branch
-            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"));
             var newConf = defaultConf.replace("reviewers=1", "reviewers=0");
-            Files.writeString(localRepo.root().resolve("jcheck.conf"), newConf, StandardCharsets.UTF_8);
+            Files.writeString(localRepo.root().resolve("jcheck.conf"), newConf);
             localRepo.add(localRepo.root().resolve("jcheck.conf"));
             var confHash = localRepo.commit("Separate conf", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.authenticatedUrl(), "jcheck-branch", true);
@@ -2107,9 +2106,9 @@ class CheckTests {
             PullRequestUtils.postPullRequestLinkComment(issue, pr);
 
             // Remove `version=0.1` from `.jcheck/conf`, set the version as null
-            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"));
             var newConf = defaultConf.replace("version=0.1", "");
-            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             var confHash = localRepo.commit("Set version as null", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.authenticatedUrl(), "edit", true);
@@ -2125,9 +2124,9 @@ class CheckTests {
             assertFalse(pr.store().body().contains(csr.title()));
 
             // Add `version=bla` to `.jcheck/conf`, set the version as a wrong value
-            defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"));
             newConf = defaultConf.replace("project=test", "project=test\nversion=bla");
-            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as a wrong value", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.authenticatedUrl(), "edit", true);
@@ -2142,9 +2141,9 @@ class CheckTests {
             assertFalse(pr.store().body().contains(csr.title()));
 
             // Set the `version` in `.jcheck/conf` as 17 which is an available version.
-            defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"));
             newConf = defaultConf.replace("version=bla", "version=17");
-            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 17", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.authenticatedUrl(), "edit", true);
@@ -2212,9 +2211,9 @@ class CheckTests {
             // Set the backport CSR to have multiple fix versions, included 11.
             backportCsr.setProperty("fixVersions", JSON.array().add("17").add("11").add("8"));
             // Set the `version` in `.jcheck/conf` as 11.
-            defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"));
             newConf = defaultConf.replace("version=17", "version=11");
-            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 11", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.authenticatedUrl(), "edit", true);
@@ -3171,9 +3170,9 @@ class CheckTests {
 
             //Make a change to .jcheck/conf in target branch
             localRepo.checkout(localRepo.defaultBranch());
-            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"));
             var newConf = defaultConf.replace("reviewers=1", "reviewers=2");
-            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf);
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             var confHash = localRepo.commit("set reviewers=2", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.authenticatedUrl(), "master", true);
@@ -3273,9 +3272,9 @@ class CheckTests {
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
             // Create a different conf on a different branch
-            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"));
             var newConf = defaultConf.replace("reviewers=1", "reviewers=0");
-            Files.writeString(localRepo.root().resolve("jcheck.conf"), newConf, StandardCharsets.UTF_8);
+            Files.writeString(localRepo.root().resolve("jcheck.conf"), newConf);
             localRepo.add(localRepo.root().resolve("jcheck.conf"));
             var confHash = localRepo.commit("Separate conf", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.authenticatedUrl(), "jcheck-branch", true);

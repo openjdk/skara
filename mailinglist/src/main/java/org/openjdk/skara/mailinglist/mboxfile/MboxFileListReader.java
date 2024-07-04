@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,6 @@ import org.openjdk.skara.email.*;
 import org.openjdk.skara.mailinglist.*;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.*;
 import java.util.*;
@@ -49,7 +48,7 @@ public class MboxFileListReader implements MailingListReader {
         for (var name : names) {
             try {
                 var file = base.resolve(name + ".mbox");
-                var currentMbox = Files.readString(file, StandardCharsets.UTF_8);
+                var currentMbox = Files.readString(file);
                 emails.addAll(Mbox.splitMbox(currentMbox, EmailAddress.from(name + "@mbox.file")));
             } catch (IOException e) {
                 log.info("Failed to open mbox file");

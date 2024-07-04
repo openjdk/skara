@@ -33,7 +33,6 @@ import org.openjdk.skara.vcs.*;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -157,7 +156,7 @@ public class TestHost implements Forge, IssueTracker {
         data.folders.add(folder);
         try {
             var repo = TestableRepository.init(folder.path().resolve("hosted.git"), VCS.GIT);
-            Files.writeString(repo.root().resolve("content.txt"), "Initial content", StandardCharsets.UTF_8);
+            Files.writeString(repo.root().resolve("content.txt"), "Initial content");
             repo.add(repo.root().resolve("content.txt"));
             var hash = repo.commit("Initial content", "author", "author@none");
             repo.push(hash, repo.root().toUri(), "testhostcontent");

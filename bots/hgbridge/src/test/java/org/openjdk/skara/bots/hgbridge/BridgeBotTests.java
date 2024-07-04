@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,7 +35,6 @@ import org.junit.jupiter.api.*;
 
 import java.io.*;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -76,7 +75,7 @@ class BridgeBotTests {
 
             var initialFile = marksLocalRepo.root().resolve("init.txt");
             if (!Files.exists(initialFile)) {
-                Files.writeString(initialFile, "Hello", StandardCharsets.UTF_8);
+                Files.writeString(initialFile, "Hello");
                 marksLocalRepo.add(initialFile);
                 var hash = marksLocalRepo.commit("First", "duke", "duke@duke.duke");
                 marksLocalRepo.checkout(hash, true); // Have to move away from the master branch to allow pushes
@@ -142,7 +141,7 @@ class BridgeBotTests {
             runHgCommand(localRepo, "update", "null");
             runHgCommand(localRepo, "branch", "testlock");
             var lockFile = localRepo.root().resolve("lock.txt");
-            Files.writeString(lockFile, ZonedDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), StandardCharsets.UTF_8);
+            Files.writeString(lockFile, ZonedDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME));
             localRepo.add(lockFile);
             localRepo.commit("Lock", "duke", "Duke <duke@openjdk.org>");
         } catch (IOException e) {

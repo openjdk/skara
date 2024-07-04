@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,7 +33,6 @@ import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.version.Version;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.Duration;
 import java.util.*;
@@ -118,7 +117,7 @@ public class BotLauncher {
 
     private static JSONObject readConfiguration(Path jsonFile) {
         try {
-            return JWCC.parse(Files.readString(jsonFile, StandardCharsets.UTF_8)).asObject();
+            return JWCC.parse(Files.readString(jsonFile)).asObject();
         } catch (IOException e) {
             throw new RuntimeException("Failed to open configuration file: " + jsonFile);
         }

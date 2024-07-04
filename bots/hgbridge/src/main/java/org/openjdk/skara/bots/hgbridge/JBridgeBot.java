@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -86,7 +86,7 @@ public class JBridgeBot implements Bot, WorkItem {
             }
         }
 
-        Files.writeString(markDest, updated, StandardCharsets.UTF_8);
+        Files.writeString(markDest, updated);
         marksRepo.add(markDest);
         var hash = marksRepo.commit("Updated marks", exporterConfig.marksAuthorName(), exporterConfig.marksAuthorEmail());
         marksRepo.push(hash, exporterConfig.marksRepo().authenticatedUrl(), exporterConfig.marksRef());

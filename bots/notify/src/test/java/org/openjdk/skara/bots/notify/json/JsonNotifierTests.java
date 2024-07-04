@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,7 +28,6 @@ import org.openjdk.skara.json.*;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -82,9 +81,9 @@ public class JsonNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
             var jsonFiles = findJsonFiles(jsonFolder, "");
             assertEquals(2, jsonFiles.size());
-            var jsonData = Files.readString(jsonFiles.get(0), StandardCharsets.UTF_8);
+            var jsonData = Files.readString(jsonFiles.get(0));
             if (JSON.parse(jsonData).asArray().size() != 1) {
-                jsonData = Files.readString(jsonFiles.get(1), StandardCharsets.UTF_8);
+                jsonData = Files.readString(jsonFiles.get(1));
             }
             var json = JSON.parse(jsonData);
             assertEquals(1, json.asArray().size());
@@ -141,7 +140,7 @@ public class JsonNotifierTests {
             assertEquals(4, jsonFiles.size());
 
             for (var file : jsonFiles) {
-                var jsonData = Files.readString(file, StandardCharsets.UTF_8);
+                var jsonData = Files.readString(file);
                 var json = JSON.parse(jsonData);
 
                 if (json.asArray().get(0).contains("date")) {

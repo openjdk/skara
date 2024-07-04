@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,7 +32,6 @@ import org.openjdk.skara.vcs.openjdk.*;
 import java.io.*;
 import java.net.URI;
 import java.net.http.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -141,12 +140,12 @@ public class GitMlRules {
                                          var cacheFile = tmpFolder.resolve(req.uri().getPath().replace("/pipermail/", "").replace("/", "-"));
                                          if (Files.exists(cacheFile)) {
                                              log.fine("Reading " + req.uri() + " from cache");
-                                             return Files.readString(cacheFile, StandardCharsets.UTF_8);
+                                             return Files.readString(cacheFile);
                                          }
                                          System.out.println("Fetching " + req.uri().toString());
                                          var body = client.send(req, HttpResponse.BodyHandlers.ofString());
                                          System.out.println("Done fetching " + req.uri().toString());
-                                         Files.writeString(cacheFile, body.body(), StandardCharsets.UTF_8);
+                                         Files.writeString(cacheFile, body.body());
                                          return body.body();
                                      } catch (IOException | InterruptedException e) {
                                          throw new RuntimeException(e);
@@ -398,7 +397,7 @@ public class GitMlRules {
 
         RuleParser(String rulesFile) throws IOException {
             System.out.println("Reading rules file...");
-            var rules = JSON.parse(Files.readString(Path.of(rulesFile), StandardCharsets.UTF_8));
+            var rules = JSON.parse(Files.readString(Path.of(rulesFile)));
 
             matchers = rules.get("matchers").fields().stream()
                             .collect(Collectors.toMap(JSONObject.Field::name,
@@ -662,7 +661,7 @@ public class GitMlRules {
                     "\n}";
             if (arguments.contains("output")) {
                 System.out.println("Writing final output to " + arguments.get("output").asString());
-                Files.writeString(Path.of(arguments.get("output").asString()), finalResult, StandardCharsets.UTF_8);
+                Files.writeString(Path.of(arguments.get("output").asString()), finalResult);
             } else {
                 System.out.println(finalResult);
             }

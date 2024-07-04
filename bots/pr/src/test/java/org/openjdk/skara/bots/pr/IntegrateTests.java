@@ -29,7 +29,6 @@ import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.*;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 
@@ -581,7 +580,7 @@ class IntegrateTests {
             // Break the census to cause an exception
             var localCensus = Repository.materialize(censusFolder.path(), censusRepo.authenticatedUrl(), "+master:current_census");
             var currentCensusHash = localCensus.resolve("current_census").orElseThrow();
-            Files.writeString(censusFolder.path().resolve("contributors.xml"), "This is not xml", StandardCharsets.UTF_8);
+            Files.writeString(censusFolder.path().resolve("contributors.xml"), "This is not xml");
             localCensus.add(censusFolder.path().resolve("contributors.xml"));
             var badCensusHash = localCensus.commit("Bad census update", "duke", "duke@openjdk.org");
             localCensus.push(badCensusHash, censusRepo.authenticatedUrl(), "master", true);
