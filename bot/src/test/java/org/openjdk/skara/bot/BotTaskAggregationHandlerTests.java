@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -116,9 +116,9 @@ class BotTaskAggregationHandlerTests {
                 Logger log = Logger.getGlobal();
                 countDownLatch.await();
                 for (int i = 0; i < numLoops; ++i) {
-                    log.log(Level.FINEST, Long.toString(Thread.currentThread().getId()), BotRunner.TaskPhases.BEGIN);
-                    log.log(Level.FINEST, Long.toString(Thread.currentThread().getId()), BotRunner.TaskPhases.END);
-                    log.log(Level.FINEST, Long.toString(Thread.currentThread().getId()));
+                    log.log(Level.FINEST, Long.toString(Thread.currentThread().threadId()), BotRunner.TaskPhases.BEGIN);
+                    log.log(Level.FINEST, Long.toString(Thread.currentThread().threadId()), BotRunner.TaskPhases.END);
+                    log.log(Level.FINEST, Long.toString(Thread.currentThread().threadId()));
                 }
             } catch (InterruptedException e) {
                 fail(e);
