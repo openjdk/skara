@@ -300,7 +300,7 @@ public class GitHubHost implements Forge {
             }
             log.fine("Searching too fast - waiting");
             try {
-                Thread.sleep(Duration.ofMillis(500).toMillis());
+                Thread.sleep(Duration.ofMillis(500));
             } catch (InterruptedException ignored) {
             }
         }

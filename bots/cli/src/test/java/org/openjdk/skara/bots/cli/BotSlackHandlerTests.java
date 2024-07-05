@@ -98,7 +98,7 @@ class BotSlackHandlerTests {
             assertEquals("test", lastRequest.get("username").asString(), lastRequest.toString());
             assertTrue(lastRequest.get("text").asString().contains("Hello"), lastRequest.toString());
 
-            Thread.sleep(maxDuration.toMillis());
+            Thread.sleep(maxDuration);
             var record = new LogRecord(Level.INFO, "Hello a final time!");
             handler.publish(record);
             lastRequest = requests.getLast().asObject();

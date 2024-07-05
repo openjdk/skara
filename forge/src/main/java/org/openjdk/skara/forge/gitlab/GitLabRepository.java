@@ -406,7 +406,7 @@ public class GitLabRepository implements HostedRepository {
         var forkedRepoName = namespace + "/" + nameOnly;
         while (!gitLabHost.isProjectForkComplete(forkedRepoName)) {
             try {
-                Thread.sleep(Duration.ofSeconds(1).toMillis());
+                Thread.sleep(Duration.ofSeconds(1));
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

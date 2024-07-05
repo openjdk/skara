@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,6 @@ import java.time.Duration;
 
 public class BotWatchdog {
     private final Thread watchThread;
-    private final long maxWaitMillis;
     private final Duration maxWait;
     private final Runnable callBack;
     private volatile boolean hasBeenPinged = false;
@@ -34,7 +33,7 @@ public class BotWatchdog {
     private void threadMain() {
         while (true) {
             try {
-                Thread.sleep(maxWaitMillis);
+                Thread.sleep(maxWait);
                 if (!hasBeenPinged) {
                     System.out.println("No watchdog ping detected for " + maxWait + " - exiting...");
                     callBack.run();
@@ -49,7 +48,6 @@ public class BotWatchdog {
     BotWatchdog(Duration maxWait, Runnable callBack) {
         this.maxWait = maxWait;
         this.callBack = callBack;
-        maxWaitMillis = maxWait.toMillis();
         watchThread = new Thread(this::threadMain);
         watchThread.setName("BotWatchdog");
         watchThread.setDaemon(true);
