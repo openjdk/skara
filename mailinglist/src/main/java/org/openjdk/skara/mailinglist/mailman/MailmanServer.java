@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -55,7 +55,7 @@ public class MailmanServer implements MailingListServer {
     void sendMessage(Email message) {
         while (lastSend.plus(sendInterval).isAfter(Instant.now())) {
             try {
-                Thread.sleep(sendInterval.dividedBy(10).toMillis());
+                Thread.sleep(sendInterval.dividedBy(10));
             } catch (InterruptedException ignored) {
             }
         }

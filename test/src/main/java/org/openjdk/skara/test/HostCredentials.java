@@ -355,7 +355,7 @@ public class HostCredentials implements AutoCloseable {
                     throw e;
                 }
                 try {
-                    Thread.sleep(Duration.ofSeconds(1).toMillis());
+                    Thread.sleep(Duration.ofSeconds(1));
                     retryCount++;
                 } catch (InterruptedException ignored) {
                 }

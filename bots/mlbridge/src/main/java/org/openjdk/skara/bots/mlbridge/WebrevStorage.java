@@ -277,7 +277,7 @@ class WebrevStorage {
                     }
                 }
                 log.info(response.statusCode() + " when checking " + uncachedUri + " - waiting...");
-                Thread.sleep(Duration.ofSeconds(10).toMillis());
+                Thread.sleep(Duration.ofSeconds(10));
             } catch (InterruptedException ignored) {
             }
         }

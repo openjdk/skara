@@ -348,7 +348,7 @@ public class RestRequest {
             } catch (InterruptedException | IOException e) {
                 if (retryCount < 5) {
                     try {
-                        Thread.sleep(retryCount * retryBackoffStep.toMillis());
+                        Thread.sleep(retryBackoffStep.multipliedBy(retryCount));
                     } catch (InterruptedException ignored) {
                     }
                 } else {
