@@ -230,12 +230,16 @@ public class PullRequestUtils {
     public static void postPullRequestLinkComment(Issue issue, PullRequest pr) {
         var alreadyPostedComment = issue.comments().stream()
                 .filter(comment -> comment.author().equals(issue.project().issueTracker().currentUser()))
-                .anyMatch(comment -> comment.body().contains(pullRequestMessage) && comment.body().contains(pr.webUrl().toString()));
-        if (!alreadyPostedComment) {
-            String builder = pullRequestMessage + "\n" +
-                    "URL: " + pr.webUrl().toString() + "\n" +
-                    "Date: " + pr.createdAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000"));
-            issue.addComment(builder);
+                .filter(comment -> comment.body().contains(pullRequestMessage) && comment.body().contains(pr.webUrl().toString()))
+                .findFirst();
+        String message = pullRequestMessage + "\n" +
+                "Branch: " + pr.targetRef() + "\n" +
+                "URL: " + pr.webUrl().toString() + "\n" +
+                "Date: " + pr.createdAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000"));
+        if (alreadyPostedComment.isEmpty()) {
+            issue.addComment(message);
+        } else if (!alreadyPostedComment.get().body().equals(message)) {
+            issue.updateComment(alreadyPostedComment.get().id(), message);
         }
     }
 
@@ -273,7 +277,7 @@ public class PullRequestUtils {
         if (!lines.get(0).equals(pullRequestMessage)) {
             return Optional.empty();
         }
-        var urlMatcher = PR_URL_PATTERN.matcher(lines.get(1));
+        var urlMatcher = PR_URL_PATTERN.matcher(lines.get(2));
         if (urlMatcher.matches()) {
             var url = urlMatcher.group(1);
             try {

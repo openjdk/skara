@@ -42,6 +42,8 @@ public interface PullRequestListener {
     }
     default void onStateChange(PullRequest pr, Path scratchPath, org.openjdk.skara.issuetracker.Issue.State oldState) {
     }
+    default void onTargetBranchChange(PullRequest pr, Path scratchPath, Issue issue) {
+    }
     String name();
 
     default void initialize(HostedRepository repo) {

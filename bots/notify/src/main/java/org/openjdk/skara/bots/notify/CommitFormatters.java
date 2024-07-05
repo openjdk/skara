@@ -29,11 +29,14 @@ import java.io.*;
 import java.time.format.DateTimeFormatter;
 
 public class CommitFormatters {
-    public static String toTextBrief(HostedRepository repository, Commit commit) {
+    public static String toTextBrief(HostedRepository repository, Commit commit, Branch branch) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
         printer.println("Changeset: " + commit.hash().abbreviate());
+        if (branch != null) {
+            printer.println("Branch: " + branch.name());
+        }
         printer.println("Author:    " + commit.author().name() + " <" + commit.author().email() + ">");
         if (!commit.author().equals(commit.committer())) {
             printer.println("Committer: " + commit.committer().name() + " <" + commit.committer().email() + ">");
@@ -56,11 +59,11 @@ public class CommitFormatters {
         }
     }
 
-    public static String toText(HostedRepository repository, Commit commit) {
+    public static String toText(HostedRepository repository, Commit commit, Branch branch) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
-        printer.print(toTextBrief(repository, commit));
+        printer.print(toTextBrief(repository, commit, branch));
         printer.println();
         printer.println(String.join("\n", commit.message()));
         printer.println();

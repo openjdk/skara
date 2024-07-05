@@ -196,8 +196,8 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
             var issue = optionalIssue.get();
 
             if (commitLink) {
-                var linkBuilder = Link.create(repository.webUrl(hash), "Commit")
-                                      .summary(repository.name() + "/" + hash.abbreviate());
+                var linkBuilder = Link.create(repository.webUrl(hash), "Commit(" + pr.targetRef() + ")")
+                        .summary(repository.name() + "/" + hash.abbreviate());
                 if (commitIcon != null) {
                     linkBuilder.iconTitle("Commit");
                     linkBuilder.iconUrl(commitIcon);
@@ -224,6 +224,42 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         }
     }
 
+    public void onTargetBranchChange(PullRequest pr, Path scratchPath, org.openjdk.skara.vcs.openjdk.Issue issue) {
+        var realIssue = issueProject.issue(issue.shortId());
+        if (realIssue.isEmpty()) {
+            log.warning("Pull request " + pr + " added unknown issue: " + issue.id());
+            return;
+        }
+
+        if (reviewLink) {
+            // Remove the previous link
+            removeReviewLink(pr, realIssue.get());
+            // Add a new link
+            addReviewLink(pr, realIssue.get());
+        }
+
+        log.info("Updating review link comment to issue " + realIssue.get().id());
+        PullRequestUtils.postPullRequestLinkComment(realIssue.get(), pr);
+    }
+
+    private void addReviewLink(PullRequest pr, IssueTrackerIssue realIssue) {
+        var linkBuilder = Link.create(pr.webUrl(), "Review(" + pr.targetRef() + ")")
+                .summary(pr.repository().name() + "/" + pr.id());
+        if (reviewIcon != null) {
+            linkBuilder.iconTitle("Review");
+            linkBuilder.iconUrl(reviewIcon);
+        }
+
+        log.info("Adding review link to issue " + realIssue.id());
+        realIssue.addLink(linkBuilder.build());
+    }
+
+    private void removeReviewLink(PullRequest pr, IssueTrackerIssue realIssue) {
+        log.info("Removing review links from issue " + realIssue.id());
+        var link = Link.create(pr.webUrl(), "").build();
+        realIssue.removeLink(link);
+    }
+
     @Override
     public void onNewIssue(PullRequest pr, Path scratchPath, org.openjdk.skara.vcs.openjdk.Issue issue) {
         var realIssue = issueProject.issue(issue.shortId());
@@ -233,15 +269,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         }
 
         if (reviewLink) {
-            var linkBuilder = Link.create(pr.webUrl(), "Review")
-                                  .summary(pr.repository().name() + "/" + pr.id());
-            if (reviewIcon != null) {
-                linkBuilder.iconTitle("Review");
-                linkBuilder.iconUrl(reviewIcon);
-            }
-
-            log.info("Adding review link to issue " + realIssue.get().id());
-            realIssue.get().addLink(linkBuilder.build());
+            addReviewLink(pr, realIssue.get());
         }
 
         log.info("Adding review link comment to issue " + realIssue.get().id());
@@ -256,9 +284,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
             return;
         }
 
-        log.info("Removing review links from issue " + realIssue.get().id());
-        var link = Link.create(pr.webUrl(), "").build();
-        realIssue.get().removeLink(link);
+        removeReviewLink(pr, realIssue.get());
 
         PullRequestUtils.removePullRequestLinkComment(realIssue.get(), pr);
     }
@@ -267,7 +293,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     public void onNewCommits(HostedRepository repository, Repository localRepository, Path scratchPath, List<Commit> commits, Branch branch) {
         for (var commit : commits) {
             var linkRepository = originalRepository != null ? originalRepository : repository;
-            var commitNotification = CommitFormatters.toTextBrief(linkRepository, commit);
+            var commitNotification = CommitFormatters.toTextBrief(linkRepository, commit, branch);
             var commitMessage = CommitMessageParsers.v1.parse(commit);
             var username = findIssueUsername(commit, scratchPath);
 

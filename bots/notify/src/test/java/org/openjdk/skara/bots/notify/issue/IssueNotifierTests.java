@@ -144,7 +144,7 @@ public class IssueNotifierTests {
             assertEquals(1, links.size());
             var link = links.get(0);
             assertEquals(commitIcon, link.iconUrl().orElseThrow());
-            assertEquals("Commit", link.title().orElseThrow());
+            assertEquals("Commit(master)", link.title().orElseThrow());
             assertEquals(repo.webUrl(editHash), link.uri().orElseThrow());
 
             // Wipe the history
@@ -1662,7 +1662,7 @@ public class IssueNotifierTests {
 
             // Add a comment for the fix with the old url hash format
             var lastCommit = localRepo.commits().stream().findFirst().orElseThrow();
-            issue.addComment(CommitFormatters.toTextBrief(repo, lastCommit).replace(editHash.toString(), editHash.abbreviate()));
+            issue.addComment(CommitFormatters.toTextBrief(repo, lastCommit, new Branch("master")).replace(editHash.toString(), editHash.abbreviate()));
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Verify that the planted comment is still the only one
@@ -2225,7 +2225,7 @@ public class IssueNotifierTests {
             assertEquals(1, links.size());
             var link = links.get(0);
             assertEquals(reviewIcon, link.iconUrl().orElseThrow());
-            assertEquals("Review", link.title().orElseThrow());
+            assertEquals("Review(master)", link.title().orElseThrow());
             assertEquals(pr.webUrl(), link.uri().orElseThrow());
 
             // Wipe the history
@@ -2496,6 +2496,80 @@ public class IssueNotifierTests {
 
             // Not Labels should have propagated
             assertEquals(0, updatedBackport.labelNames().size());
+        }
+    }
+
+    @Test
+    void testTargetBranchUpdate(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.authenticatedUrl());
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var issueProject = credentials.getIssueProject();
+            var reviewIcon = URI.create("http://www.example.com/review.png");
+            var notifyBot = NotifyBot.newBuilder()
+                    .repository(repo)
+                    .storagePath(storageFolder)
+                    .branches(Pattern.compile("master"))
+                    .tagStorageBuilder(tagStorage)
+                    .branchStorageBuilder(branchStorage)
+                    .prStateStorageBuilder(prStateStorage)
+                    .integratorId(repo.forge().currentUser().id())
+                    .build();
+            var updater = IssueNotifier.newBuilder()
+                    .issueProject(issueProject)
+                    .reviewLink(true)
+                    .reviewIcon(reviewIcon)
+                    .build();
+            // Register a RepositoryListener to make history initialize on the first run
+            notifyBot.registerRepositoryListener(new NullRepositoryListener());
+            updater.attachTo(notifyBot);
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Save the state
+            var historyState = localRepo.fetch(repo.authenticatedUrl(), "history").orElseThrow();
+
+            // Create an issue and commit a fix
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
+            var pr = credentials.createPullRequest(repo, "master", "master", issue.id() + ": Fix that issue");
+            pr.addLabel("rfr");
+            pr.setBody("\n\n### Issue\n * [" + issue.id() + "](http://www.test.test/): The issue");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // There should be a review link
+            var links = issue.links();
+            assertEquals(1, links.size());
+            var link = links.get(0);
+            assertEquals(reviewIcon, link.iconUrl().orElseThrow());
+            assertEquals("Review(master)", link.title().orElseThrow());
+            assertEquals(pr.webUrl(), link.uri().orElseThrow());
+            assertTrue(issue.comments().getLast().body().contains("Branch: master"));
+
+            // Retarget the pr
+            pr.setTargetRef("jdk23");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The review link should be updated
+            links = issue.links();
+            assertEquals(1, links.size());
+            link = links.get(0);
+            assertEquals(reviewIcon, link.iconUrl().orElseThrow());
+            assertEquals("Review(jdk23)", link.title().orElseThrow());
+            assertEquals(pr.webUrl(), link.uri().orElseThrow());
+            assertTrue(issue.comments().getLast().body().contains("Branch: jdk23"));
         }
     }
 }
