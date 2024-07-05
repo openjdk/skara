@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,6 @@ package org.openjdk.skara.forge.internal;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
@@ -49,7 +48,7 @@ public class ForgeUtils {
         var cfgFile = cfgPath.resolve("config");
         var existing = "";
         try {
-            existing = Files.readString(cfgFile, StandardCharsets.UTF_8);
+            existing = Files.readString(cfgFile);
         } catch (IOException ignored) {
         }
 
@@ -65,7 +64,7 @@ public class ForgeUtils {
                 "\n";
 
         try {
-            Files.writeString(cfgFile, result + filtered.strip() + "\n", StandardCharsets.UTF_8);
+            Files.writeString(cfgFile, result + filtered.strip() + "\n");
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

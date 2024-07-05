@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,6 @@
 package org.openjdk.skara.storage;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 
@@ -45,7 +44,7 @@ class FileStorage<T> implements Storage<T> {
     public Set<T> current() {
         if (current == null) {
             try {
-                current = Files.readString(file, StandardCharsets.UTF_8);
+                current = Files.readString(file);
             } catch (IOException e) {
                 current = "";
             }
@@ -68,7 +67,7 @@ class FileStorage<T> implements Storage<T> {
             if (!Files.exists(file)) {
                 Files.createFile(file);
             }
-            Files.writeString(file, updated, StandardCharsets.UTF_8);
+            Files.writeString(file, updated);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

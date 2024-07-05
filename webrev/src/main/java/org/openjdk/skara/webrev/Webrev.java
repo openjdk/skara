@@ -30,7 +30,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -331,9 +330,9 @@ public class Webrev {
                 commits.add(c);
             }
 
-            Files.writeString(output.resolve("metadata.json"), metadata.toString(), StandardCharsets.UTF_8);
-            Files.writeString(output.resolve("comparison.json"), comparison.toString(), StandardCharsets.UTF_8);
-            Files.writeString(output.resolve("commits.json"), commits.toString(), StandardCharsets.UTF_8);
+            Files.writeString(output.resolve("metadata.json"), metadata.toString());
+            Files.writeString(output.resolve("comparison.json"), comparison.toString());
+            Files.writeString(output.resolve("commits.json"), commits.toString());
         }
 
         private void generate(Diff diff, Hash tailEnd, Hash head) throws IOException, DiffTooLargeException {

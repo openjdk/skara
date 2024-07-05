@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,6 @@ import org.openjdk.skara.email.Email;
 import org.openjdk.skara.mailinglist.*;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -50,10 +49,10 @@ public class MboxFileListServer implements MailingListServer {
             }
         }
         try {
-            Files.writeString(file, mboxMail, StandardCharsets.UTF_8, StandardOpenOption.APPEND);
+            Files.writeString(file, mboxMail, StandardOpenOption.APPEND);
         } catch (IOException e) {
             try {
-                Files.writeString(file, mboxMail, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+                Files.writeString(file, mboxMail, StandardOpenOption.CREATE_NEW);
             } catch (IOException e1) {
                 throw new UncheckedIOException(e);
             }
@@ -63,7 +62,7 @@ public class MboxFileListServer implements MailingListServer {
     private void postReply(Path file, Email mail) {
         var mboxMail = Mbox.fromMail(mail);
         try {
-            Files.writeString(file, mboxMail, StandardCharsets.UTF_8, StandardOpenOption.APPEND);
+            Files.writeString(file, mboxMail, StandardOpenOption.APPEND);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,7 +29,6 @@ import org.openjdk.skara.vcs.openjdk.convert.*;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -142,7 +141,7 @@ class ExporterConfig {
     private <K, V> Map<K, V> parseMap(Path base, List<String> files, FieldParser<K> keyParser, FieldParser<V> valueParser) throws IOException {
         var ret = new HashMap<K, V>();
         for (var file : files) {
-            var jsonData = Files.readString(base.resolve(file), StandardCharsets.UTF_8);
+            var jsonData = Files.readString(base.resolve(file));
             var json = JSON.parse(jsonData);
             for (var field : json.fields()) {
                 ret.put(keyParser.parse(field), valueParser.parse(field));
@@ -158,7 +157,7 @@ class ExporterConfig {
     private <E> Set<E> parseCommits(Path base, List<String> files, ValueParser<E> valueParser) throws IOException {
         var ret = new HashSet<E>();
         for (var file : files) {
-            var jsonData = Files.readString(base.resolve(file), StandardCharsets.UTF_8);
+            var jsonData = Files.readString(base.resolve(file));
             var json = JSON.parse(jsonData);
             for (var value : json.get("commits").asArray()) {
                 ret.add(valueParser.parse(value));

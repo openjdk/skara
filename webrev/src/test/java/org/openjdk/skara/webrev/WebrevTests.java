@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,7 +30,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -48,10 +47,10 @@ class WebrevTests {
              var webrevFolder = new TemporaryDirectory()) {
             var repo = TestableRepository.init(repoFolder.path(), vcs);
             var file = repoFolder.path().resolve("x.txt");
-            Files.writeString(file, "1\n2\n3\n", StandardCharsets.UTF_8);
+            Files.writeString(file, "1\n2\n3\n");
             repo.add(file);
             var hash1 = repo.commit("Commit", "a", "a@a.a");
-            Files.writeString(file, "1\n2\n3\n4\n", StandardCharsets.UTF_8);
+            Files.writeString(file, "1\n2\n3\n4\n");
             repo.add(file);
             var hash2 = repo.commit("Commit 2", "a", "a@a.a");
 
@@ -68,10 +67,10 @@ class WebrevTests {
              var webrevFolder = new TemporaryDirectory()) {
             var repo = TestableRepository.init(repoFolder.path(), vcs);
             var file = repoFolder.path().resolve("x.txt");
-            Files.writeString(file, "1\n2\n3\n4\n5\n6\n7\n8\n9\n", StandardCharsets.UTF_8);
+            Files.writeString(file, "1\n2\n3\n4\n5\n6\n7\n8\n9\n");
             repo.add(file);
             var hash1 = repo.commit("Commit", "a", "a@a.a");
-            Files.writeString(file, "1\n2\n3\n4\n5\n5.1\n5.2\n6\n7\n8\n9\n", StandardCharsets.UTF_8);
+            Files.writeString(file, "1\n2\n3\n4\n5\n5.1\n5.2\n6\n7\n8\n9\n");
             repo.add(file);
             var hash2 = repo.commit("Commit 2", "a", "a@a.a");
 
@@ -87,10 +86,10 @@ class WebrevTests {
         var webrevFolder = new TemporaryDirectory()) {
             var repo = TestableRepository.init(repoFolder.path(), vcs);
             var file = repoFolder.path().resolve("x.txt");
-            Files.writeString(file, "1\n2\n3\n", StandardCharsets.UTF_8);
+            Files.writeString(file, "1\n2\n3\n");
             repo.add(file);
             var hash1 = repo.commit("Commit", "a", "a@a.a");
-            Files.writeString(file, "0\n1\n2\n3\n", StandardCharsets.UTF_8);
+            Files.writeString(file, "0\n1\n2\n3\n");
             repo.add(file);
             var hash2 = repo.commit("Commit 2", "a", "a@a.a");
 
@@ -106,10 +105,10 @@ class WebrevTests {
              var webrevFolder = new TemporaryDirectory()) {
             var repo = TestableRepository.init(repoFolder.path(), vcs);
             var file = repoFolder.path().resolve("x.txt");
-            Files.writeString(file, "1\n2\n3\n4\n5\n6\n7\n8\n9\n", StandardCharsets.UTF_8);
+            Files.writeString(file, "1\n2\n3\n4\n5\n6\n7\n8\n9\n");
             repo.add(file);
             var hash1 = repo.commit("Commit", "a", "a@a.a");
-            Files.writeString(file, "5\n6\n7\n8\n9\n", StandardCharsets.UTF_8);
+            Files.writeString(file, "5\n6\n7\n8\n9\n");
             repo.add(file);
             var hash2 = repo.commit("Commit 2", "a", "a@a.a");
 
@@ -183,10 +182,10 @@ class WebrevTests {
              var webrevFolder = new TemporaryDirectory()) {
             var repo = TestableRepository.init(repoFolder.path(), vcs);
             var file = repoFolder.path().resolve("index.html");
-            Files.writeString(file, "1\n2\n3\n", StandardCharsets.UTF_8);
+            Files.writeString(file, "1\n2\n3\n");
             repo.add(file);
             var hash1 = repo.commit("Commit", "a", "a@a.a");
-            Files.writeString(file, "1\n2\n3\n4\n", StandardCharsets.UTF_8);
+            Files.writeString(file, "1\n2\n3\n4\n");
             repo.add(file);
             var hash2 = repo.commit("Commit 2", "a", "a@a.a");
 

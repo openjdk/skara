@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@ package org.openjdk.skara.bots.notify.json;
 import org.openjdk.skara.json.*;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.UUID;
 
@@ -41,7 +40,7 @@ class JsonWriter implements AutoCloseable {
         var finalName = path.resolve(String.format("%s.%03d.json", baseName, sequence));
 
         try {
-            Files.write(tempName, current.toString().getBytes(StandardCharsets.UTF_8));
+            Files.writeString(tempName, current.toString());
             Files.move(tempName, finalName);
         } catch (IOException e) {
             throw new UncheckedIOException(e);

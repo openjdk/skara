@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +27,6 @@ import org.openjdk.skara.email.*;
 import org.openjdk.skara.test.TemporaryDirectory;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Duration;
 
@@ -188,7 +187,7 @@ class MboxTests {
                                       Sometimes there are unencoded from lines as well
 
                                       From this point onwards, it may be hard to parse this
-                                      """, StandardCharsets.UTF_8);
+                                      """);
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
             var list = mbox.getListReader("test");
             var conversations = list.conversations(Duration.ofDays(365 * 100));
@@ -221,8 +220,7 @@ class MboxTests {
                                       Message-ID: <def456@example.com>
 
                                       Second message
-                                      """,
-                              StandardCharsets.UTF_8);
+                                      """);
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
             var list = mbox.getListReader("test");
             var conversations = list.conversations(Duration.ofDays(365 * 100));
@@ -262,8 +260,7 @@ class MboxTests {
                                       Message-ID: <def456@example.com>
 
                                       Second message
-                                      """,
-                              StandardCharsets.UTF_8);
+                                      """);
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
             var list = mbox.getListReader("test");
             var conversations = list.conversations(Duration.ofDays(365 * 100));
@@ -303,8 +300,7 @@ class MboxTests {
                                       Message-ID: <ghi789@example.com>
 
                                       Third message
-                                      """,
-                              StandardCharsets.UTF_8);
+                                      """);
             var rawMbox2 = folder.path().resolve("test2.mbox");
             Files.writeString(rawMbox2, """
                                       From test3 at example.com  Wed Aug 21 17:42:50 2019
@@ -324,8 +320,7 @@ class MboxTests {
                                       Message-ID: <def456@example.com>
 
                                       Second message
-                                      """,
-                              StandardCharsets.UTF_8);
+                                      """);
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
             var list = mbox.getListReader("test1", "test2");
             var conversations = list.conversations(Duration.ofDays(365 * 100));
@@ -356,8 +351,7 @@ class MboxTests {
                                       Message-ID: <ghi789@example.com>
 
                                       Third message
-                                      """,
-                              StandardCharsets.UTF_8);
+                                      """);
             var rawMbox2 = folder.path().resolve("test2.mbox");
             Files.writeString(rawMbox2, """
                                       From test2 at example.com  Wed Aug 21 17:32:50 2019
@@ -368,8 +362,7 @@ class MboxTests {
                                       Message-ID: <def456@example.com>
 
                                       Second message
-                                      """,
-                              StandardCharsets.UTF_8);
+                                      """);
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
             var list = mbox.getListReader("test1", "test2");
             var conversations = list.conversations(Duration.ofDays(365 * 100));
@@ -407,8 +400,7 @@ class MboxTests {
                                       Message-ID: <ghi789@example.com>
 
                                       Third message
-                                      """,
-                    StandardCharsets.UTF_8);
+                                      """);
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
             var list = mbox.getListReader("test1");
             var conversations = list.conversations(Duration.ofDays(365 * 100));

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@ package org.openjdk.skara.test;
 import org.openjdk.skara.vcs.*;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.Set;
 
@@ -33,7 +32,7 @@ public class CheckableRepository {
     private static String markerLine = "The very first line\n";
 
     private static Path checkableFile(Path path) throws IOException {
-        try (var checkable = Files.newBufferedReader(path.resolve(".checkable/name.txt"), StandardCharsets.UTF_8)) {
+        try (var checkable = Files.newBufferedReader(path.resolve(".checkable/name.txt"))) {
             var checkableName = checkable.readLine();
             return path.resolve(checkableName);
         }

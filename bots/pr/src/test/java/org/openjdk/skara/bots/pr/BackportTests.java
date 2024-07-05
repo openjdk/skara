@@ -30,7 +30,6 @@ import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -1910,7 +1909,7 @@ class BackportTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
 
             var confPath = localRepo.root().resolve(".jcheck/conf");
-            var defaultConf = Files.readString(confPath, StandardCharsets.UTF_8);
+            var defaultConf = Files.readString(confPath);
             var newConf = defaultConf.replace("reviewers=1", """
                     lead=0
                     reviewers=2

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,7 +29,6 @@ import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.nio.file.Files;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -78,7 +77,7 @@ public class Diff {
     }
 
     public void toFile(Path p) throws IOException {
-        try (var w = Files.newBufferedWriter(p, StandardCharsets.UTF_8)) {
+        try (var w = Files.newBufferedWriter(p)) {
             write(w);
         }
     }

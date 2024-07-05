@@ -32,7 +32,6 @@ import org.openjdk.skara.vcs.*;
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -74,7 +73,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
@@ -159,7 +158,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
@@ -255,7 +254,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
@@ -350,7 +349,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
@@ -417,7 +416,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
@@ -478,7 +477,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
@@ -535,7 +534,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
@@ -621,7 +620,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
@@ -683,7 +682,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
@@ -765,7 +764,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
@@ -851,7 +850,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
@@ -935,7 +934,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
@@ -954,7 +953,7 @@ class MergeTests {
 
             // Push something new to master
             localRepo.checkout(updatedMaster, true);
-            var newMaster = Files.writeString(localRepo.root().resolve("newmaster.txt"), "New on master", StandardCharsets.UTF_8);
+            var newMaster = Files.writeString(localRepo.root().resolve("newmaster.txt"), "New on master");
             localRepo.add(newMaster);
             var newMasterHash = localRepo.commit("New commit on master", "some", "some@one");
             localRepo.push(newMasterHash, author.authenticatedUrl(), "master");
@@ -1029,7 +1028,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
@@ -1048,7 +1047,7 @@ class MergeTests {
 
             // Push something new to master
             localRepo.checkout(updatedMaster, true);
-            var newMaster = Files.writeString(localRepo.root().resolve("newmaster.txt"), "New on master", StandardCharsets.UTF_8);
+            var newMaster = Files.writeString(localRepo.root().resolve("newmaster.txt"), "New on master");
             localRepo.add(newMaster);
             var newMasterHash = localRepo.commit("New commit on master", "some", "some@one");
             localRepo.push(newMasterHash, author.authenticatedUrl(), "master");
@@ -1140,7 +1139,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash);
@@ -1205,7 +1204,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
@@ -1265,7 +1264,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
@@ -1325,7 +1324,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
@@ -1391,7 +1390,7 @@ class MergeTests {
 
             // Make a change with a corresponding PR
             localRepo.checkout(masterHash, true);
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
@@ -1451,7 +1450,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
@@ -1516,7 +1515,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             localRepo.commit("Unrelated", "some", "some@one");
             var mergeCmd = Process.command("git", "merge", "--no-commit", "--allow-unrelated-histories", "-s", "ours", otherHash.hex())
@@ -1583,7 +1582,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
@@ -1639,7 +1638,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
@@ -1689,14 +1688,14 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit( "Unrelated", "some", "some@one");
             localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
 
             // Go back to the original master again
             localRepo.checkout(masterHash, true);
-            var editChange = Files.writeString(localRepo.root().resolve("edit.txt"), "Edit", StandardCharsets.UTF_8);
+            var editChange = Files.writeString(localRepo.root().resolve("edit.txt"), "Edit");
             localRepo.add(editChange);
             var editHash = localRepo.commit( "Edit", "some", "some@one");
 
@@ -1755,7 +1754,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.push(updatedMaster, author.authenticatedUrl(), "master");
@@ -1800,9 +1799,9 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // update
-            var defaultAppendable = Files.readString(localRepo.root().resolve("appendable.txt"), StandardCharsets.UTF_8);
+            var defaultAppendable = Files.readString(localRepo.root().resolve("appendable.txt"));
             var newAppendable = "11111\n" + defaultAppendable;
-            Files.writeString(localRepo.root().resolve("appendable.txt"), newAppendable, StandardCharsets.UTF_8);
+            Files.writeString(localRepo.root().resolve("appendable.txt"), newAppendable);
             localRepo.add(localRepo.root().resolve("appendable.txt"));
             localRepo.commit("updated", "test", "test@test.com");
 
@@ -1919,7 +1918,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
@@ -1975,7 +1974,7 @@ class MergeTests {
             localRepo.push(otherHash1, author.authenticatedUrl(), "other_/-1.2", true);
 
             var confPath = localRepoFolder.resolve(".jcheck/conf");
-            Files.writeString(confPath, "Hello there!", StandardCharsets.UTF_8);
+            Files.writeString(confPath, "Hello there!");
             localRepo.add(confPath);
             var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other_/-1.2\n\r",
                     "Second other_/-1.2\n\nReviewed-by: integrationreviewer2");
@@ -1985,7 +1984,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.merge(otherHash2);
@@ -2043,7 +2042,7 @@ class MergeTests {
             localRepo.checkout(masterHash, true);
 
             // Make a change with a corresponding PR
-            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
             localRepo.push(updatedMaster, author.authenticatedUrl(), "master");

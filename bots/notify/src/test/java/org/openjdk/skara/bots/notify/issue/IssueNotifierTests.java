@@ -33,7 +33,6 @@ import org.openjdk.skara.vcs.Branch;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -1360,9 +1359,9 @@ public class IssueNotifierTests {
             localRepo.fetch(repo.authenticatedUrl(), "+history:history").orElseThrow();
             localRepo.checkout(new Branch("history"), true);
             var historyFile = repoFolder.resolve("test.tags.txt");
-            var processed = new ArrayList<>(Files.readAllLines(historyFile, StandardCharsets.UTF_8));
+            var processed = new ArrayList<>(Files.readAllLines(historyFile));
             processed.add("jdk-16+10 issue done");
-            Files.writeString(historyFile, String.join("\n", processed), StandardCharsets.UTF_8);
+            Files.writeString(historyFile, String.join("\n", processed));
             localRepo.add(historyFile);
             var updatedHash = localRepo.commit("Marking jdk-16+10 as done", "duke", "duke@openjdk.org");
             localRepo.push(updatedHash, repo.authenticatedUrl(), "history");
@@ -1377,7 +1376,7 @@ public class IssueNotifierTests {
             // Flag it as in need of retry
             processed.removeLast();
             processed.add("jdk-16+10 issue retry");
-            Files.writeString(repoFolder.resolve("test.tags.txt"), String.join("\n", processed), StandardCharsets.UTF_8);
+            Files.writeString(repoFolder.resolve("test.tags.txt"), String.join("\n", processed));
             localRepo.add(historyFile);
             var retryHash = localRepo.commit("Marking jdk-16+10 as needing retry", "duke", "duke@openjdk.org");
             localRepo.push(retryHash, repo.authenticatedUrl(), "history");

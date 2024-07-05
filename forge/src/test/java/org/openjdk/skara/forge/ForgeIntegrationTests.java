@@ -35,7 +35,6 @@ import org.openjdk.skara.test.TestProperties;
 import org.openjdk.skara.test.EnabledIfTestProperties;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -61,7 +60,7 @@ class ForgeIntegrationTests {
         var installation = props.get("github.app.installation");
         var keyFile = Paths.get(props.get("github.app.key.file"));
 
-        var keyContents = Files.readString(keyFile, StandardCharsets.UTF_8);
+        var keyContents = Files.readString(keyFile);
         var app = new GitHubApplication(keyContents, id, installation);
         var gitHubHost = new GitHubHost(uri, app, null, null, null, Set.of());
 
