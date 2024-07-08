@@ -45,10 +45,9 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof PullRequestPrunerBotWorkItem)) {
+        if (!(other instanceof PullRequestPrunerBotWorkItem otherItem)) {
             return true;
         }
-        PullRequestPrunerBotWorkItem otherItem = (PullRequestPrunerBotWorkItem) other;
         if (!pr.isSame(otherItem.pr)) {
             return true;
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -58,11 +58,10 @@ public class Branch {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof Branch)) {
+        if (!(o instanceof Branch other)) {
             return false;
         }
 
-        var other = (Branch) o;
         return name.equals(other.name);
     }
 }

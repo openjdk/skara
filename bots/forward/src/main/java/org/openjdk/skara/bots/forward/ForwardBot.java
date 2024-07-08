@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -55,10 +55,9 @@ class ForwardBot implements Bot, WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof ForwardBot)) {
+        if (!(other instanceof ForwardBot otherBot)) {
             return true;
         }
-        var otherBot = (ForwardBot) other;
         return !toHostedRepo.name().equals(otherBot.toHostedRepo.name());
     }
 

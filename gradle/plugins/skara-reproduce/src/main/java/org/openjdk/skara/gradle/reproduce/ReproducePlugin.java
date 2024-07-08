@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,8 +35,7 @@ public class ReproducePlugin implements Plugin<Project> {
         project.afterEvaluate((p) -> {
             for (var entry : project.getAllTasks(true).entrySet()) {
                 for (var task : entry.getValue()) {
-                    if (task instanceof AbstractArchiveTask) {
-                        var archiveTask = (AbstractArchiveTask) task;
+                    if (task instanceof AbstractArchiveTask archiveTask) {
                         archiveTask.setPreserveFileTimestamps(false);
                         archiveTask.setReproducibleFileOrder(true);
                     }

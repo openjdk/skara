@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -68,11 +68,10 @@ public class Tag {
                 return true;
             }
 
-            if (!(other instanceof Annotated)) {
+            if (!(other instanceof Annotated o)) {
                 return false;
             }
 
-            var o = (Annotated) other;
             return Objects.equals(name, o.name) &&
                    Objects.equals(target, o.target) &&
                    Objects.equals(author, o.author) &&
@@ -113,11 +112,10 @@ public class Tag {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof Tag)) {
+        if (!(o instanceof Tag other)) {
             return false;
         }
 
-        var other = (Tag) o;
         return Objects.equals(name, other.name);
     }
 }
