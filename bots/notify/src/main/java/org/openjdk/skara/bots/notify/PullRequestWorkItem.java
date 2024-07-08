@@ -287,7 +287,7 @@ public class PullRequestWorkItem implements WorkItem {
                 notifyStateChange(storedState.get().state(), scratchPath);
             }
             var storedTargetBranch = storedState.get().targetBranch();
-            if (storedTargetBranch == null || !storedTargetBranch.equals(state.targetBranch())) {
+            if (state.targetBranch() != null && !state.targetBranch().equals(storedTargetBranch)) {
                 storedIssues.stream()
                         .filter(issues::contains)
                         .forEach(issue -> notifyTargetBranchChange(issue, listenerScratchPath));
