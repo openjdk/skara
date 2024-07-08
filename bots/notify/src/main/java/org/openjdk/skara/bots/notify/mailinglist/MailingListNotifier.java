@@ -194,7 +194,7 @@ class MailingListNotifier implements Notifier, RepositoryListener {
         var printer = new PrintWriter(writer);
 
         for (var commit : commits) {
-            printer.println(CommitFormatters.toText(repository, commit));
+            printer.println(CommitFormatters.toText(repository, commit, branch));
         }
 
         var subject = commitsToSubject(repository, commits, branch);
@@ -256,7 +256,7 @@ class MailingListNotifier implements Notifier, RepositoryListener {
         if (annotation != null) {
             printer.println(tagAnnotationToText(repository, annotation));
         }
-        printer.println(CommitFormatters.toTextBrief(repository, taggedCommit));
+        printer.println(CommitFormatters.toTextBrief(repository, taggedCommit, null));
 
         printer.println("The following commits are included in " + tag.tag());
         printer.println("========================================================");
@@ -302,7 +302,7 @@ class MailingListNotifier implements Notifier, RepositoryListener {
         if (annotation != null) {
             printer.println(tagAnnotationToText(repository, annotation));
         }
-        printer.println(CommitFormatters.toTextBrief(repository, commit));
+        printer.println(CommitFormatters.toTextBrief(repository, commit, null));
 
         var subject = tagToSubject(repository, commit.hash(), tag);
         var email = Email.create(subject, writer.toString())
