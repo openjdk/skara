@@ -51,12 +51,15 @@ public class ReviewCoverage {
         // Reviews without a hash are never valid as they referred to no longer
         // existing commits.
         if (r.isEmpty() || review.verdict() != Review.Verdict.APPROVED
-                || !review.targetRef().equals(pr.targetRef()))
+                || !review.targetRef().equals(pr.targetRef())) {
             return false;
-        if (!ignoreStaleReviews || r.get().equals(pr.headHash()))
+        }
+        if (!ignoreStaleReviews || r.get().equals(pr.headHash())) {
             return true;
-        if (!includeSimpleMerges)
+        }
+        if (!includeSimpleMerges) {
             return false;
+        }
         if (!(repo instanceof GitRepository gitRepo)) {
             log.fine("Merge re-review check is unavailable on '" + repo.getClass() + "' repo");
             return false;

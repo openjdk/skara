@@ -64,8 +64,8 @@ class GitCommits implements Commits, AutoCloseable {
         this.range = null;
         this.reverse = false;
         this.num = -1;
-        from = reachableFrom;
-        notFrom = unreachableFrom;
+        this.from = reachableFrom;
+        this.notFrom = unreachableFrom;
         this.format = String.join("%n",
                                   COMMIT_DELIMITER,
                                   GitCommitMetadata.FORMAT);
@@ -95,9 +95,9 @@ class GitCommits implements Commits, AutoCloseable {
             cmd.add("-n");
             cmd.add(Integer.toString(num));
         }
-        if (range != null)
+        if (range != null) {
             cmd.add(range);
-        else {
+        } else {
             cmd.addAll(from.stream().map(Hash::hex).toList());
             if (!notFrom.isEmpty()) {
                 cmd.add("--not");
