@@ -145,7 +145,7 @@ class ArchiveWorkItem implements WorkItem {
 
     private boolean ignoreComment(HostUser author, String body, ZonedDateTime createdTime, ZonedDateTime lastDraftTime, boolean isComment) {
         if (pr.repository().forge().currentUser().equals(author)) {
-            return true;
+            return !PullRequestConstants.READY_FOR_SPONSOR_MARKER_PATTERN.matcher(body).find();
         }
         if (bot.ignoredUsers().contains(author.username())) {
             return !PullRequestConstants.READY_FOR_SPONSOR_MARKER_PATTERN.matcher(body).find();
