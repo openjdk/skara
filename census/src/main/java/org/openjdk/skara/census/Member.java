@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -80,8 +80,7 @@ class Member {
 
     @Override
     public boolean equals(Object o) {
-        if (o instanceof Member) {
-            var other = (Member) o;
+        if (o instanceof Member other) {
             return contributor.equals(other.contributor()) &&
                    since == other.since() &&
                    until == other.until();

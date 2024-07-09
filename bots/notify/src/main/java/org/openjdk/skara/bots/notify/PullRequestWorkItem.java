@@ -147,10 +147,9 @@ public class PullRequestWorkItem implements WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof PullRequestWorkItem)) {
+        if (!(other instanceof PullRequestWorkItem otherItem)) {
             return true;
         }
-        PullRequestWorkItem otherItem = (PullRequestWorkItem)other;
         if (!pr.isSame(otherItem.pr)) {
             return true;
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -165,16 +165,14 @@ public final class CollectorRegistry {
         }
 
         var bean = ManagementFactory.getOperatingSystemMXBean();
-        if (bean instanceof UnixOperatingSystemMXBean) {
-            var osBean = (UnixOperatingSystemMXBean) bean;
+        if (bean instanceof UnixOperatingSystemMXBean osBean) {
             var numOpenFds = osBean.getOpenFileDescriptorCount();
             result.add(new Metric(Metric.Type.GAUGE, "process_open_fds", List.of(), numOpenFds));
             var maxFds = osBean.getMaxFileDescriptorCount();
             result.add(new Metric(Metric.Type.GAUGE, "process_max_fds", List.of(), maxFds));
         }
 
-        if (bean instanceof OperatingSystemMXBean) {
-            var osBean = (OperatingSystemMXBean) bean;
+        if (bean instanceof OperatingSystemMXBean osBean) {
             var vmMaxBytes = osBean.getCommittedVirtualMemorySize();
             result.add(new Metric(Metric.Type.GAUGE, "process_virtual_memory_max_bytes", List.of(), vmMaxBytes));
 

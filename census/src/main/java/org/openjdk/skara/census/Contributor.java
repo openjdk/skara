@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -62,8 +62,7 @@ public class Contributor {
 
     @Override
     public boolean equals(Object o) {
-        if (o instanceof Contributor) {
-            var other = (Contributor) o;
+        if (o instanceof Contributor other) {
             return Objects.equals(username, other.username) &&
                    Objects.equals(fullName, other.fullName);
         }

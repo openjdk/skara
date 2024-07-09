@@ -55,8 +55,7 @@ public class JBridgeBot implements Bot, WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (other instanceof JBridgeBot) {
-            JBridgeBot otherBridgeBot = (JBridgeBot)other;
+        if (other instanceof JBridgeBot otherBridgeBot) {
             return !exporterConfig.source().equals(otherBridgeBot.exporterConfig.source());
         } else {
             return true;

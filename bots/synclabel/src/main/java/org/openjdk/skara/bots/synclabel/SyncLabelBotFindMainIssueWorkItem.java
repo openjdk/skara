@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -41,10 +41,9 @@ public class SyncLabelBotFindMainIssueWorkItem implements WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof SyncLabelBotFindMainIssueWorkItem)) {
+        if (!(other instanceof SyncLabelBotFindMainIssueWorkItem o)) {
             return true;
         }
-        var o = (SyncLabelBotFindMainIssueWorkItem) other;
         return !o.issueId.equals(issueId);
     }
 
