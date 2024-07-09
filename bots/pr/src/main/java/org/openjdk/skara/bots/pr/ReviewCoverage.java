@@ -31,7 +31,6 @@ import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.forge.PullRequestUtils;
 import org.openjdk.skara.forge.Review;
 import org.openjdk.skara.vcs.Repository;
-import org.openjdk.skara.vcs.git.GitRepository;
 
 public class ReviewCoverage {
 
@@ -60,14 +59,10 @@ public class ReviewCoverage {
         if (!includeSimpleMerges) {
             return false;
         }
-        if (!(repo instanceof GitRepository gitRepo)) {
-            log.fine("Merge re-review check is unavailable on '" + repo.getClass() + "' repo");
-            return false;
-        }
         boolean seenAtLeastOneCommit = false;
         try {
-            var targetHash = PullRequestUtils.targetHash(gitRepo);
-            try (var commits = gitRepo.commits(List.of(pr.headHash()), List.of(r.get(), targetHash))) {
+            var targetHash = PullRequestUtils.targetHash(repo);
+            try (var commits = repo.commits(List.of(pr.headHash()), List.of(r.get(), targetHash))) {
                 for (var c : commits) {
                     seenAtLeastOneCommit = true;
                     if (!c.isMerge() || c.numParents() != 2)
@@ -77,10 +72,10 @@ public class ReviewCoverage {
                     // branch; the former seems obvious and enforced by Git, while
                     // the latter should be checked
                     var secondParent = c.parents().get(1);
-                    if (!gitRepo.isAncestor(secondParent, targetHash)) {
+                    if (!repo.isAncestor(secondParent, targetHash)) {
                         return false;
                     }
-                    if (!gitRepo.isRemergeDiffEmpty(c.hash())) {
+                    if (!repo.isRemergeDiffEmpty(c.hash())) {
                         return false;
                     }
                 }

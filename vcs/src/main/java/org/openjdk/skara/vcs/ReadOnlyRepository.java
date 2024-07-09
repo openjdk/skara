@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,6 +45,7 @@ public interface ReadOnlyRepository {
     Commits commits(String range, boolean reverse) throws IOException;
     Commits commits(String range, int n) throws IOException;
     Commits commits(String range, int n, boolean reverse) throws IOException;
+    Commits commits(List<Hash> reachableFrom, List<Hash> unreachableFrom) throws IOException;
     Optional<Commit> lookup(Hash h) throws IOException;
     Optional<Commit> lookup(Branch b) throws IOException;
     Optional<Commit> lookup(Tag t) throws IOException;

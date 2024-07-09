@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -54,6 +54,11 @@ public class HgRepository implements Repository {
 
     public static void ignoreConfiguration() {
         currentEnv = NO_CONFIG_ENV;
+    }
+
+    @Override
+    public boolean isRemergeDiffEmpty(Hash mergeCommitHash) throws IOException {
+        throw new UnsupportedOperationException();
     }
 
     private void copyResource(String name, Path p) throws IOException {
@@ -246,6 +251,11 @@ public class HgRepository implements Repository {
         var ext = Files.createTempFile("ext", ".py");
         copyResource(EXT_PY, ext);
         return new HgCommits(dir, range, ext, reverse, n);
+    }
+
+    @Override
+    public Commits commits(List<Hash> reachableFrom, List<Hash> unreachableFrom) throws IOException {
+        throw new UnsupportedOperationException();
     }
 
     @Override
