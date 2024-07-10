@@ -65,8 +65,9 @@ public class ReviewCoverage {
             try (var commits = repo.commits(List.of(pr.headHash()), List.of(r.get(), targetHash))) {
                 for (var c : commits) {
                     seenAtLeastOneCommit = true;
-                    if (!c.isMerge() || c.numParents() != 2)
+                    if (!c.isMerge() || c.numParents() != 2) {
                         return false;
+                    }
                     // from https://git-scm.com/book/en/v2/Git-Tools-Revision-Selection
                     // we expect that ^1 has to belong to the PR and ^2 to the target
                     // branch; the former seems obvious and enforced by Git, while
