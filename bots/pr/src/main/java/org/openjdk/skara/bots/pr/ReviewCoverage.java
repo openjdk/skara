@@ -32,6 +32,7 @@ import java.util.logging.Logger;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.forge.PullRequestUtils;
 import org.openjdk.skara.forge.Review;
+import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 
 public class ReviewCoverage {
@@ -42,6 +43,7 @@ public class ReviewCoverage {
     private final Repository repo;
     private final PullRequest pr;
     private final Map<Review, Boolean> cache = new HashMap<>();
+    private Hash cachedTargetHash;
 
     public ReviewCoverage(boolean useStaleReviews,
                           boolean acceptSimpleMerges,
@@ -73,8 +75,7 @@ public class ReviewCoverage {
         }
         boolean seenAtLeastOneCommit = false;
         try {
-            var targetHash = PullRequestUtils.targetHash(repo);
-            try (var commits = repo.commits(List.of(pr.headHash()), List.of(r.get(), targetHash))) {
+            try (var commits = repo.commits(List.of(pr.headHash()), List.of(r.get(), targetHash()))) {
                 for (var c : commits) {
                     seenAtLeastOneCommit = true;
                     if (!c.isMerge() || c.numParents() != 2) {
@@ -85,7 +86,7 @@ public class ReviewCoverage {
                     // branch; the former seems obvious and enforced by Git, while
                     // the latter should be checked
                     var secondParent = c.parents().get(1);
-                    if (!repo.isAncestor(secondParent, targetHash)) {
+                    if (!repo.isAncestor(secondParent, targetHash())) {
                         return false;
                     }
                     if (!repo.isRemergeDiffEmpty(c.hash())) {
@@ -101,5 +102,19 @@ public class ReviewCoverage {
             log.finest("Saved a merge from review: " + pr.repository() + ", " + pr.id());
         }
         return seenAtLeastOneCommit;
+    }
+
+    private Hash targetHash() throws IOException {
+        if (cachedTargetHash == null) {
+            cachedTargetHash = PullRequestUtils.targetHash(repo);
+        } else {
+            // main assumption for caching targetHash
+            if (ReviewCoverage.class.desiredAssertionStatus()) {
+                var latest = PullRequestUtils.targetHash(repo);
+                assert cachedTargetHash.equals(latest) :
+                        cachedTargetHash + " != " + latest;
+            }
+        }
+        return cachedTargetHash;
     }
 }
