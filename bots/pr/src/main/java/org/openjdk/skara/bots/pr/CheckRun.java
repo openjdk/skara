@@ -113,7 +113,7 @@ class CheckRun {
             reviewMerge = MergePullRequestReviewConfiguration.ALWAYS;
         }
 
-        reviewCoverage = new ReviewCoverage(workItem.bot.useStaleReviews(), workItem.bot.acceptSimpleMerges(), localRepo);
+        reviewCoverage = new ReviewCoverage(workItem.bot.useStaleReviews(), workItem.bot.acceptSimpleMerges(), localRepo, pr);
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
         checkablePullRequest = new CheckablePullRequest(pr, localRepo, useStaleReviews,
                 workItem.bot.confOverrideRepository().orElse(null),
@@ -607,7 +607,7 @@ class CheckRun {
                                    } else {
                                        var hash = review.hash();
                                        if (hash.isPresent()) {
-                                           if (!reviewCoverage.covers(review, pr)) {
+                                           if (!reviewCoverage.covers(review)) {
                                                entry += " 🔄 Re-review required (review applies to [" + hash.get().abbreviate()
                                                        + "](" + pr.filesUrl(hash.get()) + "))";
                                            } else {

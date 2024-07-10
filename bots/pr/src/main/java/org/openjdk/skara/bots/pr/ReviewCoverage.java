@@ -38,14 +38,19 @@ public class ReviewCoverage {
     private final boolean useStaleReviews;
     private final boolean acceptSimpleMerges;
     private final Repository repo;
+    private final PullRequest pr;
 
-    public ReviewCoverage(boolean useStaleReviews, boolean acceptSimpleMerges, Repository repo) {
+    public ReviewCoverage(boolean useStaleReviews,
+                          boolean acceptSimpleMerges,
+                          Repository repo,
+                          PullRequest pr) {
         this.useStaleReviews = useStaleReviews;
         this.acceptSimpleMerges = acceptSimpleMerges;
         this.repo = repo;
+        this.pr = pr;
     }
 
-    public boolean covers(Review review, PullRequest pr) {
+    public boolean covers(Review review) {
         var r = review.hash();
         // Reviews without a hash are never valid as they referred to no longer
         // existing commits.

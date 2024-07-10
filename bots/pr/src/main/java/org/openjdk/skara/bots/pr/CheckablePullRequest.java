@@ -71,7 +71,7 @@ public class CheckablePullRequest {
 
     private String commitMessage(Hash head, List<Review> activeReviews, Namespace namespace, boolean manualReviewersAndStaleReviewers, Hash original) throws IOException {
         var eligibleReviews = activeReviews.stream()
-                                           .filter(review -> reviewCoverage.covers(review, pr))
+                                           .filter(reviewCoverage::covers)
                                            .collect(Collectors.toList());
         var reviewers = reviewerNames(eligibleReviews, namespace);
         var currentUser = pr.repository().forge().currentUser();
