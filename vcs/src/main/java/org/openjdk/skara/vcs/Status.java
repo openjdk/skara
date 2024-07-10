@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -179,11 +179,10 @@ public class Status {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof Status)) {
+        if (!(o instanceof Status other)) {
             return false;
         }
 
-        var other = (Status) o;
         return Objects.equals(op, other.op) &&
                Objects.equals(score, other.score);
     }

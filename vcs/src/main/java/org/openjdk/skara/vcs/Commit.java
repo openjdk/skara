@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -95,11 +95,10 @@ public class Commit {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof Commit)) {
+        if (!(o instanceof Commit other)) {
             return false;
         }
 
-        var other = (Commit) o;
         return Objects.equals(metadata, other.metadata) && Objects.equals(parentDiffs, other.parentDiffs);
     }
 }

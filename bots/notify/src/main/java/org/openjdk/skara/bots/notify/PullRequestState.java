@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,6 +34,7 @@ class PullRequestState {
     private final Hash commitId;
     private final Hash head;
     private final Issue.State state;
+    private final String targetBranch;
 
     PullRequestState(PullRequest pr, Set<String> issueIds, Hash commitId, Hash head, Issue.State state) {
         this.prId = pr.repository().id() + ":" + pr.id();
@@ -41,14 +42,16 @@ class PullRequestState {
         this.commitId = commitId;
         this.head = head;
         this.state = state;
+        this.targetBranch = pr.targetRef();
     }
 
-    PullRequestState(String prId, Set<String> issueIds, Hash commitId, Hash head, Issue.State state) {
+    PullRequestState(String prId, Set<String> issueIds, Hash commitId, Hash head, Issue.State state, String targetBranch) {
         this.prId = prId;
         this.issueIds = issueIds;
         this.commitId = commitId;
         this.head = head;
         this.state = state;
+        this.targetBranch = targetBranch;
     }
 
     public String prId() {
@@ -71,6 +74,10 @@ class PullRequestState {
         return state;
     }
 
+    public String targetBranch() {
+        return targetBranch;
+    }
+
     @Override
     public String toString() {
         return "PullRequestState{" +
@@ -79,6 +86,7 @@ class PullRequestState {
                 ", commitId=" + commitId +
                 ", head=" + head +
                 ", state=" + state +
+                ", targetBranch=" + targetBranch +
                 '}';
     }
 
@@ -95,11 +103,12 @@ class PullRequestState {
                 issueIds.equals(that.issueIds) &&
                 Objects.equals(commitId, that.commitId) &&
                 Objects.equals(head, that.head) &&
-                Objects.equals(state, that.state);
+                Objects.equals(state, that.state) &&
+                Objects.equals(targetBranch, that.targetBranch);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(prId, issueIds, commitId, head);
+        return Objects.hash(prId, issueIds, commitId, head, targetBranch);
     }
 }

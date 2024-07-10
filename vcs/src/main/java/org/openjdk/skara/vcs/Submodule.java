@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -64,11 +64,10 @@ public class Submodule {
             return true;
         }
 
-        if (!(other instanceof Submodule)) {
+        if (!(other instanceof Submodule o)) {
             return false;
         }
 
-        var o = (Submodule) other;
         return Objects.equals(hash, o.hash) &&
                Objects.equals(path, o.path) &&
                Objects.equals(pullPath, o.pullPath);

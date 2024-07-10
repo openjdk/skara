@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -48,11 +48,10 @@ public class Reference {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof Reference)) {
+        if (!(o instanceof Reference r)) {
             return false;
         }
 
-        var r = (Reference) o;
         return Objects.equals(name, r.name) && Objects.equals(hash, r.hash);
     }
 

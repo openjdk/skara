@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -123,8 +123,8 @@ public class BotRunner {
 
         private static Optional<ThreadMXBean> getThreadMXBean() {
             var bean = ManagementFactory.getThreadMXBean();
-            return bean instanceof ThreadMXBean ?
-                Optional.of((ThreadMXBean) bean) : Optional.empty();
+            return bean instanceof ThreadMXBean b ?
+                Optional.of(b) : Optional.empty();
         }
 
         private static void enableThreadCpuTime() {

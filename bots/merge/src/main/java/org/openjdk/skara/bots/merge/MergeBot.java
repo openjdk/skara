@@ -275,10 +275,9 @@ class MergeBot implements Bot, WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof MergeBot)) {
+        if (!(other instanceof MergeBot otherBot)) {
             return true;
         }
-        var otherBot = (MergeBot) other;
         return !target.name().equals(otherBot.target.name());
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -61,11 +61,10 @@ public class FileEntry {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof FileEntry)) {
+        if (!(o instanceof FileEntry e)) {
             return false;
         }
 
-        var e = (FileEntry) o;
         return Objects.equals(commit, e.commit) &&
                Objects.equals(type, e.type) &&
                Objects.equals(hash, e.hash) &&

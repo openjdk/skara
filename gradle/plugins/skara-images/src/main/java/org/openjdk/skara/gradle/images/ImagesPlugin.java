@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -113,8 +113,8 @@ public class ImagesPlugin implements Plugin<Project> {
                 var linkTaskName = "link" + subName;
                 project.getTasks().register(linkTaskName, LinkTask.class, (task) -> {
                     for (var jarTask : project.getTasksByName("jar", true)) {
-                        if (jarTask instanceof Jar) {
-                            task.getModulePath().add(((Jar) jarTask).getArchiveFile());
+                        if (jarTask instanceof Jar jt) {
+                            task.getModulePath().add((jt).getArchiveFile());
                         }
                     }
 

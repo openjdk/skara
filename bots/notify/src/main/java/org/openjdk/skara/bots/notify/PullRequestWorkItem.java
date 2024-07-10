@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -93,13 +93,15 @@ public class PullRequestWorkItem implements WorkItem {
                        }
 
                        var commit = obj.get("commit").isNull() ?
-                           null : new Hash(obj.get("commit").asString());
+                               null : new Hash(obj.get("commit").asString());
                        var state = obj.get("state").isNull() ?
                                null : org.openjdk.skara.issuetracker.Issue.State.valueOf(obj.get("state").asString());
+                       var targetBranch = obj.get("targetBranch") == null ?
+                               null : obj.get("targetBranch").asString();
 
-                       return new PullRequestState(id, issues, commit, new Hash(obj.get("head").asString()), state);
+                       return new PullRequestState(id, issues, commit, new Hash(obj.get("head").asString()), state, targetBranch);
                    })
-                   .collect(Collectors.toSet());
+                .collect(Collectors.toSet());
     }
 
     private String serializePrState(Collection<PullRequestState> added, Set<PullRequestState> existing) {
@@ -133,6 +135,9 @@ public class PullRequestWorkItem implements WorkItem {
                                 } else {
                                     ret.putNull("state");
                                 }
+                                if (pr.targetBranch() != null) {
+                                    ret.put("targetBranch", JSON.of(pr.targetBranch()));
+                                }
                                 return ret;
                             })
                             .map(JSONObject::toString)
@@ -142,10 +147,9 @@ public class PullRequestWorkItem implements WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof PullRequestWorkItem)) {
+        if (!(other instanceof PullRequestWorkItem otherItem)) {
             return true;
         }
-        PullRequestWorkItem otherItem = (PullRequestWorkItem)other;
         if (!pr.isSame(otherItem.pr)) {
             return true;
         }
@@ -174,6 +178,10 @@ public class PullRequestWorkItem implements WorkItem {
 
     private void notifyStateChange(org.openjdk.skara.issuetracker.Issue.State oldState, Path scratchPath) {
         listeners.forEach(c -> c.onStateChange(pr, scratchPath.resolve(c.name()), oldState));
+    }
+
+    private void notifyTargetBranchChange(String issueId, Path scratchPath) {
+        listeners.forEach(c -> c.onTargetBranchChange(pr, scratchPath.resolve(c.name()), new Issue(issueId, "")));
     }
 
     private boolean isOfInterest(PullRequest pr) {
@@ -276,6 +284,12 @@ public class PullRequestWorkItem implements WorkItem {
             }
             if (!storedState.get().state().equals(state.state())) {
                 notifyStateChange(storedState.get().state(), scratchPath);
+            }
+            var storedTargetBranch = storedState.get().targetBranch();
+            if (state.targetBranch() != null && !state.targetBranch().equals(storedTargetBranch)) {
+                storedIssues.stream()
+                        .filter(issues::contains)
+                        .forEach(issue -> notifyTargetBranchChange(issue, listenerScratchPath));
             }
         } else {
             notifyNewPr(pr, listenerScratchPath);
