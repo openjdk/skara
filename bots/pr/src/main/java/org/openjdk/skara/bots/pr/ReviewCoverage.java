@@ -35,13 +35,13 @@ import org.openjdk.skara.vcs.Repository;
 public class ReviewCoverage {
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
-    private final boolean ignoreStaleReviews;
-    private final boolean includeSimpleMerges;
+    private final boolean useStaleReviews;
+    private final boolean acceptSimpleMerges;
     private final Repository repo;
 
-    public ReviewCoverage(boolean ignoreStaleReviews, boolean includeSimpleMerges, Repository repo) {
-        this.ignoreStaleReviews = ignoreStaleReviews;
-        this.includeSimpleMerges = includeSimpleMerges;
+    public ReviewCoverage(boolean useStaleReviews, boolean acceptSimpleMerges, Repository repo) {
+        this.useStaleReviews = useStaleReviews;
+        this.acceptSimpleMerges = acceptSimpleMerges;
         this.repo = repo;
     }
 
@@ -53,10 +53,10 @@ public class ReviewCoverage {
                 || !review.targetRef().equals(pr.targetRef())) {
             return false;
         }
-        if (!ignoreStaleReviews || r.get().equals(pr.headHash())) {
+        if (useStaleReviews || r.get().equals(pr.headHash())) {
             return true;
         }
-        if (!includeSimpleMerges) {
+        if (!acceptSimpleMerges) {
             return false;
         }
         boolean seenAtLeastOneCommit = false;

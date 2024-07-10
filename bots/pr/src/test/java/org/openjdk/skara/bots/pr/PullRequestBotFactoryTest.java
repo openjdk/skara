@@ -223,7 +223,7 @@ class PullRequestBotFactoryTest {
             assertEquals("{test=Signature needs verify}", pullRequestBot6.blockingCheckLabels().toString());
             assertEquals("[rfr]", pullRequestBot6.twoReviewersLabels().toString());
             assertEquals("[24h_test]", pullRequestBot6.twentyFourHoursLabels().toString());
-            assertFalse(pullRequestBot6.ignoreStaleReviews());
+            assertTrue(pullRequestBot6.useStaleReviews());
             assertEquals(".*", pullRequestBot6.allowedTargetBranches().toString());
             var integrators = pullRequestBot6.integrators();
             assertEquals(2, integrators.size());

@@ -1512,7 +1512,7 @@ class CheckTests {
     }
 
     @Test
-    void ignoreStale(TestInfo testInfo) throws IOException {
+    void useStaleReviews(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
 
@@ -1527,7 +1527,7 @@ class CheckTests {
                     .addReviewer(reviewer2.forge().currentUser().id())
                     .addReviewer(reviewer3.forge().currentUser().id());
 
-            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).ignoreStaleReviews(true).build();
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).useStaleReviews(false).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -1610,7 +1610,7 @@ class CheckTests {
     }
 
     @Test
-    void includeSimpleMerges(TestInfo testInfo) throws IOException {
+    void acceptSimpleMerges(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
 
@@ -1624,8 +1624,8 @@ class CheckTests {
             var checkBot = PullRequestBot.newBuilder()
                     .repo(author)
                     .censusRepo(censusBuilder.build())
-                    .ignoreStaleReviews(true)
-                    .includeSimpleMerges(true)
+                    .useStaleReviews(false)
+                    .acceptSimpleMerges(true)
                     .build();
 
             // create the repo using CheckableRepository, as it creates probably useful files, such as .jcheck/conf

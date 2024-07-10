@@ -712,7 +712,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                 Repository localRepo = materializeLocalRepo(scratchArea, hostedRepositoryPool);
 
                 var expiresAt = CheckRun.execute(this, pr, localRepo, comments, allReviews,
-                        activeReviews, labels, census, bot.ignoreStaleReviews(), bot.integrators(), bot.reviewCleanBackport(),
+                        activeReviews, labels, census, bot.useStaleReviews(), bot.integrators(), bot.reviewCleanBackport(),
                         bot.reviewMerge(), bot.approval());
                 if (log.isLoggable(Level.INFO)) {
                     // Log latency from the original updatedAt of the PR when this WorkItem

@@ -161,11 +161,11 @@ public class PullRequestBotFactory implements BotFactory {
                 issueProjectToIssuePRMapMap.putIfAbsent(issueProject, new ConcurrentHashMap<>());
                 botBuilder.issuePRMap(issueProjectToIssuePRMapMap.get(issueProject));
             }
-            if (repo.value().contains("ignorestale")) {
-                botBuilder.ignoreStaleReviews(repo.value().get("ignorestale").asBoolean());
+            if (repo.value().contains("useStaleReviews")) {
+                botBuilder.useStaleReviews(repo.value().get("useStaleReviews").asBoolean());
             }
-            if (repo.value().contains("includemerge")) {
-                botBuilder.includeSimpleMerges(repo.value().get("includemerge").asBoolean());
+            if (repo.value().contains("acceptSimpleMerges")) {
+                botBuilder.acceptSimpleMerges(repo.value().get("acceptSimpleMerges").asBoolean());
             }
             if (repo.value().contains("targetbranches")) {
                 botBuilder.allowedTargetBranches(repo.value().get("targetbranches").asString());
