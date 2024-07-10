@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -86,10 +86,11 @@ public class DownloadJDKTask extends DefaultTask {
     }
 
     private static void clearDirectory(Path directory) throws IOException {
-        Files.walk(directory)
-                .map(Path::toFile)
-                .sorted(Comparator.reverseOrder())
-                .forEach(File::delete);
+        try (var paths = Files.walk(directory)) {
+            paths.map(Path::toFile)
+                 .sorted(Comparator.reverseOrder())
+                 .forEach(File::delete);
+        }
     }
 
     private void unpack(Path file, Path dist) throws IOException {

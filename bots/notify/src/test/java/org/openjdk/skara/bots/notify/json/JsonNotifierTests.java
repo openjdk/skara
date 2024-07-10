@@ -38,10 +38,11 @@ import static org.openjdk.skara.bots.notify.TestUtils.*;
 
 public class JsonNotifierTests {
     private List<Path> findJsonFiles(Path folder, String partialName) throws IOException {
-        return Files.walk(folder)
-                    .filter(path -> path.toString().endsWith(".json"))
-                    .filter(path -> path.toString().contains(partialName))
-                    .collect(Collectors.toList());
+        try (var paths = Files.walk(folder)) {
+            return paths.filter(path -> path.toString().endsWith(".json"))
+                        .filter(path -> path.toString().contains(partialName))
+                        .collect(Collectors.toList());
+        }
     }
 
     @Test

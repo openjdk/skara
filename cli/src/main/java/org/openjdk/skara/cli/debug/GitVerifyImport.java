@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -141,19 +141,21 @@ public class GitVerifyImport {
 
         var hgRoot = hg.root();
         var hgFiles = new HashSet<Path>();
-        Files.walk(hgRoot)
-             .filter(p -> !Files.isDirectory(p))
-             .map(hgRoot::relativize)
-             .filter(p -> !p.startsWith(".hg"))
-             .forEach(f -> hgFiles.add(f));
+        try (var paths = Files.walk(hgRoot)) {
+            paths.filter(p -> !Files.isDirectory(p))
+                 .map(hgRoot::relativize)
+                 .filter(p -> !p.startsWith(".hg"))
+                 .forEach(f -> hgFiles.add(f));
+        }
 
         var gitRoot = git.root();
         var gitFiles = new HashSet<Path>();
-        Files.walk(gitRoot)
-             .filter(p -> !Files.isDirectory(p))
-             .map(gitRoot::relativize)
-             .filter(p -> !p.startsWith(".git"))
-             .forEach(f -> gitFiles.add(f));
+        try (var paths = Files.walk(gitRoot)) {
+            paths.filter(p -> !Files.isDirectory(p))
+                 .map(gitRoot::relativize)
+                 .filter(p -> !p.startsWith(".git"))
+                 .forEach(f -> gitFiles.add(f));
+        }
 
         if (!hgFiles.equals(gitFiles)) {
             if (isVerbose) {

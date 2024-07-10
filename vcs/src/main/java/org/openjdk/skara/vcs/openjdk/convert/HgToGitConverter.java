@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -661,9 +661,11 @@ public class HgToGitConverter implements Converter {
         }
 
         if (Files.isDirectory(gitRoot)) {
-            for (var path : Files.walk(gitRoot).collect(Collectors.toList())) {
-                if (path.getFileName().toString().startsWith("fast_import_crash")) {
-                    log.warning(Files.readString(path));
+            try (var paths = Files.walk(gitRoot)) {
+                for (var path : paths.toList()) {
+                    if (path.getFileName().toString().startsWith("fast_import_crash")) {
+                        log.warning(Files.readString(path));
+                    }
                 }
             }
         }

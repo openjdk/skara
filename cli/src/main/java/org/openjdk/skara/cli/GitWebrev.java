@@ -44,11 +44,10 @@ public class GitWebrev {
     private static final List<String> KNOWN_JBS_PROJECTS =
         List.of("JDK", "CODETOOLS", "SKARA", "JMC");
     private static void clearDirectory(Path directory) {
-        try {
-            Files.walk(directory)
-                    .map(Path::toFile)
-                    .sorted(Comparator.reverseOrder())
-                    .forEach(File::delete);
+        try (var paths = Files.walk(directory)) {
+            paths.map(Path::toFile)
+                 .sorted(Comparator.reverseOrder())
+                 .forEach(File::delete);
         } catch (IOException io) {
             throw new RuntimeException(io);
         }

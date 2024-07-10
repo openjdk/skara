@@ -678,10 +678,11 @@ public class GitMlRules {
                 if (path.toFile().isFile()) {
                     requestedFiles.add(repoRoot.relativize(path).toString());
                 } else {
-                    Files.walk(path)
-                         .filter(p -> p.toFile().isFile())
-                         .map(p -> repoRoot.relativize(p).toString())
-                         .forEach(requestedFiles::add);
+                    try (var paths = Files.walk(path)) {
+                        paths.filter(p -> p.toFile().isFile())
+                             .map(p -> repoRoot.relativize(p).toString())
+                             .forEach(requestedFiles::add);
+                    }
                 }
             }
 

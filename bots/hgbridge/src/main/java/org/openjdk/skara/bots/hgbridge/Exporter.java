@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -68,10 +68,11 @@ class Exporter {
 
     private static List<Mark> loadMarks(Path p) throws IOException {
         if (Files.exists(p)) {
-            return Files.lines(p)
-                        .map(line -> line.split(","))
-                        .map(entry -> new Mark(Integer.parseInt(entry[0]), new Hash(entry[1]), new Hash(entry[2])))
-                        .collect(Collectors.toList());
+            try (var lines = Files.lines(p)) {
+                return lines.map(line -> line.split(","))
+                            .map(entry -> new Mark(Integer.parseInt(entry[0]), new Hash(entry[1]), new Hash(entry[2])))
+                            .collect(Collectors.toList());
+            }
         } else {
             return new ArrayList<>();
         }
@@ -85,9 +86,8 @@ class Exporter {
     }
 
     private static void clearDirectory(Path directory) {
-        try {
-            Files.walk(directory)
-                 .map(Path::toFile)
+        try (var paths = Files.walk(directory)) {
+            paths.map(Path::toFile)
                  .sorted(Comparator.reverseOrder())
                  .forEach(File::delete);
         } catch (IOException io) {

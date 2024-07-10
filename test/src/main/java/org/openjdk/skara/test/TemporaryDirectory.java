@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -50,9 +50,8 @@ public class TemporaryDirectory implements AutoCloseable {
     @Override
     public void close() {
         if (shouldRemove) {
-            try {
-                Files.walk(p)
-                     .map(Path::toFile)
+            try (var paths = Files.walk(p)) {
+                paths.map(Path::toFile)
                      .sorted(Comparator.reverseOrder())
                      .forEach(File::delete);
             } catch (IOException io) {

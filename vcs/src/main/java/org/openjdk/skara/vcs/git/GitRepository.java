@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -478,10 +478,11 @@ public class GitRepository implements Repository {
     public Repository reinitialize() throws IOException {
         cachedRoot = null;
 
-        Files.walk(dir)
-             .map(Path::toFile)
-             .sorted(Comparator.reverseOrder())
-             .forEach(File::delete);
+        try (var paths = Files.walk(dir)) {
+            paths.map(Path::toFile)
+                 .sorted(Comparator.reverseOrder())
+                 .forEach(File::delete);
+        }
 
         return init();
     }
