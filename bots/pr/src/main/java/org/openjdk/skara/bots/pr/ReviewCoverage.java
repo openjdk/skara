@@ -23,7 +23,9 @@
 package org.openjdk.skara.bots.pr;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,6 +41,7 @@ public class ReviewCoverage {
     private final boolean acceptSimpleMerges;
     private final Repository repo;
     private final PullRequest pr;
+    private final Map<Review, Boolean> cache = new HashMap<>();
 
     public ReviewCoverage(boolean useStaleReviews,
                           boolean acceptSimpleMerges,
@@ -51,6 +54,10 @@ public class ReviewCoverage {
     }
 
     public boolean covers(Review review) {
+        return cache.computeIfAbsent(review, this::covers0);
+    }
+
+    private boolean covers0(Review review) {
         var r = review.hash();
         // Reviews without a hash are never valid as they referred to no longer
         // existing commits.
