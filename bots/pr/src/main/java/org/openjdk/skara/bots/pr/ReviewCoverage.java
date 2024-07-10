@@ -42,7 +42,7 @@ public class ReviewCoverage {
     private final boolean acceptSimpleMerges;
     private final Repository repo;
     private final PullRequest pr;
-    private final Map<Review, Boolean> cache = new HashMap<>();
+    private final Map<Review, Boolean> cachedCoverage = new HashMap<>();
     private Hash cachedTargetHash;
 
     public ReviewCoverage(boolean useStaleReviews,
@@ -56,7 +56,7 @@ public class ReviewCoverage {
     }
 
     public boolean covers(Review review) {
-        return cache.computeIfAbsent(review, this::covers0);
+        return cachedCoverage.computeIfAbsent(review, this::covers0);
     }
 
     private boolean covers0(Review review) {
@@ -95,7 +95,7 @@ public class ReviewCoverage {
                 }
             }
         } catch (IOException e) {
-            log.log(Level.FINE, "Error while looking for simple merges in a PR " + pr, e);
+            log.log(Level.FINE, "Error while looking for simple merges: " + pr.repository() + ", " + pr.id(), e);
             return false;
         }
         if (seenAtLeastOneCommit) {
