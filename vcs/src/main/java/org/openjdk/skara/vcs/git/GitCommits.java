@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,6 +36,8 @@ class GitCommits implements Commits, AutoCloseable {
 
     private final Path dir;
     private final String range;
+    private final List<Hash> from;
+    private final List<Hash> notFrom;
     private final boolean reverse;
     private final int num;
     private final String format;
@@ -47,8 +49,23 @@ class GitCommits implements Commits, AutoCloseable {
     public GitCommits(Path dir, String range, boolean reverse, int num) throws IOException {
         this.dir = dir;
         this.range = range;
+        this.from = null;
+        this.notFrom = null;
         this.reverse = reverse;
         this.num = num;
+        this.format = String.join("%n",
+                                  COMMIT_DELIMITER,
+                                  GitCommitMetadata.FORMAT);
+
+    }
+
+    public GitCommits(Path dir, List<Hash> reachableFrom, List<Hash> unreachableFrom) throws IOException {
+        this.dir = dir;
+        this.range = null;
+        this.reverse = false;
+        this.num = -1;
+        this.from = reachableFrom;
+        this.notFrom = unreachableFrom;
         this.format = String.join("%n",
                                   COMMIT_DELIMITER,
                                   GitCommitMetadata.FORMAT);
@@ -78,7 +95,15 @@ class GitCommits implements Commits, AutoCloseable {
             cmd.add("-n");
             cmd.add(Integer.toString(num));
         }
-        cmd.add(range);
+        if (range != null) {
+            cmd.add(range);
+        } else {
+            cmd.addAll(from.stream().map(Hash::hex).toList());
+            if (!notFrom.isEmpty()) {
+                cmd.add("--not");
+                cmd.addAll(notFrom.stream().map(Hash::hex).toList());
+            }
+        }
         var pb = new ProcessBuilder(cmd);
         pb.directory(dir.toFile());
         pb.environment().putAll(GitRepository.currentEnv);

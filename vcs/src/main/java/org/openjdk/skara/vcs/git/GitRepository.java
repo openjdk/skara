@@ -181,6 +181,11 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public Commits commits(List<Hash> reachableFrom, List<Hash> unreachableFrom) throws IOException {
+        return new GitCommits(dir, reachableFrom, unreachableFrom);
+    }
+
+    @Override
     public Commits commits(String range) throws IOException {
         return new GitCommits(dir, range, false, -1);
     }
@@ -995,6 +1000,16 @@ public class GitRepository implements Repository {
                             .environ(currentEnv)
                             .execute()) {
             await(p);
+        }
+    }
+
+    @Override
+    public boolean isRemergeDiffEmpty(Hash mergeCommitHash) throws IOException {
+        try (var p = Process.capture("git", "show", "--remerge-diff", "--format=%b", mergeCommitHash.hex())
+                .workdir(dir)
+                .environ(currentEnv)
+                .execute()) {
+            return String.join("", await(p).stdout()).isEmpty();
         }
     }
 

@@ -28,6 +28,7 @@ import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
+import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
@@ -1511,7 +1512,7 @@ class CheckTests {
     }
 
     @Test
-    void ignoreStale(TestInfo testInfo) throws IOException {
+    void useStaleReviews(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
 
@@ -1526,7 +1527,7 @@ class CheckTests {
                     .addReviewer(reviewer2.forge().currentUser().id())
                     .addReviewer(reviewer3.forge().currentUser().id());
 
-            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).ignoreStaleReviews(true).build();
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).useStaleReviews(false).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -1605,6 +1606,264 @@ class CheckTests {
             assertTrue(pr.store().body().contains("Re-review required"));
             // Credit line should include reviewers with stale reviews
             assertLastCommentContains(pr, "Reviewed-by: integrationreviewer2, integrationreviewer3, integrationreviewer4");
+        }
+    }
+
+    @Test
+    void acceptSimpleMerges(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .useStaleReviews(false)
+                    .acceptSimpleMerges(true)
+                    .build();
+
+            // create the repo using CheckableRepository, as it creates probably useful files, such as .jcheck/conf
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            // replace the default file with a bigger file for auto-merging purposes
+            localRepo.checkout(new Branch("master"));
+            Path f = localRepo.root().resolve("file.txt");
+            Files.writeString(f, """
+                    0
+                    1
+                    2
+                    3
+                    4
+                    5
+                    6
+                    7
+                    8
+                    9
+                    a
+                    b
+                    c
+                    d
+                    e
+                    f
+                    """);
+            localRepo.add(f);
+            var masterHash = localRepo.commit("master 1", author.name(), "someone@example.com");
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.branch(masterHash, "feature");
+            localRepo.checkout(new Branch("feature"));
+            Files.writeString(f, """
+                    1
+                    2
+                    3
+                    4
+                    5
+                    6
+                    7
+                    8
+                    9
+                    a
+                    b
+                    c
+                    d
+                    e
+                    f
+                    """);
+            localRepo.add(f);
+            var featureHash = localRepo.commit("feature 1", author.name(), "author@example.com");
+            localRepo.push(featureHash, author.authenticatedUrl(), "feature", true);
+            var pr = credentials.createPullRequest(author, "master", "feature", "This is a pull request");
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertFalse(pr.store().labelNames().contains("ready"));
+
+            var approvalPr = reviewer.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertTrue(pr.store().labelNames().contains("ready"));
+
+            localRepo.checkout(new Branch("master"));
+            Files.writeString(f, """
+                    0
+                    1
+                    2
+                    3
+                    4
+                    5
+                    6
+                    7
+                    8
+                    9
+                    a
+                    b
+                    c
+                    d
+                    e
+                    """);
+            localRepo.add(f);
+            masterHash = localRepo.commit("master 2", author.name(), "someone@example.com");
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertTrue(pr.store().labelNames().contains("ready"));
+
+            localRepo.checkout(new Branch("feature"));
+            localRepo.merge(new Branch("master"));
+            localRepo.add(f);
+            var mergeHash = localRepo.commit("Updated from master", author.name(), "author@example.com");
+            localRepo.push(mergeHash, author.authenticatedUrl(), "feature", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertTrue(pr.store().labelNames().contains("ready"));
+
+            localRepo.checkout(new Branch("master"));
+            Files.writeString(f, """
+                    0
+                    1
+                    2
+                    3
+                    4
+                    5
+                    6
+                    7
+                    8
+                    9
+                    a
+                    b
+                    c
+                    d
+                    """);
+            localRepo.add(f);
+            masterHash = localRepo.commit("master 3", author.name(), "someone@example.com");
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertTrue(pr.store().labelNames().contains("ready"));
+
+            localRepo.checkout(new Branch("feature"));
+            Files.writeString(f, """
+                    2
+                    3
+                    4
+                    5
+                    6
+                    7
+                    8
+                    9
+                    a
+                    b
+                    c
+                    d
+                    e
+                    """);
+            localRepo.add(f);
+            featureHash = localRepo.commit("feature 2", author.name(), "author@example.com");
+            localRepo.push(featureHash, author.authenticatedUrl(), "feature", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertFalse(pr.store().labelNames().contains("ready"));
+            assertTrue(pr.store().body().contains("Re-review required"));
+
+            approvalPr = reviewer.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertTrue(pr.store().labelNames().contains("ready"));
+
+            localRepo.merge(new Branch("master"));
+            localRepo.add(f);
+            mergeHash = localRepo.commit("Updated from master 2", author.name(), "author@example.com");
+            localRepo.push(mergeHash, author.authenticatedUrl(), "feature", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertTrue(pr.store().labelNames().contains("ready"));
+
+            localRepo.checkout(new Branch("master"));
+            Files.writeString(f, """
+                    0
+                    1
+                    2
+                    3
+                    4
+                    5
+                    6
+                    7
+                    8
+                    9
+                    a
+                    b
+                    c
+                    """);
+            localRepo.add(f);
+            masterHash = localRepo.commit("master 4", author.name(), "someone@example.com");
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertTrue(pr.store().labelNames().contains("ready"));
+
+            localRepo.checkout(new Branch("feature"));
+            localRepo.merge(new Branch("master"));
+            localRepo.add(f);
+            mergeHash = localRepo.commit("Updated from master 3", author.name(), "author@example.com");
+            localRepo.push(mergeHash, author.authenticatedUrl(), "feature", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertTrue(pr.store().labelNames().contains("ready"));
+
+            localRepo.checkout(new Branch("master"));
+            Files.writeString(f, """
+                    0
+                    1
+                    2
+                    3
+                    4
+                    5
+                    6
+                    7
+                    8
+                    9
+                    a
+                    b
+                    """);
+            localRepo.add(f);
+            masterHash = localRepo.commit("master 5", author.name(), "someone@example.com");
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertTrue(pr.store().labelNames().contains("ready"));
+
+            localRepo.checkout(new Branch("feature"));
+            localRepo.merge(new Branch("master"));
+            Files.writeString(f, """
+                    w
+                    x
+                    y
+                    z
+                    """);
+            localRepo.add(f);
+            mergeHash = localRepo.commit("Updated from master 4", author.name(), "author@example.com");
+            localRepo.push(mergeHash, author.authenticatedUrl(), "feature", true);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertFalse(pr.store().labelNames().contains("ready"));
+            assertTrue(pr.store().body().contains("Re-review required"));
         }
     }
 

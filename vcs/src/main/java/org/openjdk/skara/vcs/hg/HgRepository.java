@@ -56,6 +56,11 @@ public class HgRepository implements Repository {
         currentEnv = NO_CONFIG_ENV;
     }
 
+    @Override
+    public boolean isRemergeDiffEmpty(Hash mergeCommitHash) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
     private void copyResource(String name, Path p) throws IOException {
         Files.copy(this.getClass().getResourceAsStream("/" + name), p, StandardCopyOption.REPLACE_EXISTING);
     }
@@ -246,6 +251,11 @@ public class HgRepository implements Repository {
         var ext = Files.createTempFile("ext", ".py");
         copyResource(EXT_PY, ext);
         return new HgCommits(dir, range, ext, reverse, n);
+    }
+
+    @Override
+    public Commits commits(List<Hash> reachableFrom, List<Hash> unreachableFrom) throws IOException {
+        throw new UnsupportedOperationException();
     }
 
     @Override

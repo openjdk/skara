@@ -43,7 +43,8 @@ public class PullRequestBotBuilder {
     private Set<String> twentyFourHoursLabels = Set.of();
     private Map<String, Pattern> readyComments = Map.of();
     private IssueProject issueProject = null;
-    private boolean ignoreStaleReviews = false;
+    private boolean useStaleReviews = true;
+    private boolean acceptSimpleMerges = false;
     private Pattern allowedTargetBranches = Pattern.compile(".*");
     private Path seedStorage = null;
     private HostedRepository confOverrideRepo = null;
@@ -132,8 +133,13 @@ public class PullRequestBotBuilder {
         return this;
     }
 
-    public PullRequestBotBuilder ignoreStaleReviews(boolean ignoreStaleReviews) {
-        this.ignoreStaleReviews = ignoreStaleReviews;
+    public PullRequestBotBuilder useStaleReviews(boolean useStaleReviews) {
+        this.useStaleReviews = useStaleReviews;
+        return this;
+    }
+
+    public PullRequestBotBuilder acceptSimpleMerges(boolean acceptSimpleMerges) {
+        this.acceptSimpleMerges = acceptSimpleMerges;
         return this;
     }
 
@@ -260,7 +266,7 @@ public class PullRequestBotBuilder {
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration, externalPullRequestCommands,
                 externalCommitCommands, blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
-                readyComments, issueProject, ignoreStaleReviews, allowedTargetBranches, seedStorage, confOverrideRepo,
+                readyComments, issueProject, useStaleReviews, acceptSimpleMerges, allowedTargetBranches, seedStorage, confOverrideRepo,
                 confOverrideName, confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom, enableCsr,
                 enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge, processPR, processCommit, enableMerge,
                 mergeSources, jcheckMerge, enableBackport, issuePRMap, approval, versionMismatchWarning, cleanCommandEnabled);

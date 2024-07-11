@@ -57,7 +57,7 @@ class CheckRun {
     private final List<Review> activeReviews;
     private final Set<String> labels;
     private final CensusInstance censusInstance;
-    private final boolean ignoreStaleReviews;
+    private final boolean useStaleReviews;
     private final Set<String> integrators;
 
     private final Hash baseHash;
@@ -82,6 +82,7 @@ class CheckRun {
     private final boolean reviewCleanBackport;
     private final Approval approval;
     private final boolean reviewersCommandIssued;
+    private final ReviewCoverage reviewCoverage;
 
     private Duration expiresIn;
     // Only set if approval is configured for the repo
@@ -90,7 +91,7 @@ class CheckRun {
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
-                     CensusInstance censusInstance, boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport,
+                     CensusInstance censusInstance, boolean useStaleReviews, Set<String> integrators, boolean reviewCleanBackport,
                      MergePullRequestReviewConfiguration reviewMerge, Approval approval) throws IOException {
         this.workItem = workItem;
         this.pr = pr;
@@ -101,7 +102,7 @@ class CheckRun {
         this.labels = new HashSet<>(labels);
         this.newLabels = new HashSet<>(labels);
         this.censusInstance = censusInstance;
-        this.ignoreStaleReviews = ignoreStaleReviews;
+        this.useStaleReviews = useStaleReviews;
         this.integrators = integrators;
         this.reviewCleanBackport = reviewCleanBackport;
         this.approval = approval;
@@ -112,21 +113,23 @@ class CheckRun {
             reviewMerge = MergePullRequestReviewConfiguration.ALWAYS;
         }
 
+        reviewCoverage = new ReviewCoverage(workItem.bot.useStaleReviews(), workItem.bot.acceptSimpleMerges(), localRepo, pr);
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
-        checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews,
+        checkablePullRequest = new CheckablePullRequest(pr, localRepo, useStaleReviews,
                 workItem.bot.confOverrideRepository().orElse(null),
                 workItem.bot.confOverrideName(),
                 workItem.bot.confOverrideRef(),
                 comments,
-                reviewMerge);
+                reviewMerge,
+                reviewCoverage);
     }
 
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance,
-                                     boolean ignoreStaleReviews, Set<String> integrators, boolean reviewCleanBackport, MergePullRequestReviewConfiguration reviewMerge,
+                                     boolean useStaleReviews, Set<String> integrators, boolean reviewCleanBackport, MergePullRequestReviewConfiguration reviewMerge,
                                      Approval approval) throws IOException {
         var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance,
-                ignoreStaleReviews, integrators, reviewCleanBackport, reviewMerge, approval);
+                useStaleReviews, integrators, reviewCleanBackport, reviewMerge, approval);
         run.checkStatus();
         if (run.expiresIn != null) {
             return Optional.of(Instant.now().plus(run.expiresIn));
@@ -604,14 +607,12 @@ class CheckRun {
                                    } else {
                                        var hash = review.hash();
                                        if (hash.isPresent()) {
-                                           if (!hash.get().equals(pr.headHash())) {
-                                               if (ignoreStaleReviews) {
-                                                   entry += " 🔄 Re-review required (review applies to [" + hash.get().abbreviate()
-                                                           + "](" + pr.filesUrl(hash.get()) + "))";
-                                               } else {
-                                                   entry += " ⚠️ Review applies to [" + hash.get().abbreviate()
-                                                           + "](" + pr.filesUrl(hash.get()) + ")";
-                                               }
+                                           if (!reviewCoverage.covers(review)) {
+                                               entry += " 🔄 Re-review required (review applies to [" + hash.get().abbreviate()
+                                                       + "](" + pr.filesUrl(hash.get()) + "))";
+                                           } else {
+                                               entry += " ⚠️ Review applies to [" + hash.get().abbreviate()
+                                                       + "](" + pr.filesUrl(hash.get()) + ")";
                                            }
                                        } else {
                                            entry += " 🔄 Re-review required (review applies to a commit that is no longer present)";
@@ -622,7 +623,7 @@ class CheckRun {
                                .collect(Collectors.joining("\n"));
 
         // Check for manually added reviewers
-        if (!ignoreStaleReviews) {
+        if (useStaleReviews) {
             var namespace = censusInstance.namespace();
             var allReviewers = CheckablePullRequest.reviewerNames(activeReviews, namespace);
             var additionalEntries = new ArrayList<String>();
