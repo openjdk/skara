@@ -30,6 +30,7 @@ import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Repository;
+import org.openjdk.skara.vcs.git.GitVersion;
 
 import java.io.*;
 import java.nio.file.*;
@@ -1611,6 +1612,8 @@ class CheckTests {
 
     @Test
     void acceptSimpleMerges(TestInfo testInfo) throws IOException {
+        var v = GitVersion.get();
+        Assumptions.assumeTrue(v.major() > 2 || (v.major() == 2 && v.minor() >= 36), v.toString());
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
 
