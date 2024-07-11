@@ -226,16 +226,17 @@ class BridgeBotTests {
             assertTrue(localGitCommits.contains(FIRST_CONVERTED_HASH));
 
             // Now corrupt the .hg folder in the permanent storage
-            Files.walk(storageFolder.path())
-                 .filter(p -> p.toString().contains("/.hg/"))
-                 .filter(p -> p.toFile().isFile())
-                 .forEach(p -> {
-                     try {
-                         Files.delete(p);
-                     } catch (IOException e) {
-                         throw new UncheckedIOException(e);
-                     }
-                 });
+            try (var paths = Files.walk(storageFolder.path())) {
+                paths.filter(p -> p.toString().contains("/.hg/"))
+                     .filter(p -> p.toFile().isFile())
+                     .forEach(p -> {
+                         try {
+                             Files.delete(p);
+                         } catch (IOException e) {
+                             throw new UncheckedIOException(e);
+                         }
+                     });
+            }
 
             // Now export it again - should still be intact
             TestBotRunner.runPeriodicItems(bridge);
@@ -353,16 +354,17 @@ class BridgeBotTests {
             assertFalse(localGitCommits.contains(FIRST_CONVERTED_HASH));
 
             // Remove the successful push markers
-            Files.walk(storageFolder.path())
-                 .filter(p -> p.toString().contains(".success.txt"))
-                 .filter(p -> p.toFile().isFile())
-                 .forEach(p -> {
-                     try {
-                         Files.delete(p);
-                     } catch (IOException e) {
-                         throw new UncheckedIOException(e);
-                     }
-                 });
+            try (var paths = Files.walk(storageFolder.path())) {
+                paths.filter(p -> p.toString().contains(".success.txt"))
+                     .filter(p -> p.toFile().isFile())
+                     .forEach(p -> {
+                         try {
+                             Files.delete(p);
+                         } catch (IOException e) {
+                             throw new UncheckedIOException(e);
+                         }
+                     });
+            }
 
             // Now run the exporter again - it should do the push again
             TestBotRunner.runPeriodicItems(bridge);

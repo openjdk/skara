@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -95,11 +95,10 @@ public class LinkTask extends DefaultTask {
     }
 
     private static void clearDirectory(Path directory) {
-        try {
-            Files.walk(directory)
-                    .map(Path::toFile)
-                    .sorted(Comparator.reverseOrder())
-                    .forEach(File::delete);
+        try (var paths = Files.walk(directory)) {
+            paths.map(Path::toFile)
+                 .sorted(Comparator.reverseOrder())
+                 .forEach(File::delete);
         } catch (IOException io) {
             throw new RuntimeException(io);
         }
@@ -125,13 +124,15 @@ public class LinkTask extends DefaultTask {
         } else {
             jdk = Path.of(System.getProperty("java.home"));
         }
-        var dirs = Files.walk(jdk)
-                        .filter(Files::isDirectory)
+        List<Path> dirs;
+        try (var paths = Files.walk(jdk)) {
+            dirs = paths.filter(Files::isDirectory)
                         .filter(p -> p.getFileName().toString().equals("jmods"))
-                        .collect(Collectors.toList());
-        if (dirs.size() != 1) {
-            var plural = dirs.size() == 0 ? "no" : "multiple";
-            throw new GradleException("JDK at " + jdk.toString() + " contains " + plural + " 'jmods' directories");
+                        .toList();
+            if (dirs.size() != 1) {
+                var plural = dirs.size() == 0 ? "no" : "multiple";
+                throw new GradleException("JDK at " + jdk.toString() + " contains " + plural + " 'jmods' directories");
+            }
         }
         var jmodsDir = dirs.get(0).toAbsolutePath();
 
@@ -171,10 +172,12 @@ public class LinkTask extends DefaultTask {
         var currentOS = System.getProperty("os.name").toLowerCase().substring(0, 3);
         if (os.get().equals("local") || currentOS.equals(os.get().substring(0, 3))) {
             var ext = currentOS.startsWith("win") ? ".exe" : "";
-            var javaLaunchers = Files.walk(dest)
-                                     .filter(Files::isExecutable)
+            List<Path> javaLaunchers;
+            try (var paths = Files.walk(dest)) {
+                javaLaunchers = paths.filter(Files::isExecutable)
                                      .filter(p -> p.getFileName().toString().equals("java" + ext))
-                                     .collect(Collectors.toList());
+                                     .toList();
+            }
             if (javaLaunchers.size() != 1) {
                 throw new GradleException("Multiple or no java launchers generated for " + os.get());
             }

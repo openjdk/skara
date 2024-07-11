@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,8 +30,7 @@ import org.gradle.api.GradleException;
 import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
 import java.io.IOException;
-
-import static java.util.stream.Collectors.toList;
+import java.util.Optional;
 
 public class VersionPlugin implements Plugin<Project> {
     public void apply(Project project) {
@@ -53,9 +52,12 @@ public class VersionPlugin implements Plugin<Project> {
                 var root = project.getRootProject().getRootDir().toPath();
                 var versionTxt = root.resolve("version.txt");
                 if (Files.exists(versionTxt)) {
-                    var lines = Files.lines(versionTxt).collect(toList());
-                    if (!lines.isEmpty()) {
-                        project.setProperty("version", lines.get(0));
+                    Optional<String> firstLine;
+                    try (var lines = Files.lines(versionTxt)) {
+                        firstLine = lines.findFirst();
+                    }
+                    if (firstLine.isPresent()) {
+                        project.setProperty("version", firstLine.get());
                     } else {
                         project.setProperty("version", "unknown");
                     }

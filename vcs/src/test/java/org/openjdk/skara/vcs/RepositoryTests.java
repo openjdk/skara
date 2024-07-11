@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -2693,14 +2693,18 @@ public class RepositoryTests {
             var untracked = dir.path().resolve("UNTRACKED");
             Files.write(untracked, List.of("Hello, untracked!"));
 
-            var paths = Files.list(r.root()).collect(Collectors.toList());
-            assertTrue(paths.contains(untracked));
-            assertTrue(paths.contains(readme));
+            try (var list = Files.list(r.root())) {
+                var paths = list.toList();
+                assertTrue(paths.contains(untracked));
+                assertTrue(paths.contains(readme));
+            }
 
             r.deleteUntrackedFiles();
-            paths = Files.list(r.root()).collect(Collectors.toList());
-            assertFalse(paths.contains(untracked));
-            assertTrue(paths.contains(readme));
+            try (var list = Files.list(r.root())) {
+                var paths = list.toList();
+                assertFalse(paths.contains(untracked));
+                assertTrue(paths.contains(readme));
+            }
         }
     }
 

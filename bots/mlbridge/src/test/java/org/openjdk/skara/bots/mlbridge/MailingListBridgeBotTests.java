@@ -47,9 +47,8 @@ class MailingListBridgeBotTests {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge.test");
 
     private Optional<String> archiveContents(Path archive, String prId) {
-        try {
-            var mbox = Files.find(archive, 50, (path, attrs) -> path.toString().endsWith(".mbox"))
-                            .filter(path -> path.getFileName().toString().contains(prId))
+        try (var paths = Files.find(archive, 50, (path, attrs) -> path.toString().endsWith(".mbox"))) {
+            var mbox = paths.filter(path -> path.getFileName().toString().contains(prId))
                             .findAny();
             if (mbox.isEmpty()) {
                 return Optional.empty();
@@ -90,8 +89,8 @@ class MailingListBridgeBotTests {
     }
 
     private boolean webrevContains(Path webrev, String text) {
-        try {
-            var index = Files.find(webrev, 5, (path, attrs) -> path.toString().endsWith("index.html")).findAny();
+        try (var paths = Files.find(webrev, 5, (path, attrs) -> path.toString().endsWith("index.html"))) {
+            var index = paths.findAny();
             if (index.isEmpty()) {
                 return false;
             }

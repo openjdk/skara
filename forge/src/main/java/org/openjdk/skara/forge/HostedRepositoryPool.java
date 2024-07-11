@@ -52,9 +52,8 @@ public class HostedRepositoryPool {
         }
 
         private void clearDirectory(Path directory) {
-            try {
-                Files.walk(directory)
-                     .map(Path::toFile)
+            try (var paths = Files.walk(directory)) {
+                paths.map(Path::toFile)
                      .sorted(Comparator.reverseOrder())
                      .forEach(File::delete);
             } catch (IOException io) {

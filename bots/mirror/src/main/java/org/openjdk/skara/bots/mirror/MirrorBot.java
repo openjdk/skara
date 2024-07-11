@@ -92,10 +92,11 @@ class MirrorBot implements Bot, WorkItem {
                 repo = Repository.get(dir).orElseGet(() -> {
                     log.info("The existing scratch directory is not a valid repository. Recloning " + from.name());
                     try {
-                        Files.walk(dir)
-                                .map(Path::toFile)
-                                .sorted(Comparator.reverseOrder())
-                                .forEach(File::delete);
+                        try (var paths = Files.walk(dir)) {
+                            paths.map(Path::toFile)
+                                 .sorted(Comparator.reverseOrder())
+                                 .forEach(File::delete);
+                        }
                         return Repository.mirror(from.authenticatedUrl(), dir);
                     } catch (IOException io) {
                         throw new RuntimeException(io);

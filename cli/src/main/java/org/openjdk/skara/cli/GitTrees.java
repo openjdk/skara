@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -54,14 +54,14 @@ public class GitTrees {
     }
 
     private static List<Path> subrepos(Path root, boolean isMercurial) throws IOException {
-        var r = Files.walk(root)
-                    .filter(d -> d.getFileName().toString().equals(isMercurial ? ".hg" : ".git"))
-                    .map(d -> d.getParent())
-                    .filter(d -> !d.equals(root))
-                    .map(d -> root.relativize(d))
-                    .sorted()
-                    .collect(Collectors.toList());
-        return r;
+        try (var paths = Files.walk(root)) {
+            return paths.filter(d -> d.getFileName().toString().equals(isMercurial ? ".hg" : ".git"))
+                        .map(d -> d.getParent())
+                        .filter(d -> !d.equals(root))
+                        .map(d -> root.relativize(d))
+                        .sorted()
+                        .collect(Collectors.toList());
+        }
     }
 
     private static Path treesFile(Path root, boolean isMercurial) {

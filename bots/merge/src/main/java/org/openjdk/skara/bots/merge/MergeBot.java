@@ -251,10 +251,11 @@ class MergeBot implements Bot, WorkItem {
     }
 
     private static void deleteDirectory(Path dir) throws IOException {
-        Files.walk(dir)
-             .map(Path::toFile)
-             .sorted(Comparator.reverseOrder())
-             .forEach(File::delete);
+        try (var paths = Files.walk(dir)) {
+            paths.map(Path::toFile)
+                 .sorted(Comparator.reverseOrder())
+                 .forEach(File::delete);
+        }
     }
 
     private Repository cloneAndSyncFork(Path to) throws IOException {
