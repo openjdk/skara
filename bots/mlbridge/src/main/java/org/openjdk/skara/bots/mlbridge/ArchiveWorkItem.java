@@ -153,7 +153,7 @@ class ArchiveWorkItem implements WorkItem {
         }
         if (bot.ignoredUsers().contains(author.username())) {
             if (pr.isOpen()) {
-                return !PullRequestConstants.READY_FOR_SPONSOR_MARKER_PATTERN.matcher(body).find() && pr.isOpen();
+                return !PullRequestConstants.READY_FOR_SPONSOR_MARKER_PATTERN.matcher(body).find();
             } else {
                 return true;
             }
