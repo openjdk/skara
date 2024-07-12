@@ -1005,6 +1005,7 @@ public class GitRepository implements Repository {
 
     @Override
     public boolean isRemergeDiffEmpty(Hash mergeCommitHash) throws IOException {
+        // requires git 2.36 or newer
         try (var p = Process.capture("git", "show", "--remerge-diff", "--format=%b", mergeCommitHash.hex())
                 .workdir(dir)
                 .environ(currentEnv)
