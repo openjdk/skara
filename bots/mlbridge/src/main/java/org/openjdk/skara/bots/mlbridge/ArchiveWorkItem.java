@@ -145,10 +145,18 @@ class ArchiveWorkItem implements WorkItem {
 
     private boolean ignoreComment(HostUser author, String body, ZonedDateTime createdTime, ZonedDateTime lastDraftTime, boolean isComment) {
         if (pr.repository().forge().currentUser().equals(author)) {
-            return !PullRequestConstants.READY_FOR_SPONSOR_MARKER_PATTERN.matcher(body).find();
+            if (pr.isOpen()) {
+                return !PullRequestConstants.READY_FOR_SPONSOR_MARKER_PATTERN.matcher(body).find();
+            } else {
+                return true;
+            }
         }
         if (bot.ignoredUsers().contains(author.username())) {
-            return !PullRequestConstants.READY_FOR_SPONSOR_MARKER_PATTERN.matcher(body).find();
+            if (pr.isOpen()) {
+                return !PullRequestConstants.READY_FOR_SPONSOR_MARKER_PATTERN.matcher(body).find();
+            } else {
+                return true;
+            }
         }
 
         // Check if this comment only contains command lines
