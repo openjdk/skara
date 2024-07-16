@@ -1518,14 +1518,15 @@ class MergeTests {
             var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated");
             localRepo.add(unrelated);
             localRepo.commit("Unrelated", "some", "some@one");
-            var mergeCmd = Process.command("git", "merge", "--no-commit", "--allow-unrelated-histories", "-s", "ours", otherHash.hex())
-                                  .workdir(localRepo.root())
-                                  .environ("GIT_AUTHOR_NAME", "some")
-                                  .environ("GIT_AUTHOR_EMAIL", "some@one")
-                                  .environ("GIT_COMMITTER_NAME", "another")
-                                  .environ("GIT_COMMITTER_EMAIL", "another@one")
-                                  .execute();
-            mergeCmd.check();
+            try (var p = Process.command("git", "merge", "--no-commit", "--allow-unrelated-histories", "-s", "ours", otherHash.hex())
+                    .workdir(localRepo.root())
+                    .environ("GIT_AUTHOR_NAME", "some")
+                    .environ("GIT_AUTHOR_EMAIL", "some@one")
+                    .environ("GIT_COMMITTER_NAME", "another")
+                    .environ("GIT_COMMITTER_EMAIL", "another@one")
+                    .execute()) {
+                p.check();
+            }
 
             //localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
