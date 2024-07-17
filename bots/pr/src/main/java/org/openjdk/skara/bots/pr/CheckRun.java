@@ -607,12 +607,14 @@ class CheckRun {
                                    } else {
                                        var hash = review.hash();
                                        if (hash.isPresent()) {
-                                           if (!reviewCoverage.covers(review)) {
-                                               entry += " 🔄 Re-review required (review applies to [" + hash.get().abbreviate()
-                                                       + "](" + pr.filesUrl(hash.get()) + "))";
-                                           } else {
-                                               entry += " ⚠️ Review applies to [" + hash.get().abbreviate()
-                                                       + "](" + pr.filesUrl(hash.get()) + ")";
+                                           if (!hash.get().equals(pr.headHash())) {
+                                               if (!reviewCoverage.covers(review)) {
+                                                   entry += " 🔄 Re-review required (review applies to [" + hash.get().abbreviate()
+                                                           + "](" + pr.filesUrl(hash.get()) + "))";
+                                               } else {
+                                                   entry += " ⚠️ Review applies to [" + hash.get().abbreviate()
+                                                           + "](" + pr.filesUrl(hash.get()) + ")";
+                                               }
                                            }
                                        } else {
                                            entry += " 🔄 Re-review required (review applies to a commit that is no longer present)";

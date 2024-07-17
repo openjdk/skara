@@ -205,6 +205,8 @@ class CheckTests {
             var reviewerPr = reviewer.pullRequest(authorPr.id());
             reviewerPr.addReview(Review.Verdict.APPROVED, "Reviewers");
             TestBotRunner.runPeriodicItems(checkBot);
+            assertFalse(authorPr.store().body().contains("Re-review required"));
+            assertFalse(authorPr.store().body().contains("Review applies to"));
 
             // Check that it has been approved
             assertTrue(authorPr.store().body().contains("Reviewers"));
@@ -1557,6 +1559,7 @@ class CheckTests {
             // The PR should be flagged as ready
             assertTrue(pr.store().labelNames().contains("ready"));
             assertFalse(pr.store().body().contains("Re-review required"));
+            assertFalse(pr.store().body().contains("Review applies to"));
 
             // Add another commit
             editHash = CheckableRepository.replaceAndCommit(localRepo, "Another line");
@@ -1691,6 +1694,8 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             assertTrue(pr.store().labelNames().contains("ready"));
+            assertFalse(pr.store().body().contains("Re-review required"));
+            assertFalse(pr.store().body().contains("Review applies to"));
 
             localRepo.checkout(new Branch("master"));
             Files.writeString(f, """
