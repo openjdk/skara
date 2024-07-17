@@ -2257,29 +2257,33 @@ public class RepositoryTests {
             switch (vcs) {
                 case GIT -> {
                     var gitRepo = new GitRepository(dir.path()).init();
-                    var configResult = GitRepository.capture(dir.path(),
-                            "git", "config", "--list").await();
-                    assertEquals(configResult.status(), 0);
-
-                    // We can't get a list of all settings except local, so compare all with local only
-                    var localConfigResult = GitRepository.capture(dir.path(),
-                            "git", "config", "--list", "--local").await();
-                    assertEquals(localConfigResult.status(), 0);
-                    assertEquals(localConfigResult.stdout(), configResult.stdout());
+                    try (var p = GitRepository.capture(dir.path(),
+                            "git", "config", "--list")) {
+                        var configResult = p.await();
+                        assertEquals(configResult.status(), 0);
+                        // We can't get a list of all settings except local, so compare all with local only
+                        try (var p1 = GitRepository.capture(dir.path(),
+                                "git", "config", "--list", "--local")) {
+                            var localConfigResult = p1.await();
+                            assertEquals(localConfigResult.status(), 0);
+                            assertEquals(localConfigResult.stdout(), configResult.stdout());
+                        }
+                    }
                 }
 
                 case HG -> {
                     var hgRepo = new HgRepository(dir.path()).init();
-                    var settingsResult = HgRepository.capture(dir.path(),
-                            "hg", "config").await();
-                    assertEquals(settingsResult.status(), 0);
-
-                    // There's no way to stop hg from picking up ui.editor or repo settings,
-                    // nor to print only them, so hard-code these settings.
-                    var filteredSettings = settingsResult.stdout().stream().filter(
-                            s -> !(s.startsWith("bundle.mainreporoot=") || s.startsWith("ui.editor="))
-                    ).toArray();
-                    assertTrue(filteredSettings.length == 0);
+                    try (var p = HgRepository.capture(dir.path(),
+                            "hg", "config")) {
+                        var settingsResult = p.await();
+                        assertEquals(settingsResult.status(), 0);
+                        // There's no way to stop hg from picking up ui.editor or repo settings,
+                        // nor to print only them, so hard-code these settings.
+                        var filteredSettings = settingsResult.stdout().stream().filter(
+                                s -> !(s.startsWith("bundle.mainreporoot=") || s.startsWith("ui.editor="))
+                        ).toArray();
+                        assertTrue(filteredSettings.length == 0);
+                    }
                 }
             }
         }
