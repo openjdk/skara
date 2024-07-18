@@ -231,12 +231,14 @@ public class CheckablePullRequest {
                     () -> new IllegalStateException("Cannot parse JCheck configuration with additional configuration for commit with hash " + hash.hex()));
     }
 
-    void executeChecks(Hash hash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor, JCheckConfiguration conf) throws IOException {
+    List<org.openjdk.skara.jcheck.Issue> executeChecks(Hash hash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor, JCheckConfiguration conf) throws IOException {
         visitor.setConfiguration(conf);
         try (var issues = JCheck.check(localRepo, censusInstance.census(), CommitMessageParsers.v1, hash, conf)) {
-            for (var issue : issues) {
+            var list = issues.asList();
+            for (var issue : list) {
                 issue.accept(visitor);
             }
+            return list;
         }
     }
 

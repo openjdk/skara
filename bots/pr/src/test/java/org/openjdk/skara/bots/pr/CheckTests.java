@@ -1576,6 +1576,12 @@ class CheckTests {
             // Approve again by reviewer1
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved again");
 
+            // Check the status again
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertFalse(pr.store().body().contains("Re-review required"));
+            assertTrue(pr.store().body().contains("Review applies to"));
+
             // Change the target ref of the PR
             localRepo.push(masterHash, author.authenticatedUrl(), "other-branch", true);
             pr.setTargetRef("other-branch");

@@ -32,6 +32,7 @@ import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jbs.Backports;
 import org.openjdk.skara.jbs.JdkVersion;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
+import org.openjdk.skara.jcheck.TooFewReviewersIssue;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
@@ -596,7 +597,7 @@ class CheckRun {
         return text;
     }
 
-    private Optional<String> getReviewersList() {
+    private Optional<String> getReviewersList(boolean tooFewReviewers) {
         var reviewers = activeReviews.stream()
                                .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                                .map(review -> {
@@ -608,7 +609,7 @@ class CheckRun {
                                        var hash = review.hash();
                                        if (hash.isPresent()) {
                                            if (!hash.get().equals(pr.headHash())) {
-                                               if (!reviewCoverage.covers(review)) {
+                                               if (!reviewCoverage.covers(review) && tooFewReviewers) {
                                                    entry += " 🔄 Re-review required (review applies to [" + hash.get().abbreviate()
                                                            + "](" + pr.filesUrl(hash.get()) + "))";
                                                } else {
@@ -676,7 +677,7 @@ class CheckRun {
             List<String> additionalErrors, Map<String, Boolean> additionalProgresses,
             List<String> integrationBlockers, List<String> warnings, boolean reviewNeeded,
             Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap,
-            IssueTrackerIssue jepIssue, Collection<IssueTrackerIssue> csrIssues, JdkVersion version) {
+            IssueTrackerIssue jepIssue, Collection<IssueTrackerIssue> csrIssues, JdkVersion version, boolean tooFewReviewers) {
         var progressBody = new StringBuilder();
         progressBody.append("---------\n");
         progressBody.append("### Progress\n");
@@ -843,7 +844,7 @@ class CheckRun {
             }
         }
 
-        getReviewersList().ifPresent(reviewers -> {
+        getReviewersList(tooFewReviewers).ifPresent(reviewers -> {
             progressBody.append("\n\n### Reviewers\n");
             progressBody.append(reviewers);
         });
@@ -1335,6 +1336,7 @@ class CheckRun {
             }
 
             var visitor = checkablePullRequest.createVisitor(targetJCheckConf);
+            boolean tooFewReviewers = false;
             var needUpdateAdditionalProgresses = false;
             if (localHash.equals(baseHash)) {
                 if (additionalErrors.isEmpty()) {
@@ -1345,7 +1347,8 @@ class CheckRun {
             } else {
                 // Determine current status
                 jcheckType = "target jcheck";
-                checkablePullRequest.executeChecks(localHash, censusInstance, visitor, targetJCheckConf);
+                var issues = checkablePullRequest.executeChecks(localHash, censusInstance, visitor, targetJCheckConf);
+                tooFewReviewers = issues.stream().anyMatch(TooFewReviewersIssue.class::isInstance);
 
                 // If the PR updates .jcheck/conf then Need to run JCheck again using the configuration
                 // from the resulting commit. Not needed if we are overriding the JCheck configuration since
@@ -1411,7 +1414,7 @@ class CheckRun {
 
             // Calculate and update the status message if needed
             var statusMessage = getStatusMessage(visitor, additionalErrors, additionalProgresses, integrationBlockers, warnings,
-                    reviewNeeded, regularIssuesMap, jepIssue, issueToCsrMap.values(), version);
+                    reviewNeeded, regularIssuesMap, jepIssue, issueToCsrMap.values(), version, tooFewReviewers);
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
 
