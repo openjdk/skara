@@ -603,7 +603,7 @@ class CheckRun {
                 .map(review -> {
                     var entry = " * " + formatReviewer(review.reviewer());
                     if (!review.targetRef().equals(pr.targetRef())) {
-                        if (useStaleReviews || tooFewReviewers) {
+                        if (tooFewReviewers) {
                             entry += " 🔄 Re-review required (review was made when pull request targeted the [" + review.targetRef()
                                     + "](" + pr.repository().webUrl(new Branch(review.targetRef())) + ") branch)";
                         } else {
@@ -624,7 +624,7 @@ class CheckRun {
                                 }
                             }
                         } else {
-                            if (useStaleReviews || tooFewReviewers) {
+                            if (tooFewReviewers) {
                                 entry += " 🔄 Re-review required (review applies to a commit that is no longer present)";
                             } else {
                                 entry += " Review applies to a commit that is no longer present";
