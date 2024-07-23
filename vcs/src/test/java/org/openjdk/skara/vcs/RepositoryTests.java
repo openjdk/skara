@@ -742,7 +742,6 @@ public class RepositoryTests {
     void testBranchesOnEmptyRepository(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
-            var expected = vcs == VCS.GIT ? List.of() : List.of(new Branch("default"));
             assertEquals(List.of(), r.branches());
         }
     }
@@ -2168,7 +2167,6 @@ public class RepositoryTests {
         try (var dir = new TemporaryDirectory()) {
             var repo = TestableRepository.init(dir.path(), vcs);
             var readme = repo.root().resolve("README");
-            var now = ZonedDateTime.now();
             Files.writeString(readme, "Hello\n");
             repo.add(readme);
             var head = repo.commit("Added README", "duke", "duke@openjdk.org");

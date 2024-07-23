@@ -111,7 +111,6 @@ class ReviewersTracker {
     }
 
     static Optional<AdditionalRequiredReviewers> additionalRequiredReviewers(HostUser botUser, List<Comment> comments) {
-        var ret = new HashMap<String, Integer>();
         var reviewersActions = comments.stream()
                                        .filter(comment -> comment.author().equals(botUser))
                                        .map(comment -> REVIEWERS_MARKER_PATTERN.matcher(comment.body()))

@@ -79,8 +79,7 @@ public class CleanCommandTests {
     @Test
     void alreadyCleanPullRequest(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory(false);
-             var pushedFolder = new TemporaryDirectory(false)) {
+             var tempFolder = new TemporaryDirectory(false)) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -147,8 +146,7 @@ public class CleanCommandTests {
     @Test
     void makeNonCleanBackportClean(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory(false);
-             var pushedFolder = new TemporaryDirectory(false)) {
+             var tempFolder = new TemporaryDirectory(false)) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -225,8 +223,7 @@ public class CleanCommandTests {
     @Test
     void authorShouldNotBeAllowed(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory(false);
-             var pushedFolder = new TemporaryDirectory(false)) {
+             var tempFolder = new TemporaryDirectory(false)) {
 
             var author = credentials.getHostedRepository();
             var contributor = credentials.getHostedRepository();
