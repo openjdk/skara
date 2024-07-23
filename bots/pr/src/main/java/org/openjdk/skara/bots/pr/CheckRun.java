@@ -603,22 +603,32 @@ class CheckRun {
                 .map(review -> {
                     var entry = " * " + formatReviewer(review.reviewer());
                     if (!review.targetRef().equals(pr.targetRef())) {
-                        entry += " 🔄 Re-review required (review was made when pull request targeted the [" + review.targetRef()
-                                + "](" + pr.repository().webUrl(new Branch(review.targetRef())) + ") branch)";
+                        if (useStaleReviews || tooFewReviewers) {
+                            entry += " 🔄 Re-review required (review was made when pull request targeted the [" + review.targetRef()
+                                    + "](" + pr.repository().webUrl(new Branch(review.targetRef())) + ") branch)";
+                        } else {
+                            entry += " Review was made when pull request targeted the [" + review.targetRef()
+                                    + "](" + pr.repository().webUrl(new Branch(review.targetRef())) + ") branch";
+                        }
                     } else {
                         var hash = review.hash();
                         if (hash.isPresent()) {
                             if (!hash.get().equals(pr.headHash())) {
-                                if (!reviewCoverage.covers(review) && tooFewReviewers) {
+                                if (reviewCoverage.covers(review) || !tooFewReviewers) {
+                                    entry += (tooFewReviewers ? " ⚠️ " : " ")
+                                            + "Review applies to [" + hash.get().abbreviate()
+                                            + "](" + pr.filesUrl(hash.get()) + ")";
+                                } else {
                                     entry += " 🔄 Re-review required (review applies to [" + hash.get().abbreviate()
                                             + "](" + pr.filesUrl(hash.get()) + "))";
-                                } else {
-                                    entry += " ⚠️ Review applies to [" + hash.get().abbreviate()
-                                            + "](" + pr.filesUrl(hash.get()) + ")";
                                 }
                             }
                         } else {
-                            entry += " 🔄 Re-review required (review applies to a commit that is no longer present)";
+                            if (useStaleReviews || tooFewReviewers) {
+                                entry += " 🔄 Re-review required (review applies to a commit that is no longer present)";
+                            } else {
+                                entry += " Review applies to a commit that is no longer present";
+                            }
                         }
                     }
                     return entry;

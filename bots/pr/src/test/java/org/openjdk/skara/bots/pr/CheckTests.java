@@ -1571,7 +1571,7 @@ class CheckTests {
             // The PR should no longer be ready, as the reviews are stale
             assertFalse(pr.store().labelNames().contains("ready"));
             assertTrue(pr.store().labelNames().contains("rfr"));
-            assertTrue(pr.store().body().contains("Re-review required"));
+            assertTrue(pr.store().body().contains("🔄 Re-review required"));
 
             // Approve again by reviewer1
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved again");
@@ -1580,6 +1580,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             assertFalse(pr.store().body().contains("Re-review required"));
+            assertFalse(pr.store().body().contains("⚠️ Review applies to"));
             assertTrue(pr.store().body().contains("Review applies to"));
 
             // Change the target ref of the PR
@@ -1592,7 +1593,7 @@ class CheckTests {
             // The PR should no longer be ready, as the review is stale
             assertFalse(pr.store().labelNames().contains("ready"));
             assertTrue(pr.store().labelNames().contains("rfr"));
-            assertTrue(pr.store().body().contains("Re-review required"));
+            assertTrue(pr.store().body().contains("🔄 Re-review required"));
 
             // Approve yet again
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved again");
@@ -1603,7 +1604,8 @@ class CheckTests {
 
             // The PR should be flagged as ready
             assertTrue(pr.store().labelNames().contains("ready"));
-            assertTrue(pr.store().body().contains("Re-review required"));
+            assertFalse(pr.store().body().contains("🔄 Re-review required"));
+            assertTrue(pr.store().body().contains("Review was made when pull request targeted"));
 
             // Change target ref back to the original branch
             pr.setTargetRef("master");
@@ -1613,7 +1615,8 @@ class CheckTests {
 
             // The PR should be flagged as ready, since the old review with that target is now valid again
             assertTrue(pr.store().labelNames().contains("ready"));
-            assertTrue(pr.store().body().contains("Re-review required"));
+            assertTrue(pr.store().body().contains("Review applies to"));
+            assertTrue(pr.store().body().contains("Review was made when pull request targeted"));
             // Credit line should include reviewers with stale reviews
             assertLastCommentContains(pr, "Reviewed-by: integrationreviewer2, integrationreviewer3, integrationreviewer4");
         }
@@ -1728,6 +1731,8 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             assertTrue(pr.store().labelNames().contains("ready"));
+            assertFalse(pr.store().body().contains("Re-review required"));
+            assertFalse(pr.store().body().contains("Review applies to"));
 
             localRepo.checkout(new Branch("feature"));
             localRepo.merge(new Branch("master"));
@@ -1738,6 +1743,8 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             assertTrue(pr.store().labelNames().contains("ready"));
+            assertFalse(pr.store().body().contains(" ⚠️ Review applies to"));
+            assertTrue(pr.store().body().contains("Review applies to"));
 
             localRepo.checkout(new Branch("master"));
             Files.writeString(f, """
@@ -1763,6 +1770,8 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             assertTrue(pr.store().labelNames().contains("ready"));
+            assertFalse(pr.store().body().contains(" ⚠️ Review applies to"));
+            assertTrue(pr.store().body().contains("Review applies to"));
 
             localRepo.checkout(new Branch("feature"));
             Files.writeString(f, """
@@ -1787,7 +1796,8 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             assertFalse(pr.store().labelNames().contains("ready"));
-            assertTrue(pr.store().body().contains("Re-review required"));
+            assertFalse(pr.store().body().contains("Review applies to"));
+            assertTrue(pr.store().body().contains(" 🔄 Re-review required"));
 
             approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -1795,6 +1805,8 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             assertTrue(pr.store().labelNames().contains("ready"));
+            assertFalse(pr.store().body().contains("Review applies to"));
+            assertFalse(pr.store().body().contains("Re-review required"));
 
             localRepo.merge(new Branch("master"));
             localRepo.add(f);
@@ -1804,6 +1816,8 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             assertTrue(pr.store().labelNames().contains("ready"));
+            assertFalse(pr.store().body().contains(" ⚠️ Review applies to"));
+            assertTrue(pr.store().body().contains("Review applies to"));
 
             localRepo.checkout(new Branch("master"));
             Files.writeString(f, """
@@ -1877,7 +1891,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             assertFalse(pr.store().labelNames().contains("ready"));
-            assertTrue(pr.store().body().contains("Re-review required"));
+            assertTrue(pr.store().body().contains(" 🔄 Re-review required"));
         }
     }
 
