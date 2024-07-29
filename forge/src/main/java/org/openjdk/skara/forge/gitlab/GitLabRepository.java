@@ -556,10 +556,15 @@ public class GitLabRepository implements HostedRepository {
         // exists on that commit before we try to process it. If this fails it's
         // most likely due to inconsistent data from GitLab, which should
         // eventually clear up on subsequent tries.
-        Optional<CommitComment> found = candidates.stream()
-                .flatMap(candidate -> commitComments(candidate).stream())
-                .filter(comment -> comment.id().equals(commentId))
-                .findFirst();
+        Optional<CommitComment> found = Optional.empty();
+        for (var candidate : candidates) {
+            found = commitComments(candidate).stream()
+                    .filter(comment -> comment.id().equals(commentId))
+                    .findFirst();
+            if (found.isPresent()) {
+                break;
+            }
+        }
         if (found.isEmpty()) {
             log.warning("Did not find commit with title " + commitTitle + " for repository " + projectName);
         }
