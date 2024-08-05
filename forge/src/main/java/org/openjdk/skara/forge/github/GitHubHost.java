@@ -448,17 +448,36 @@ public class GitHubHost implements Forge {
         if (!orgsToSearch.isEmpty()) {
             orgsToSearch = " " + orgsToSearch;
         }
+        // /search/commits can only find commits in default branch of each repository
         var result = runSearch("commits", "hash:" + hash.hex() + orgsToSearch);
         var items = result.get("items").asArray();
-        if (items.isEmpty()) {
-            return Optional.empty();
+        if (!items.isEmpty()) {
+            // When searching for a commit, there may be hits in multiple repositories.
+            // There is no good way of knowing for sure which repository we would rather
+            // get the commit from, but a reasonable default is to go by the shortest
+            // name as that is most likely the main repository of the project.
+            return items.stream()
+                    .map(o -> o.get("repository").get("full_name").asString())
+                    .min(Comparator.comparing(String::length));
         }
-        // When searching for a commit, there may be hits in multiple repositories.
-        // There is no good way of knowing for sure which repository we would rather
-        // get the commit from, but a reasonable default is to go by the shortest
-        // name as that is most likely the main repository of the project.
-        return items.stream()
-                .map(o -> o.get("repository").get("full_name").asString())
-                .min(Comparator.comparing(String::length));
+
+        // If the commit is not found using /search/commits, try to locate it in each repository
+        for (var org : orgs) {
+            var repoNames = request.get("orgs/" + org + "/repos")
+                    .execute()
+                    .stream()
+                    .sorted(Comparator.comparing(o -> o.get("full_name").asString().length()))
+                    .map(o -> o.get("full_name").asString())
+                    .toList();
+
+            for (var repoName : repoNames) {
+                var githubRepo = new GitHubRepository(this, repoName);
+                if (githubRepo.commit(hash).isPresent()) {
+                    return Optional.of(repoName);
+                }
+            }
+        }
+
+        return Optional.empty();
     }
 }
