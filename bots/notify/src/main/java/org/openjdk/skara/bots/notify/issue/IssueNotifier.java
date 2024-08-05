@@ -335,9 +335,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                             if (existing.isEmpty()) {
                                 var issueFixVersion = Backports.mainFixVersion(issue);
                                 try {
-                                    if (avoidForwardports && issueFixVersion.isPresent() && fixVersion.compareTo(issueFixVersion.get()) > 0) {
+                                    if (issue.isOpen() && avoidForwardports && issueFixVersion.isPresent() && fixVersion.compareTo(issueFixVersion.get()) > 0) {
                                         log.info("Avoiding 'forwardport', creating new backport for " + issue.id() + " with fixVersion " + issueFixVersion.get().raw());
-                                        Backports.createBackport(issue, issueFixVersion.get().raw() , username.orElse(null), defaultSecurity(branch));
+                                        Backports.createBackport(issue, issueFixVersion.get().raw(), username.orElse(null), defaultSecurity(branch));
                                     } else {
                                         log.info("Creating new backport for " + issue.id() + " with fixVersion " + requestedVersion);
                                         issue = Backports.createBackport(issue, requestedVersion, username.orElse(null), defaultSecurity(branch));
