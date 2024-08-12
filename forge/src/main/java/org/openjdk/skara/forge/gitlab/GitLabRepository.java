@@ -635,28 +635,18 @@ public class GitLabRepository implements HostedRepository {
                 .param("since", lastCommitTime.format(DateTimeFormatter.ISO_DATE_TIME))
                 .param("all", "true")
                 .execute()
-                .asArray();
-
-        Map<String, Set<Hash>> tempCommitTitleToCommits = new HashMap<>();
+                .asArray()
+                .stream()
+                .toList()
+                .reversed();
 
         for (var commit : commits) {
             var hash = new Hash(commit.get("id").asString());
             var title = commit.get("title").asString();
-            tempCommitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>()).add(hash);
+            ((LinkedHashSet<Hash>) commitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>())).addFirst(hash);
             var authored = ZonedDateTime.parse(commit.get("authored_date").asString());
             if (lastCommitTime.isBefore(authored)) {
                 lastCommitTime = authored;
-            }
-        }
-
-        for (var entry : tempCommitTitleToCommits.entrySet()) {
-            if (commitTitleToCommits.containsKey(entry.getKey())) {
-                Set<Hash> temp = new LinkedHashSet<>();
-                temp.addAll(entry.getValue());
-                temp.addAll(commitTitleToCommits.get(entry.getKey()));
-                commitTitleToCommits.put(entry.getKey(), temp);
-            } else {
-                commitTitleToCommits.put(entry.getKey(), entry.getValue());
             }
         }
 
