@@ -2499,6 +2499,69 @@ public class IssueNotifierTests {
     }
 
     @Test
+    void testAvoidForwardportsOnResolvedIssue(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.authenticatedUrl());
+
+            var storageFolder = tempFolder.path().resolve("storage");
+            var issueProject = credentials.getIssueProject();
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object().put(".*aster", "22")).put("avoidforwardports", true);
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"),
+                    Map.of("issuetype", JSON.of("Enhancement"),
+                            SUBCOMPONENT, JSON.of("java.io"),
+                            RESOLVED_IN_BUILD, JSON.of("b07")
+                    ));
+            issue.setProperty("fixVersions", JSON.array().add("21"));
+            issue.setProperty("priority", JSON.of("1"));
+            issue.addLabel("test");
+            issue.addLabel("temporary");
+            issue.setState(RESOLVED);
+            issue.setAssignees(List.of(issueProject.issueTracker().currentUser()));
+
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The fixVersion of the main issue should still be 21
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals(Set.of("21"), fixVersions(updatedIssue));
+            assertEquals(RESOLVED, updatedIssue.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
+
+            // There should be a link
+            var links = updatedIssue.links();
+            assertEquals(1, links.size());
+            var link = links.get(0);
+            var backport = link.issue().orElseThrow();
+
+            // The backport issue should target to release 22
+            assertEquals(Set.of("22"), fixVersions(backport));
+            assertEquals(RESOLVED, backport.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), backport.assignees());
+
+            // Custom properties should also propagate
+            assertEquals("1", backport.properties().get("priority").asString());
+            assertEquals("java.io", backport.properties().get(SUBCOMPONENT).asString());
+            assertFalse(backport.properties().containsKey(RESOLVED_IN_BUILD));
+
+            // Labels should not
+            assertEquals(0, backport.labelNames().size());
+        }
+    }
+
+    @Test
     void testTargetBranchUpdate(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
