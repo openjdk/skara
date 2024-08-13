@@ -529,7 +529,7 @@ public class GitLabRepository implements HostedRepository {
                       .collect(Collectors.toList());
     }
 
-    private Set<Hash> commitsWithTitle(String commitTitle, Map<String, Set<Hash>> commitTitlesToHashes) {
+    private Set<Hash> commitsWithTitle(String commitTitle, Map<String, SequencedSet<Hash>> commitTitlesToHashes) {
         if (commitTitlesToHashes.containsKey(commitTitle)) {
             return commitTitlesToHashes.get(commitTitle);
         }
@@ -550,7 +550,7 @@ public class GitLabRepository implements HostedRepository {
 
     private Optional<CommitComment> findComment(String commitTitle,
             String commentId,
-            Map<String, Set<Hash>> commitTitleToCommits) {
+            Map<String, SequencedSet<Hash>> commitTitleToCommits) {
         var candidates = commitsWithTitle(commitTitle, commitTitleToCommits);
         // Even if there is only one candidate, we need to make sure the comment
         // exists on that commit before we try to process it. If this fails it's
@@ -612,10 +612,11 @@ public class GitLabRepository implements HostedRepository {
      * this is called, the full map is built from the local repository. After that
      * it's just refreshed from the server.
      */
-    private final Map<String, Set<Hash>> commitTitleToCommits = new HashMap<>();
+    private final Map<String, SequencedSet<Hash>> commitTitleToCommits = new HashMap<>();
     private boolean commitTitleToCommitsInitialized = false;
     private ZonedDateTime lastCommitTime = ZonedDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
-    private Map<String, Set<Hash>> getCommitTitleToCommitsMap(ReadOnlyRepository localRepo, List<Branch> branches) {
+
+    private Map<String, SequencedSet<Hash>> getCommitTitleToCommitsMap(ReadOnlyRepository localRepo, List<Branch> branches) {
         if (!commitTitleToCommitsInitialized) {
             try {
                 for (var commit : localRepo.commitMetadataFor(branches)) {
@@ -643,7 +644,7 @@ public class GitLabRepository implements HostedRepository {
         for (var commit : commits) {
             var hash = new Hash(commit.get("id").asString());
             var title = commit.get("title").asString();
-            ((LinkedHashSet<Hash>) commitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>())).addFirst(hash);
+            commitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>()).addFirst(hash);
             var authored = ZonedDateTime.parse(commit.get("authored_date").asString());
             if (lastCommitTime.isBefore(authored)) {
                 lastCommitTime = authored;
