@@ -1359,8 +1359,8 @@ class CheckRun {
             } else {
                 // Determine current status
                 jcheckType = "target jcheck";
-                var issues = checkablePullRequest.executeChecks(localHash, censusInstance, visitor, targetJCheckConf);
-                tooFewReviewers = issues.stream().anyMatch(TooFewReviewersIssue.class::isInstance);
+                var jcheckIssues = checkablePullRequest.executeChecks(localHash, censusInstance, visitor, targetJCheckConf);
+                tooFewReviewers = jcheckIssues.stream().anyMatch(TooFewReviewersIssue.class::isInstance);
 
                 // If the PR updates .jcheck/conf then Need to run JCheck again using the configuration
                 // from the resulting commit. Not needed if we are overriding the JCheck configuration since
