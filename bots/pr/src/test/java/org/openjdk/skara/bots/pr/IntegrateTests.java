@@ -711,8 +711,7 @@ class IntegrateTests {
     @Test
     void missingContributingFile(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -747,8 +746,7 @@ class IntegrateTests {
     @Test
     void existingContributingFile(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -787,8 +785,7 @@ class IntegrateTests {
     @Test
     void contributorMissingEmail(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
             var committer = credentials.getHostedRepository();
@@ -828,8 +825,7 @@ class IntegrateTests {
     @Test
     void invalidHash(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -1111,8 +1107,7 @@ class IntegrateTests {
     @Test
     void retryAfterInterrupt(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var censusFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -1237,8 +1232,7 @@ class IntegrateTests {
     @Test
     void retryAfterInterruptExtraChange(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var censusFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
