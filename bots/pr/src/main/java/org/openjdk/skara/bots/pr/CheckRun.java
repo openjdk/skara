@@ -603,7 +603,7 @@ class CheckRun {
                 .map(review -> {
                     var entry = " * " + formatReviewer(review.reviewer());
                     if (!review.targetRef().equals(pr.targetRef())) {
-                        if (tooFewReviewers) {
+                        if (useStaleReviews || tooFewReviewers) {
                             entry += " 🔄 Re-review required (review was made when pull request targeted the [" + review.targetRef()
                                     + "](" + pr.repository().webUrl(new Branch(review.targetRef())) + ") branch)";
                         } else {
@@ -614,17 +614,19 @@ class CheckRun {
                         var hash = review.hash();
                         if (hash.isPresent()) {
                             if (!hash.get().equals(pr.headHash())) {
-                                if (reviewCoverage.covers(review) || !tooFewReviewers) {
-                                    entry += (tooFewReviewers ? " ⚠️ " : " ")
-                                            + "Review applies to [" + hash.get().abbreviate()
+                                if (useStaleReviews) {
+                                    entry += " ⚠️ Review applies to [" + hash.get().abbreviate()
                                             + "](" + pr.filesUrl(hash.get()) + ")";
-                                } else {
+                                } else if (!reviewCoverage.covers(review) && tooFewReviewers) {
                                     entry += " 🔄 Re-review required (review applies to [" + hash.get().abbreviate()
                                             + "](" + pr.filesUrl(hash.get()) + "))";
+                                } else {
+                                    entry += " Review applies to [" + hash.get().abbreviate()
+                                            + "](" + pr.filesUrl(hash.get()) + ")";
                                 }
                             }
                         } else {
-                            if (tooFewReviewers) {
+                            if (useStaleReviews || tooFewReviewers) {
                                 entry += " 🔄 Re-review required (review applies to a commit that is no longer present)";
                             } else {
                                 entry += " Review applies to a commit that is no longer present";
