@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -58,5 +58,16 @@ interface CommandHandler {
     }
     default boolean allowedInPullRequest() {
         return true;
+    }
+
+    default void printInvalidUserWarning(PullRequestBot bot, PrintWriter reply) {
+        if (bot.repo().forge().name().equals("GitHub")) {
+            reply.println(String.format("To use the `/%s` command, you need to be in the OpenJDK [census](https://openjdk.org/census)"
+                    + " and your GitHub account needs to be linked with your OpenJDK username"
+                    + " ([how to associate your GitHub account with your OpenJDK username]"
+                    + "(https://wiki.openjdk.org/display/skara#Skara-AssociatingyourGitHubaccountandyourOpenJDKusername)).", name()));
+        } else {
+            reply.println(String.format("To use the `/%s` command, you need to be listed as a contributor in this [census](%s)", name(), bot.censusRepo().authenticatedUrl()));
+        }
     }
 }

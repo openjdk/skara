@@ -69,11 +69,6 @@ public class BackportCommand implements CommandHandler {
         return true;
     }
 
-    private static final String USER_INVALID_WARNING = "To use the `/backport` command, you need to be in the OpenJDK [census](https://openjdk.org/census)"
-            + " and your GitHub account needs to be linked with your OpenJDK username"
-            + " ([how to associate your GitHub account with your OpenJDK username]"
-            + "(https://wiki.openjdk.org/display/skara#Skara-AssociatingyourGitHubaccountandyourOpenJDKusername)).";
-
     private static final String INSUFFICIENT_ACCESS_WARNING = "The backport can not be created because you don't have access to the target repository.";
 
     private static final int BRANCHES_LIMIT = 10;
@@ -82,7 +77,7 @@ public class BackportCommand implements CommandHandler {
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command,
                        List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
         if (censusInstance.contributor(command.user()).isEmpty()) {
-            reply.println(USER_INVALID_WARNING);
+            printInvalidUserWarning(bot, reply);
             return;
         }
 
@@ -241,7 +236,7 @@ public class BackportCommand implements CommandHandler {
     public void handle(PullRequestBot bot, HostedCommit commit, LimitedCensusInstance censusInstance,
                        ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (censusInstance.contributor(command.user()).isEmpty() && !command.user().equals(bot.repo().forge().currentUser())) {
-            reply.println(USER_INVALID_WARNING);
+            printInvalidUserWarning(bot, reply);
             return;
         }
 

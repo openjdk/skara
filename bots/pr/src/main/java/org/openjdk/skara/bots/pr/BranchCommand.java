@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.forge.HostedBranch;
 import org.openjdk.skara.forge.HostedCommit;
 import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 
 import java.io.PrintWriter;
@@ -73,10 +72,7 @@ public class BranchCommand implements CommandHandler {
                 return;
             }
             if (censusInstance.contributor(command.user()).isEmpty()) {
-                reply.println("To use the `/branch` command, you need to be in the OpenJDK [census](https://openjdk.org/census)"
-                        + " and your GitHub account needs to be linked with your OpenJDK username"
-                        + " ([how to associate your GitHub account with your OpenJDK username]"
-                        + "(https://wiki.openjdk.org/display/skara#Skara-AssociatingyourGitHubaccountandyourOpenJDKusername)).");
+                printInvalidUserWarning(bot, reply);
                 return;
             }
 

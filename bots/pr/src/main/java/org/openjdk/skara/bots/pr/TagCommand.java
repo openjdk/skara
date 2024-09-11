@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -69,10 +69,7 @@ public class TagCommand implements CommandHandler {
                 return;
             }
             if (censusInstance.contributor(command.user()).isEmpty()) {
-                reply.println("To use the `/tag` command, you need to be in the OpenJDK [census](https://openjdk.org/census)"
-                        + " and your GitHub account needs to be linked with your OpenJDK username"
-                        + " ([how to associate your GitHub account with your OpenJDK username]"
-                        + "(https://wiki.openjdk.org/display/skara#Skara-AssociatingyourGitHubaccountandyourOpenJDKusername)).");
+                printInvalidUserWarning(bot, reply);
                 return;
             }
 
