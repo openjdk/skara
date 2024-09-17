@@ -77,6 +77,17 @@ public class JdkVersion implements Comparable<JdkVersion> {
             }
         }
 
+        // Check for team/project special version
+        if (finalComponents.isEmpty()) {
+            var projectRepoPattern = Pattern.compile("repo-([a-z0-9]*)");
+            var matcher = projectRepoPattern.matcher(raw);
+            if (matcher.matches()) {
+                var project = matcher.group(1);
+                finalComponents.add("repo");
+                finalComponents.add(project);
+            }
+        }
+
         // If no legacy match, use the JEP322 scheme
         if (finalComponents.isEmpty()) {
             // The input strings here never contain a $PRE string, but the $OPT string
