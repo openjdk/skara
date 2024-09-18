@@ -902,6 +902,20 @@ public class BackportsTests {
         }
     }
 
+    /**
+     * Verify that repo-project versions do not get labeled.
+     */
+    @Test
+    void repoProject(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "17");
+            backports.assertLabeled();
+
+            backports.addBackports("16", "16.0.2", "repo-foo");
+            backports.assertLabeled("16.0.2", "17");
+        }
+    }
+
     @Test
     void openjdk7u(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {

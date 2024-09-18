@@ -150,4 +150,10 @@ public class JdkVersionTests {
         assertEquals(List.of("8", "333"), from("8u333-foo").components());
         assertEquals("foo", from("8u333-foo").opt().orElseThrow());
     }
+
+    @Test
+    void teamRepo() {
+        assertEquals(List.of("repo", "foo"), from("repo-foo").components());
+        assertTrue(from("20").compareTo(from("repo-foo")) < 0);
+    }
 }
