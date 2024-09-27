@@ -153,6 +153,7 @@ public class PullRequestPrunerBot implements Bot {
         // Latest prune-delaying action (deliberately excluding pr.updatedAt, as it can be updated spuriously)
         var latestAction = Stream.of(Stream.of(pr.createdAt()),
                                    pr.comments().stream()
+                                     .filter(comment -> !comment.author().equals(pr.repository().forge().currentUser()))
                                      .map(Comment::updatedAt),
                                    pr.reviews().stream()
                                      .map(Review::createdAt),
