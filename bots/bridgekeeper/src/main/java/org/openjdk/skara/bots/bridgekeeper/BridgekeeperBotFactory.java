@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,9 +24,11 @@ package org.openjdk.skara.bots.bridgekeeper;
 
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.json.JSONValue;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class BridgekeeperBotFactory implements BotFactory {
     static final String NAME = "bridgekeeper";
@@ -49,12 +51,15 @@ public class BridgekeeperBotFactory implements BotFactory {
             ret.add(bot);
         }
         var pruned = new HashMap<HostedRepository, Duration>();
-        for (var repo : specific.get("pruned").fields()) {
+        var ignoredUsers = specific.get("pruned").get("ignored").get("users").stream()
+                .map(JSONValue::asString)
+                .collect(Collectors.toSet());
+        for (var repo : specific.get("pruned").get("repositories").fields()) {
             var maxAge = Duration.parse(repo.value().get("maxage").asString());
             pruned.put(configuration.repository(repo.name()), maxAge);
         }
         if (!pruned.isEmpty()) {
-            var bot = new PullRequestPrunerBot(pruned);
+            var bot = new PullRequestPrunerBot(pruned, ignoredUsers);
             ret.add(bot);
         }
         return ret;
