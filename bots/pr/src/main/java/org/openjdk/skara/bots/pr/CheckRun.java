@@ -413,10 +413,13 @@ class CheckRun {
             checkBuilder.complete(true);
         } else {
             checkBuilder.title("Required");
-            var summary = Stream.concat(visitor.errorFailedChecksMessages().stream(), additionalErrors.stream())
-                                .sorted()
-                                .map(m -> "- " + m)
-                                .collect(Collectors.joining("\n"));
+            var summary = Stream.concat(visitor.errorFailedChecksMessages().stream().limit(MESSAGE_LIMIT), additionalErrors.stream().limit(MESSAGE_LIMIT))
+                    .sorted()
+                    .map(m -> "- " + m)
+                    .collect(Collectors.joining("\n"));
+            if (visitor.errorFailedChecksMessages().size() > MESSAGE_LIMIT || additionalErrors.size() > MESSAGE_LIMIT) {
+                summary = summary + "\nThere are more errors that are not displayed due to the size limit.";
+            }
             checkBuilder.summary(summary);
             for (var annotation : visitor.getAnnotations()) {
                 checkBuilder.annotation(annotation);
