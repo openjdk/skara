@@ -84,6 +84,7 @@ public class JiraHost implements IssueTracker {
     private final String visibilityRole;
     private final RestRequest request;
     private final RestRequest backportRequest;
+    private final Map<String, IssueProject> issueProjects = new HashMap<>();
 
     private HostUser currentUser;
     private ZoneId timeZone;
@@ -168,7 +169,7 @@ public class JiraHost implements IssueTracker {
 
     @Override
     public IssueProject project(String name) {
-        return new JiraProject(this, request, name);
+        return issueProjects.computeIfAbsent(name, n -> new JiraProject(this, request, n));
     }
 
     @Override

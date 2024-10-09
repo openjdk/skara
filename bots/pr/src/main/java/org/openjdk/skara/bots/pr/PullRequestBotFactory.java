@@ -43,16 +43,10 @@ public class PullRequestBotFactory implements BotFactory {
     public List<Bot> create(BotConfiguration configuration) {
         var ret = new ArrayList<Bot>();
         var specific = configuration.specific();
-        // IssueProject name to list of repositories
-        var repositories = new HashMap<String, List<HostedRepository>>();
-        // IssueProject name to list of repositories for csr
-        var repositoriesForCSR = new HashMap<String, List<HostedRepository>>();
-        // IssueProject name to IssueProject instance
-        var issueProjectMap = new HashMap<String, IssueProject>();
-        // PullRequestBot name to PullRequestBot instance
+        var repositories = new HashMap<IssueProject, List<HostedRepository>>();
+        var repositoriesForCSR = new HashMap<IssueProject, List<HostedRepository>>();
         var pullRequestBotMap = new HashMap<String, PullRequestBot>();
-        // IssueProject name to IssuePRMap
-        var issueProjectToIssuePRMapMap = new HashMap<String, Map<String, List<PRRecord>>>();
+        var issueProjectToIssuePRMapMap = new HashMap<IssueProject, Map<String, List<PRRecord>>>();
 
         var externalPullRequestCommands = new HashMap<String, String>();
         if (specific.contains("external") && specific.get("external").contains("pr")) {
@@ -160,12 +154,12 @@ public class PullRequestBotFactory implements BotFactory {
             }
             IssueProject issueProject = null;
             if (repo.value().contains("issues")) {
-                issueProject = issueProjectMap.computeIfAbsent(repo.value().get("issues").asString(), configuration::issueProject);
+                issueProject = configuration.issueProject(repo.value().get("issues").asString());
                 botBuilder.issueProject(issueProject);
-                repositories.putIfAbsent(issueProject.name(), new ArrayList<>());
-                repositories.get(issueProject.name()).add(repository);
-                issueProjectToIssuePRMapMap.putIfAbsent(issueProject.name(), new ConcurrentHashMap<>());
-                botBuilder.issuePRMap(issueProjectToIssuePRMapMap.get(issueProject.name()));
+                repositories.putIfAbsent(issueProject, new ArrayList<>());
+                repositories.get(issueProject).add(repository);
+                issueProjectToIssuePRMapMap.putIfAbsent(issueProject, new ConcurrentHashMap<>());
+                botBuilder.issuePRMap(issueProjectToIssuePRMapMap.get(issueProject));
             }
             if (repo.value().contains("useStaleReviews")) {
                 botBuilder.useStaleReviews(repo.value().get("useStaleReviews").asBoolean());
@@ -190,8 +184,8 @@ public class PullRequestBotFactory implements BotFactory {
                 var enableCsr = repo.value().get("csr").asBoolean();
                 botBuilder.enableCsr(enableCsr);
                 if (enableCsr && issueProject != null) {
-                    repositoriesForCSR.putIfAbsent(issueProject.name(), new ArrayList<>());
-                    repositoriesForCSR.get(issueProject.name()).add(repository);
+                    repositoriesForCSR.putIfAbsent(issueProject, new ArrayList<>());
+                    repositoriesForCSR.get(issueProject).add(repository);
                 }
             }
             if (repo.value().contains("jep")) {
@@ -282,15 +276,15 @@ public class PullRequestBotFactory implements BotFactory {
         }
 
         // Create a CSRIssueBot for each issueProject which associated with at least one csr enabled repository
-        for (var issueProjectName : repositoriesForCSR.keySet()) {
-            ret.add(0, new CSRIssueBot(issueProjectMap.get(issueProjectName), repositoriesForCSR.get(issueProjectName), pullRequestBotMap,
-                    issueProjectToIssuePRMapMap.get(issueProjectName)));
+        for (var issueProject : repositoriesForCSR.keySet()) {
+            ret.add(0, new CSRIssueBot(issueProject, repositoriesForCSR.get(issueProject), pullRequestBotMap,
+                    issueProjectToIssuePRMapMap.get(issueProject)));
         }
 
         // Create an IssueBot for each issueProject
-        for (var issueProjectName : issueProjectToIssuePRMapMap.keySet()) {
-            ret.add(0, new IssueBot(issueProjectMap.get(issueProjectName), repositories.get(issueProjectName), pullRequestBotMap,
-                    issueProjectToIssuePRMapMap.get(issueProjectName)));
+        for (var issueProject : issueProjectToIssuePRMapMap.keySet()) {
+            ret.add(0, new IssueBot(issueProject, repositories.get(issueProject), pullRequestBotMap,
+                    issueProjectToIssuePRMapMap.get(issueProject)));
         }
 
         return ret;

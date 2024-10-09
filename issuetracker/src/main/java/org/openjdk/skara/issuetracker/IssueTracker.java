@@ -62,6 +62,10 @@ public interface IssueTracker extends Host {
         }
     }
 
+    /**
+     * Creates and caches a new project if it hasn't been initialized.
+     * Subsequent calls with the same name will return the cached instance.
+     */
     IssueProject project(String name);
     Optional<CustomEndpoint> lookupCustomEndpoint(String path);
     URI uri();
