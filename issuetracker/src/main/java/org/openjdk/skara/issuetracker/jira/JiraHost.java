@@ -169,7 +169,7 @@ public class JiraHost implements IssueTracker {
 
     @Override
     public IssueProject project(String name) {
-        return issueProjects.computeIfAbsent(name, n -> new JiraProject(this, request, name));
+        return issueProjects.computeIfAbsent(name, n -> new JiraProject(this, request, n));
     }
 
     @Override
