@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,6 +28,7 @@ import org.openjdk.skara.test.TestBotFactory;
 import org.openjdk.skara.test.TestHostedRepository;
 
 import java.time.Duration;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -47,14 +48,22 @@ public class BridgekeeperBotFactoryTest {
                     "data3"
                   ],
                   "pruned": {
-                    "pruned1": {
-                      "maxage": "P1D"
+                    "ignored": {
+                        "users": [
+                            "user1",
+                            "user2"
+                        ]
                     },
-                    "pruned2": {
-                      "maxage": "PT48H"
-                    },
-                    "pruned3": {
-                      "maxage": "PT4320M"
+                    "repositories": {
+                        "pruned1": {
+                          "maxage": "P1D"
+                        },
+                        "pruned2": {
+                          "maxage": "PT48H"
+                        },
+                        "pruned3": {
+                          "maxage": "PT4320M"
+                        }
                     }
                   }
                 }
@@ -112,5 +121,6 @@ public class BridgekeeperBotFactoryTest {
         assertEquals(Duration.ofDays(1), maxAges.get(pruned1));
         assertEquals(Duration.ofDays(2), maxAges.get(pruned2));
         assertEquals(Duration.ofDays(3), maxAges.get(pruned3));
+        assertEquals(Set.of("user1", "user2"), pullRequestPrunerBot.getIgnoredUsers());
     }
 }
