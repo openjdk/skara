@@ -29,6 +29,7 @@ import org.junit.jupiter.api.*;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -38,7 +39,8 @@ class PullRequestPrunerBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
-            var bot = new PullRequestPrunerBot(Map.of(author, Duration.ofMillis(1)));
+            var ignoredUser = credentials.getHostedRepository();
+            var bot = new PullRequestPrunerBot(Map.of(author, Duration.ofMillis(1)), Set.of("user2"));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -49,7 +51,7 @@ class PullRequestPrunerBotTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
-
+            var ignoredUserPr = ignoredUser.pullRequest(pr.id());
             // Make sure the timeout expires
             Thread.sleep(100);
 
@@ -69,6 +71,9 @@ class PullRequestPrunerBotTests {
 
             assertEquals(3, pr.comments().size());
             assertTrue(pr.comments().get(2).body().contains("will be automatically closed if"));
+
+            // Post a comment as ignored User
+            ignoredUserPr.addComment("It should be ignored");
 
             // Make sure the timeout expires again
             Thread.sleep(100);
@@ -91,7 +96,7 @@ class PullRequestPrunerBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
-            var bot = new PullRequestPrunerBot(Map.of(author, Duration.ofDays(3)));
+            var bot = new PullRequestPrunerBot(Map.of(author, Duration.ofDays(3)), Set.of());
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
