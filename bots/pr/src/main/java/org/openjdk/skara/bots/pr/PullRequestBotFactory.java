@@ -270,6 +270,10 @@ public class PullRequestBotFactory implements BotFactory {
                 botBuilder.cleanCommandEnabled(repo.value().get("cleanCommandEnabled").asBoolean());
             }
 
+            if (repo.value().contains("checkContributorStatusForBackportCommand")) {
+                botBuilder.checkContributorStatusForBackportCommand(repo.value().get("checkContributorStatusForBackportCommand").asBoolean());
+            }
+
             var prBot = botBuilder.build();
             pullRequestBotMap.put(repository.name(), prBot);
             ret.add(prBot);

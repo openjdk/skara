@@ -76,7 +76,7 @@ public class BackportCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command,
                        List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
-        if (censusInstance.contributor(command.user()).isEmpty()) {
+        if (bot.checkContributorStatusForBackportCommand() && censusInstance.contributor(command.user()).isEmpty()) {
             printInvalidUserWarning(bot, reply);
             return;
         }
@@ -235,7 +235,8 @@ public class BackportCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, HostedCommit commit, LimitedCensusInstance censusInstance,
                        ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
-        if (censusInstance.contributor(command.user()).isEmpty() && !command.user().equals(bot.repo().forge().currentUser())) {
+        if (bot.checkContributorStatusForBackportCommand() && censusInstance.contributor(command.user()).isEmpty()
+                && !command.user().equals(bot.repo().forge().currentUser())) {
             printInvalidUserWarning(bot, reply);
             return;
         }
