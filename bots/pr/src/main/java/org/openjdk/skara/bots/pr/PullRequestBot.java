@@ -82,6 +82,7 @@ class PullRequestBot implements Bot {
     private boolean initialRun = true;
     private final boolean versionMismatchWarning;
     private final boolean cleanCommandEnabled;
+    private final boolean checkContributorStatusForBackportCommand;
 
     private Instant lastFullUpdate;
 
@@ -96,7 +97,8 @@ class PullRequestBot implements Bot {
                    Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr, boolean enableJep,
                    boolean reviewCleanBackport, String mlbridgeBotName, MergePullRequestReviewConfiguration reviewMerge, boolean processPR, boolean processCommit,
                    boolean enableMerge, Set<String> mergeSources, boolean jcheckMerge, boolean enableBackport,
-                   Map<String, List<PRRecord>> issuePRMap, Approval approval, boolean versionMismatchWarning, boolean cleanCommandEnabled) {
+                   Map<String, List<PRRecord>> issuePRMap, Approval approval, boolean versionMismatchWarning, boolean cleanCommandEnabled,
+                   boolean checkContributorStatusForBackportCommand) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -135,6 +137,7 @@ class PullRequestBot implements Bot {
         this.approval = approval;
         this.versionMismatchWarning = versionMismatchWarning;
         this.cleanCommandEnabled = cleanCommandEnabled;
+        this.checkContributorStatusForBackportCommand = checkContributorStatusForBackportCommand;
 
         autoLabelled = new HashSet<>();
         poller = new PullRequestPoller(repo, true);
@@ -413,6 +416,10 @@ class PullRequestBot implements Bot {
 
     public boolean cleanCommandEnabled() {
         return cleanCommandEnabled;
+    }
+
+    public boolean checkContributorStatusForBackportCommand() {
+        return checkContributorStatusForBackportCommand;
     }
 
     public void addIssuePRMapping(String issueId, PRRecord prRecord) {
