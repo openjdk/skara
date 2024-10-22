@@ -213,7 +213,7 @@ class CheckTests {
 
             // Check that it has been approved
             assertTrue(authorPr.store().body().contains("Reviewers"));
-            assertTrue(authorPr.store().body().contains("Non-Recognized Reviewers"));
+            assertTrue(authorPr.store().body().contains("Reviewers without OpenJDK IDs"));
 
             // Update the file after approval
             editHash = CheckableRepository.appendAndCommit(localRepo, "Now I've gone and changed it");
@@ -231,7 +231,7 @@ class CheckTests {
 
             // Check that it has been approved (once) and is no longer stale
             assertTrue(authorPr.store().body().contains("Reviewers"));
-            assertFalse(authorPr.store().body().contains("Non-Recognized Reviewers"));
+            assertFalse(authorPr.store().body().contains("Reviewers without OpenJDK IDs"));
             assertEquals(1, authorPr.store().body().split("Generated Reviewer", -1).length - 1);
             assertTrue(authorPr.reviews().size() >= 1);
             assertFalse(authorPr.store().body().contains("Note"));
