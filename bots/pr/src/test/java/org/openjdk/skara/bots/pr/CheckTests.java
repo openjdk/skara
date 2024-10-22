@@ -178,6 +178,7 @@ class CheckTests {
 
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
+            var nonRecognizedReviewer = credentials.getHostedRepository();
             var commenter = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
@@ -204,12 +205,15 @@ class CheckTests {
             // Approve it
             var reviewerPr = reviewer.pullRequest(authorPr.id());
             reviewerPr.addReview(Review.Verdict.APPROVED, "Reviewers");
+            var nonRecognizedReviewerPr = nonRecognizedReviewer.pullRequest(authorPr.id());
+            nonRecognizedReviewerPr.addReview(Review.Verdict.APPROVED, "");
             TestBotRunner.runPeriodicItems(checkBot);
             assertFalse(authorPr.store().body().contains("Re-review required"));
             assertFalse(authorPr.store().body().contains("Review applies to"));
 
             // Check that it has been approved
             assertTrue(authorPr.store().body().contains("Reviewers"));
+            assertTrue(authorPr.store().body().contains("Non-Recognized Reviewers"));
 
             // Update the file after approval
             editHash = CheckableRepository.appendAndCommit(localRepo, "Now I've gone and changed it");
@@ -222,10 +226,12 @@ class CheckTests {
 
             // Now we can approve it again
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
+            nonRecognizedReviewerPr.addReview(Review.Verdict.DISAPPROVED, "Disapprove");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Check that it has been approved (once) and is no longer stale
             assertTrue(authorPr.store().body().contains("Reviewers"));
+            assertFalse(authorPr.store().body().contains("Non-Recognized Reviewers"));
             assertEquals(1, authorPr.store().body().split("Generated Reviewer", -1).length - 1);
             assertTrue(authorPr.reviews().size() >= 1);
             assertFalse(authorPr.store().body().contains("Note"));
