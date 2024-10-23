@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -52,6 +52,7 @@ public class TestIssueTrackerIssue extends TestIssue implements IssueTrackerIssu
     public TestIssueTrackerIssueStore store() {
         return (TestIssueTrackerIssueStore) super.store();
     }
+    private static final List<String> VALID_RESOLUTIONS = List.of("Fixed", "Delivered");
 
     @Override
     public void setState(State state) {
@@ -85,7 +86,7 @@ public class TestIssueTrackerIssue extends TestIssue implements IssueTrackerIssu
     @Override
     public boolean isFixed() {
         if (super.isFixed()) {
-            return resolution().map(r -> r.equals("Fixed")).orElse(Boolean.FALSE);
+            return resolution().map(VALID_RESOLUTIONS::contains).orElse(Boolean.FALSE);
         }
         return false;
     }

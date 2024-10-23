@@ -372,6 +372,8 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                     issue.addComment(commitNotification);
                 }
                 log.info("Resolving issue " + issue.id() + " from state " + issue.state());
+                // If the issue here was found by findAltFixedVersionIssue(), issue.isFixed() should return true,
+                // so issue notifier won't do anything to the issue except posting a comment
                 if (!issue.isFixed()) {
                     issue.setState(Issue.State.RESOLVED);
                 } else {
