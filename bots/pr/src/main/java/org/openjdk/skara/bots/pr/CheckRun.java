@@ -600,8 +600,8 @@ class CheckRun {
         return text;
     }
 
-    private Optional<String> getReviewersList(boolean tooFewReviewers) {
-        var reviewers = activeReviews.stream()
+    private Optional<String> getReviewersList(List<Review> reviews, boolean tooFewReviewers) {
+        var reviewers = reviews.stream()
                 .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                 .map(review -> {
                     var entry = " * " + formatReviewer(review.reviewer());
@@ -859,8 +859,21 @@ class CheckRun {
             }
         }
 
-        getReviewersList(tooFewReviewers).ifPresent(reviewers -> {
+        // Generate Reviewers list for recognized users
+        var recognizedReviews = activeReviews.stream()
+                .filter(review -> censusInstance.contributor(review.reviewer()).isPresent())
+                .toList();
+        getReviewersList(recognizedReviews, tooFewReviewers).ifPresent(reviewers -> {
             progressBody.append("\n\n### Reviewers\n");
+            progressBody.append(reviewers);
+        });
+
+        // Generate Reviewers list for reviewers without OpenJDK IDs
+        var nonRecognizedReviews = activeReviews.stream()
+                .filter(review -> censusInstance.contributor(review.reviewer()).isEmpty())
+                .toList();
+        getReviewersList(nonRecognizedReviews, tooFewReviewers).ifPresent(reviewers -> {
+            progressBody.append("\n\n### Reviewers without OpenJDK IDs\n");
             progressBody.append(reviewers);
         });
 
