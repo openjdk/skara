@@ -321,42 +321,40 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 // The actual issue to be updated can change depending on the fix version
                 if (setFixVersion) {
                     requestedVersion = getRequestedVersion(localRepository, commit, branch.name());
-                    if (requestedVersion != null) {
-                        var altFixedVersionIssue = findAltFixedVersionIssue(issue, branch);
-                        if (altFixedVersionIssue.isPresent()) {
-                            log.info("Found an already fixed backport " + altFixedVersionIssue.get().id() + " for " + issue.id()
-                                    + " with fixVersion " + Backports.mainFixVersion(altFixedVersionIssue.get()).orElseThrow());
-                            issue = altFixedVersionIssue.get();
-                            // Do not update fixVersion
-                            requestedVersion = null;
-                        } else {
-                            var fixVersion = JdkVersion.parse(requestedVersion).orElseThrow();
-                            var existing = Backports.findIssue(issue, fixVersion);
-                            if (existing.isEmpty()) {
-                                var issueFixVersion = Backports.mainFixVersion(issue);
-                                try {
-                                    if (issue.isOpen() && avoidForwardports && issueFixVersion.isPresent() && fixVersion.compareTo(issueFixVersion.get()) > 0) {
-                                        log.info("Avoiding 'forwardport', creating new backport for " + issue.id() + " with fixVersion " + issueFixVersion.get().raw());
-                                        Backports.createBackport(issue, issueFixVersion.get().raw(), username.orElse(null), defaultSecurity(branch));
-                                    } else {
-                                        log.info("Creating new backport for " + issue.id() + " with fixVersion " + requestedVersion);
-                                        issue = Backports.createBackport(issue, requestedVersion, username.orElse(null), defaultSecurity(branch));
-                                    }
-                                } catch (UncheckedRestException e) {
-                                    existing = Backports.findIssue(issue, fixVersion);
-                                    if (existing.isPresent()) {
-                                        log.info("Race condition occurred while creating backport issue, returning the existing backport for " + issue.id() + " and requested fixVersion "
-                                                + requestedVersion + " " + existing.get().id());
-                                        issue = existing.get();
-                                    } else {
-                                        throw e;
-                                    }
+                    var altFixedVersionIssue = findAltFixedVersionIssue(issue, branch);
+                    if (altFixedVersionIssue.isPresent()) {
+                        log.info("Found an already fixed backport " + altFixedVersionIssue.get().id() + " for " + issue.id()
+                                + " with fixVersion " + Backports.mainFixVersion(altFixedVersionIssue.get()).orElseThrow());
+                        issue = altFixedVersionIssue.get();
+                        // Do not update fixVersion
+                        requestedVersion = null;
+                    } else if (requestedVersion != null) {
+                        var fixVersion = JdkVersion.parse(requestedVersion).orElseThrow();
+                        var existing = Backports.findIssue(issue, fixVersion);
+                        if (existing.isEmpty()) {
+                            var issueFixVersion = Backports.mainFixVersion(issue);
+                            try {
+                                if (issue.isOpen() && avoidForwardports && issueFixVersion.isPresent() && fixVersion.compareTo(issueFixVersion.get()) > 0) {
+                                    log.info("Avoiding 'forwardport', creating new backport for " + issue.id() + " with fixVersion " + issueFixVersion.get().raw());
+                                    Backports.createBackport(issue, issueFixVersion.get().raw(), username.orElse(null), defaultSecurity(branch));
+                                } else {
+                                    log.info("Creating new backport for " + issue.id() + " with fixVersion " + requestedVersion);
+                                    issue = Backports.createBackport(issue, requestedVersion, username.orElse(null), defaultSecurity(branch));
                                 }
-                            } else {
-                                log.info("Found existing backport for " + issue.id() + " and requested fixVersion "
-                                        + requestedVersion + " " + existing.get().id());
-                                issue = existing.get();
+                            } catch (UncheckedRestException e) {
+                                existing = Backports.findIssue(issue, fixVersion);
+                                if (existing.isPresent()) {
+                                    log.info("Race condition occurred while creating backport issue, returning the existing backport for " + issue.id() + " and requested fixVersion "
+                                            + requestedVersion + " " + existing.get().id());
+                                    issue = existing.get();
+                                } else {
+                                    throw e;
+                                }
                             }
+                        } else {
+                            log.info("Found existing backport for " + issue.id() + " and requested fixVersion "
+                                    + requestedVersion + " " + existing.get().id());
+                            issue = existing.get();
                         }
                     }
                 }
