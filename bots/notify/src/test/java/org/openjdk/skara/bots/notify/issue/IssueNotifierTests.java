@@ -2527,6 +2527,7 @@ public class IssueNotifierTests {
             issue.addLabel("test");
             issue.addLabel("temporary");
             issue.setState(RESOLVED);
+            issue.setProperty("resolution", JSON.object().put("name", JSON.of("Delivered")));
             issue.setAssignees(List.of(issueProject.issueTracker().currentUser()));
 
             var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
@@ -2539,6 +2540,8 @@ public class IssueNotifierTests {
             assertEquals(Set.of("21"), fixVersions(updatedIssue));
             assertEquals(RESOLVED, updatedIssue.state());
             assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
+            // The resolution of the issue should still be "Delivered"
+            assertEquals("Delivered", issue.properties().get("resolution").get("name").asString());
 
             // There should be a link
             var links = updatedIssue.links();
