@@ -45,6 +45,7 @@ public class JiraIssue implements IssueTrackerIssue {
 
     private static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     private static final List<String> FILTER_OUT_FIELDS = List.of("fields.customfield_11700");
+    private static final List<String> VALID_RESOLUTIONS = List.of("Fixed", "Delivered");
 
     private List<Label> labels;
 
@@ -223,7 +224,7 @@ public class JiraIssue implements IssueTrackerIssue {
         if (isResolved() || isClosed()) {
             var resolution = json.get("fields").get("resolution");
             if (!resolution.isNull()) {
-                return "Fixed".equals(resolution.get("name").asString());
+                return VALID_RESOLUTIONS.contains(resolution.get("name").asString());
             }
         }
         return false;
