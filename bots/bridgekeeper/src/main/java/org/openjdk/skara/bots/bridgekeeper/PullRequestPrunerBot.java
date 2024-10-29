@@ -37,10 +37,12 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final PullRequest pr;
     private final Duration maxAge;
+    private final Set<String> ignoredUsers;
 
-    PullRequestPrunerBotWorkItem(PullRequest pr, Duration maxAge) {
+    PullRequestPrunerBotWorkItem(PullRequest pr, Duration maxAge, Set<String> ignoredUsers) {
         this.pr = pr;
         this.maxAge = maxAge;
+        this.ignoredUsers = ignoredUsers;
     }
 
     @Override
@@ -75,7 +77,10 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
     public Collection<WorkItem> run(Path scratchPath) {
         var comments = pr.comments();
         if (comments.size() > 0) {
-            var lastComment = comments.getLast();
+            var lastComment = comments.stream()
+                    .filter(comment -> !ignoredUsers.contains(comment.author().username()))
+                    .toList()
+                    .getLast();
             if (lastComment.author().equals(pr.repository().forge().currentUser()) && lastComment.body().contains(NOTICE_MARKER)) {
                 var message = "@" + pr.author().username() + " This pull request has been inactive for more than " +
                         formatDuration(maxAge.multipliedBy(2)) + " and will now be automatically closed. If you would " +
@@ -122,9 +127,11 @@ public class PullRequestPrunerBot implements Bot {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.bridgekeeper");
 
     private Duration currentMaxAge;
+    private Set<String> ignoredUsers;
 
-    PullRequestPrunerBot(Map<HostedRepository, Duration> maxAges) {
+    PullRequestPrunerBot(Map<HostedRepository, Duration> maxAges, Set<String> ignoredUsers) {
         this.maxAges = maxAges;
+        this.ignoredUsers = ignoredUsers;
     }
 
     @Override
@@ -153,6 +160,7 @@ public class PullRequestPrunerBot implements Bot {
         // Latest prune-delaying action (deliberately excluding pr.updatedAt, as it can be updated spuriously)
         var latestAction = Stream.of(Stream.of(pr.createdAt()),
                                    pr.comments().stream()
+                                     .filter(comment -> !ignoredUsers.contains(comment.author().username()))
                                      .map(Comment::updatedAt),
                                    pr.reviews().stream()
                                      .map(Review::createdAt),
@@ -164,7 +172,7 @@ public class PullRequestPrunerBot implements Bot {
         var actualMaxAge = pr.isDraft() ? currentMaxAge.multipliedBy(2) : currentMaxAge;
         var oldestAllowed = ZonedDateTime.now().minus(actualMaxAge);
         if (latestAction.isBefore(oldestAllowed)) {
-            var item = new PullRequestPrunerBotWorkItem(pr, actualMaxAge);
+            var item = new PullRequestPrunerBotWorkItem(pr, actualMaxAge, ignoredUsers);
             ret.add(item);
         }
 
@@ -183,5 +191,9 @@ public class PullRequestPrunerBot implements Bot {
 
     public Map<HostedRepository, Duration> getMaxAges() {
         return maxAges;
+    }
+
+    public Set<String> getIgnoredUsers() {
+        return ignoredUsers;
     }
 }
