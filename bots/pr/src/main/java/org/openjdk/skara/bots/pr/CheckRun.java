@@ -889,8 +889,7 @@ class CheckRun {
 
         var webrevCommentLink = getWebrevCommentLink();
         if (webrevCommentLink.isPresent()) {
-            progressBody.append("\n\n### Webrev\n");
-            progressBody.append(webrevCommentLink.get());
+            progressBody.append(makeCollapsible("Using Webrev", webrevCommentLink.get()));
         }
         return progressBody.toString();
     }
