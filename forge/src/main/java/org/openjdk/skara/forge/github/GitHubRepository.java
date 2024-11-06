@@ -291,7 +291,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail) {
+    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail, boolean createNewEmail) {
         var body = JSON.object()
                 .put("message", message)
                 .put("branch", branch.name())

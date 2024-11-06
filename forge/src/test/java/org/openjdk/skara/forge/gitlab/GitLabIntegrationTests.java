@@ -160,7 +160,7 @@ class GitLabIntegrationTests {
         {
             var fileContent = "File content";
             gitLabRepo.writeFileContents(fileName, fileContent, branch,
-                    "First commit message", "Duke", "duke@openjdk.org");
+                    "First commit message", "Duke", "duke@openjdk.org", true);
             var returnedContents = gitLabRepo.fileContents(fileName, branch.name());
             assertEquals(fileContent, returnedContents.orElseThrow());
         }
@@ -169,7 +169,7 @@ class GitLabIntegrationTests {
         {
             var fileContent = "New file content";
             gitLabRepo.writeFileContents(fileName, fileContent, branch,
-                    "Second commit message", "Duke", "duke@openjdk.org");
+                    "Second commit message", "Duke", "duke@openjdk.org", false);
             var returnedContents = gitLabRepo.fileContents(fileName, branch.name());
             assertEquals(fileContent, returnedContents.orElseThrow());
         }
@@ -178,7 +178,7 @@ class GitLabIntegrationTests {
         {
             var fileContent = "a".repeat(1024 * 1024 * 10);
             gitLabRepo.writeFileContents(fileName, fileContent, branch,
-                    "Third commit message", "Duke", "duke@openjdk.org");
+                    "Third commit message", "Duke", "duke@openjdk.org", false);
             var returnedContents = gitLabRepo.fileContents(fileName, branch.name());
             assertEquals(fileContent, returnedContents.orElseThrow());
         }

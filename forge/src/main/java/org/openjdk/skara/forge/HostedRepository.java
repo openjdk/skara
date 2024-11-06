@@ -108,7 +108,7 @@ public interface HostedRepository {
      * @param authorName  Name of author and committer for commit
      * @param authorEmail Email of author and committer for commit
      */
-    void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail);
+    void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail, boolean createNewFile);
     String namespace();
     Optional<WebHook> parseWebHook(JSONValue body);
     HostedRepository fork();

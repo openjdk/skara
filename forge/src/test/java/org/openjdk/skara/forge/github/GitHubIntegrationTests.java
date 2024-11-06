@@ -195,7 +195,7 @@ class GitHubIntegrationTests {
         {
             var fileContent = "File content";
             gitHubRepo.writeFileContents(fileName, fileContent, branch,
-                    "First commit message", "Duke", "duke@openjdk.org");
+                    "First commit message", "Duke", "duke@openjdk.org", false);
             var returnedContents = gitHubRepo.fileContents(fileName, branch.name());
             assertEquals(fileContent, returnedContents.orElseThrow());
         }
@@ -204,7 +204,7 @@ class GitHubIntegrationTests {
         {
             var fileContent = "New file content";
             gitHubRepo.writeFileContents(fileName, fileContent, branch,
-                    "Second commit message", "Duke", "duke@openjdk.org");
+                    "Second commit message", "Duke", "duke@openjdk.org", true);
             var returnedContents = gitHubRepo.fileContents(fileName, branch.name());
             assertEquals(fileContent, returnedContents.orElseThrow());
         }
@@ -213,7 +213,7 @@ class GitHubIntegrationTests {
         {
             var fileContent = "a".repeat(1024 * 1024 * 10);
             gitHubRepo.writeFileContents(fileName, fileContent, branch,
-                    "Third commit message", "Duke", "duke@openjdk.org");
+                    "Third commit message", "Duke", "duke@openjdk.org", true);
             var returnedContents = gitHubRepo.fileContents(fileName, branch.name());
             assertTrue(returnedContents.isPresent());
             assertEquals(fileContent.length(), returnedContents.get().length());
