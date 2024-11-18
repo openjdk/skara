@@ -107,6 +107,11 @@ public interface HostedRepository {
      * @param message     Commit message
      * @param authorName  Name of author and committer for commit
      * @param authorEmail Email of author and committer for commit
+     * @param createNewFile Determines the file operation mode
+     *                      If set to `true`, the operation attempts to create a new file and write contents to it.
+     *                      The operation will fail if the file already exists.
+     *                      If set to `false`, the operation attempts to update an existing file.
+     *                      The operation will fail if the file does not exist.
      */
     void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail, boolean createNewFile);
     String namespace();
