@@ -291,7 +291,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail) {
+    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail, boolean createNewFile) {
         var body = JSON.object()
                 .put("message", message)
                 .put("branch", branch.name())
@@ -301,12 +301,14 @@ public class GitHubRepository implements HostedRepository {
                 .put("content", new String(Base64.getEncoder().encode(content.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
 
         // If the file exists, we have to supply the current sha with the update request.
-        var curentFileData = request.get("contents/" + filename)
-                .param("ref", branch.name())
-                .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
-                .execute();
-        if (curentFileData.contains("sha")) {
-            body.put("sha", curentFileData.get("sha").asString());
+        if (!createNewFile) {
+            var currentFileData = request.get("contents/" + filename)
+                    .param("ref", branch.name())
+                    .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
+                    .execute();
+            if (currentFileData.contains("sha")) {
+                body.put("sha", currentFileData.get("sha").asString());
+            }
         }
 
         request.put("contents/" + filename)

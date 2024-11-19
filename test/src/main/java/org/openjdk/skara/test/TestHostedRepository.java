@@ -23,8 +23,8 @@
 package org.openjdk.skara.test;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
+import java.nio.file.*;
+
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Issue;
@@ -34,7 +34,6 @@ import org.openjdk.skara.vcs.*;
 
 import java.io.*;
 import java.net.*;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -229,12 +228,26 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail) {
+    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail, boolean createNewFile) {
         try {
             localRepository.checkout(branch);
             Path absPath = localRepository.root().resolve(filename);
             Files.createDirectories(absPath.getParent());
-            Files.writeString(absPath, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+
+            if (createNewFile) {
+                // Attempt to create a new file, throw exception if it already exists
+                if (Files.exists(absPath)) {
+                    throw new FileAlreadyExistsException("File already exists: " + absPath);
+                }
+                Files.writeString(absPath, content, StandardOpenOption.CREATE_NEW);
+            } else {
+                // Attempt to update an existing file, throw exception if it doesn't exist
+                if (!Files.exists(absPath)) {
+                    throw new NoSuchFileException("File does not exist: " + absPath);
+                }
+                Files.writeString(absPath, content, StandardOpenOption.TRUNCATE_EXISTING);
+            }
+
             localRepository.add(absPath);
             var hash = localRepository.commit(message, authorName, authorEmail);
             // Don't leave the repository having a branch checked out as that would

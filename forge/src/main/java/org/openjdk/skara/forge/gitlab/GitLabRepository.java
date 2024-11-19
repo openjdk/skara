@@ -327,7 +327,7 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail) {
+    public void writeFileContents(String filename, String content, Branch branch, String message, String authorName, String authorEmail, boolean createNewFile) {
         var encodedFileName = URLEncoder.encode(filename, StandardCharsets.UTF_8);
         var body = JSON.object()
                 .put("commit_message", message)
@@ -336,19 +336,18 @@ public class GitLabRepository implements HostedRepository {
                 .put("author_email", authorEmail)
                 .put("encoding", "base64")
                 .put("content", new String(Base64.getEncoder().encode(content.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
-        request.put("repository/files/" + encodedFileName)
-                .body(body)
-                .onError(response -> {
-                    // Gitlab requires POST for creating new files and PUT for updating existing.
-                    // Retry with POST if we get 400 response.
-                    if (response.statusCode() == 400) {
-                        return Optional.of(request.post("repository/files/" + encodedFileName)
-                                .body(body)
-                                .execute());
-                    }
-                    return Optional.empty();
-                })
-                .execute();
+
+        if (createNewFile) {
+            // Use POST to create a new file
+            request.post("repository/files/" + encodedFileName)
+                    .body(body)
+                    .execute();
+        } else {
+            // USE PUT to update the file
+            request.put("repository/files/" + encodedFileName)
+                    .body(body)
+                    .execute();
+        }
     }
 
     @Override

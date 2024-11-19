@@ -436,7 +436,7 @@ class ArchiveWorkItem implements WorkItem {
             }
             bot.archiveRepo().writeFileContents(mboxFile(), newArchivedContents.toString(), new Branch(bot.archiveRef()),
                     "Adding comments for PR " + bot.codeRepo().name() + "/" + pr.id(),
-                    bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
+                    bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address(), archiveContents.isEmpty());
 
             // Finally post all new mails to the actual list
             for (var newMail : newMails) {
