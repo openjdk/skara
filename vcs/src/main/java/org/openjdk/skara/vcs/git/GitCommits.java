@@ -30,8 +30,13 @@ import java.util.concurrent.TimeUnit;
 import java.io.*;
 import java.util.*;
 import java.nio.file.Path;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 class GitCommits implements Commits, AutoCloseable {
+
+    private final static Logger log = Logger.getLogger("org.openjdk.skara.vcs.git.GitCommits");
+
     private static final String COMMIT_DELIMITER = "#@!_-=&";
 
     private final Path dir;
@@ -133,23 +138,38 @@ class GitCommits implements Commits, AutoCloseable {
         for (var i = 0; i < processes.size(); i++) {
             var p = processes.get(i);
             var command = commands.get(i);
-            try {
-                var exited = p.waitFor(30L, TimeUnit.SECONDS);
-                if (!exited) {
-                    throw new IOException("'" + String.join(" ", command) + "' timed out");
-                }
-                var exitCode = p.exitValue();
+            close(p, command);
+        }
+    }
+
+    private void close(Process p, List<String> command) throws IOException {
+        log.finer("Waiting for the process to terminate: pid=" + p.pid()
+                + ", command=" + Arrays.toString(command.toArray()));
+        try {
+            var exited = p.waitFor(30L, TimeUnit.SECONDS);
+            if (!exited) {
+                throw new IOException("'" + String.join(" ", command) + "' timed out, pid=" + p.pid());
+            }
+            log.finer("Terminated: pid=" + p.pid());
+            var exitCode = p.exitValue();
+            if (exitCode != 0) {
+                var stderr = new BufferedReader(new InputStreamReader(p.getErrorStream(), StandardCharsets.UTF_8));
+                var message = stderr.lines().collect(Collectors.joining("\n"));
+                log.finer("stderr for pid=" + p.pid() + ": " + message);
                 if (exitCode == 128) {
-                    var stderr = new BufferedReader(new InputStreamReader(p.getErrorStream(), StandardCharsets.UTF_8));
-                    var message = stderr.readLine();
                     if (message.equals("fatal: bad default revision 'HEAD'")) {
                         // this is an empty repository, this is not an error case
                     } else {
                         throw new IOException("'" + String.join(" ", command) + "' exited with code: " + exitCode);
                     }
                 }
-            } catch (InterruptedException e) {
-                throw new IOException("'" + String.join(" ", command) + "' was interrupted", e);
+            }
+        } catch (InterruptedException e) {
+            throw new IOException("'" + String.join(" ", command) + "' was interrupted", e);
+        } finally {
+            if (p.isAlive()) {
+                log.finer("Destroying the process pid=" + p.pid());
+                p.destroy();
             }
         }
     }
