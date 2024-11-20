@@ -323,7 +323,7 @@ public class GitHubHost implements Forge {
     @Override
     public Optional<HostUser> user(String username) {
         var details = request.get("users/" + URLEncoder.encode(username, StandardCharsets.UTF_8))
-                             .onError(r -> Optional.of(JSON.of()))
+                             .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.of()) : Optional.empty())
                              .execute();
         if (details.isNull()) {
             return Optional.empty();
@@ -335,7 +335,7 @@ public class GitHubHost implements Forge {
     @Override
     public Optional<HostUser> userById(String id) {
         var details = request.get("user/" + id)
-                .onError(r -> Optional.of(JSON.of()))
+                .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.of()) : Optional.empty())
                 .execute();
         if (details.isNull()) {
             return Optional.empty();

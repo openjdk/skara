@@ -163,7 +163,7 @@ public class GitLabHost implements Forge {
     public Optional<HostUser> user(String username) {
         var details = request.get("users")
                              .param("username", username)
-                             .onError(r -> Optional.of(JSON.of()))
+                             .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.of()) : Optional.empty())
                              .execute();
 
         if (details.isNull()) {
@@ -181,7 +181,7 @@ public class GitLabHost implements Forge {
     @Override
     public Optional<HostUser> userById(String id) {
         var details = request.get("users/" + id)
-                .onError(r -> Optional.of(JSON.of()))
+                .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.of()) : Optional.empty())
                 .execute();
 
         if (details.isNull()) {
