@@ -135,24 +135,28 @@ class GitCommits implements Commits, AutoCloseable {
             }
         }
 
-        RuntimeException runtimeException = null;
+        Exception exception = null;
 
         for (var i = 0; i < processes.size(); i++) {
             var p = processes.get(i);
             var command = commands.get(i);
             try {
                 close(p, command);
-            } catch (Exception e) {
-                if (runtimeException == null) {
-                    runtimeException = new RuntimeException(e);
+            } catch (IOException | RuntimeException e) {
+                if (exception == null) {
+                    exception = e;
                 } else {
-                    runtimeException.addSuppressed(e);
+                    exception.addSuppressed(e);
                 }
             }
         }
 
-        if (runtimeException != null) {
-            throw runtimeException;
+        if (exception != null) {
+            if (exception instanceof IOException) {
+                throw (IOException) exception;
+            } else {
+                throw (RuntimeException) exception;
+            }
         }
     }
 
