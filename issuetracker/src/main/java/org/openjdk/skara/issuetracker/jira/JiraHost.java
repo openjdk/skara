@@ -176,7 +176,7 @@ public class JiraHost implements IssueTracker {
     public Optional<HostUser> user(String username) {
         var data = request.get("user")
                           .param("username", username)
-                          .onError(r -> Optional.of(JSON.of()))
+                          .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.of()) : Optional.empty())
                           .execute();
         if (data.isNull()) {
             return Optional.empty();
