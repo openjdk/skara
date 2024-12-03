@@ -229,7 +229,7 @@ public class PullRequestWorkItem implements WorkItem {
             log.warning("Found temporary issue failure, the notifiers will be stopped until the temporary issue failure resolved.");
             return List.of();
         }
-        var historyPath = scratchPath.resolve("notify").resolve("history");
+        var historyPath = scratchPath.resolve("notify").resolve("history").resolve("pr");
         var listenerScratchPath = scratchPath.resolve("notify").resolve("listener");
         var storage = prStateStorageBuilder
                 .serializer(this::serializePrState)
