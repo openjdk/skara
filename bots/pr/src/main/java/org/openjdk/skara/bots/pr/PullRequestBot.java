@@ -27,6 +27,7 @@ import org.openjdk.skara.census.Contributor;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSONValue;
+import org.openjdk.skara.network.UncheckedRestException;
 
 import java.net.URI;
 import java.nio.file.Path;
@@ -224,16 +225,22 @@ class PullRequestBot implements Bot {
                 .filter(key -> !targetRefPRMap.get(key).isEmpty())
                 .toList();
         for (var targetRef : allTargetRefs) {
-            var currConfOpt = remoteRepo.fileContents(".jcheck/conf", targetRef);
-            if (currConfOpt.isEmpty()) {
-                continue;
-            }
-            var currConf = currConfOpt.get();
-            if (!jCheckConfMap.containsKey(targetRef)) {
-                jCheckConfMap.put(targetRef, currConf);
-            } else if (!jCheckConfMap.get(targetRef).equals(currConf)) {
-                ret.addAll(remoteRepo.openPullRequestsWithTargetRef(targetRef));
-                jCheckConfMap.put(targetRef, currConf);
+            try {
+                var currConfOpt = remoteRepo.fileContents(".jcheck/conf", targetRef);
+                if (currConfOpt.isEmpty()) {
+                    continue;
+                }
+                var currConf = currConfOpt.get();
+                if (!jCheckConfMap.containsKey(targetRef)) {
+                    jCheckConfMap.put(targetRef, currConf);
+                } else if (!jCheckConfMap.get(targetRef).equals(currConf)) {
+                    ret.addAll(remoteRepo.openPullRequestsWithTargetRef(targetRef));
+                    jCheckConfMap.put(targetRef, currConf);
+                }
+            } catch (UncheckedRestException e) {
+                if (e.getStatusCode() != 404 || !e.getMessage().contains("Commit Not Found")) {
+                    throw e;
+                }
             }
         }
         return ret;

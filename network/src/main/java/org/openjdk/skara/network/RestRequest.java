@@ -567,7 +567,12 @@ public class RestRequest {
         var response = sendRequest(request, queryBuilder.skipLimiter);
         responseCounter.labels(Integer.toString(response.statusCode()), Boolean.toString(false)).inc();
         if (response.statusCode() >= 400) {
-            throw new UncheckedRestException(response.statusCode(), response.request());
+            var responseJSONValue = JSON.parse(response.body());
+            if (responseJSONValue.contains("message")) {
+                throw new UncheckedRestException(responseJSONValue.get("message").asString(), response.statusCode(), response.request());
+            } else {
+                throw new UncheckedRestException(response.statusCode(), response.request());
+            }
         }
         return response.body();
     }

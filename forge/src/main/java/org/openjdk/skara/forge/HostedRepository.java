@@ -94,7 +94,8 @@ public interface HostedRepository {
     URI url();
 
     /**
-     * Returns contents of the file, if the file does not exist, returns Optional.empty().
+     * Returns contents of the file, if the file does not exist, returns Optional.empty(),
+     * if the ref does not exist, throws exception.
      */
     Optional<String> fileContents(String filename, String ref);
 
