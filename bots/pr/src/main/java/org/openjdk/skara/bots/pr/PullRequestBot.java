@@ -196,8 +196,12 @@ class PullRequestBot implements Bot {
                 }
             }
 
+            var activeBranches = remoteRepo.branches().stream()
+                    .map(HostedBranch::name)
+                    .toList();
+
             var keysToRemove = targetRefPRMap.keySet().stream()
-                    .filter(key -> targetRefPRMap.get(key).isEmpty())
+                    .filter(key -> targetRefPRMap.get(key).isEmpty() || !activeBranches.contains(key))
                     .toList();
             keysToRemove.forEach(targetRefPRMap::remove);
 
