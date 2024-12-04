@@ -238,7 +238,7 @@ class PullRequestBot implements Bot {
                     jCheckConfMap.put(targetRef, currConf);
                 }
             } catch (UncheckedRestException e) {
-                if (e.getStatusCode() != 404 || !e.getMessage().contains("Commit Not Found")) {
+                if (e.getStatusCode() != 404) {
                     throw e;
                 }
             }
