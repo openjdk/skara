@@ -326,6 +326,22 @@ class JCheckCLIVisitor implements IssueVisitor {
         }
     }
 
+    @Override
+    public void visit(CopyrightIssue i) {
+        if (!ignore.contains(i.check().name()) && !isLax) {
+            if (!i.filesWithCopyrightFormatIssue().isEmpty()) {
+                println(i, "Found copyright format issue in [" + String.join(", ", i.filesWithCopyrightFormatIssue()) + "]");
+            }
+            if (!i.filesWithCopyrightYearIssue().isEmpty()) {
+                println(i, "Found outdated copyright year in [" + String.join(", ", i.filesWithCopyrightYearIssue()) + "]");
+            }
+            for (var line : i.commit().message()) {
+                System.out.println("> " + line);
+            }
+            hasDisplayedErrors = i.severity() == Severity.ERROR;
+        }
+    }
+
     public boolean hasDisplayedErrors() {
         return hasDisplayedErrors;
     }

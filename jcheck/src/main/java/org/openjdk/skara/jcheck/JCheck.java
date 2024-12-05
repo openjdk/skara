@@ -90,7 +90,8 @@ public class JCheck {
             new SymlinkCheck(),
             new BinaryCheck(),
             new ProblemListsCheck(repository),
-            new IssuesTitleCheck()
+            new IssuesTitleCheck(),
+            new CopyrightCheck(repository)
         );
         repositoryChecks = List.of(
             new BranchesCheck(allowedBranches),
