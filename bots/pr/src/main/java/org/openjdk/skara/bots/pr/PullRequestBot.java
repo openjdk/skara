@@ -238,6 +238,9 @@ class PullRequestBot implements Bot {
                     jCheckConfMap.put(targetRef, currConf);
                 }
             } catch (UncheckedRestException e) {
+                // If the targetRef is invalid, fileContents() will throw a 404 instead of returning
+                // empty. In this case we should ignore this and continue processing other PRs.
+                // Any invalid refs will get removed from targetRefMap in the next round.
                 if (e.getStatusCode() != 404) {
                     throw e;
                 }
