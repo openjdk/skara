@@ -28,11 +28,14 @@ public class CopyrightIssue extends CommitIssue {
 
     List<String> filesWithCopyrightFormatIssue;
     List<String> filesWithCopyrightYearIssue;
+    List<String> filesWithCopyrightMissingIssue;
 
-    CopyrightIssue(CommitIssue.Metadata metadata, List<String> filesWithCopyrightFormatIssue, List<String> filesWithCopyrightYearIssue) {
+    CopyrightIssue(CommitIssue.Metadata metadata, List<String> filesWithCopyrightFormatIssue, List<String> filesWithCopyrightYearIssue,
+                   List<String> filesWithCopyrightMissingIssue) {
         super(metadata);
         this.filesWithCopyrightFormatIssue = filesWithCopyrightFormatIssue;
         this.filesWithCopyrightYearIssue = filesWithCopyrightYearIssue;
+        this.filesWithCopyrightMissingIssue = filesWithCopyrightMissingIssue;
     }
 
     @Override
@@ -46,5 +49,9 @@ public class CopyrightIssue extends CommitIssue {
 
     public List<String> filesWithCopyrightYearIssue() {
         return filesWithCopyrightYearIssue;
+    }
+
+    public List<String> filesWithCopyrightMissingIssue() {
+        return filesWithCopyrightMissingIssue;
     }
 }

@@ -51,6 +51,7 @@ public class CopyrightCheck extends CommitCheck {
 
         var filesWithCopyrightFormatIssue = new ArrayList<String>();
         var filesWithCopyrightYearIssue = new ArrayList<String>();
+        var filesWithCopyrightMissingIssue = new ArrayList<String>();
 
         for (var diff : commit.parentDiffs()) {
             for (var patch : diff.patches()) {
@@ -61,8 +62,10 @@ public class CopyrightCheck extends CommitCheck {
                 if (pattern.matcher(path.toString()).matches()) {
                     try {
                         var lines = repo.lines(path, commit.hash()).orElse(List.of());
+                        var copyrightFound = false;
                         for (String line : lines) {
                             if (line.contains("Copyright (c)") && line.contains("Oracle")) {
+                                copyrightFound = true;
                                 var matcher = COPYRIGHT_PATTERN.matcher(line);
                                 if (matcher.matches()) {
                                     int minYear = Integer.parseInt(matcher.group(1));
@@ -76,6 +79,9 @@ public class CopyrightCheck extends CommitCheck {
                                 }
                             }
                         }
+                        if (!copyrightFound) {
+                            filesWithCopyrightMissingIssue.add(path.toString());
+                        }
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -83,8 +89,8 @@ public class CopyrightCheck extends CommitCheck {
             }
         }
 
-        if (!filesWithCopyrightFormatIssue.isEmpty() || !filesWithCopyrightYearIssue.isEmpty()) {
-            return iterator(new CopyrightIssue(metadata, filesWithCopyrightFormatIssue, filesWithCopyrightYearIssue));
+        if (!filesWithCopyrightFormatIssue.isEmpty() || !filesWithCopyrightYearIssue.isEmpty() || !filesWithCopyrightMissingIssue.isEmpty()) {
+            return iterator(new CopyrightIssue(metadata, filesWithCopyrightFormatIssue, filesWithCopyrightYearIssue, filesWithCopyrightMissingIssue));
         }
 
         return iterator();

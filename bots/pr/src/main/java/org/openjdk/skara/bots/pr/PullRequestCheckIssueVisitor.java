@@ -335,6 +335,9 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
         if (!issue.filesWithCopyrightYearIssue().isEmpty()) {
             messages.add("Found outdated copyright year in [" + String.join(", ", issue.filesWithCopyrightYearIssue()) + "]");
         }
+        if (!issue.filesWithCopyrightMissingIssue().isEmpty()) {
+            messages.add("Can't find copyright header in [" + String.join(", ", issue.filesWithCopyrightMissingIssue()) + "]");
+        }
         addMessage(issue.check(), String.join("\n", messages),
                 issue.severity());
     }
