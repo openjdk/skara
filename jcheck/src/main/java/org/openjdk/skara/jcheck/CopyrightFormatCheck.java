@@ -68,6 +68,7 @@ public class CopyrightFormatCheck extends CommitCheck {
                                 if (!matcher.matches()) {
                                     filesWithCopyrightFormatIssue.add(path.toString());
                                 }
+                                break;
                             }
                         }
                         if (!copyrightFound) {
