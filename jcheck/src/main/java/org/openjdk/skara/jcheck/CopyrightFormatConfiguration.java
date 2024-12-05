@@ -22,36 +22,32 @@
  */
 package org.openjdk.skara.jcheck;
 
-import java.util.List;
+import org.openjdk.skara.ini.Section;
 
-public class CopyrightIssue extends CommitIssue {
+public class CopyrightFormatConfiguration {
+    static final CopyrightFormatConfiguration DEFAULT =
+            new CopyrightFormatConfiguration(".*\\.cpp|.*\\.hpp|.*\\.c|.*\\.h|.*\\.java");
 
-    List<String> filesWithCopyrightFormatIssue;
-    List<String> filesWithCopyrightYearIssue;
-    List<String> filesWithCopyrightMissingIssue;
+    private final String files;
 
-    CopyrightIssue(CommitIssue.Metadata metadata, List<String> filesWithCopyrightFormatIssue, List<String> filesWithCopyrightYearIssue,
-                   List<String> filesWithCopyrightMissingIssue) {
-        super(metadata);
-        this.filesWithCopyrightFormatIssue = filesWithCopyrightFormatIssue;
-        this.filesWithCopyrightYearIssue = filesWithCopyrightYearIssue;
-        this.filesWithCopyrightMissingIssue = filesWithCopyrightMissingIssue;
+    CopyrightFormatConfiguration(String files) {
+        this.files = files;
     }
 
-    @Override
-    public void accept(IssueVisitor visitor) {
-        visitor.visit(this);
+    public String files() {
+        return files;
     }
 
-    public List<String> filesWithCopyrightFormatIssue() {
-        return filesWithCopyrightFormatIssue;
+    static String name() {
+        return "copyright";
     }
 
-    public List<String> filesWithCopyrightYearIssue() {
-        return filesWithCopyrightYearIssue;
-    }
+    static CopyrightFormatConfiguration parse(Section s) {
+        if (s == null) {
+            return DEFAULT;
+        }
 
-    public List<String> filesWithCopyrightMissingIssue() {
-        return filesWithCopyrightMissingIssue;
+        var files = s.get("files", DEFAULT.files());
+        return new CopyrightFormatConfiguration(files);
     }
 }

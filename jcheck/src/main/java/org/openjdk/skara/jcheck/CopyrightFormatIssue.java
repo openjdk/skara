@@ -22,32 +22,29 @@
  */
 package org.openjdk.skara.jcheck;
 
-import org.openjdk.skara.ini.Section;
+import java.util.List;
 
-public class CopyrightConfiguration {
-    static final CopyrightConfiguration DEFAULT =
-            new CopyrightConfiguration(".*\\.cpp|.*\\.hpp|.*\\.c|.*\\.h|.*\\.java");
+public class CopyrightFormatIssue extends CommitIssue {
 
-    private final String files;
+    List<String> filesWithCopyrightFormatIssue;
+    List<String> filesWithCopyrightMissingIssue;
 
-    CopyrightConfiguration(String files) {
-        this.files = files;
+    CopyrightFormatIssue(CommitIssue.Metadata metadata, List<String> filesWithCopyrightFormatIssue, List<String> filesWithCopyrightMissingIssue) {
+        super(metadata);
+        this.filesWithCopyrightFormatIssue = filesWithCopyrightFormatIssue;
+        this.filesWithCopyrightMissingIssue = filesWithCopyrightMissingIssue;
     }
 
-    public String files() {
-        return files;
+    @Override
+    public void accept(IssueVisitor visitor) {
+        visitor.visit(this);
     }
 
-    static String name() {
-        return "copyright";
+    public List<String> filesWithCopyrightFormatIssue() {
+        return filesWithCopyrightFormatIssue;
     }
 
-    static CopyrightConfiguration parse(Section s) {
-        if (s == null) {
-            return DEFAULT;
-        }
-
-        var files = s.get("files", DEFAULT.files());
-        return new CopyrightConfiguration(files);
+    public List<String> filesWithCopyrightMissingIssue() {
+        return filesWithCopyrightMissingIssue;
     }
 }

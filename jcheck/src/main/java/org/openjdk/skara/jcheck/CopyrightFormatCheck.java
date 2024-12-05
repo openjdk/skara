@@ -30,17 +30,16 @@ import org.openjdk.skara.vcs.openjdk.CommitMessage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.time.Year;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class CopyrightCheck extends CommitCheck {
+public class CopyrightFormatCheck extends CommitCheck {
 
     private final ReadOnlyRepository repo;
 
     private final static Pattern COPYRIGHT_PATTERN = Pattern.compile(".*Copyright \\(c\\) (\\d{4})(?:, (\\d{4}))?, Oracle and/or its affiliates\\. All rights reserved\\.");
 
-    CopyrightCheck(ReadOnlyRepository repo) {
+    CopyrightFormatCheck(ReadOnlyRepository repo) {
         this.repo = repo;
     }
 
@@ -50,7 +49,6 @@ public class CopyrightCheck extends CommitCheck {
         var pattern = Pattern.compile(conf.checks().copyright().files());
 
         var filesWithCopyrightFormatIssue = new ArrayList<String>();
-        var filesWithCopyrightYearIssue = new ArrayList<String>();
         var filesWithCopyrightMissingIssue = new ArrayList<String>();
 
         for (var diff : commit.parentDiffs()) {
@@ -67,14 +65,7 @@ public class CopyrightCheck extends CommitCheck {
                             if (line.contains("Copyright (c)") && line.contains("Oracle")) {
                                 copyrightFound = true;
                                 var matcher = COPYRIGHT_PATTERN.matcher(line);
-                                if (matcher.matches()) {
-                                    int minYear = Integer.parseInt(matcher.group(1));
-                                    int maxYear = matcher.group(2) != null ? Integer.parseInt(matcher.group(2)) : minYear;
-                                    int currentYear = Year.now().getValue();
-                                    if (currentYear != maxYear) {
-                                        filesWithCopyrightYearIssue.add(path.toString());
-                                    }
-                                } else {
+                                if (!matcher.matches()) {
                                     filesWithCopyrightFormatIssue.add(path.toString());
                                 }
                             }
@@ -89,8 +80,8 @@ public class CopyrightCheck extends CommitCheck {
             }
         }
 
-        if (!filesWithCopyrightFormatIssue.isEmpty() || !filesWithCopyrightYearIssue.isEmpty() || !filesWithCopyrightMissingIssue.isEmpty()) {
-            return iterator(new CopyrightIssue(metadata, filesWithCopyrightFormatIssue, filesWithCopyrightYearIssue, filesWithCopyrightMissingIssue));
+        if (!filesWithCopyrightFormatIssue.isEmpty() || !filesWithCopyrightMissingIssue.isEmpty()) {
+            return iterator(new CopyrightFormatIssue(metadata, filesWithCopyrightFormatIssue, filesWithCopyrightMissingIssue));
         }
 
         return iterator();

@@ -327,13 +327,10 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     }
 
     @Override
-    public void visit(CopyrightIssue issue) {
+    public void visit(CopyrightFormatIssue issue) {
         List<String> messages = new ArrayList<>();
         if (!issue.filesWithCopyrightFormatIssue().isEmpty()) {
             messages.add("Found copyright format issue in [" + String.join(", ", issue.filesWithCopyrightFormatIssue()) + "]");
-        }
-        if (!issue.filesWithCopyrightYearIssue().isEmpty()) {
-            messages.add("Found outdated copyright year in [" + String.join(", ", issue.filesWithCopyrightYearIssue()) + "]");
         }
         if (!issue.filesWithCopyrightMissingIssue().isEmpty()) {
             messages.add("Can't find copyright header in [" + String.join(", ", issue.filesWithCopyrightMissingIssue()) + "]");

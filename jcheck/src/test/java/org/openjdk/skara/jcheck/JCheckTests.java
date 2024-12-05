@@ -244,7 +244,7 @@ class JCheckTests {
         }
 
         @Override
-        public void visit(CopyrightIssue e) {
+        public void visit(CopyrightFormatIssue e) {
             issues.add(e);
         }
 

@@ -37,7 +37,7 @@ public class ChecksConfiguration {
                                 CommitterConfiguration.DEFAULT,
                                 IssuesConfiguration.DEFAULT,
                                 ProblemListsConfiguration.DEFAULT,
-                                CopyrightConfiguration.DEFAULT);
+                                CopyrightFormatConfiguration.DEFAULT);
 
     private final List<String> error;
     private final List<String> warning;
@@ -47,7 +47,7 @@ public class ChecksConfiguration {
     private final CommitterConfiguration committer;
     private final IssuesConfiguration issues;
     private final ProblemListsConfiguration problemlists;
-    private final CopyrightConfiguration copyright;
+    private final CopyrightFormatConfiguration copyright;
 
     ChecksConfiguration(List<String> error,
                         List<String> warning,
@@ -57,7 +57,7 @@ public class ChecksConfiguration {
                         CommitterConfiguration committer,
                         IssuesConfiguration issues,
                         ProblemListsConfiguration problemlists,
-                        CopyrightConfiguration copyright) {
+                        CopyrightFormatConfiguration copyright) {
         this.error = error;
         this.warning = warning;
         this.whitespace = whitespace;
@@ -119,7 +119,7 @@ public class ChecksConfiguration {
         return problemlists;
     }
 
-    public CopyrightConfiguration copyright(){
+    public CopyrightFormatConfiguration copyright(){
         return copyright;
     }
 
@@ -141,7 +141,7 @@ public class ChecksConfiguration {
         var committer = CommitterConfiguration.parse(s.subsection(CommitterConfiguration.name()));
         var issues = IssuesConfiguration.parse(s.subsection(IssuesConfiguration.name()));
         var problemlists = ProblemListsConfiguration.parse(s.subsection(ProblemListsConfiguration.name()));
-        var copyright = CopyrightConfiguration.parse(s.subsection(CopyrightConfiguration.name()));
+        var copyright = CopyrightFormatConfiguration.parse(s.subsection(CopyrightFormatConfiguration.name()));
         return new ChecksConfiguration(error, warning, whitespace, reviewers, merge, committer, issues, problemlists, copyright);
     }
 }

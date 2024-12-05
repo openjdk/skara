@@ -36,7 +36,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class CopyrightCheckTests {
+public class CopyrightFormatCheckTests {
 
     private static JCheckConfiguration conf() {
         return JCheckConfiguration.parse(List.of(
@@ -64,10 +64,9 @@ public class CopyrightCheckTests {
             r.add(afile);
             var first = r.commit("1: Added a.java", "duke", "duke@openjdk.org");
 
-            var check = new CopyrightCheck(r);
+            var check = new CopyrightFormatCheck(r);
             var commit = r.lookup(first).orElseThrow();
-            var issue = (CopyrightIssue) check.check(commit, message(commit), conf(), null).next();
-            assertTrue(issue.filesWithCopyrightYearIssue.isEmpty());
+            var issue = (CopyrightFormatIssue) check.check(commit, message(commit), conf(), null).next();
             assertEquals(1, issue.filesWithCopyrightFormatIssue.size());
 
             // Now, remove the trailing whitespace
@@ -77,39 +76,7 @@ public class CopyrightCheckTests {
                     " */\n"));
             r.add(afile);
             var second = r.commit("2: Modified a.java", "duke", "duke@openjdk.org");
-            check = new CopyrightCheck(r);
-            commit = r.lookup(second).orElseThrow();
-            assertFalse(check.check(commit, message(commit), conf(), null).hasNext());
-        }
-    }
-
-    @Test
-    void CopyrightYearIssue() throws IOException {
-        try (var dir = new TemporaryDirectory()) {
-            var r = TestableRepository.init(dir.path(), VCS.GIT);
-
-            var afile = dir.path().resolve("a.java");
-            Files.write(afile, List.of("/*\n" +
-                    " * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.\n" +
-                    " * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.\n" +
-                    " */\n"));
-            r.add(afile);
-            var first = r.commit("1: Added a.java", "duke", "duke@openjdk.org");
-
-            var check = new CopyrightCheck(r);
-            var commit = r.lookup(first).orElseThrow();
-            var issue = (CopyrightIssue) check.check(commit, message(commit), conf(), null).next();
-            assertEquals(1, issue.filesWithCopyrightYearIssue.size());
-            assertTrue(issue.filesWithCopyrightFormatIssue.isEmpty());
-
-            // Update the copyright year
-            Files.write(afile, List.of("/*\n" +
-                    " * Copyright (c) 2022, 2024, Oracle and/or its affiliates. All rights reserved.\n" +
-                    " * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.\n" +
-                    " */\n"));
-            r.add(afile);
-            var second = r.commit("2: Modified a.java", "duke", "duke@openjdk.org");
-            check = new CopyrightCheck(r);
+            check = new CopyrightFormatCheck(r);
             commit = r.lookup(second).orElseThrow();
             assertFalse(check.check(commit, message(commit), conf(), null).hasNext());
         }

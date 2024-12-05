@@ -45,5 +45,5 @@ public interface IssueVisitor {
     void visit(SymlinkIssue issue);
     void visit(ProblemListsIssue problemListIssue);
     void visit(IssuesTitleIssue issuesTitleIssue);
-    void visit(CopyrightIssue copyrightIssue);
+    void visit(CopyrightFormatIssue copyrightFormatIssue);
 }

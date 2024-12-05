@@ -3801,32 +3801,18 @@ class CheckTests {
                     " */\n");
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Pull Request", List.of("Body"), false);
-
             // Check the status
             TestBotRunner.runPeriodicItems(prBot);
-
             assertTrue(pr.store().body().contains("Found copyright format issue in [appendable.txt]"));
 
-            // Make the year outdated
-            var editHash2 = CheckableRepository.replaceAndCommit(localRepo, "/*\n" +
-                    " * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.\n" +
-                    " * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.\n" +
-                    " */\n");
-            localRepo.push(editHash2, author.authenticatedUrl(), "edit", true);
-
-            TestBotRunner.runPeriodicItems(prBot);
-
-            assertTrue(pr.store().body().contains("Found outdated copyright year in [appendable.txt]"));
-
             // Fix the issue
-            var editHash3 = CheckableRepository.replaceAndCommit(localRepo, "/*\n" +
+            var editHash2 = CheckableRepository.replaceAndCommit(localRepo, "/*\n" +
                     " * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.\n" +
                     " * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.\n" +
                     " */\n");
-            localRepo.push(editHash3, author.authenticatedUrl(), "edit", true);
-
+            localRepo.push(editHash2, author.authenticatedUrl(), "edit", true);
+            // Check the status
             TestBotRunner.runPeriodicItems(prBot);
-
             assertFalse(pr.store().body().contains("Found copyright format issue in [appendable.txt]"));
         }
     }
