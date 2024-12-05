@@ -280,7 +280,9 @@ public class GitHubRepository implements HostedRepository {
         } catch (UncheckedRestException e) {
             // The onError handler is not used with executeUnparsed, so have to
             // resort to catching exception for 404 handling.
-            if (e.getStatusCode() == 404) {
+            // For GitHub, if ref not found, it returns "No commit found for the ref ",
+            // if file not found, it returns "Not Found".
+            if (e.getStatusCode() == 404 && e.getMessage().contains("Not Found")) {
                 return Optional.empty();
             } else {
                 throw e;

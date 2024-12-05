@@ -27,6 +27,7 @@ import org.openjdk.skara.census.Contributor;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSONValue;
+import org.openjdk.skara.network.UncheckedRestException;
 
 import java.net.URI;
 import java.nio.file.Path;
@@ -190,18 +191,18 @@ class PullRequestBot implements Bot {
             for (var pr : prs) {
                 var targetRef = pr.targetRef();
                 var prId = pr.id();
+                targetRefPRMap.values().forEach(s -> s.remove(prId));
                 if (pr.isOpen()) {
-                    targetRefPRMap.values().forEach(s -> s.remove(prId));
                     targetRefPRMap.computeIfAbsent(targetRef, key -> new HashSet<>()).add(prId);
-                } else {
-                    if (targetRefPRMap.containsKey(targetRef)) {
-                        targetRefPRMap.get(targetRef).remove(prId);
-                    }
                 }
             }
 
+            var activeBranches = remoteRepo.branches().stream()
+                    .map(HostedBranch::name)
+                    .toList();
+
             var keysToRemove = targetRefPRMap.keySet().stream()
-                    .filter(key -> targetRefPRMap.get(key).isEmpty())
+                    .filter(key -> targetRefPRMap.get(key).isEmpty() || !activeBranches.contains(key))
                     .toList();
             keysToRemove.forEach(targetRefPRMap::remove);
 
@@ -224,16 +225,25 @@ class PullRequestBot implements Bot {
                 .filter(key -> !targetRefPRMap.get(key).isEmpty())
                 .toList();
         for (var targetRef : allTargetRefs) {
-            var currConfOpt = remoteRepo.fileContents(".jcheck/conf", targetRef);
-            if (currConfOpt.isEmpty()) {
-                continue;
-            }
-            var currConf = currConfOpt.get();
-            if (!jCheckConfMap.containsKey(targetRef)) {
-                jCheckConfMap.put(targetRef, currConf);
-            } else if (!jCheckConfMap.get(targetRef).equals(currConf)) {
-                ret.addAll(remoteRepo.openPullRequestsWithTargetRef(targetRef));
-                jCheckConfMap.put(targetRef, currConf);
+            try {
+                var currConfOpt = remoteRepo.fileContents(".jcheck/conf", targetRef);
+                if (currConfOpt.isEmpty()) {
+                    continue;
+                }
+                var currConf = currConfOpt.get();
+                if (!jCheckConfMap.containsKey(targetRef)) {
+                    jCheckConfMap.put(targetRef, currConf);
+                } else if (!jCheckConfMap.get(targetRef).equals(currConf)) {
+                    ret.addAll(remoteRepo.openPullRequestsWithTargetRef(targetRef));
+                    jCheckConfMap.put(targetRef, currConf);
+                }
+            } catch (UncheckedRestException e) {
+                // If the targetRef is invalid, fileContents() will throw a 404 instead of returning
+                // empty. In this case we should ignore this and continue processing other PRs.
+                // Any invalid refs will get removed from targetRefMap in the next round.
+                if (e.getStatusCode() != 404) {
+                    throw e;
+                }
             }
         }
         return ret;
