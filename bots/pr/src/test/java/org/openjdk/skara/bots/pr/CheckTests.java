@@ -3267,7 +3267,7 @@ class CheckTests {
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
-            assertEquals("line 19: entry must be of form 'key = value'", check.summary().get());
+            assertEquals("line 22: entry must be of form 'key = value'", check.summary().get());
             assertEquals("Exception occurred during source jcheck - the operation will be retried", check.title().get());
 
             // Restore .jcheck/conf and add whitespace issue check
