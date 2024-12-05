@@ -3715,7 +3715,7 @@ class CheckTests {
                     .build();
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"));
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),Set.of("author", "reviewers", "whitespace"), Set.of("issuestitle"), "0.1");
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
@@ -3790,7 +3790,7 @@ class CheckTests {
                     .build();
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"));
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),Set.of("author", "reviewers", "whitespace"), Set.of("copyright"), "0.1");
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 

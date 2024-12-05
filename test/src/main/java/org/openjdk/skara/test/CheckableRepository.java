@@ -93,11 +93,11 @@ public class CheckableRepository {
     }
 
     public static Repository init(Path path, VCS vcs, Path appendableFilePath, Set<String> errorChecks, String version) throws IOException {
-        return init(path, vcs, appendableFilePath, errorChecks, Set.of("issuestitle", "copyright"), version);
+        return init(path, vcs, appendableFilePath, errorChecks, Set.of(), version);
     }
 
     public static Repository init(Path path, VCS vcs, Path appendableFilePath) throws IOException {
-        return init(path, vcs, appendableFilePath, Set.of("author", "reviewers", "whitespace"), Set.of("issuestitle","copyright"), "0.1");
+        return init(path, vcs, appendableFilePath, Set.of("author", "reviewers", "whitespace"), Set.of(), "0.1");
     }
 
     public static Repository init(Path path, VCS vcs) throws IOException {
