@@ -243,6 +243,11 @@ class JCheckTests {
             issues.add(e);
         }
 
+        @Override
+        public void visit(CopyrightFormatIssue e) {
+            issues.add(e);
+        }
+
         Set<Issue> issues() {
             return issues;
         }
