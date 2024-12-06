@@ -3267,7 +3267,7 @@ class CheckTests {
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
-            assertEquals("line 22: entry must be of form 'key = value'", check.summary().get());
+            assertEquals("line 27: entry must be of form 'key = value'", check.summary().get());
             assertEquals("Exception occurred during source jcheck - the operation will be retried", check.title().get());
 
             // Restore .jcheck/conf and add whitespace issue check
@@ -3803,7 +3803,7 @@ class CheckTests {
             var pr = credentials.createPullRequest(author, "master", "edit", "Pull Request", List.of("Body"), false);
             // Check the status
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.store().body().contains("Found copyright format issue in [appendable.txt]"));
+            assertTrue(pr.store().body().contains("Found copyright format issue for oracle in [appendable.txt]"));
 
             // Fix the issue
             var editHash2 = CheckableRepository.replaceAndCommit(localRepo, "/*\n" +
@@ -3813,7 +3813,18 @@ class CheckTests {
             localRepo.push(editHash2, author.authenticatedUrl(), "edit", true);
             // Check the status
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.store().body().contains("Found copyright format issue in [appendable.txt]"));
+            assertFalse(pr.store().body().contains("Found copyright format issue for oracle in [appendable.txt]"));
+
+            // Replace the oracle copyright with red hat one
+            var editHash3 = CheckableRepository.replaceAndCommit(localRepo, "/*\n" +
+                    " * Copyright (c) 2024,  Red Hat, Inc.\n" +
+                    " * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.\n" +
+                    " */\n");
+            localRepo.push(editHash3, author.authenticatedUrl(), "edit", true);
+            // Check the status
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().body().contains("Found copyright format issue for redhat in [appendable.txt]"));
+            assertTrue(pr.store().body().contains("Can't find copyright header for oracle in [appendable.txt]"));
         }
     }
 }

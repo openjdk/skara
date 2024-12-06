@@ -29,6 +29,7 @@ import org.openjdk.skara.vcs.openjdk.CommitMessage;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -37,8 +38,6 @@ public class CopyrightFormatCheck extends CommitCheck {
 
     private final ReadOnlyRepository repo;
 
-    private final static Pattern COPYRIGHT_PATTERN = Pattern.compile(".*Copyright \\(c\\) (\\d{4})(?:, (\\d{4}))?, Oracle and/or its affiliates\\. All rights reserved\\.");
-
     CopyrightFormatCheck(ReadOnlyRepository repo) {
         this.repo = repo;
     }
@@ -46,10 +45,14 @@ public class CopyrightFormatCheck extends CommitCheck {
     @Override
     Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf, Census census) {
         var metadata = CommitIssue.metadata(commit, message, conf, this);
-        var pattern = Pattern.compile(conf.checks().copyright().files());
-
-        var filesWithCopyrightFormatIssue = new ArrayList<String>();
-        var filesWithCopyrightMissingIssue = new ArrayList<String>();
+        var copyrightConf = conf.checks().copyright();
+        if (copyrightConf == null) {
+            return iterator();
+        }
+        var pattern = Pattern.compile(copyrightConf.files());
+        var copyrightSingleCheckConfigurations = copyrightConf.singleCheckConfigurations();
+        var filesWithCopyrightFormatIssue = new HashMap<String, List<String>>();
+        var filesWithCopyrightMissingIssue = new HashMap<String, List<String>>();
 
         for (var diff : commit.parentDiffs()) {
             for (var patch : diff.patches()) {
@@ -60,19 +63,24 @@ public class CopyrightFormatCheck extends CommitCheck {
                 if (pattern.matcher(path.toString()).matches()) {
                     try {
                         var lines = repo.lines(path, commit.hash()).orElse(List.of());
-                        var copyrightFound = false;
-                        for (String line : lines) {
-                            if (line.contains("Copyright (c)") && line.contains("Oracle")) {
-                                copyrightFound = true;
-                                var matcher = COPYRIGHT_PATTERN.matcher(line);
-                                if (!matcher.matches()) {
-                                    filesWithCopyrightFormatIssue.add(path.toString());
+                        for (var singleConf : copyrightSingleCheckConfigurations) {
+                            var copyrightFound = false;
+                            for (String line : lines) {
+                                if (singleConf.locator.matcher(line).matches()) {
+                                    copyrightFound = true;
+                                    if (!singleConf.checker.matcher(line).matches()) {
+                                        filesWithCopyrightFormatIssue
+                                                .computeIfAbsent(singleConf.name, k -> new ArrayList<>())
+                                                .add(path.toString());
+                                    }
+                                    break;
                                 }
-                                break;
                             }
-                        }
-                        if (!copyrightFound) {
-                            filesWithCopyrightMissingIssue.add(path.toString());
+                            if (singleConf.required && !copyrightFound) {
+                                filesWithCopyrightMissingIssue
+                                        .computeIfAbsent(singleConf.name, k -> new ArrayList<>())
+                                        .add(path.toString());
+                            }
                         }
                     } catch (IOException e) {
                         throw new RuntimeException(e);

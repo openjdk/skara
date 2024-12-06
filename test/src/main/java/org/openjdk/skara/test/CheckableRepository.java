@@ -84,6 +84,11 @@ public class CheckableRepository {
             output.append("\n");
             output.append("[checks \"copyright\"]\n");
             output.append("files=.*\\.txt\n");
+            output.append("oracle_locator=.*Copyright \\(c\\)(.*)Oracle and/or its affiliates\\. All rights reserved\\.\n");
+            output.append("oracle_checker=.*Copyright \\(c\\) (\\d{4})(?:, (\\d{4}))?, Oracle and/or its affiliates\\. All rights reserved\\.\n");
+            output.append("oracle_required=true\n");
+            output.append("redhat_locator=.*Copyright \\(c\\)(.*)Red Hat, Inc\\.\n");
+            output.append("redhat_checker=.*Copyright \\(c\\) (\\d{4})(?:, (\\d{4}))?, Red Hat, Inc\\.\n");
         }
         repo.add(checkConf);
 

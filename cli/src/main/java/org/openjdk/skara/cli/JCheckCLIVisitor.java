@@ -330,10 +330,14 @@ class JCheckCLIVisitor implements IssueVisitor {
     public void visit(CopyrightFormatIssue i) {
         if (!ignore.contains(i.check().name()) && !isLax) {
             if (!i.filesWithCopyrightFormatIssue().isEmpty()) {
-                println(i, "Found copyright format issue in [" + String.join(", ", i.filesWithCopyrightFormatIssue()) + "]");
+                for (var entry : i.filesWithCopyrightFormatIssue().entrySet()) {
+                    println(i, "Found copyright format issue for " + entry.getKey() + " in [" + String.join(", ", entry.getValue()) + "]");
+                }
             }
             if (!i.filesWithCopyrightMissingIssue().isEmpty()) {
-                println(i, "Can't find copyright header in [" + String.join(", ", i.filesWithCopyrightMissingIssue()) + "]");
+                for (var entry : i.filesWithCopyrightMissingIssue().entrySet()) {
+                    println(i, "Can't find copyright header for " + entry.getKey() + " in [" + String.join(", ", entry.getValue()) + "]");
+                }
             }
             for (var line : i.commit().message()) {
                 System.out.println("> " + line);

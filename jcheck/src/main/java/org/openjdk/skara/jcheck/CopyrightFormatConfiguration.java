@@ -24,18 +24,25 @@ package org.openjdk.skara.jcheck;
 
 import org.openjdk.skara.ini.Section;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
+
 public class CopyrightFormatConfiguration {
-    static final CopyrightFormatConfiguration DEFAULT =
-            new CopyrightFormatConfiguration(".*\\.cpp|.*\\.hpp|.*\\.c|.*\\.h|.*\\.java");
-
     private final String files;
+    private final List<CopyrightSingleCheckConfiguration> singleCheckConfigurations;
 
-    CopyrightFormatConfiguration(String files) {
+    CopyrightFormatConfiguration(String files, List<CopyrightSingleCheckConfiguration> singleCheckConfigurations) {
         this.files = files;
+        this.singleCheckConfigurations = singleCheckConfigurations;
     }
 
     public String files() {
         return files;
+    }
+
+    public List<CopyrightSingleCheckConfiguration> singleCheckConfigurations() {
+        return singleCheckConfigurations;
     }
 
     static String name() {
@@ -44,10 +51,22 @@ public class CopyrightFormatConfiguration {
 
     static CopyrightFormatConfiguration parse(Section s) {
         if (s == null) {
-            return DEFAULT;
+            return null;
         }
 
-        var files = s.get("files", DEFAULT.files());
-        return new CopyrightFormatConfiguration(files);
+        var files = s.get("files").asString();
+        var configurations = new ArrayList<CopyrightSingleCheckConfiguration>();
+        for (var entry : s.entries()) {
+            var key = entry.key();
+            var value = entry.value();
+            if (key.contains("locator")) {
+                var name = key.split("_")[0];
+                var locator = Pattern.compile(value.asString());
+                var checker = Pattern.compile(s.get(name + "_checker", ""));
+                var required = s.get(name + "_required", false);
+                configurations.add(new CopyrightSingleCheckConfiguration(name, locator, checker, required));
+            }
+        }
+        return new CopyrightFormatConfiguration(files, configurations);
     }
 }

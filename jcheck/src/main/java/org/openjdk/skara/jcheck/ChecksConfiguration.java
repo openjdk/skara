@@ -37,7 +37,7 @@ public class ChecksConfiguration {
                                 CommitterConfiguration.DEFAULT,
                                 IssuesConfiguration.DEFAULT,
                                 ProblemListsConfiguration.DEFAULT,
-                                CopyrightFormatConfiguration.DEFAULT);
+                                null);
 
     private final List<String> error;
     private final List<String> warning;

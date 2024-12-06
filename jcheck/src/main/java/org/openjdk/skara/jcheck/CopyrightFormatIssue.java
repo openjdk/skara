@@ -22,14 +22,15 @@
  */
 package org.openjdk.skara.jcheck;
 
+import java.util.HashMap;
 import java.util.List;
 
 public class CopyrightFormatIssue extends CommitIssue {
 
-    List<String> filesWithCopyrightFormatIssue;
-    List<String> filesWithCopyrightMissingIssue;
+    HashMap<String, List<String>> filesWithCopyrightFormatIssue;
+    HashMap<String, List<String>> filesWithCopyrightMissingIssue;
 
-    CopyrightFormatIssue(CommitIssue.Metadata metadata, List<String> filesWithCopyrightFormatIssue, List<String> filesWithCopyrightMissingIssue) {
+    CopyrightFormatIssue(CommitIssue.Metadata metadata, HashMap<String, List<String>> filesWithCopyrightFormatIssue, HashMap<String, List<String>> filesWithCopyrightMissingIssue) {
         super(metadata);
         this.filesWithCopyrightFormatIssue = filesWithCopyrightFormatIssue;
         this.filesWithCopyrightMissingIssue = filesWithCopyrightMissingIssue;
@@ -40,11 +41,11 @@ public class CopyrightFormatIssue extends CommitIssue {
         visitor.visit(this);
     }
 
-    public List<String> filesWithCopyrightFormatIssue() {
+    public HashMap<String, List<String>> filesWithCopyrightFormatIssue() {
         return filesWithCopyrightFormatIssue;
     }
 
-    public List<String> filesWithCopyrightMissingIssue() {
+    public HashMap<String, List<String>> filesWithCopyrightMissingIssue() {
         return filesWithCopyrightMissingIssue;
     }
 }

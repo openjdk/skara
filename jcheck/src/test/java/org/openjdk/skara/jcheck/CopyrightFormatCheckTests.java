@@ -43,7 +43,14 @@ public class CopyrightFormatCheckTests {
                 "[general]",
                 "project = test",
                 "[checks]",
-                "error = copyright"
+                "error = copyright",
+                "[checks \"copyright\"]",
+                "files=.*\\.cpp|.*\\.hpp|.*\\.c|.*\\.h|.*\\.java|.*\\.cc|.*\\.hh",
+                "oracle_locator=.*Copyright \\(c\\)(.*)Oracle and/or its affiliates\\. All rights reserved\\.",
+                "oracle_checker=.*Copyright \\(c\\) (\\d{4})(?:, (\\d{4}))?, Oracle and/or its affiliates\\. All rights reserved\\.",
+                "oracle_required=true",
+                "redhat_locator=.*Copyright \\(c\\)(.*)Red Hat, Inc\\.",
+                "redhat_checker=.*Copyright \\(c\\) (\\d{4})(?:, (\\d{4}))?, Red Hat, Inc\\."
         ));
     }
 
@@ -68,8 +75,10 @@ public class CopyrightFormatCheckTests {
             var commit = r.lookup(first).orElseThrow();
             var issue = (CopyrightFormatIssue) check.check(commit, message(commit), conf(), null).next();
             assertEquals(1, issue.filesWithCopyrightFormatIssue.size());
+            assertEquals(0, issue.filesWithCopyrightMissingIssue.size());
+            assertTrue(issue.filesWithCopyrightFormatIssue.containsKey("oracle"));
 
-            // Now, remove the trailing whitespace
+            // Remove the trailing whitespace
             Files.write(afile, List.of("/*\n" +
                     " * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.\n" +
                     " * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.\n" +
@@ -78,7 +87,37 @@ public class CopyrightFormatCheckTests {
             var second = r.commit("2: Modified a.java", "duke", "duke@openjdk.org");
             check = new CopyrightFormatCheck(r);
             commit = r.lookup(second).orElseThrow();
+            // No issue right now
             assertFalse(check.check(commit, message(commit), conf(), null).hasNext());
+
+            // Add a Red Hat copyright with a trailing whitespace issue
+            Files.write(afile, List.of("/*\n" +
+                    " * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.\n" +
+                    " * Copyright (c) 2024,  Red Hat, Inc.\n" +
+                    " * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.\n" +
+                    " */\n"));
+            r.add(afile);
+            var third = r.commit("3: Modified a.java", "duke", "duke@openjdk.org");
+            check = new CopyrightFormatCheck(r);
+            commit = r.lookup(third).orElseThrow();
+            issue = (CopyrightFormatIssue) check.check(commit, message(commit), conf(), null).next();
+            assertEquals(1, issue.filesWithCopyrightFormatIssue.size());
+            assertEquals(0, issue.filesWithCopyrightMissingIssue.size());
+            assertTrue(issue.filesWithCopyrightFormatIssue.containsKey("redhat"));
+
+            // Remove oracle copyright header and fix redhat copyright
+            Files.write(afile, List.of("/*\n" +
+                    " * Copyright (c) 2024, Red Hat, Inc.\n" +
+                    " * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.\n" +
+                    " */\n"));
+            r.add(afile);
+            var fourth = r.commit("4: Modified a.java", "duke", "duke@openjdk.org");
+            check = new CopyrightFormatCheck(r);
+            commit = r.lookup(fourth).orElseThrow();
+            issue = (CopyrightFormatIssue) check.check(commit, message(commit), conf(), null).next();
+            assertEquals(0, issue.filesWithCopyrightFormatIssue.size());
+            assertEquals(1, issue.filesWithCopyrightMissingIssue.size());
+            assertTrue(issue.filesWithCopyrightMissingIssue.containsKey("oracle"));
         }
     }
 }
