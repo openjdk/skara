@@ -3267,7 +3267,7 @@ class CheckTests {
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
-            assertEquals("line 19: entry must be of form 'key = value'", check.summary().get());
+            assertEquals("line 27: entry must be of form 'key = value'", check.summary().get());
             assertEquals("Exception occurred during source jcheck - the operation will be retried", check.title().get());
 
             // Restore .jcheck/conf and add whitespace issue check
@@ -3715,7 +3715,7 @@ class CheckTests {
                     .build();
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"));
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),Set.of("author", "reviewers", "whitespace"), Set.of("issuestitle"), "0.1");
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
 
@@ -3766,6 +3766,65 @@ class CheckTests {
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(prBot);
             assertTrue(pr.store().labelNames().contains("integrated"));
+        }
+    }
+
+    @Test
+    void copyrightCheck(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(bot)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(issuePRMap)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),Set.of("author", "reviewers", "whitespace"), Set.of("copyright"), "0.1");
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "/*\n" +
+                    " * Copyright (c) 2024,  Oracle and/or its affiliates. All rights reserved.\n" +
+                    " * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.\n" +
+                    " */\n");
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Pull Request", List.of("Body"), false);
+            // Check the status
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().body().contains("Found copyright format issue for oracle in [appendable.txt]"));
+
+            // Fix the issue
+            var editHash2 = CheckableRepository.replaceAndCommit(localRepo, "/*\n" +
+                    " * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.\n" +
+                    " * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.\n" +
+                    " */\n");
+            localRepo.push(editHash2, author.authenticatedUrl(), "edit", true);
+            // Check the status
+            TestBotRunner.runPeriodicItems(prBot);
+            assertFalse(pr.store().body().contains("Found copyright format issue for oracle in [appendable.txt]"));
+
+            // Replace the oracle copyright with red hat one
+            var editHash3 = CheckableRepository.replaceAndCommit(localRepo, "/*\n" +
+                    " * Copyright (c) 2024,  Red Hat, Inc.\n" +
+                    " * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.\n" +
+                    " */\n");
+            localRepo.push(editHash3, author.authenticatedUrl(), "edit", true);
+            // Check the status
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().body().contains("Found copyright format issue for redhat in [appendable.txt]"));
+            assertTrue(pr.store().body().contains("Can't find copyright header for oracle in [appendable.txt]"));
         }
     }
 }
