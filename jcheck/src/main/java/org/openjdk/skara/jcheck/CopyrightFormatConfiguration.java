@@ -62,9 +62,9 @@ public class CopyrightFormatConfiguration {
             if (key.contains("locator")) {
                 var name = key.split("_")[0];
                 var locator = Pattern.compile(value.asString());
-                var checker = Pattern.compile(s.get(name + "_checker", ""));
+                var validator = Pattern.compile(s.get(name + "_validator", ""));
                 var required = s.get(name + "_required", false);
-                configurations.add(new CopyrightSingleCheckConfiguration(name, locator, checker, required));
+                configurations.add(new CopyrightSingleCheckConfiguration(name, locator, validator, required));
             }
         }
         return new CopyrightFormatConfiguration(files, configurations);

@@ -47,10 +47,10 @@ public class CopyrightFormatCheckTests {
                 "[checks \"copyright\"]",
                 "files=.*\\.cpp|.*\\.hpp|.*\\.c|.*\\.h|.*\\.java|.*\\.cc|.*\\.hh",
                 "oracle_locator=.*Copyright \\(c\\)(.*)Oracle and/or its affiliates\\. All rights reserved\\.",
-                "oracle_checker=.*Copyright \\(c\\) (\\d{4})(?:, (\\d{4}))?, Oracle and/or its affiliates\\. All rights reserved\\.",
+                "oracle_validator=.*Copyright \\(c\\) (\\d{4})(?:, (\\d{4}))?, Oracle and/or its affiliates\\. All rights reserved\\.",
                 "oracle_required=true",
                 "redhat_locator=.*Copyright \\(c\\)(.*)Red Hat, Inc\\.",
-                "redhat_checker=.*Copyright \\(c\\) (\\d{4})(?:, (\\d{4}))?, Red Hat, Inc\\."
+                "redhat_validator=.*Copyright \\(c\\) (\\d{4})(?:, (\\d{4}))?, Red Hat, Inc\\."
         ));
     }
 

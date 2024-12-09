@@ -60,15 +60,17 @@ public class CopyrightFormatCheck extends CommitCheck {
                     continue;
                 }
                 var path = patch.target().path().get();
+                // Check if we need to check copyright in this type of file
                 if (pattern.matcher(path.toString()).matches()) {
                     try {
                         var lines = repo.lines(path, commit.hash()).orElse(List.of());
+                        // Iterate over every kind of configured copyright
                         for (var singleConf : copyrightSingleCheckConfigurations) {
                             var copyrightFound = false;
                             for (String line : lines) {
                                 if (singleConf.locator.matcher(line).matches()) {
                                     copyrightFound = true;
-                                    if (!singleConf.checker.matcher(line).matches()) {
+                                    if (!singleConf.validator.matcher(line).matches()) {
                                         filesWithCopyrightFormatIssue
                                                 .computeIfAbsent(singleConf.name, k -> new ArrayList<>())
                                                 .add(path.toString());
