@@ -30,37 +30,15 @@ import java.util.regex.Pattern;
 
 public class CopyrightFormatConfiguration {
 
-    public static class CopyrightConfiguration {
-        private final String name;
-        // Regex used to locate the copyright line
-        private final Pattern locator;
-        // Regex used to validate the copyright line
-        private final Pattern validator;
-        // Indicates whether a copyright is required for each file; if true, the check will fail if the copyright is missing
-        private final boolean required;
-
-        CopyrightConfiguration(String name, Pattern locator, Pattern validator, boolean required) {
-            this.name = name;
-            this.locator = locator;
-            this.validator = validator;
-            this.required = required;
-        }
-
-        public String name() {
-            return name;
-        }
-
-        public Pattern locator() {
-            return locator;
-        }
-
-        public Pattern validator() {
-            return validator;
-        }
-
-        public boolean required() {
-            return required;
-        }
+    /**
+     * Configuration for a copyright check
+     *
+     * @param name      The Name for the copyright check.
+     * @param locator   A Regex used to locate the copyright line.
+     * @param validator A Regex used to validate the copyright line.
+     * @param required  Indicates whether a copyright is required for each file; if true, the check will fail if the copyright is missing.
+     */
+    public record CopyrightConfiguration(String name, Pattern locator, Pattern validator, boolean required) {
     }
 
     private final String files;
