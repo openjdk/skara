@@ -28,6 +28,7 @@ import org.openjdk.skara.vcs.ReadOnlyRepository;
 import org.openjdk.skara.vcs.openjdk.CommitMessage;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -49,8 +50,8 @@ public class CopyrightFormatCheck extends CommitCheck {
         if (copyrightConf == null) {
             return iterator();
         }
-        var pattern = Pattern.compile(copyrightConf.files());
-        var copyrightSingleCheckConfigurations = copyrightConf.singleCheckConfigurations();
+        var filesPattern = Pattern.compile(copyrightConf.files());
+        var copyrightConfigs = copyrightConf.copyrightConfigs();
         var filesWithCopyrightFormatIssue = new HashMap<String, List<String>>();
         var filesWithCopyrightMissingIssue = new HashMap<String, List<String>>();
 
@@ -61,31 +62,31 @@ public class CopyrightFormatCheck extends CommitCheck {
                 }
                 var path = patch.target().path().get();
                 // Check if we need to check copyright in this type of file
-                if (pattern.matcher(path.toString()).matches()) {
+                if (filesPattern.matcher(path.toString()).matches()) {
                     try {
                         var lines = repo.lines(path, commit.hash()).orElse(List.of());
                         // Iterate over every kind of configured copyright
-                        for (var singleConf : copyrightSingleCheckConfigurations) {
+                        for (var singleConf : copyrightConfigs) {
                             var copyrightFound = false;
                             for (String line : lines) {
-                                if (singleConf.locator.matcher(line).matches()) {
+                                if (singleConf.locator().matcher(line).matches()) {
                                     copyrightFound = true;
-                                    if (!singleConf.validator.matcher(line).matches()) {
+                                    if (!singleConf.validator().matcher(line).matches()) {
                                         filesWithCopyrightFormatIssue
-                                                .computeIfAbsent(singleConf.name, k -> new ArrayList<>())
+                                                .computeIfAbsent(singleConf.name(), k -> new ArrayList<>())
                                                 .add(path.toString());
                                     }
                                     break;
                                 }
                             }
-                            if (singleConf.required && !copyrightFound) {
+                            if (singleConf.required() && !copyrightFound) {
                                 filesWithCopyrightMissingIssue
-                                        .computeIfAbsent(singleConf.name, k -> new ArrayList<>())
+                                        .computeIfAbsent(singleConf.name(), k -> new ArrayList<>())
                                         .add(path.toString());
                             }
                         }
                     } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        throw new UncheckedIOException(e);
                     }
                 }
             }

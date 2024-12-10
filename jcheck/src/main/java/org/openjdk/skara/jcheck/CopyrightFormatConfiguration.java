@@ -29,20 +29,54 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 public class CopyrightFormatConfiguration {
-    private final String files;
-    private final List<CopyrightSingleCheckConfiguration> singleCheckConfigurations;
 
-    CopyrightFormatConfiguration(String files, List<CopyrightSingleCheckConfiguration> singleCheckConfigurations) {
+    public static class CopyrightConfiguration {
+        private final String name;
+        // Regex used to locate the copyright line
+        private final Pattern locator;
+        // Regex used to validate the copyright line
+        private final Pattern validator;
+        // Indicates whether a copyright is required for each file; if true, the check will fail if the copyright is missing
+        private final boolean required;
+
+        CopyrightConfiguration(String name, Pattern locator, Pattern validator, boolean required) {
+            this.name = name;
+            this.locator = locator;
+            this.validator = validator;
+            this.required = required;
+        }
+
+        public String name() {
+            return name;
+        }
+
+        public Pattern locator() {
+            return locator;
+        }
+
+        public Pattern validator() {
+            return validator;
+        }
+
+        public boolean required() {
+            return required;
+        }
+    }
+
+    private final String files;
+    private final List<CopyrightConfiguration> copyrightConfigs;
+
+    CopyrightFormatConfiguration(String files, List<CopyrightConfiguration> copyrightConfigs) {
         this.files = files;
-        this.singleCheckConfigurations = singleCheckConfigurations;
+        this.copyrightConfigs = copyrightConfigs;
     }
 
     public String files() {
         return files;
     }
 
-    public List<CopyrightSingleCheckConfiguration> singleCheckConfigurations() {
-        return singleCheckConfigurations;
+    public List<CopyrightConfiguration> copyrightConfigs() {
+        return copyrightConfigs;
     }
 
     static String name() {
@@ -55,7 +89,7 @@ public class CopyrightFormatConfiguration {
         }
 
         var files = s.get("files").asString();
-        var configurations = new ArrayList<CopyrightSingleCheckConfiguration>();
+        var configurations = new ArrayList<CopyrightConfiguration>();
         for (var entry : s.entries()) {
             var key = entry.key();
             var value = entry.value();
@@ -64,7 +98,7 @@ public class CopyrightFormatConfiguration {
                 var locator = Pattern.compile(value.asString());
                 var validator = Pattern.compile(s.get(name + "_validator", ""));
                 var required = s.get(name + "_required", false);
-                configurations.add(new CopyrightSingleCheckConfiguration(name, locator, validator, required));
+                configurations.add(new CopyrightConfiguration(name, locator, validator, required));
             }
         }
         return new CopyrightFormatConfiguration(files, configurations);
