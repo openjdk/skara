@@ -325,4 +325,17 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
         addMessage(issue.check(), String.join("\n", messages),
                 issue.severity());
     }
+
+    @Override
+    public void visit(CopyrightFormatIssue issue) {
+        List<String> messages = new ArrayList<>();
+        for (var entry : issue.filesWithCopyrightFormatIssue().entrySet()) {
+            messages.add("Found copyright format issue for " + entry.getKey() + " in [" + String.join(", ", entry.getValue()) + "]");
+        }
+        for (var entry : issue.filesWithCopyrightMissingIssue().entrySet()) {
+            messages.add("Can't find copyright header for " + entry.getKey() + " in [" + String.join(", ", entry.getValue()) + "]");
+        }
+        addMessage(issue.check(), String.join("\n", messages),
+                issue.severity());
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,7 +36,8 @@ public class ChecksConfiguration {
                                 MergeConfiguration.DEFAULT,
                                 CommitterConfiguration.DEFAULT,
                                 IssuesConfiguration.DEFAULT,
-                                ProblemListsConfiguration.DEFAULT);
+                                ProblemListsConfiguration.DEFAULT,
+                                null);
 
     private final List<String> error;
     private final List<String> warning;
@@ -46,6 +47,7 @@ public class ChecksConfiguration {
     private final CommitterConfiguration committer;
     private final IssuesConfiguration issues;
     private final ProblemListsConfiguration problemlists;
+    private final CopyrightFormatConfiguration copyright;
 
     ChecksConfiguration(List<String> error,
                         List<String> warning,
@@ -54,7 +56,8 @@ public class ChecksConfiguration {
                         MergeConfiguration merge,
                         CommitterConfiguration committer,
                         IssuesConfiguration issues,
-                        ProblemListsConfiguration problemlists) {
+                        ProblemListsConfiguration problemlists,
+                        CopyrightFormatConfiguration copyright) {
         this.error = error;
         this.warning = warning;
         this.whitespace = whitespace;
@@ -63,6 +66,7 @@ public class ChecksConfiguration {
         this.committer = committer;
         this.issues = issues;
         this.problemlists = problemlists;
+        this.copyright = copyright;
     }
 
     public List<String> error() {
@@ -115,6 +119,10 @@ public class ChecksConfiguration {
         return problemlists;
     }
 
+    public CopyrightFormatConfiguration copyright(){
+        return copyright;
+    }
+
     static String name() {
         return "checks";
     }
@@ -133,6 +141,7 @@ public class ChecksConfiguration {
         var committer = CommitterConfiguration.parse(s.subsection(CommitterConfiguration.name()));
         var issues = IssuesConfiguration.parse(s.subsection(IssuesConfiguration.name()));
         var problemlists = ProblemListsConfiguration.parse(s.subsection(ProblemListsConfiguration.name()));
-        return new ChecksConfiguration(error, warning, whitespace, reviewers, merge, committer, issues, problemlists);
+        var copyright = CopyrightFormatConfiguration.parse(s.subsection(CopyrightFormatConfiguration.name()));
+        return new ChecksConfiguration(error, warning, whitespace, reviewers, merge, committer, issues, problemlists, copyright);
     }
 }

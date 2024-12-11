@@ -81,6 +81,14 @@ public class CheckableRepository {
             output.append("\n");
             output.append("[checks \"reviewers\"]\n");
             output.append("reviewers=1\n");
+            output.append("\n");
+            output.append("[checks \"copyright\"]\n");
+            output.append("files=.*\\.txt\n");
+            output.append("oracle_locator=.*Copyright \\(c\\)(.*)Oracle and/or its affiliates\\. All rights reserved\\.\n");
+            output.append("oracle_validator=.*Copyright \\(c\\) (\\d{4})(?:, (\\d{4}))?, Oracle and/or its affiliates\\. All rights reserved\\.\n");
+            output.append("oracle_required=true\n");
+            output.append("redhat_locator=.*Copyright \\(c\\)(.*)Red Hat, Inc\\.\n");
+            output.append("redhat_validator=.*Copyright \\(c\\) (\\d{4})(?:, (\\d{4}))?, Red Hat, Inc\\.\n");
         }
         repo.add(checkConf);
 
@@ -90,11 +98,11 @@ public class CheckableRepository {
     }
 
     public static Repository init(Path path, VCS vcs, Path appendableFilePath, Set<String> errorChecks, String version) throws IOException {
-        return init(path, vcs, appendableFilePath, errorChecks, Set.of("issuestitle"), version);
+        return init(path, vcs, appendableFilePath, errorChecks, Set.of(), version);
     }
 
     public static Repository init(Path path, VCS vcs, Path appendableFilePath) throws IOException {
-        return init(path, vcs, appendableFilePath, Set.of("author", "reviewers", "whitespace"), Set.of("issuestitle"), "0.1");
+        return init(path, vcs, appendableFilePath, Set.of("author", "reviewers", "whitespace"), Set.of(), "0.1");
     }
 
     public static Repository init(Path path, VCS vcs) throws IOException {
