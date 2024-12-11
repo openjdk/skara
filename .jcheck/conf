@@ -42,7 +42,7 @@ files=.*\.java$|.*\.yml$|.*\.gradle$|.*.\txt$
 reviewers=1
 
 [checks "copyright"]
-files=.*\.java$|.*\.gradle$|.*\.sh$|.*\.bat$|.*\.py$|.*\.css$|.*\.html$|.*\.dockerfile$|.*\.gitconfig$|Makefile
+files=.*\.java|.*\.gradle|.*\.sh|.*\.bat|.*\.py|.*\.css|.*\.html|.*\.dockerfile|.*\.gitconfig|Makefile
 oracle_locator=.*Copyright \(c\)(.*)Oracle and/or its affiliates\. All rights reserved\.
 oracle_validator=.*Copyright \(c\) (\d{4})(?:, (\d{4}))?, Oracle and/or its affiliates\. All rights reserved\.
 oracle_required=true
