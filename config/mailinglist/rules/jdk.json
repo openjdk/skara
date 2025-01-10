@@ -80,6 +80,7 @@
             "make/modules/java.base/",
             "make/modules/java.prefs",
             "src/java.base/aix/native/libjli",
+            "src/java.base/aix/native/libjava/",
             "src/java.base/linux/classes/jdk",
             "src/java.base/linux/native/libjava/",
             "src/java.base/macosx/classes/jdk",
