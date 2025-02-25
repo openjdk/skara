@@ -335,6 +335,7 @@
             "src/hotspot/share/libadt/",
             "src/hotspot/share/logging/",
             "src/hotspot/share/memory/",
+            "src/hotspot/share/nmt/",
             "src/hotspot/share/oops/",
             "src/hotspot/share/prims/(cds|jni|method|native|perf|resolved|stackwalk|unsafe).*",
             "src/hotspot/share/runtime/",
