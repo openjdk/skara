@@ -251,7 +251,7 @@ public class JiraIssue implements IssueTrackerIssue {
         var availableTransitions = availableTransitions();
 
         if (availableTransitions.isEmpty()) {
-            throw new RuntimeException("Available transition states are empty");
+            throw new RuntimeException("Available transition states is empty");
         }
 
         // Handle special cases
