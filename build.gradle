@@ -184,7 +184,7 @@ def getCPU() {
 
 task local(type: Copy) {
     doFirst {
-        delete project.buildDir
+        delete project.buildDir.toString() + '/cli'
     }
 
     def os = getOS()
@@ -202,7 +202,7 @@ task local(type: Copy) {
                       '/cli/build/distributions/cli' +
                       '-' + project.version + '-' +
                       os + '-' + cpu + '.zip'))
-    into project.buildDir
+    into project.buildDir.toString() + '/cli'
 }
 
 task bots(type: Copy) {
