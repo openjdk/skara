@@ -79,7 +79,7 @@ jobs:
           ${{ needs.prerequisites.outputs.merge_target_command }}
 
       - name: Build and test
-        run: sh gradlew test --info --stacktrace
+        run: sh gradlew test local --info --stacktrace
 
   mac:
     name: macOS x64
@@ -101,7 +101,7 @@ jobs:
         run: brew install mercurial
 
       - name: Build and test
-        run: sh gradlew test --info --stacktrace
+        run: sh gradlew test local --info --stacktrace
 
   win:
     name: Windows x64
@@ -120,5 +120,5 @@ jobs:
           ${{ needs.prerequisites.outputs.merge_target_command }}
 
       - name: Build and test
-        run: gradlew.bat test --info --stacktrace
+        run: gradlew.bat test local --info --stacktrace
         shell: cmd
