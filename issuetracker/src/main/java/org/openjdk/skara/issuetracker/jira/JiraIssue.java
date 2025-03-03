@@ -250,6 +250,10 @@ public class JiraIssue implements IssueTrackerIssue {
     public void setState(State state) {
         var availableTransitions = availableTransitions();
 
+        if (availableTransitions.isEmpty()) {
+            throw new RuntimeException("Available transition states is empty");
+        }
+
         // Handle special cases
         if (state == State.RESOLVED) {
             if (!availableTransitions.containsKey("Resolved")) {
@@ -261,6 +265,7 @@ public class JiraIssue implements IssueTrackerIssue {
                     }
                 } else {
                     // The issue is most likely closed - skip transitioning
+                    log.warning("Can't transition the issue to Resolved or Open");
                     return;
                 }
             }
