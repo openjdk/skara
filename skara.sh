@@ -37,9 +37,9 @@ else
 
 fi
 
-if [ -d "${DIR}/build" ]; then
+if [ -d "${DIR}/build/cli" ]; then
     rm -rf "${DIR}/bin"
-    mv "${DIR}/build" "${DIR}/bin"
+    mv "${DIR}/build/cli" "${DIR}/bin"
 fi
 
 if [ "${OS}" = "Linux" -o "${OS}" = "Darwin" ]; then
