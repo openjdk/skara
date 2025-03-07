@@ -929,7 +929,7 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
-    public boolean isDiffLimited() {
+    public boolean diffLimited() {
         if (diffLimited.isEmpty()) {
             throw new RuntimeException("Diff() has not been called. Can't evaluate if diff is limited");
         }

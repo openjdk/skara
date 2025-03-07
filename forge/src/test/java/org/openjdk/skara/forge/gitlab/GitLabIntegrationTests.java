@@ -396,6 +396,6 @@ class GitLabIntegrationTests {
         var gitLabRepo = gitLabHost.repository(props.get("gitlab.repository")).orElseThrow();
         var pr = gitLabRepo.pullRequest(props.get("gitlab.merge.request.id"));
         pr.diff();
-        assertFalse(pr.isDiffLimited());
+        assertFalse(pr.diffLimited());
     }
 }

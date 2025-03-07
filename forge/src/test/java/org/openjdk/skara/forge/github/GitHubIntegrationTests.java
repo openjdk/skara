@@ -503,6 +503,6 @@ class GitHubIntegrationTests {
         var githubRepo = githubRepoOpt.get();
         var pr = githubRepo.pullRequest(props.get("github.prId"));
         pr.diff();
-        assertTrue(pr.isDiffLimited());
+        assertTrue(pr.diffLimited());
     }
 }

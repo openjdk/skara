@@ -460,7 +460,7 @@ class CheckRun {
     private boolean updateClean(Commit commit) {
         var backportDiff = commit.parentDiffs().get(0);
         var prDiff = pr.diff();
-        if (pr.isDiffLimited()) {
+        if (pr.diffLimited()) {
             // Add diff too large warning comment
             addDiffTooLargeWarning();
             return false;

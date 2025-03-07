@@ -339,7 +339,7 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
-    public boolean isDiffLimited() {
+    public boolean diffLimited() {
         return false;
     }
 }
