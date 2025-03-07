@@ -44,7 +44,6 @@ import java.util.List;
 import org.openjdk.skara.vcs.git.GitRepository;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class GitLabIntegrationTests {
     private static TestProperties props;
