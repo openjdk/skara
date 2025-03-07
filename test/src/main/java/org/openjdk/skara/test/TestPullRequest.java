@@ -350,4 +350,9 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     public int hashCode() {
         return Objects.hash(super.hashCode(), headHash, sourceRef, targetRef, draft);
     }
+
+    @Override
+    public boolean isDiffLimited() {
+        return false;
+    }
 }

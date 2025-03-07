@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -50,6 +50,7 @@ public class GitLabMergeRequest implements PullRequest {
 
     // Lazy cache for comparisonSnapshot
     private Object comparisonSnapshot;
+    private Optional<Boolean> diffLimited = Optional.empty();
 
     private static final int GITLAB_MR_COMMENT_BODY_MAX_SIZE = 64_000;
     private static final String DRAFT_PREFIX = "Draft:";
@@ -830,6 +831,15 @@ public class GitLabMergeRequest implements PullRequest {
     @Override
     public Diff diff() {
         var changes = request.get("changes").param("access_raw_diffs", "true").execute();
+        if (changes.get("overflow").asBoolean()) {
+            diffLimited = Optional.of(true);
+        } else {
+            if (changes.get("changes").asArray().size() < Integer.parseInt(json.get("changes_count").asString())) {
+                diffLimited = Optional.of(true);
+            } else {
+                diffLimited = Optional.of(false);
+            }
+        }
         var targetHash = repository.branchHash(targetRef()).orElseThrow();
         return repository.toDiff(targetHash, headHash(), changes.get("changes"));
     }
@@ -916,5 +926,13 @@ public class GitLabMergeRequest implements PullRequest {
                     + "...";
         }
         return body;
+    }
+
+    @Override
+    public boolean isDiffLimited() {
+        if (diffLimited.isEmpty()) {
+            throw new RuntimeException("Diff() has not been called. Can't evaluate if diff is limited");
+        }
+        return diffLimited.get();
     }
 }

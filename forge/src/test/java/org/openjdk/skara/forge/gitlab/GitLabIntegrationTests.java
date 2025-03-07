@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,6 +44,7 @@ import java.util.List;
 import org.openjdk.skara.vcs.git.GitRepository;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class GitLabIntegrationTests {
     private static TestProperties props;
@@ -387,5 +388,15 @@ class GitLabIntegrationTests {
                     .findAny();
             assertTrue(collaborator.isEmpty());
         }
+    }
+
+    @Test
+    @EnabledIfTestProperties({"gitlab.user", "gitlab.pat", "gitlab.uri", "gitlab.group",
+            "gitlab.repository", "gitlab.merge.request.id"})
+    void testIsDiffLimited() {
+        var gitLabRepo = gitLabHost.repository(props.get("gitlab.repository")).orElseThrow();
+        var pr = gitLabRepo.pullRequest(props.get("gitlab.merge.request.id"));
+        pr.diff();
+        assertFalse(pr.isDiffLimited());
     }
 }

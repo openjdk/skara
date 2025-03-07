@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,6 +45,7 @@ public class GitHubPullRequest implements PullRequest {
     private final Logger log = Logger.getLogger("org.openjdk.skara.host");
 
     private List<Label> labels = null;
+    private Optional<Boolean> diffLimited = Optional.empty();
 
     private static final int GITHUB_PR_COMMENT_BODY_MAX_SIZE = 64_000;
 
@@ -751,6 +752,11 @@ public class GitHubPullRequest implements PullRequest {
                            .param("per_page", "50")
                            .execute();
         var targetHash = repository.branchHash(targetRef()).orElseThrow();
+        if (files.asArray().size() < json.get("changed_files").asInt()) {
+            diffLimited = Optional.of(true);
+        } else {
+            diffLimited = Optional.of(false);
+        }
         return repository.toDiff(targetHash, headHash(), files);
     }
 
@@ -820,5 +826,13 @@ public class GitHubPullRequest implements PullRequest {
                 .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()))
                 .max(ZonedDateTime::compareTo)
                 .orElseGet(this::createdAt);
+    }
+
+    @Override
+    public boolean isDiffLimited() {
+        if (diffLimited.isEmpty()) {
+            throw new RuntimeException("Diff() has not been called. Can't evaluate if diff is limited");
+        }
+        return diffLimited.get();
     }
 }

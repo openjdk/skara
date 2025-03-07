@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -73,6 +73,7 @@ class CheckRun {
     private static final String EMPTY_PR_BODY_MARKER = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private static final String FULL_NAME_WARNING_MARKER = "<!-- PullRequestBot full name warning comment -->";
+    private static final String DIFF_TOO_LARGE_WARNING_MARKER = "<!-- PullRequestBot diff too large warning comment -->";
     private static final String APPROVAL_NEEDED_MARKER = "<!-- PullRequestBot approval needed comment -->";
     private static final String BACKPORT_CSR_MARKER = "<!-- PullRequestBot backport csr comment -->";
     private static final Set<String> PRIMARY_TYPES = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
@@ -459,6 +460,11 @@ class CheckRun {
     private boolean updateClean(Commit commit) {
         var backportDiff = commit.parentDiffs().get(0);
         var prDiff = pr.diff();
+        if (pr.isDiffLimited()) {
+            // Add diff too large warning comment
+            addDiffTooLargeWarning();
+            return false;
+        }
         var isClean = DiffComparator.areFuzzyEqual(backportDiff, prDiff);
         var hasCleanLabel = labels.contains("clean");
         if (isClean && !hasCleanLabel) {
@@ -1260,6 +1266,20 @@ class CheckRun {
                       " [OpenJDK organization](https://github.com/openjdk) (for example `Merge jdk:" + defaultBranch + "`).\n" +
                       MERGE_COMMIT_WARNING_MARKER;
         log.info("Adding merge commit warning comment");
+        pr.addComment(message);
+    }
+
+    private void addDiffTooLargeWarning() {
+        var existing = findComment(DIFF_TOO_LARGE_WARNING_MARKER);
+        if (existing.isPresent()) {
+            // Only add the comment once per PR
+            return;
+        }
+        var message = "⚠️  @" + pr.author().username() +
+                " This backport pull request is too large for skara bot to get the entire diff from the remote repository. " +
+                "Therefore, skara bot can't evaluate whether this backport is clean or not." +
+                DIFF_TOO_LARGE_WARNING_MARKER;
+        log.info("Adding diff too large warning comment");
         pr.addComment(message);
     }
 

@@ -337,4 +337,9 @@ class InMemoryPullRequest implements PullRequest {
     public List<ReferenceChange> targetRefChanges() {
         return List.of();
     }
+
+    @Override
+    public boolean isDiffLimited() {
+        return false;
+    }
 }

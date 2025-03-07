@@ -215,6 +215,13 @@ public interface PullRequest extends Issue {
      */
     Optional<Hash> findIntegratedCommitHash();
 
+    /**
+     * Returns true if the Diff returned by diff() is limited.
+     * This method can only be called after invoking diff().
+     * Calling it before diff() will result in a RuntimeException.
+     */
+    boolean isDiffLimited();
+
     default Optional<Hash> findIntegratedCommitHash(List<String> userIds) {
         Pattern pushedPattern = Pattern.compile("Pushed as commit ([a-f0-9]{40})\\.");
         if (labelNames().contains("integrated")) {
