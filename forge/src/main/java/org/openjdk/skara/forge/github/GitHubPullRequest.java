@@ -45,7 +45,6 @@ public class GitHubPullRequest implements PullRequest {
     private final Logger log = Logger.getLogger("org.openjdk.skara.host");
 
     private List<Label> labels = null;
-    private Optional<Boolean> diffLimited = Optional.empty();
 
     private static final int GITHUB_PR_COMMENT_BODY_MAX_SIZE = 64_000;
 
@@ -753,11 +752,10 @@ public class GitHubPullRequest implements PullRequest {
                            .execute();
         var targetHash = repository.branchHash(targetRef()).orElseThrow();
         if (files.asArray().size() < json.get("changed_files").asInt()) {
-            diffLimited = Optional.of(true);
+            return repository.toDiff(targetHash, headHash(), files, false);
         } else {
-            diffLimited = Optional.of(false);
+            return repository.toDiff(targetHash, headHash(), files, true);
         }
-        return repository.toDiff(targetHash, headHash(), files);
     }
 
     @Override
@@ -826,13 +824,5 @@ public class GitHubPullRequest implements PullRequest {
                 .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()))
                 .max(ZonedDateTime::compareTo)
                 .orElseGet(this::createdAt);
-    }
-
-    @Override
-    public boolean diffLimited() {
-        if (diffLimited.isEmpty()) {
-            throw new RuntimeException("Diff() has not been called. Can't evaluate if diff is limited");
-        }
-        return diffLimited.get();
     }
 }

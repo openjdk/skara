@@ -391,11 +391,15 @@ class GitLabIntegrationTests {
 
     @Test
     @EnabledIfTestProperties({"gitlab.user", "gitlab.pat", "gitlab.uri", "gitlab.group",
-            "gitlab.repository", "gitlab.merge.request.id"})
-    void testIsDiffLimited() {
+            "gitlab.repository", "gitlab.merge.request.id", "gitlab.repository.commitHash"})
+    void testDiffComplete() {
         var gitLabRepo = gitLabHost.repository(props.get("gitlab.repository")).orElseThrow();
+        var commit = gitLabRepo.commit(new Hash(props.get("gitlab.repository.commitHash")), true);
+        var diff = commit.get().parentDiffs().get(0);
+        assertTrue(diff.complete());
+
         var pr = gitLabRepo.pullRequest(props.get("gitlab.merge.request.id"));
-        pr.diff();
-        assertFalse(pr.diffLimited());
+        var prDiff = pr.diff();
+        assertFalse(prDiff.complete());
     }
 }

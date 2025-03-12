@@ -460,7 +460,7 @@ class CheckRun {
     private boolean updateClean(Commit commit) {
         var backportDiff = commit.parentDiffs().get(0);
         var prDiff = pr.diff();
-        if (pr.diffLimited()) {
+        if (!backportDiff.complete() || !prDiff.complete()) {
             // Add diff too large warning comment
             addDiffTooLargeWarning();
             return false;
@@ -1276,8 +1276,7 @@ class CheckRun {
             return;
         }
         var message = "⚠️  @" + pr.author().username() +
-                " This backport pull request is too large for skara bot to get the entire diff from the remote repository. " +
-                "Therefore, skara bot can't evaluate whether this backport is clean or not." +
+                " This backport pull request is too large to be automatically evaluated as clean. " +
                 DIFF_TOO_LARGE_WARNING_MARKER;
         log.info("Adding diff too large warning comment");
         pr.addComment(message);

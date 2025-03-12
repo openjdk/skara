@@ -50,7 +50,6 @@ public class GitLabMergeRequest implements PullRequest {
 
     // Lazy cache for comparisonSnapshot
     private Object comparisonSnapshot;
-    private Optional<Boolean> diffLimited = Optional.empty();
 
     private static final int GITLAB_MR_COMMENT_BODY_MAX_SIZE = 64_000;
     private static final String DRAFT_PREFIX = "Draft:";
@@ -831,17 +830,14 @@ public class GitLabMergeRequest implements PullRequest {
     @Override
     public Diff diff() {
         var changes = request.get("changes").param("access_raw_diffs", "true").execute();
+        boolean diffComplete;
         if (changes.get("overflow").asBoolean()) {
-            diffLimited = Optional.of(true);
+            diffComplete = false;
         } else {
-            if (changes.get("changes").asArray().size() < Integer.parseInt(json.get("changes_count").asString())) {
-                diffLimited = Optional.of(true);
-            } else {
-                diffLimited = Optional.of(false);
-            }
+            diffComplete = !changes.get("changes_count").asString().contains("+");
         }
         var targetHash = repository.branchHash(targetRef()).orElseThrow();
-        return repository.toDiff(targetHash, headHash(), changes.get("changes"));
+        return repository.toDiff(targetHash, headHash(), changes.get("changes"), diffComplete);
     }
 
     @Override
@@ -926,13 +922,5 @@ public class GitLabMergeRequest implements PullRequest {
                     + "...";
         }
         return body;
-    }
-
-    @Override
-    public boolean diffLimited() {
-        if (diffLimited.isEmpty()) {
-            throw new RuntimeException("Diff() has not been called. Can't evaluate if diff is limited");
-        }
-        return diffLimited.get();
     }
 }

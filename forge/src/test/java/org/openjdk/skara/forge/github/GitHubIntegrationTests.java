@@ -496,13 +496,17 @@ class GitHubIntegrationTests {
     }
 
     @Test
-    @EnabledIfTestProperties({"github.user", "github.pat", "github.repository", "github.prId"})
-    void testIsDiffLimited() {
+    @EnabledIfTestProperties({"github.user", "github.pat", "github.repository", "github.prId", "github.repository.commitHash"})
+    void testDiffComplete() {
         var githubRepoOpt = githubHost.repository(props.get("github.repository"));
         assumeTrue(githubRepoOpt.isPresent());
         var githubRepo = githubRepoOpt.get();
+        var commit = githubRepo.commit(new Hash(props.get("github.repository.commitHash")), true);
+        var diff = commit.get().parentDiffs().get(0);
+        assertFalse(diff.complete());
+
         var pr = githubRepo.pullRequest(props.get("github.prId"));
-        pr.diff();
-        assertTrue(pr.diffLimited());
+        var prDiff = pr.diff();
+        assertFalse(prDiff.complete());
     }
 }

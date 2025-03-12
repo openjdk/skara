@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,11 +36,20 @@ public class Diff {
     private final Hash from;
     private final Hash to;
     private final List<Patch> patches;
+    private final boolean complete;
 
     public Diff(Hash from, Hash to, List<Patch> patches) {
         this.from = from;
         this.to = to;
         this.patches = patches;
+        this.complete = true;
+    }
+
+    public Diff(Hash from, Hash to, List<Patch> patches, boolean complete) {
+        this.from = from;
+        this.to = to;
+        this.patches = patches;
+        this.complete = complete;
     }
 
     public Hash from() {
@@ -53,6 +62,10 @@ public class Diff {
 
     public List<Patch> patches() {
         return patches;
+    }
+
+    public boolean complete() {
+        return complete;
     }
 
     public List<WebrevStats> stats() {
