@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -751,7 +751,8 @@ public class GitHubPullRequest implements PullRequest {
                            .param("per_page", "50")
                            .execute();
         var targetHash = repository.branchHash(targetRef()).orElseThrow();
-        return repository.toDiff(targetHash, headHash(), files);
+        var complete = files.asArray().size() == json.get("changed_files").asInt();
+        return repository.toDiff(targetHash, headHash(), files, complete);
     }
 
     @Override

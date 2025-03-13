@@ -531,7 +531,7 @@ public class GitHubRepository implements HostedRepository {
         }
     }
 
-    Diff toDiff(Hash from, Hash to, JSONValue files) {
+    Diff toDiff(Hash from, Hash to, JSONValue files, boolean complete) {
         var patches = new ArrayList<Patch>();
 
         for (var file : files.asArray()) {
@@ -553,7 +553,7 @@ public class GitHubRepository implements HostedRepository {
                                          status, hunks));
         }
 
-        return new Diff(from, to, patches);
+        return new Diff(from, to, patches, complete);
     }
 
     @Override
@@ -579,7 +579,16 @@ public class GitHubRepository implements HostedRepository {
         var metadata = toCommitMetadata(o);
         List<Diff> diffs;
         if (includeDiffs) {
-            diffs = List.of(toDiff(metadata.parents().get(0), hash, o.get("files")));
+            var totalAdditions = o.get("stats").get("additions").asInt();
+            var totalDeletions = o.get("stats").get("deletions").asInt();
+            var sumAdditions = 0;
+            var sumDeletions = 0;
+            for (var patch : o.get("files").asArray()) {
+                sumAdditions += patch.get("additions").asInt();
+                sumDeletions += patch.get("deletions").asInt();
+            }
+            var complete = totalAdditions == sumAdditions && totalDeletions == sumDeletions;
+            diffs = List.of(toDiff(metadata.parents().get(0), hash, o.get("files"), complete));
         } else {
             diffs = List.of();
         }

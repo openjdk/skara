@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -493,5 +493,20 @@ class GitHubIntegrationTests {
         var githubRepoOpt = githubHost.repository(props.get("github.stale.repository"));
         var checks = githubRepoOpt.get().allChecks(new Hash(props.get("github.stale.commitHash")));
         assertFalse(checks.isEmpty());
+    }
+
+    @Test
+    @EnabledIfTestProperties({"github.user", "github.pat", "github.repository", "github.prId", "github.repository.commitHash"})
+    void testDiffComplete() {
+        var githubRepoOpt = githubHost.repository(props.get("github.repository"));
+        assumeTrue(githubRepoOpt.isPresent());
+        var githubRepo = githubRepoOpt.get();
+        var commit = githubRepo.commit(new Hash(props.get("github.repository.commitHash")), true);
+        var diff = commit.get().parentDiffs().get(0);
+        assertFalse(diff.complete());
+
+        var pr = githubRepo.pullRequest(props.get("github.prId"));
+        var prDiff = pr.diff();
+        assertFalse(prDiff.complete());
     }
 }

@@ -49,6 +49,7 @@ public class TestPullRequestStore extends TestIssueStore {
 
     private ZonedDateTime lastMarkedAsReadyTime;
     private ZonedDateTime lastMarkedAsDraftTime;
+    private boolean returnCompleteDiff;
 
     public TestPullRequestStore(String id, HostUser author, String title, List<String> body,
             TestHostedRepository sourceRepository, String targetRef, String sourceRef, boolean draft) {
@@ -62,6 +63,7 @@ public class TestPullRequestStore extends TestIssueStore {
         } else {
             lastMarkedAsReadyTime = ZonedDateTime.now();
         }
+        this.returnCompleteDiff = true;
     }
 
     public TestHostedRepository sourceRepository() {
@@ -113,6 +115,10 @@ public class TestPullRequestStore extends TestIssueStore {
         return lastForcePushTime;
     }
 
+    public boolean returnCompleteDiff(){
+        return returnCompleteDiff;
+    }
+
     public void setSourceRepository(TestHostedRepository sourceRepository) {
         this.sourceRepository = sourceRepository;
     }
@@ -149,5 +155,9 @@ public class TestPullRequestStore extends TestIssueStore {
 
     public ZonedDateTime lastMarkedAsDraftTime() {
         return lastMarkedAsDraftTime;
+    }
+
+    public void setReturnCompleteDiff(boolean returnCompleteDiff) {
+        this.returnCompleteDiff = returnCompleteDiff;
     }
 }

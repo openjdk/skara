@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -268,20 +268,24 @@ public class TestPullRequest extends TestIssue implements PullRequest {
 
     @Override
     public Diff diff() {
-        try {
-            var targetLocalRepository = targetRepository.localRepository();
-            var sourceLocalRepository = store().sourceRepository().localRepository();
-            var sourceHash = headHash();
-            if (!targetLocalRepository.root().equals(sourceLocalRepository.root())) {
-                // The target and source repo are not same, fetch the source branch
-                var sourceUri = URI.create("file://" + sourceLocalRepository.root().toString());
-                sourceHash = targetLocalRepository.fetch(sourceUri, sourceRef).orElseThrow();
+        if (store().returnCompleteDiff()) {
+            try {
+                var targetLocalRepository = targetRepository.localRepository();
+                var sourceLocalRepository = store().sourceRepository().localRepository();
+                var sourceHash = headHash();
+                if (!targetLocalRepository.root().equals(sourceLocalRepository.root())) {
+                    // The target and source repo are not same, fetch the source branch
+                    var sourceUri = URI.create("file://" + sourceLocalRepository.root().toString());
+                    sourceHash = targetLocalRepository.fetch(sourceUri, sourceRef).orElseThrow();
+                }
+                // Find the base hash of the source and target branches.
+                var baseHash = targetLocalRepository.mergeBase(sourceHash, targetRepository.branchHash(targetRef()).orElseThrow());
+                return targetLocalRepository.diff(baseHash, sourceHash);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
             }
-            // Find the base hash of the source and target branches.
-            var baseHash = targetLocalRepository.mergeBase(sourceHash, targetRepository.branchHash(targetRef()).orElseThrow());
-            return targetLocalRepository.diff(baseHash, sourceHash);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+        } else {
+            return new Diff(Hash.zero(), Hash.zero(), List.of(), false);
         }
     }
 
@@ -349,5 +353,9 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), headHash, sourceRef, targetRef, draft);
+    }
+
+    public void setReturnCompleteDiff(boolean complete){
+        this.store().setReturnCompleteDiff(complete);
     }
 }

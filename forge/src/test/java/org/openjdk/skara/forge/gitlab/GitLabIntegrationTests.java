@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -387,5 +387,19 @@ class GitLabIntegrationTests {
                     .findAny();
             assertTrue(collaborator.isEmpty());
         }
+    }
+
+    @Test
+    @EnabledIfTestProperties({"gitlab.user", "gitlab.pat", "gitlab.uri", "gitlab.group",
+            "gitlab.repository", "gitlab.merge.request.id", "gitlab.repository.commitHash"})
+    void testDiffComplete() {
+        var gitLabRepo = gitLabHost.repository(props.get("gitlab.repository")).orElseThrow();
+        var commit = gitLabRepo.commit(new Hash(props.get("gitlab.repository.commitHash")), true);
+        var diff = commit.get().parentDiffs().get(0);
+        assertTrue(diff.complete());
+
+        var pr = gitLabRepo.pullRequest(props.get("gitlab.merge.request.id"));
+        var prDiff = pr.diff();
+        assertFalse(prDiff.complete());
     }
 }

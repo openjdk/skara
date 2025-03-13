@@ -689,7 +689,7 @@ public class GitLabRepository implements HostedRepository {
         return new CommitMetadata(hash, parents, author, authored, committer, committed, message);
     }
 
-    Diff toDiff(Hash from, Hash to, JSONValue o) {
+    Diff toDiff(Hash from, Hash to, JSONValue o, boolean complete) {
         var patches = new ArrayList<Patch>();
 
         for (var file : o.asArray()) {
@@ -731,7 +731,7 @@ public class GitLabRepository implements HostedRepository {
                                          status, hunks));
         }
 
-        return new Diff(from, to, patches);
+        return new Diff(from, to, patches, complete);
     }
 
     @Override
@@ -751,7 +751,11 @@ public class GitLabRepository implements HostedRepository {
                     .onError(r -> Optional.of(JSON.of()))
                     .execute();
             if (!diff.isNull()) {
-                diffs = List.of(toDiff(metadata.parents().get(0), hash, diff));
+                // The diff here is limited by diff patch, diff files count, diff lines.
+                // There is no feasible way to know if this diff is complete.
+                // The diff here is only used to evaluate if a backport PR is clean or not,
+                // assuming the diff is complete will not introduce any side effect.
+                diffs = List.of(toDiff(metadata.parents().get(0), hash, diff, true));
             }
         }
         return Optional.of(new HostedCommit(metadata, diffs, url));
