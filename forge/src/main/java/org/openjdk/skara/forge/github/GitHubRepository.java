@@ -587,11 +587,8 @@ public class GitHubRepository implements HostedRepository {
                 sumAdditions += patch.get("additions").asInt();
                 sumDeletions += patch.get("deletions").asInt();
             }
-            if (totalAdditions == sumAdditions && totalDeletions == sumDeletions) {
-                diffs = List.of(toDiff(metadata.parents().get(0), hash, o.get("files"), true));
-            } else {
-                diffs = List.of(toDiff(metadata.parents().get(0), hash, o.get("files"), false));
-            }
+            var complete = totalAdditions == sumAdditions && totalDeletions == sumDeletions;
+            diffs = List.of(toDiff(metadata.parents().get(0), hash, o.get("files"), complete));
         } else {
             diffs = List.of();
         }
