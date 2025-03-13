@@ -39,10 +39,7 @@ public class Diff {
     private final boolean complete;
 
     public Diff(Hash from, Hash to, List<Patch> patches) {
-        this.from = from;
-        this.to = to;
-        this.patches = patches;
-        this.complete = true;
+        this(from, to, patches, true);
     }
 
     public Diff(Hash from, Hash to, List<Patch> patches, boolean complete) {
