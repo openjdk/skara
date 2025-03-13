@@ -751,7 +751,7 @@ public class GitHubPullRequest implements PullRequest {
                            .param("per_page", "50")
                            .execute();
         var targetHash = repository.branchHash(targetRef()).orElseThrow();
-        var complete = files.asArray().size() != json.get("changed_files").asInt();
+        var complete = files.asArray().size() == json.get("changed_files").asInt();
         return repository.toDiff(targetHash, headHash(), files, complete);
     }
 

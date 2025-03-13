@@ -830,14 +830,14 @@ public class GitLabMergeRequest implements PullRequest {
     @Override
     public Diff diff() {
         var changes = request.get("changes").param("access_raw_diffs", "true").execute();
-        boolean diffComplete;
+        boolean complete;
         if (changes.get("overflow").asBoolean()) {
-            diffComplete = false;
+            complete = false;
         } else {
-            diffComplete = !changes.get("changes_count").asString().contains("+");
+            complete = !changes.get("changes_count").asString().contains("+");
         }
         var targetHash = repository.branchHash(targetRef()).orElseThrow();
-        return repository.toDiff(targetHash, headHash(), changes.get("changes"), diffComplete);
+        return repository.toDiff(targetHash, headHash(), changes.get("changes"), complete);
     }
 
     @Override
