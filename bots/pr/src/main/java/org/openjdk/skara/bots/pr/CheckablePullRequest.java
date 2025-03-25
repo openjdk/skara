@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -193,15 +193,16 @@ public class CheckablePullRequest {
         return PullRequestUtils.createCommit(pr, localRepo, finalHead, author, committer, commitMessage);
     }
 
-    Hash amendManualReviewersAndStaleReviewers(Hash commit, Namespace namespace, Hash original) throws IOException {
+    Hash amendManualReviewersAndStaleReviewers(Hash hash, Namespace namespace, Hash original) throws IOException {
         var activeReviews = filterActiveReviews(pr.reviews(), pr.targetRef());
-        var originalCommitMessage = commitMessage(commit, activeReviews, namespace, false, original);
-        var amendedCommitMessage = commitMessage(commit, activeReviews, namespace, true, original);
+        var originalCommitMessage = commitMessage(hash, activeReviews, namespace, false, original);
+        var amendedCommitMessage = commitMessage(hash, activeReviews, namespace, true, original);
 
         if (originalCommitMessage.equals(amendedCommitMessage)) {
-            return commit;
+            return hash;
         } else {
-            return localRepo.amend(amendedCommitMessage);
+            var commit = localRepo.lookup(hash).orElseThrow();
+            return localRepo.amend(amendedCommitMessage, commit.author().name(), commit.author().email(), commit.committer().name(), commit.committer().email());
         }
     }
 

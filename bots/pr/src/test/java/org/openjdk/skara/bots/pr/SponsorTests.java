@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -967,6 +967,97 @@ class SponsorTests {
 
             assertTrue(pr.comments().getLast().body()
                     .contains("can only be used in open pull requests"));
+        }
+    }
+
+    @Test
+    void sponsorWithAmendingCommitMessage(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var pushedFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer1 = credentials.getHostedRepository();
+            var reviewer2 = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer1.forge().currentUser().id())
+                    .addReviewer(reviewer2.forge().currentUser().id())
+                    .addAuthor(author.forge().currentUser().id());
+
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).useStaleReviews(false).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var authorFullName = author.forge().currentUser().fullName();
+            var authorEmail = "ta@none.none";
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "This is a new line", "Append commit", authorFullName, authorEmail);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Approve it as reviewer2
+            var approval2Pr = reviewer2.pullRequest(pr.id());
+            approval2Pr.addReview(Review.Verdict.APPROVED, "Approved");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Make a change with a corresponding PR
+            var updateHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(updateHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Approve it as reviewer1
+            var approval1Pr = reviewer1.pullRequest(pr.id());
+            approval1Pr.addReview(Review.Verdict.APPROVED, "Approved");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Issue a merge command without being a Committer
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply that a sponsor is required
+            var sponsor = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("sponsor"))
+                    .filter(comment -> comment.body().contains("your change"))
+                    .count();
+            assertEquals(1, sponsor);
+
+            // The bot should not have pushed the commit
+            var notPushed = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
+            assertEquals(0, notPushed);
+
+            // Reviewer now agrees to sponsor
+            var reviewer1Pr = reviewer1.pullRequest(pr.id());
+            pr.addComment("/summary amendCommitMessage");
+            reviewer1Pr.addComment("/sponsor");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should have pushed the commit
+            var pushed = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
+            assertEquals(1, pushed);
+
+            // The change should now be present on the master branch
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.authenticatedUrl(), "master");
+            var headHash = pushedRepo.resolve("HEAD").orElseThrow();
+            var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
+
+            assertEquals("Generated Author 3", headCommit.author().name());
+            assertEquals("integrationauthor3@openjdk.org", headCommit.author().email());
+
+            // The committer should be the sponsor
+            assertEquals("Generated Reviewer 1", headCommit.committer().name());
+            assertEquals("integrationreviewer1@openjdk.org", headCommit.committer().email());
+            assertTrue(pr.store().labelNames().contains("integrated"));
+            assertFalse(pr.store().labelNames().contains("ready"));
+            assertFalse(pr.store().labelNames().contains("sponsor"));
         }
     }
 }
