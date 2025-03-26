@@ -42,6 +42,7 @@ import java.util.stream.Stream;
 public class CheckablePullRequest {
     private static final Pattern BACKPORT_PATTERN = Pattern.compile("<!-- backport ([0-9a-z]{40}) -->");
     private static final Pattern BACKPORT_REPO_PATTERN = Pattern.compile("<!-- repo (.+) -->");
+    private static final int COMMIT_LIST_LIMIT = 3;
 
     private final PullRequest pr;
     private final Repository localRepo;
@@ -271,12 +272,12 @@ public class CheckablePullRequest {
             reply.print(pr.targetRef());
             reply.print("` branch:\n\n");
             divergingCommits.stream()
-                            .limit(10)
+                            .limit(COMMIT_LIST_LIMIT)
                             .forEach(c -> reply.println(" * " + c.hash().hex() + ": " + c.message().get(0)));
-            if (divergingCommits.size() > 10) {
+            if (divergingCommits.size() > COMMIT_LIST_LIMIT) {
                 try {
                     var baseHash = localRepo.mergeBase(targetHash(), pr.headHash());
-                    reply.println(" * ... and " + (divergingCommits.size() - 10) + " more: " +
+                    reply.println(" * ... and " + (divergingCommits.size() - COMMIT_LIST_LIMIT) + " more: " +
                                           pr.repository().webUrl(baseHash.hex(), pr.targetRef()));
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
