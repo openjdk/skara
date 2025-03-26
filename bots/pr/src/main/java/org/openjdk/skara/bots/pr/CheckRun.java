@@ -240,7 +240,8 @@ class CheckRun {
     private List<String> botSpecificChecks(boolean iscleanBackport) {
         var ret = new ArrayList<String>();
 
-        if (bodyWithoutStatus().isBlank() && !iscleanBackport) {
+        var bodyWithoutStatus = bodyWithoutStatus();
+        if ((bodyWithoutStatus.isBlank() || bodyWithoutStatus.equals(EMPTY_PR_BODY_MARKER)) && !iscleanBackport) {
             ret.add(MSG_EMPTY_BODY);
         }
 
