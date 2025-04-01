@@ -1065,10 +1065,10 @@ class CheckRun {
             message.append(pr.targetRef());
             message.append("` branch:\n\n");
             divergingCommits.stream()
-                            .limit(10)
+                            .limit(CheckablePullRequest.COMMIT_LIST_LIMIT)
                             .forEach(c -> message.append(" * ").append(c.hash().hex()).append(": ").append(c.message().get(0)).append("\n"));
-            if (divergingCommits.size() > 10) {
-                message.append(" * ... and ").append(divergingCommits.size() - 10).append(" more: ")
+            if (divergingCommits.size() > CheckablePullRequest.COMMIT_LIST_LIMIT) {
+                message.append(" * ... and ").append(divergingCommits.size() -CheckablePullRequest. COMMIT_LIST_LIMIT).append(" more: ")
                        .append(pr.repository().webUrl(baseHash.hex(), pr.targetRef())).append("\n");
             } else {
                 message.append("\n");
