@@ -40,9 +40,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CheckablePullRequest {
+    public static final int COMMIT_LIST_LIMIT = 3;
+
     private static final Pattern BACKPORT_PATTERN = Pattern.compile("<!-- backport ([0-9a-z]{40}) -->");
     private static final Pattern BACKPORT_REPO_PATTERN = Pattern.compile("<!-- repo (.+) -->");
-    private static final int COMMIT_LIST_LIMIT = 3;
 
     private final PullRequest pr;
     private final Repository localRepo;

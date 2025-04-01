@@ -49,7 +49,6 @@ import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 
 class CheckRun {
     public static final String MSG_EMPTY_BODY = "The pull request body must not be empty.";
-    private static final int COMMIT_LIST_LIMIT = 3;
 
     private final CheckWorkItem workItem;
     private final PullRequest pr;
@@ -1065,10 +1064,10 @@ class CheckRun {
             message.append(pr.targetRef());
             message.append("` branch:\n\n");
             divergingCommits.stream()
-                            .limit(COMMIT_LIST_LIMIT)
+                            .limit(CheckablePullRequest.COMMIT_LIST_LIMIT)
                             .forEach(c -> message.append(" * ").append(c.hash().hex()).append(": ").append(c.message().get(0)).append("\n"));
-            if (divergingCommits.size() > COMMIT_LIST_LIMIT) {
-                message.append(" * ... and ").append(divergingCommits.size() - COMMIT_LIST_LIMIT).append(" more: ")
+            if (divergingCommits.size() > CheckablePullRequest.COMMIT_LIST_LIMIT) {
+                message.append(" * ... and ").append(divergingCommits.size() -CheckablePullRequest. COMMIT_LIST_LIMIT).append(" more: ")
                        .append(pr.repository().webUrl(baseHash.hex(), pr.targetRef())).append("\n");
             } else {
                 message.append("\n");
