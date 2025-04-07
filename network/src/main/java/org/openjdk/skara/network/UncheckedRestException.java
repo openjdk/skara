@@ -30,9 +30,8 @@ import java.net.http.HttpRequest;
  * has already been logged.
  */
 public class UncheckedRestException extends RuntimeException {
-    int statusCode;
-
-    HttpRequest request;
+    private final int statusCode;
+    private final HttpRequest request;
 
     public UncheckedRestException(int statusCode, HttpRequest request) {
         this("Request returned bad status", null, statusCode, request);
@@ -43,7 +42,7 @@ public class UncheckedRestException extends RuntimeException {
     }
 
     public UncheckedRestException(String message, Throwable cause, int statusCode, HttpRequest request) {
-        super("[" + statusCode + "] " + message, cause);
+        super("[" + statusCode + "][" + request.method() + "][" + request.uri() + "] " + message, cause);
         this.statusCode = statusCode;
         this.request = request;
     }

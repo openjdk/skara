@@ -348,6 +348,22 @@ public class GitLabRepository implements HostedRepository {
             // USE PUT to update the file
             request.put("repository/files/" + encodedFileName)
                     .body(body)
+                    .onError(response -> {
+                        // When GitLab returns 400, it may have still performed the update, so
+                        // need to check the current file contents.
+                        if (response.statusCode() == 400) {
+                            log.info("Received status code 400 when writing file " + filename
+                                    + " in repo " + name() + ", checking if file was stored anyway");
+                            var currentContents = fileContents(filename, branch.name());
+                            if (currentContents.isPresent() && content.equals(currentContents.get())) {
+                                // Need to return something other than empty
+                                log.info("Writing file " + filename + " in repo " + name()
+                                        + " was found to be successful in spite of return code 400");
+                                return Optional.of(JSON.of());
+                            }
+                        }
+                        return Optional.empty();
+                    })
                     .execute();
         }
     }
