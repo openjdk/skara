@@ -402,7 +402,8 @@ public class RestRequest {
                     return transformed;
                 }
             }
-            log.warning("Request returned bad status: " + response.statusCode());
+            log.warning("Request " + response.request().method() + " " + response.request().uri()
+                    + " returned bad status: " + response.statusCode());
             log.info(queryBuilder.toString());
             log.info(response.body());
             throw new UncheckedRestException(response.statusCode(), response.request());
