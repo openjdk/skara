@@ -1470,7 +1470,9 @@ class CheckRun {
             var commitMessage = String.join("\n", commit.message());
 
             var readyToPostApprovalNeededComment = readyForReview &&
-                    (!reviewNeeded || visitor.errorFailedChecksMessages().isEmpty()) &&
+                    ((!reviewNeeded && visitor.errorFailedChecksMessages().stream()
+                            .allMatch(message -> message.contains("Too few reviewers"))
+                    ) || visitor.errorFailedChecksMessages().isEmpty()) &&
                     integrationBlockers.isEmpty() &&
                     !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
 
