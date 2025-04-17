@@ -63,7 +63,7 @@ jobs:
 
   linux:
     name: Linux x64
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-22.04"
     needs: prerequisites
     if: needs.prerequisites.outputs.should_run
 
