@@ -72,12 +72,14 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
         return errorFailedChecks.values().stream().flatMap(List::stream).toList();
     }
 
-    List<String> errorFailedCheckMessagesWithoutReviewersCheck() {
-        return errorFailedChecks.keySet().stream()
-                .filter(check -> !check.equals(ReviewersCheck.class))
-                .map(errorFailedChecks::get)
-                .flatMap(List::stream)
-                .toList();
+
+    boolean hasErrors(boolean reviewNeeded) {
+        if (reviewNeeded) {
+            return !errorFailedChecks.isEmpty();
+        } else {
+            return errorFailedChecks.keySet().stream()
+                    .anyMatch(check -> !check.equals(ReviewersCheck.class));
+        }
     }
 
     List<String> warningFailedChecksMessages() {
