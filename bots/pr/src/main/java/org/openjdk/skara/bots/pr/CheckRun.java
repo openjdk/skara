@@ -1469,11 +1469,9 @@ class CheckRun {
             var commit = localRepo.lookup(amendedHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
 
-            var onlyReviewersCheckFailed = visitor.errorFailedChecksMessages().stream()
-                    .allMatch(message -> message.contains("Too few reviewers"));
-
             var readyToPostApprovalNeededComment = readyForReview &&
-                    ((!reviewNeeded && onlyReviewersCheckFailed) || visitor.errorFailedChecksMessages().isEmpty()) &&
+                    ((!reviewNeeded && visitor.errorFailedCheckMessagesWithoutReviewersCheck().isEmpty()) ||
+                            visitor.errorFailedChecksMessages().isEmpty()) &&
                     integrationBlockers.isEmpty() &&
                     !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
 
