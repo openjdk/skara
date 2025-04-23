@@ -2163,4 +2163,76 @@ class BackportTests {
             assertFalse(pr.store().labelNames().contains("clean"));
         }
     }
+
+    @Test
+    void cleanBackportWithProblemListIssue(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory(false)) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(integrator.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
+                    Path.of("appendable.txt"), Set.of("author", "reviewers", "whitespace", "problemlists"), "0.1");
+
+            // Add problemlists configuration to conf
+            var checkConf = tempFolder.path().resolve(".jcheck/conf");
+            Files.writeString(checkConf, "\n[checks \"problemlists\"]\n", StandardOpenOption.APPEND);
+            Files.writeString(checkConf, "dirs=test/jdk\n", StandardOpenOption.APPEND);
+            // Create ProblemList.txt
+            Files.createDirectories(tempFolder.path().resolve("test/jdk"));
+            var problemList = tempFolder.path().resolve("test/jdk/ProblemList.txt");
+            Files.writeString(problemList, "test 1 windows-all", StandardOpenOption.CREATE);
+            localRepo.add(tempFolder.path().resolve(".jcheck/conf"));
+            localRepo.add(problemList);
+            localRepo.commit("add problemList.txt", "testauthor", "ta@none.none");
+
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            var releaseBranch = localRepo.branch(masterHash, "release");
+            localRepo.checkout(releaseBranch);
+            var newFile = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile, "hello");
+            localRepo.add(newFile);
+            var issue1 = credentials.createIssue(issues, "An issue");
+            var issue1Number = issue1.id().split("-")[1];
+            var originalMessage = issue1Number + ": An issue\n" +
+                    "\n" +
+                    "Reviewed-by: integrationreviewer2";
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
+            localRepo.push(releaseHash, author.authenticatedUrl(), "refs/heads/release", true);
+
+            // "backport" the new file to the master branch
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var newFile2 = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile2, "hello");
+            localRepo.add(newFile2);
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex(), List.of());
+
+            // The bot should reply with a backport message
+            TestBotRunner.runPeriodicItems(bot);
+            // Should be marked as ready for review
+            assertTrue(pr.store().labelNames().contains("rfr"));
+            // Shouldn't be marked as ready
+            assertFalse(pr.store().labelNames().contains("ready"));
+        }
+    }
 }
