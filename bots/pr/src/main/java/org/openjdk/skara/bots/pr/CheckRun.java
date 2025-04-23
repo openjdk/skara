@@ -1470,7 +1470,7 @@ class CheckRun {
             var commitMessage = String.join("\n", commit.message());
 
             var readyToPostApprovalNeededComment = readyForReview &&
-                    visitor.hasErrors(reviewNeeded) &&
+                    !visitor.hasErrors(reviewNeeded) &&
                     integrationBlockers.isEmpty() &&
                     !statusMessage.contains(TEMPORARY_ISSUE_FAILURE_MARKER);
 
