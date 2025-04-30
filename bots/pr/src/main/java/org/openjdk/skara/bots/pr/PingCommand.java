@@ -62,6 +62,6 @@ public class PingCommand implements CommandHandler {
             reply.println("This command can only be used in open pull requests.");
         }
 
-        reply.println("The timeouts for this pull request has been reset and this pull request will be re-evaluated soon." + PING_COMMAND_RESPONSE_MARKER);
+        reply.println("The pull request is being re-evaluated and the inactivity timeout has been reset." + PING_COMMAND_RESPONSE_MARKER);
     }
 }
