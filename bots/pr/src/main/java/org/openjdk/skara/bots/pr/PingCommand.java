@@ -38,7 +38,7 @@ public class PingCommand implements CommandHandler {
 
     @Override
     public String description() {
-        return "Reset the timeouts for this pull request and re-evaluate the pull request.";
+        return "Re-evaluates the pull request and resets the inactivity timeout.";
     }
 
     @Override
