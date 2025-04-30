@@ -107,15 +107,15 @@ class CheckTests {
             assertTrue(pr.store().labelNames().contains("ready"));
             assertTrue(pr.store().body().contains("https://census.com/integrationreviewer2-profile"));
 
-            // Issue "Ping" command
+            // Issue "ping" command
             approvalPr.addComment("/ping");
             TestBotRunner.runPeriodicItems(checkBot);
             check = pr.checks(editHash).get("jcheck");
             var checkStartTime2 = check.startedAt();
             assertNotEquals(checkStartTime1, checkStartTime2);
 
-            // Issue "Ping" again
-            approvalPr.addComment("/ping");
+            // Issue "touch"
+            approvalPr.addComment("/touch");
             TestBotRunner.runPeriodicItems(checkBot);
             check = pr.checks(editHash).get("jcheck");
             var checkStartTime3 = check.startedAt();

@@ -69,7 +69,8 @@ public class CommandExtractor {
             Map.entry(approval.name(), new ApprovalCommand()),
             Map.entry(approve.name(), new ApproveCommand()),
             Map.entry(author.name(), new AuthorCommand()),
-            Map.entry(ping.name(), new PingCommand())
+            Map.entry(ping.name(), new PingCommand()),
+            Map.entry(touch.name(), new PingCommand())
     );
 
     static class HelpCommand implements CommandHandler {

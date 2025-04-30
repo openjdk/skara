@@ -33,7 +33,7 @@ import static org.openjdk.skara.bots.common.PullRequestConstants.PING_COMMAND_RE
 
 public class PingCommand implements CommandHandler {
     private void showHelp(PrintWriter reply) {
-        reply.println("Usage: `/ping`");
+        reply.println("Usage: `/ping` or `/touch`");
     }
 
     @Override
@@ -53,8 +53,8 @@ public class PingCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
-        if (!pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {
-            reply.println("Only the author of the pull request or [Reviewers](https://openjdk.org/bylaws#reviewer) are allowed to change the number of required reviewers.");
+        if (!pr.author().equals(command.user()) && censusInstance.contributor(command.user()).isEmpty()) {
+            printInvalidUserWarning(bot, reply);
             return;
         }
 
