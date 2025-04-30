@@ -50,6 +50,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.openjdk.skara.bots.common.PullRequestConstants.PING_COMMAND_RESPONSE_MARKER;
 import static org.openjdk.skara.bots.common.PullRequestConstants.WEBREV_COMMENT_MARKER;
 import static org.openjdk.skara.bots.pr.CheckRun.MERGE_READY_MARKER;
 import static org.openjdk.skara.bots.pr.CheckRun.PLACEHOLDER_MARKER;
@@ -172,11 +173,20 @@ class CheckWorkItem extends PullRequestWorkItem {
                                         .flatMap(comment -> comment.body().lines())
                                         .filter(line -> METADATA_COMMENTS_PATTERN.matcher(line).find())
                                         .collect(Collectors.joining());
+
+            // Webrev comment should trigger the update
             commentString = commentString + comments.stream()
                     .filter(comment -> comment.author().username().equals(bot.mlbridgeBotName()))
                     .flatMap(comment -> comment.body().lines())
                     .filter(line -> line.equals(WEBREV_COMMENT_MARKER))
                     .findFirst().orElse("");
+
+            // Ping command should trigger the update
+            commentString = commentString + comments.stream()
+                    .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))
+                    .flatMap(comment -> comment.body().lines())
+                    .filter(line -> line.contains(PING_COMMAND_RESPONSE_MARKER))
+                    .collect(Collectors.joining());
 
             var labelString = labels.stream()
                                     .sorted()

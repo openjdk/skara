@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,6 +34,7 @@ public class PullRequestConstants {
     public static final String WEBREV_COMMENT_MARKER = "<!-- mlbridge webrev comment -->";
     public static final String TEMPORARY_ISSUE_FAILURE_MARKER = "<!-- temporary issue failure -->";
     public static final String READY_FOR_SPONSOR_MARKER = "<!-- integration requested: '%s' -->";
+    public static final String PING_COMMAND_RESPONSE_MARKER = "<!-- ping command response-->";
 
     // LABELS
     public static final String CSR_LABEL = "csr";

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -68,7 +68,8 @@ public class CommandExtractor {
             Map.entry(branch.name(), new BranchCommand()),
             Map.entry(approval.name(), new ApprovalCommand()),
             Map.entry(approve.name(), new ApproveCommand()),
-            Map.entry(author.name(), new AuthorCommand())
+            Map.entry(author.name(), new AuthorCommand()),
+            Map.entry(ping.name(), new PingCommand())
     );
 
     static class HelpCommand implements CommandHandler {

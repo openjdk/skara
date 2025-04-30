@@ -49,7 +49,8 @@ public enum CommandNameEnum {
     branch,
     approval(true),
     approve,
-    author;
+    author,
+    ping;
 
     private boolean isMultiLine = false;
 
