@@ -34,7 +34,7 @@ public class PullRequestConstants {
     public static final String WEBREV_COMMENT_MARKER = "<!-- mlbridge webrev comment -->";
     public static final String TEMPORARY_ISSUE_FAILURE_MARKER = "<!-- temporary issue failure -->";
     public static final String READY_FOR_SPONSOR_MARKER = "<!-- integration requested: '%s' -->";
-    public static final String PING_COMMAND_RESPONSE_MARKER = "<!-- ping command response-->";
+    public static final String PING_COMMAND_RESPONSE_MARKER = "<!-- ping command response -->";
 
     // LABELS
     public static final String CSR_LABEL = "csr";
