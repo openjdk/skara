@@ -315,6 +315,12 @@ class GitLabIntegrationTests {
                 ZonedDateTime.now().minus(Duration.ofDays(4)));
 
         assertFalse(comments.isEmpty());
+
+        // Pause here to update the local repository to trigger another code path
+        var comments2 = gitLabRepo.recentCommitComments(localRepo, Set.of(), List.of(new Branch("master")),
+                ZonedDateTime.now().minus(Duration.ofDays(4)));
+
+        assertFalse(comments2.isEmpty());
     }
 
     @Test

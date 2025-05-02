@@ -349,6 +349,11 @@ class TestRepository implements ReadOnlyRepository {
     }
 
     @Override
+    public int commitCount(List<Branch> branches) throws IOException {
+        return 0;
+    }
+
+    @Override
     public Hash initialHash() {
         return null;
     }

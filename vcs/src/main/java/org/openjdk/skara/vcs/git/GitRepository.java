@@ -1711,6 +1711,16 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public int commitCount(List<Branch> branches) throws IOException {
+        var args = new ArrayList<String>();
+        args.addAll(List.of("git", "rev-list", "--count"));
+        args.addAll(branches.stream().map(Branch::name).toList());
+        try (var p = capture(args)) {
+            return Integer.parseInt(await(p).stdout().getFirst());
+        }
+    }
+
+    @Override
     public Hash initialHash() {
         return EMPTY_TREE;
     }
