@@ -50,8 +50,8 @@ public enum CommandNameEnum {
     approval(true),
     approve,
     author,
-    ping,
-    touch;
+    touch,
+    keepalive;
 
     private boolean isMultiLine = false;
 

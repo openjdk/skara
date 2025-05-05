@@ -50,8 +50,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.openjdk.skara.bots.common.PullRequestConstants.PING_COMMAND_RESPONSE_MARKER;
-import static org.openjdk.skara.bots.common.PullRequestConstants.WEBREV_COMMENT_MARKER;
+import static org.openjdk.skara.bots.common.PullRequestConstants.*;
 import static org.openjdk.skara.bots.pr.CheckRun.MERGE_READY_MARKER;
 import static org.openjdk.skara.bots.pr.CheckRun.PLACEHOLDER_MARKER;
 import static org.openjdk.skara.forge.PullRequestUtils.mergeSourcePattern;
@@ -181,11 +180,11 @@ class CheckWorkItem extends PullRequestWorkItem {
                     .filter(line -> line.equals(WEBREV_COMMENT_MARKER))
                     .findFirst().orElse("");
 
-            // Ping command should trigger the update
+            // Touch command should trigger the update
             commentString = commentString + comments.stream()
                     .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))
                     .flatMap(comment -> comment.body().lines())
-                    .filter(line -> line.contains(PING_COMMAND_RESPONSE_MARKER))
+                    .filter(line -> line.contains(TOUCH_COMMAND_RESPONSE_MARKER))
                     .collect(Collectors.joining());
 
             var labelString = labels.stream()

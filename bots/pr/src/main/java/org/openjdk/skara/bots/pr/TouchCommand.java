@@ -28,12 +28,12 @@ import org.openjdk.skara.issuetracker.Comment;
 import java.io.PrintWriter;
 import java.util.List;
 
-import static org.openjdk.skara.bots.common.CommandNameEnum.ping;
-import static org.openjdk.skara.bots.common.PullRequestConstants.PING_COMMAND_RESPONSE_MARKER;
+import static org.openjdk.skara.bots.common.CommandNameEnum.touch;
+import static org.openjdk.skara.bots.common.PullRequestConstants.TOUCH_COMMAND_RESPONSE_MARKER;
 
-public class PingCommand implements CommandHandler {
+public class TouchCommand implements CommandHandler {
     private void showHelp(PrintWriter reply) {
-        reply.println("Usage: `/ping` or `/touch`");
+        reply.println("Usage: `/touch` or `/keepalive`");
     }
 
     @Override
@@ -43,7 +43,7 @@ public class PingCommand implements CommandHandler {
 
     @Override
     public String name() {
-        return ping.name();
+        return touch.name();
     }
 
     @Override
@@ -62,6 +62,6 @@ public class PingCommand implements CommandHandler {
             reply.println("This command can only be used in open pull requests.");
         }
 
-        reply.println("The pull request is being re-evaluated and the inactivity timeout has been reset." + PING_COMMAND_RESPONSE_MARKER);
+        reply.println("The pull request is being re-evaluated and the inactivity timeout has been reset." + TOUCH_COMMAND_RESPONSE_MARKER);
     }
 }
