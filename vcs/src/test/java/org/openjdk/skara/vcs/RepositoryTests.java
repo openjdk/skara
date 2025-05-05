@@ -3093,4 +3093,34 @@ public class RepositoryTests {
             });
         }
     }
+
+    @Test
+    void testCommitCountWithBranchesWithGit() throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), VCS.GIT);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, world!"));
+            r.add(readme);
+            var first = r.commit("Added README", "duke", "duke@openjdk.org");
+
+            var b1 = r.branch(first, "b1");
+            r.checkout(b1);
+            Files.write(readme, List.of("One more line"), WRITE, APPEND);
+            r.add(readme);
+            var second = r.commit("Modified README", "duke", "duke@openjdk.org");
+
+            r.checkout(r.defaultBranch());
+            var b2 = r.branch(first, "b2");
+            r.checkout(b2);
+            Files.write(readme, List.of("An additional line"), WRITE, APPEND);
+            r.add(readme);
+            var third = r.commit("Additional line added to README", "duke", "duke@openjdk.org");
+
+            assertEquals(3, r.commitCount());
+            assertEquals(3, r.commitCount(List.of(new Branch("b1"), new Branch("b2"))));
+            assertEquals(2, r.commitCount(List.of(new Branch("b1"))));
+            assertEquals(1, r.commitCount(List.of(r.defaultBranch())));
+        }
+    }
 }

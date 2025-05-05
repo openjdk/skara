@@ -1543,6 +1543,11 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public int commitCount(List<Branch> branches) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public Hash initialHash() {
         return NULL_REVISION;
     }

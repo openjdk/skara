@@ -625,49 +625,63 @@ public class GitLabRepository implements HostedRepository {
     }
 
     /**
-     * Lazy fetching and caching of the commitTitleToCommits map. The first time
-     * this is called, the full map is built from the local repository. After that
-     * it's just refreshed from the server.
+     * Lazy fetching and caching of the commitTitleToCommits map. The map is only
+     * cached for one set of branches. If called with a different set, the old
+     * cache is invalidated and a new is rebuilt from scratch. In practice, an
+     * instance of this class is only ever called with the same set of branches.
+     * If that was to change we will need to rethink this.
+     * <p>
+     * The full map is built from the local repository. For incremental updates,
+     * it's refreshed until it contains the same number of commits as the local
+     * repository. The topo-order should guarantee that this gives us the same
+     * set of commits.
      */
     private final Map<String, SequencedSet<Hash>> commitTitleToCommits = new HashMap<>();
-    private boolean commitTitleToCommitsInitialized = false;
-    private ZonedDateTime lastCommitTime = ZonedDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
+    private Set<Branch> commitMapBranchSet;
+    private int commitMapCount = 0;
 
     private Map<String, SequencedSet<Hash>> getCommitTitleToCommitsMap(ReadOnlyRepository localRepo, List<Branch> branches) {
-        if (!commitTitleToCommitsInitialized) {
-            try {
+        try {
+            Set<Branch> branchSet = Set.copyOf(branches);
+            if (!branchSet.equals(commitMapBranchSet)) {
+                log.info("Invalidating commitTitleToCommits map for branch set: " + branchSet + " old set: " + commitMapBranchSet);
+                commitTitleToCommits.clear();
+                commitMapCount = 0;
+                commitMapBranchSet = branchSet;
+            }
+            int newSize = localRepo.commitCount(branches);
+            if (newSize > commitMapCount) {
+                int sizeBefore = commitMapCount;
+                log.info("Adding " + (newSize - sizeBefore) + " new commit(s) to commitTitleToCommits map");
                 for (var commit : localRepo.commitMetadataFor(branches)) {
                     var title = commit.message().stream().findFirst().orElse("");
-                    commitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>()).add(commit.hash());
-                    if (lastCommitTime.isBefore(commit.authored())) {
-                        lastCommitTime = commit.authored();
+                    SequencedSet<Hash> hashes = commitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>());
+                    if (!hashes.contains(commit.hash())) {
+                        // We want to keep newer commits at the front for quicker lookup.
+                        // Commits are iterated from newer to older so add last for the
+                        // initial run. When updating, there will generally just be a small
+                        // set of new commits in each run, so add them to the front.
+                        if (sizeBefore == 0) {
+                            hashes.add(commit.hash());
+                        } else {
+                            hashes.addFirst(commit.hash());
+                        }
+                        commitMapCount++;
+                        // Only log each addition after the initial complete build is done
+                        if (sizeBefore > 0) {
+                            log.fine("Adding " + commit.hash() + " to commitTitleToCommits map");
+                        }
+                    }
+                    if (commitMapCount >= newSize) {
+                        break;
                     }
                 }
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
+            } else {
+                log.fine("No commits added to commitTitleToCommits map");
             }
-            commitTitleToCommitsInitialized = true;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
-        // Fetch eventual new commits
-        var commits = request.get("repository/commits")
-                .param("since", lastCommitTime.format(DateTimeFormatter.ISO_DATE_TIME))
-                .param("all", "true")
-                .execute()
-                .asArray()
-                .stream()
-                .toList()
-                .reversed();
-
-        for (var commit : commits) {
-            var hash = new Hash(commit.get("id").asString());
-            var title = commit.get("title").asString();
-            commitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>()).addFirst(hash);
-            var authored = ZonedDateTime.parse(commit.get("authored_date").asString());
-            if (lastCommitTime.isBefore(authored)) {
-                lastCommitTime = authored;
-            }
-        }
-
         return commitTitleToCommits;
     }
 
