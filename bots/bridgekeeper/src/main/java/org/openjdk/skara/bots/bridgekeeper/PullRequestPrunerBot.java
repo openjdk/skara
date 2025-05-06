@@ -95,7 +95,7 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
 
         var message = "@" + pr.author().username() + " This pull request has been inactive for more than " +
                 formatDuration(maxAge) + " and will be automatically closed if another " + formatDuration(maxAge) +
-                " passes without any activity. To avoid this, simply add a new comment to the pull request. Feel free " +
+                " passes without any activity. To avoid this, simply issue a `/touch` or `/keepalive` command to the pull request. Feel free " +
                 "to ask for assistance if you need help with progressing this pull request towards integration!";
 
         log.fine("Posting prune notification message");

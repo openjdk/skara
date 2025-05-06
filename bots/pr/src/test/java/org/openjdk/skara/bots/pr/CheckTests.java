@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -100,11 +100,26 @@ class CheckTests {
             checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
+            var checkStartTime1 = check.startedAt();
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should now be ready
             assertTrue(pr.store().labelNames().contains("ready"));
             assertTrue(pr.store().body().contains("https://census.com/integrationreviewer2-profile"));
+
+            // Issue "touch" command
+            approvalPr.addComment("/touch");
+            TestBotRunner.runPeriodicItems(checkBot);
+            check = pr.checks(editHash).get("jcheck");
+            var checkStartTime2 = check.startedAt();
+            assertNotEquals(checkStartTime1, checkStartTime2);
+
+            // Issue "keepalive"
+            approvalPr.addComment("/keepalive");
+            TestBotRunner.runPeriodicItems(checkBot);
+            check = pr.checks(editHash).get("jcheck");
+            var checkStartTime3 = check.startedAt();
+            assertNotEquals(checkStartTime2, checkStartTime3);
         }
     }
 
