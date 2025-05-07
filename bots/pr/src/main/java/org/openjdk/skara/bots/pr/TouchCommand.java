@@ -60,6 +60,7 @@ public class TouchCommand implements CommandHandler {
 
         if (pr.isClosed()) {
             reply.println("This command can only be used in open pull requests.");
+            return;
         }
 
         reply.println("The pull request is being re-evaluated and the inactivity timeout has been reset." + TOUCH_COMMAND_RESPONSE_MARKER);
