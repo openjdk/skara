@@ -3867,8 +3867,6 @@ class CheckTests {
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"), Set.of(), Set.of("reviewers", "whitespace"), "0.1");
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
-
-            // An issue with trailing period
             var issue1 = issues.createIssue("This is an issue", List.of("Hello"), Map.of());
 
             // Make a change with a corresponding PR
