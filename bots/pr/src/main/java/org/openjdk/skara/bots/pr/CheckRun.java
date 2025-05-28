@@ -413,7 +413,6 @@ class CheckRun {
     private void updateCheckBuilder(CheckBuilder checkBuilder, PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
         if (visitor.isReadyForReview() && additionalErrors.isEmpty()) {
             checkBuilder.complete(true);
-
         } else {
             checkBuilder.title("Required");
             var summary = Stream.concat(visitor.errorFailedChecksMessages().stream().limit(MESSAGE_LIMIT), additionalErrors.stream().limit(MESSAGE_LIMIT))
