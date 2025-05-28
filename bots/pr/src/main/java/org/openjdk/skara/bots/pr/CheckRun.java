@@ -413,6 +413,7 @@ class CheckRun {
     private void updateCheckBuilder(CheckBuilder checkBuilder, PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
         if (visitor.isReadyForReview() && additionalErrors.isEmpty()) {
             checkBuilder.complete(true);
+
         } else {
             checkBuilder.title("Required");
             var summary = Stream.concat(visitor.errorFailedChecksMessages().stream().limit(MESSAGE_LIMIT), additionalErrors.stream().limit(MESSAGE_LIMIT))
@@ -726,7 +727,7 @@ class CheckRun {
             progressBody.append(warningListToText(integrationBlockers));
         }
 
-        var allWarnings = Stream.concat(visitor.warningFailedChecksMessages().stream(), warnings.stream()).toList();
+        var allWarnings = Stream.concat(visitor.hiddenWarningMessages().stream(), warnings.stream()).toList();
         if (!allWarnings.isEmpty()) {
             progressBody.append("\n\n### Warning");
             if (allWarnings.size() > 1) {
