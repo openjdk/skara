@@ -416,7 +416,7 @@ class CheckRun {
             // It means some jchecks failed as warnings
             if (!visitor.getAnnotations().isEmpty()) {
                 checkBuilder.title("Optional");
-                checkBuilder.summary("Some jchecks failed as warnings, they won't block the integration, but you'd better fix them.");
+                checkBuilder.summary("These warnings will not block integration.");
                 for (var annotation : visitor.getAnnotations()) {
                     checkBuilder.annotation(annotation);
                 }
