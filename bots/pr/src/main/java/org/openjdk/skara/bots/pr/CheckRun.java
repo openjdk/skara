@@ -413,10 +413,10 @@ class CheckRun {
     private void updateCheckBuilder(CheckBuilder checkBuilder, PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
         if (visitor.isReadyForReview() && additionalErrors.isEmpty()) {
             checkBuilder.complete(true);
-            // It means whitespaceCheck failed as warning
+            // It means some jchecks failed as warnings
             if (!visitor.getAnnotations().isEmpty()) {
                 checkBuilder.title("Optional");
-                checkBuilder.summary("WhitespaceCheck failed as warning, it won't block the integration, but you'd better fix them.");
+                checkBuilder.summary("Some jchecks failed as warnings, it won't block the integration, but you'd better fix them.");
                 for (var annotation : visitor.getAnnotations()) {
                     checkBuilder.annotation(annotation);
                 }
