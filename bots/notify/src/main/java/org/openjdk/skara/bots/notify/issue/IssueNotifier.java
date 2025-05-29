@@ -215,11 +215,20 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 }
                 if (issue.assignees().isEmpty()) {
                     var username = findIssueUsername(commit, scratchPath);
-                    if (username.isPresent()) {
-                        var assignee = issueProject.issueTracker().user(username.get());
-                        assignee.ifPresent(hostUser -> issue.setAssignees(List.of(hostUser)));
-                    }
+                    username.ifPresent(s -> setAssigneeForIssue(issue, s));
                 }
+            }
+        }
+    }
+
+    private void setAssigneeForIssue(IssueTrackerIssue issue, String username) {
+        var assignee = issueProject.issueTracker().user(username);
+        if (assignee.isPresent()) {
+            if (assignee.get().active()) {
+                log.info("Setting assignee for issue " + issue.id() + " to " + assignee.get());
+                issue.setAssignees(List.of(assignee.get()));
+            } else {
+                log.warning("Skipping set assignee for issue " + issue.id() + " to " + assignee.get() + " because the user is inactive");
             }
         }
     }
@@ -379,11 +388,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 }
                 if (issue.assignees().isEmpty()) {
                     if (username.isPresent()) {
-                        var assignee = issueProject.issueTracker().user(username.get());
-                        if (assignee.isPresent()) {
-                            log.info("Setting assignee for issue " + issue.id() + " to " + assignee.get());
-                            issue.setAssignees(List.of(assignee.get()));
-                        }
+                        setAssigneeForIssue(issue, username.get());
                     }
                 }
 
