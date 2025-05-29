@@ -86,7 +86,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
         return warningFailedChecks.values().stream().flatMap(List::stream).toList();
     }
 
-    List<String> hiddenWarningMessages(){
+    List<String> hiddenWarningMessages() {
         return warningFailedChecks.entrySet().stream()
                 .filter(entry -> !displayedChecks.contains(entry.getKey()))
                 .map(Map.Entry::getValue)
