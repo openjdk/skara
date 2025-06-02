@@ -37,6 +37,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class JCheckTests {
     static class CheckableRepository {
@@ -263,6 +264,8 @@ class JCheckTests {
     @EnumSource(VCS.class)
     void checksForCommit(VCS vcs) throws Exception {
         try (var dir = new TemporaryDirectory()) {
+            assumeTrue(!(vcs == VCS.HG && System.getProperty("os.name").toLowerCase().contains("win")),
+                    "Skipping Mercurial test on Windows");
             var repoPath = dir.path().resolve("repo");
             var repo = CheckableRepository.create(repoPath, vcs);
 
@@ -283,6 +286,8 @@ class JCheckTests {
     @EnumSource(VCS.class)
     void checkRemoval(VCS vcs) throws Exception {
         try (var dir = new TemporaryDirectory()) {
+            assumeTrue(!(vcs == VCS.HG && System.getProperty("os.name").toLowerCase().contains("win")),
+                    "Skipping Mercurial test on Windows");
             var repoPath = dir.path().resolve("repo");
             var repo = CheckableRepository.create(repoPath, vcs);
 
@@ -313,6 +318,8 @@ class JCheckTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void checkOverridingConfiguration(VCS vcs) throws Exception {
+        assumeTrue(!(vcs == VCS.HG && System.getProperty("os.name").toLowerCase().contains("win")),
+                "Skipping Mercurial test on Windows");
         try (var dir = new TemporaryDirectory()) {
             var repoPath = dir.path().resolve("repo");
             var repo = CheckableRepository.create(repoPath, vcs);
