@@ -56,7 +56,7 @@ class HgToGitConverterTests {
     }
 
     @BeforeEach
-    void skipTestsForWindows() {
+    void assumeHgAvailable() {
         assumeTrue(hgAvailable);
     }
 

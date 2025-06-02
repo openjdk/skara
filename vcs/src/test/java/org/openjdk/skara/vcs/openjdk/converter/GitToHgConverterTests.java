@@ -63,7 +63,7 @@ class GitToHgConverterTests {
     }
 
     @BeforeEach
-    void skipTestsForWindows() {
+    void assumeHgAvailable() {
         assumeTrue(hgAvailable);
     }
 
