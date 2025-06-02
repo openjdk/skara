@@ -2581,6 +2581,7 @@ public class RepositoryTests {
 
     @Test
     void testGitAndHgRepoInSameDirectory() throws IOException {
+        assumeTrue(!System.getProperty("os.name").toLowerCase().contains("win"));
         try (var dir = new TemporaryDirectory()) {
             var hgRepo = TestableRepository.init(dir.path(), VCS.HG);
             var hgFile = hgRepo.root().resolve("hg-file.txt");

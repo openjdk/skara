@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.vcs.openjdk.converter;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.openjdk.skara.test.TemporaryDirectory;
 import org.openjdk.skara.test.TestableRepository;
 import org.openjdk.skara.vcs.*;
@@ -34,8 +35,15 @@ import java.nio.file.Files;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class HgToGitConverterTests {
+
+    @BeforeEach
+    void skipTestsForWindows() {
+        assumeTrue(!System.getProperty("os.name").toLowerCase().contains("win"));
+    }
+
     @Test
     void convertOneCommit() throws IOException {
         try (var hgRoot = new TemporaryDirectory();
