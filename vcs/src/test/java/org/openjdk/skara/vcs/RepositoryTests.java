@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -2523,6 +2523,7 @@ public class RepositoryTests {
 
     @Test
     void testHgRepoNestedInGitRepo() throws IOException {
+        assumeTrue(!System.getProperty("os.name").toLowerCase().contains("win"));
         try (var gitDir = new TemporaryDirectory()) {
             var gitRepo = TestableRepository.init(gitDir.path(), VCS.GIT);
             var gitFile = gitRepo.root().resolve("git-file.txt");
@@ -2551,6 +2552,7 @@ public class RepositoryTests {
 
     @Test
     void testGitRepoNestedInHgRepo() throws IOException {
+        assumeTrue(!System.getProperty("os.name").toLowerCase().contains("win"));
         try (var hgDir = new TemporaryDirectory()) {
             var hgRepo = TestableRepository.init(hgDir.path(), VCS.HG);
             var hgFile = hgRepo.root().resolve("hg-file.txt");
@@ -2697,6 +2699,7 @@ public class RepositoryTests {
 
     @Test
     void testMercurialTagWithoutEmail() throws IOException, InterruptedException {
+        assumeTrue(!System.getProperty("os.name").toLowerCase().contains("win"));
         try (var dir = new TemporaryDirectory()) {
             var repo = TestableRepository.init(dir.path(), VCS.HG);
             var readme = dir.path().resolve("README");
