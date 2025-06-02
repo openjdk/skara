@@ -35,7 +35,7 @@ import java.util.*;
 import java.util.stream.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 class RepositoryStorageTests {
     private static boolean hgAvailable = true;
