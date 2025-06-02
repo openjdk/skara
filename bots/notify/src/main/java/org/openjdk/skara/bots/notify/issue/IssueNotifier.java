@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -228,7 +228,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 log.info("Setting assignee for issue " + issue.id() + " to " + assignee.get());
                 issue.setAssignees(List.of(assignee.get()));
             } else {
-                log.warning("Skipping set assignee for issue " + issue.id() + " to " + assignee.get() + " because the user is inactive");
+                log.warning("Skipping setting assignee for issue " + issue.id() + " to " + assignee.get() + " because the user is inactive");
             }
         }
     }
