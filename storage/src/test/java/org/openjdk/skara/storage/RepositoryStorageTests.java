@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.storage;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.openjdk.skara.test.TestableRepository;
 import org.openjdk.skara.vcs.*;
 
@@ -37,6 +38,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class RepositoryStorageTests {
+    private static boolean hgAvailable = true;
+
+    @BeforeAll
+    static void checkHgAvailability() {
+        try {
+            var pb = new ProcessBuilder("hg", "--version");
+            pb.redirectErrorStream(true);
+            var process = pb.start();
+            process.waitFor();
+            hgAvailable = (process.exitValue() == 0);
+        } catch (Exception e) {
+            hgAvailable = false;
+        }
+    }
+
     private RepositoryStorage<String> stringStorage(Repository repository) {
         return new RepositoryStorage<>(repository, "db.txt", "Duke", "duke@openjdk.org", "Test update",
                                        (added, cur) -> Stream.concat(cur.stream(), added.stream())
@@ -50,7 +66,7 @@ class RepositoryStorageTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void simple(VCS vcs) throws IOException {
-        assumeTrue(!(vcs == VCS.HG && System.getProperty("os.name").toLowerCase().contains("win")));
+        assumeTrue(!(vcs == VCS.HG && !hgAvailable));
         var tmpDir = Files.createTempDirectory("repositorystorage");
         var repository = TestableRepository.init(tmpDir, vcs);
         var storage = stringStorage(repository);
@@ -63,7 +79,7 @@ class RepositoryStorageTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void multiple(VCS vcs) throws IOException {
-        assumeTrue(!(vcs == VCS.HG && System.getProperty("os.name").toLowerCase().contains("win")));
+        assumeTrue(!(vcs == VCS.HG && !hgAvailable));
         var tmpDir = Files.createTempDirectory("repositorystorage");
         var repository = TestableRepository.init(tmpDir, vcs);
         var storage = stringStorage(repository);
@@ -76,7 +92,7 @@ class RepositoryStorageTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void retained(VCS vcs) throws IOException {
-        assumeTrue(!(vcs == VCS.HG && System.getProperty("os.name").toLowerCase().contains("win")));
+        assumeTrue(!(vcs == VCS.HG && !hgAvailable));
         var tmpDir = Files.createTempDirectory("repositorystorage");
         var repository = TestableRepository.init(tmpDir, vcs);
         var storage = stringStorage(repository);
@@ -93,7 +109,7 @@ class RepositoryStorageTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void duplicates(VCS vcs) throws IOException {
-        assumeTrue(!(vcs == VCS.HG && System.getProperty("os.name").toLowerCase().contains("win")));
+        assumeTrue(!(vcs == VCS.HG && !hgAvailable));
         var tmpDir = Files.createTempDirectory("repositorystorage");
         var repository = TestableRepository.init(tmpDir, vcs);
         var storage = stringStorage(repository);

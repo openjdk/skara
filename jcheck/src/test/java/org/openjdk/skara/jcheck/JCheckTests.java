@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.jcheck;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.openjdk.skara.census.Census;
@@ -260,11 +261,26 @@ class JCheckTests {
         }
     }
 
+    private static boolean hgAvailable = true;
+
+    @BeforeAll
+    static void checkHgAvailability() {
+        try {
+            var pb = new ProcessBuilder("hg", "--version");
+            pb.redirectErrorStream(true);
+            var process = pb.start();
+            process.waitFor();
+            hgAvailable = (process.exitValue() == 0);
+        } catch (Exception e) {
+            hgAvailable = false;
+        }
+    }
+
     @ParameterizedTest
     @EnumSource(VCS.class)
     void checksForCommit(VCS vcs) throws Exception {
         try (var dir = new TemporaryDirectory()) {
-            assumeTrue(!(vcs == VCS.HG && System.getProperty("os.name").toLowerCase().contains("win")));
+            assumeTrue(!(vcs == VCS.HG && !hgAvailable));
             var repoPath = dir.path().resolve("repo");
             var repo = CheckableRepository.create(repoPath, vcs);
 
@@ -285,7 +301,7 @@ class JCheckTests {
     @EnumSource(VCS.class)
     void checkRemoval(VCS vcs) throws Exception {
         try (var dir = new TemporaryDirectory()) {
-            assumeTrue(!(vcs == VCS.HG && System.getProperty("os.name").toLowerCase().contains("win")));
+            assumeTrue(!(vcs == VCS.HG && !hgAvailable));
             var repoPath = dir.path().resolve("repo");
             var repo = CheckableRepository.create(repoPath, vcs);
 
@@ -316,7 +332,7 @@ class JCheckTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void checkOverridingConfiguration(VCS vcs) throws Exception {
-        assumeTrue(!(vcs == VCS.HG && System.getProperty("os.name").toLowerCase().contains("win")));
+        assumeTrue(!(vcs == VCS.HG && !hgAvailable));
         try (var dir = new TemporaryDirectory()) {
             var repoPath = dir.path().resolve("repo");
             var repo = CheckableRepository.create(repoPath, vcs);
