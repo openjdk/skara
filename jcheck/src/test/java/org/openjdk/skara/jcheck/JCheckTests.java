@@ -38,7 +38,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 class JCheckTests {
     static class CheckableRepository {
@@ -280,7 +280,7 @@ class JCheckTests {
     @EnumSource(VCS.class)
     void checksForCommit(VCS vcs) throws Exception {
         try (var dir = new TemporaryDirectory()) {
-            assumeTrue(!(vcs == VCS.HG && !hgAvailable));
+            assumeFalse(vcs == VCS.HG && !hgAvailable);
             var repoPath = dir.path().resolve("repo");
             var repo = CheckableRepository.create(repoPath, vcs);
 
@@ -301,7 +301,7 @@ class JCheckTests {
     @EnumSource(VCS.class)
     void checkRemoval(VCS vcs) throws Exception {
         try (var dir = new TemporaryDirectory()) {
-            assumeTrue(!(vcs == VCS.HG && !hgAvailable));
+            assumeFalse(vcs == VCS.HG && !hgAvailable);
             var repoPath = dir.path().resolve("repo");
             var repo = CheckableRepository.create(repoPath, vcs);
 
@@ -332,7 +332,7 @@ class JCheckTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void checkOverridingConfiguration(VCS vcs) throws Exception {
-        assumeTrue(!(vcs == VCS.HG && !hgAvailable));
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var repoPath = dir.path().resolve("repo");
             var repo = CheckableRepository.create(repoPath, vcs);
