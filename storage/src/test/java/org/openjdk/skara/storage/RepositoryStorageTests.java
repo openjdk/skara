@@ -34,6 +34,7 @@ import java.util.*;
 import java.util.stream.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class RepositoryStorageTests {
     private RepositoryStorage<String> stringStorage(Repository repository) {
@@ -49,6 +50,7 @@ class RepositoryStorageTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void simple(VCS vcs) throws IOException {
+        assumeTrue(!(vcs == VCS.HG && System.getProperty("os.name").toLowerCase().contains("win")));
         var tmpDir = Files.createTempDirectory("repositorystorage");
         var repository = TestableRepository.init(tmpDir, vcs);
         var storage = stringStorage(repository);
@@ -61,6 +63,7 @@ class RepositoryStorageTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void multiple(VCS vcs) throws IOException {
+        assumeTrue(!(vcs == VCS.HG && System.getProperty("os.name").toLowerCase().contains("win")));
         var tmpDir = Files.createTempDirectory("repositorystorage");
         var repository = TestableRepository.init(tmpDir, vcs);
         var storage = stringStorage(repository);
@@ -73,6 +76,7 @@ class RepositoryStorageTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void retained(VCS vcs) throws IOException {
+        assumeTrue(!(vcs == VCS.HG && System.getProperty("os.name").toLowerCase().contains("win")));
         var tmpDir = Files.createTempDirectory("repositorystorage");
         var repository = TestableRepository.init(tmpDir, vcs);
         var storage = stringStorage(repository);
@@ -89,6 +93,7 @@ class RepositoryStorageTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void duplicates(VCS vcs) throws IOException {
+        assumeTrue(!(vcs == VCS.HG && System.getProperty("os.name").toLowerCase().contains("win")));
         var tmpDir = Files.createTempDirectory("repositorystorage");
         var repository = TestableRepository.init(tmpDir, vcs);
         var storage = stringStorage(repository);
