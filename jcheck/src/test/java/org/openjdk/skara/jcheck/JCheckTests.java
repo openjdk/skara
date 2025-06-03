@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.jcheck;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.openjdk.skara.census.Census;
@@ -37,6 +38,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 class JCheckTests {
     static class CheckableRepository {
@@ -259,10 +261,26 @@ class JCheckTests {
         }
     }
 
+    private static boolean hgAvailable = true;
+
+    @BeforeAll
+    static void checkHgAvailability() {
+        try {
+            var pb = new ProcessBuilder("hg", "--version");
+            pb.redirectErrorStream(true);
+            var process = pb.start();
+            process.waitFor();
+            hgAvailable = (process.exitValue() == 0);
+        } catch (Exception e) {
+            hgAvailable = false;
+        }
+    }
+
     @ParameterizedTest
     @EnumSource(VCS.class)
     void checksForCommit(VCS vcs) throws Exception {
         try (var dir = new TemporaryDirectory()) {
+            assumeFalse(vcs == VCS.HG && !hgAvailable);
             var repoPath = dir.path().resolve("repo");
             var repo = CheckableRepository.create(repoPath, vcs);
 
@@ -283,6 +301,7 @@ class JCheckTests {
     @EnumSource(VCS.class)
     void checkRemoval(VCS vcs) throws Exception {
         try (var dir = new TemporaryDirectory()) {
+            assumeFalse(vcs == VCS.HG && !hgAvailable);
             var repoPath = dir.path().resolve("repo");
             var repo = CheckableRepository.create(repoPath, vcs);
 
@@ -313,6 +332,7 @@ class JCheckTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void checkOverridingConfiguration(VCS vcs) throws Exception {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var repoPath = dir.path().resolve("repo");
             var repo = CheckableRepository.create(repoPath, vcs);

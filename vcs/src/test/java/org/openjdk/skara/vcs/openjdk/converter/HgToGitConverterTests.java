@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.vcs.openjdk.converter;
 
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.openjdk.skara.test.TemporaryDirectory;
 import org.openjdk.skara.test.TestableRepository;
 import org.openjdk.skara.vcs.*;
@@ -34,8 +36,30 @@ import java.nio.file.Files;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class HgToGitConverterTests {
+
+    private static boolean hgAvailable = true;
+
+    @BeforeAll
+    static void checkHgAvailability() {
+        try {
+            var pb = new ProcessBuilder("hg", "--version");
+            pb.redirectErrorStream(true);
+            var process = pb.start();
+            process.waitFor();
+            hgAvailable = (process.exitValue() == 0);
+        } catch (Exception e) {
+            hgAvailable = false;
+        }
+    }
+
+    @BeforeEach
+    void assumeHgAvailable() {
+        assumeTrue(hgAvailable);
+    }
+
     @Test
     void convertOneCommit() throws IOException {
         try (var hgRoot = new TemporaryDirectory();

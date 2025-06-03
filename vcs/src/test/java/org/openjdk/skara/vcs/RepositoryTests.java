@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,18 +44,32 @@ import java.util.stream.Collectors;
 import static java.nio.file.StandardOpenOption.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 public class RepositoryTests {
+
+    private static boolean hgAvailable = true;
 
     @BeforeAll
     static void setup() {
         GitRepository.ignoreConfiguration();
         HgRepository.ignoreConfiguration();
+
+        try {
+            var pb = new ProcessBuilder("hg", "--version");
+            pb.redirectErrorStream(true);
+            var process = pb.start();
+            process.waitFor();
+            hgAvailable = (process.exitValue() == 0);
+        } catch (Exception e) {
+            hgAvailable = false;
+        }
     }
 
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testExistsOnMissingDirectory(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         var d = Paths.get("/", "this", "path", "does", "not", "exist");
         var r = Repository.get(d);
         assertTrue(r.isEmpty());
@@ -64,6 +78,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testExistsOnEmptyDirectory(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = Repository.get(dir.path());
             assertTrue(r.isEmpty());
@@ -73,6 +88,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testExistsOnInitializedRepository(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.exists());
@@ -81,9 +97,10 @@ public class RepositoryTests {
 
     @ParameterizedTest
     @EnumSource(VCS.class)
-    void testExistsOnSubdir() throws IOException {
+    void testExistsOnSubdir(VCS vcs) throws IOException {
+        assumeTrue(vcs == VCS.GIT);
         try (var dir = new TemporaryDirectory()) {
-            var r = TestableRepository.init(dir.path(), VCS.GIT);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.exists());
 
             var subdir = Paths.get(dir.toString(), "test");
@@ -95,9 +112,10 @@ public class RepositoryTests {
 
     @ParameterizedTest
     @EnumSource(VCS.class)
-    void testRootOnTopLevel() throws IOException {
+    void testRootOnTopLevel(VCS vcs) throws IOException {
+        assumeTrue(vcs == VCS.GIT);
         try (var dir = new TemporaryDirectory()) {
-            var r = TestableRepository.init(dir.path(), VCS.GIT);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertEquals(dir.toString(), r.root().toString());
         }
     }
@@ -105,6 +123,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testRootOnSubdirectory(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertEquals(dir.toString(), r.root().toString());
@@ -120,6 +139,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testResolveOnEmptyRepository(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.resolve("HEAD").isEmpty());
@@ -129,6 +149,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testResolveWithHEAD(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -144,6 +165,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testConfig(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -164,6 +186,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testCurrentBranchOnEmptyRepository(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertEquals(r.defaultBranch(), r.currentBranch().get());
@@ -173,6 +196,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testCheckout(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -200,6 +224,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testLines(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -223,6 +248,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testLinesInSubdir(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             TestableRepository.init(dir.path(), vcs);
 
@@ -251,6 +277,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testCommitListingOnEmptyRepo(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.commits().asList().isEmpty());
@@ -260,6 +287,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testCommitListingWithSingleCommit(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -340,6 +368,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testCommitListingWithMultipleCommits(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -409,6 +438,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testSquashDeletes(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -468,6 +498,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testSquash(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -543,6 +574,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testMergeBase(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -568,6 +600,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testIsAncestor(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -596,6 +629,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testRebase(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -669,6 +703,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testInitializedRepositoryIsEmpty(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isEmpty());
@@ -678,6 +713,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testRepositoryWithCommitIsNonEmpty(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -694,6 +730,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testEmptyRepositoryIsHealthy(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isHealthy());
@@ -703,6 +740,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testNonEmptyRepositoryIsHealthy(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -719,6 +757,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testNonCheckedOutRepositoryIsHealthy(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir1 = new TemporaryDirectory();
              var dir2 = new TemporaryDirectory()) {
             var r1 = TestableRepository.init(dir1.path(), vcs);
@@ -740,6 +779,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testBranchesOnEmptyRepository(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertEquals(List.of(), r.branches());
@@ -749,6 +789,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testBranchesOnNonEmptyRepository(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -765,6 +806,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testTagsOnEmptyRepository(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             var expected = vcs == VCS.GIT ? List.of() : List.of(new Tag("tip"));
@@ -775,6 +817,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testTagsOnNonEmptyRepository(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -792,6 +835,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testFetchAndPush(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var upstream = TestableRepository.init(dir.path(), vcs);
 
@@ -835,6 +879,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testFetchUpdatedTag(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var upstream = TestableRepository.init(dir.path(), vcs);
 
@@ -879,6 +924,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testClean(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             r.clean();
@@ -922,6 +968,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testCleanIgnored(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             r.clean();
@@ -946,6 +993,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testDiffBetweenCommits(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -995,6 +1043,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testDiffBetweenCommitsWithMultiplePatches(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -1064,6 +1113,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testDiffBetweenCommitsWithMultipleHunks(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -1127,6 +1177,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testDiffWithRemoval(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -1176,6 +1227,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testDiffWithAddition(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -1226,6 +1278,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testDiffWithWorkingDir(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -1273,6 +1326,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testCommitMetadata(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -1299,6 +1353,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testCommitMetadataWithFiles(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -1336,6 +1391,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testCommitMetadataWithReverse(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -1363,6 +1419,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testTrivialMerge(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -1416,6 +1473,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testMergeWithEdit(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -1500,6 +1558,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testDefaultBranch(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             var expected = vcs == VCS.GIT ? "master" : "default";
@@ -1510,6 +1569,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testPaths(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             var remote = vcs == VCS.GIT ? "origin" : "default";
@@ -1522,6 +1582,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testIsValidRevisionRange(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertFalse(r.isValidRevisionRange("foo"));
@@ -1538,6 +1599,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testDefaultTag(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             var expected = vcs == VCS.GIT ? Optional.empty() : Optional.of(new Tag("tip"));
@@ -1548,6 +1610,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testTag(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -1569,6 +1632,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testIsClean(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
@@ -1594,6 +1658,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testShowOnExecutableFiles(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
@@ -1630,6 +1695,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testDiffOnFilenamesWithSpace(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
@@ -1654,6 +1720,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testDiffAgainstInitialRevision(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
@@ -1674,6 +1741,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testStatusAgainstInitialRevision(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
@@ -1759,6 +1827,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testAmend(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
@@ -1781,6 +1850,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testRevert(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
@@ -1808,6 +1878,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testFiles(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
@@ -1849,6 +1920,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testDump(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
@@ -1870,6 +1942,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testStatus(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
@@ -1938,6 +2011,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testTrackLineEndings(VCS vcs) throws IOException, InterruptedException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             if (vcs == VCS.GIT) { // turn of git's meddling
@@ -1984,6 +2058,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testContains(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
@@ -2006,6 +2081,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testAbortMerge(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
@@ -2062,6 +2138,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testRemotes(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var repo = TestableRepository.init(dir.path(), vcs);
             assertEquals(List.of(), repo.remotes());
@@ -2073,6 +2150,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testRemoteBranches(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var upstream = TestableRepository.init(dir.path().resolve("upstream"), vcs);
             var readme = upstream.root().resolve("README");
@@ -2093,6 +2171,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testSubmodulesOnEmptyRepo(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var repo = TestableRepository.init(dir.path(), vcs);
             assertEquals(List.of(), repo.submodules());
@@ -2102,6 +2181,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testSubmodulesOnRepoWithNoSubmodules(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var repo = TestableRepository.init(dir.path().resolve("repo"), vcs);
             var readme = repo.root().resolve("README");
@@ -2115,6 +2195,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testSubmodulesOnRepoWithSubmodule(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var submodule = TestableRepository.init(dir.path().resolve("submodule"), vcs);
             var readme = submodule.root().resolve("README");
@@ -2139,6 +2220,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testAnnotateTag(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory(false)) {
             var repo = TestableRepository.init(dir.path(), vcs);
             var readme = repo.root().resolve("README");
@@ -2164,6 +2246,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testAnnotateTagOnMissingTag(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var repo = TestableRepository.init(dir.path(), vcs);
             var readme = repo.root().resolve("README");
@@ -2178,6 +2261,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testAnnotateTagOnEmptyRepo(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var repo = TestableRepository.init(dir.path(), vcs);
             assertEquals(Optional.empty(), repo.annotate(new Tag("unknown")));
@@ -2187,6 +2271,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testDiffWithFileList(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var repo = TestableRepository.init(dir.path(), vcs);
             var readme = repo.root().resolve("README");
@@ -2239,6 +2324,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testWritingConfigValue(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var repo = TestableRepository.init(dir.path(), vcs);
             assertEquals(List.of(), repo.config("test.key"));
@@ -2250,6 +2336,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testNoConfig(VCS vcs) throws IOException, InterruptedException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         // Verify that our method of disabling configuration works
         try (var dir = new TemporaryDirectory()) {
             switch (vcs) {
@@ -2290,6 +2377,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testFetchRemote(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var upstream = TestableRepository.init(dir.path(), vcs);
             var readme = dir.path().resolve("README");
@@ -2398,6 +2486,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testRangeSingle(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var repo = TestableRepository.init(dir.path(), vcs);
             var range = repo.range(new Hash("0123456789"));
@@ -2414,6 +2503,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testRangeInclusive(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var repo = TestableRepository.init(dir.path(), vcs);
             var range = repo.rangeInclusive(new Hash("01234"), new Hash("56789"));
@@ -2430,6 +2520,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testRangeExclusive(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var repo = TestableRepository.init(dir.path(), vcs);
             var range = repo.rangeExclusive(new Hash("01234"), new Hash("56789"));
@@ -2445,6 +2536,7 @@ public class RepositoryTests {
 
     @Test
     void testHgRepoNestedInGitRepo() throws IOException {
+        assumeTrue(hgAvailable);
         try (var gitDir = new TemporaryDirectory()) {
             var gitRepo = TestableRepository.init(gitDir.path(), VCS.GIT);
             var gitFile = gitRepo.root().resolve("git-file.txt");
@@ -2473,6 +2565,7 @@ public class RepositoryTests {
 
     @Test
     void testGitRepoNestedInHgRepo() throws IOException {
+        assumeTrue(hgAvailable);
         try (var hgDir = new TemporaryDirectory()) {
             var hgRepo = TestableRepository.init(hgDir.path(), VCS.HG);
             var hgFile = hgRepo.root().resolve("hg-file.txt");
@@ -2501,6 +2594,7 @@ public class RepositoryTests {
 
     @Test
     void testGitAndHgRepoInSameDirectory() throws IOException {
+        assumeTrue(hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var hgRepo = TestableRepository.init(dir.path(), VCS.HG);
             var hgFile = hgRepo.root().resolve("hg-file.txt");
@@ -2573,6 +2667,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testMergeCommitWithRenamedP0AndModifiedP1(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory(false)) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -2618,6 +2713,7 @@ public class RepositoryTests {
 
     @Test
     void testMercurialTagWithoutEmail() throws IOException, InterruptedException {
+        assumeTrue(hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var repo = TestableRepository.init(dir.path(), VCS.HG);
             var readme = dir.path().resolve("README");
@@ -2634,6 +2730,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testNonFastForwardMerge(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -2658,6 +2755,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testFastForwardMerge(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -2684,6 +2782,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testDeleteUntrackedFiles(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -2713,6 +2812,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testTimestampOnTags(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -2732,6 +2832,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testFollow(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -2758,6 +2859,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testFollowMergeCommit(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory(false)) {
             var r = TestableRepository.init(dir.path(), vcs);
 
@@ -2807,6 +2909,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testPull(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var upstream = TestableRepository.init(dir.path(), vcs);
             var readme = dir.path().resolve("README");
@@ -2843,6 +2946,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testNonExistingLookup(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
@@ -2860,6 +2964,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testSuccessfulCherryPicking(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
@@ -2899,6 +3004,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testFailingCherryPicking(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory(false)) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
@@ -2941,6 +3047,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testRepositoryContains(VCS vcs) throws IOException {
+        assumeFalse(vcs == VCS.HG && !hgAvailable);
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
