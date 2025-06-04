@@ -339,23 +339,7 @@ public class GitLabRepository implements HostedRepository {
                 .put("encoding", "base64")
                 .put("content", new String(Base64.getEncoder().encode(content.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
 
-        if (createNewFile) {
-            // Use POST to create a new file
-            request.post("repository/files/" + encodedFileName)
-                    .body(body)
-                    .onError(writeFileContentsOnError(filename, content, branch))
-                    .execute();
-        } else {
-            // USE PUT to update the file
-            request.put("repository/files/" + encodedFileName)
-                    .body(body)
-                    .onError(writeFileContentsOnError(filename, content, branch))
-                    .execute();
-        }
-    }
-
-    private RestRequest.ErrorTransform writeFileContentsOnError(String filename, String content, Branch branch) {
-        return response -> {
+        RestRequest.ErrorTransform onError = response -> {
             // When GitLab returns 400, it may have still performed the update, so
             // need to check the current file contents.
             if (response.statusCode() == 400) {
@@ -371,6 +355,20 @@ public class GitLabRepository implements HostedRepository {
             }
             return Optional.empty();
         };
+
+        if (createNewFile) {
+            // Use POST to create a new file
+            request.post("repository/files/" + encodedFileName)
+                    .body(body)
+                    .onError(onError)
+                    .execute();
+        } else {
+            // USE PUT to update the file
+            request.put("repository/files/" + encodedFileName)
+                    .body(body)
+                    .onError(onError)
+                    .execute();
+        }
     }
 
     @Override
