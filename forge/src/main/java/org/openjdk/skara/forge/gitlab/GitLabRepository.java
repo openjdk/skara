@@ -343,18 +343,18 @@ public class GitLabRepository implements HostedRepository {
             // Use POST to create a new file
             request.post("repository/files/" + encodedFileName)
                     .body(body)
-                    .onError(writeFilecontentsOnError(filename, content, branch))
+                    .onError(writeFileContentsOnError(filename, content, branch))
                     .execute();
         } else {
             // USE PUT to update the file
             request.put("repository/files/" + encodedFileName)
                     .body(body)
-                    .onError(writeFilecontentsOnError(filename, content, branch))
+                    .onError(writeFileContentsOnError(filename, content, branch))
                     .execute();
         }
     }
 
-    private RestRequest.ErrorTransform writeFilecontentsOnError(String filename, String content, Branch branch) {
+    private RestRequest.ErrorTransform writeFileContentsOnError(String filename, String content, Branch branch) {
         return response -> {
             // When GitLab returns 400, it may have still performed the update, so
             // need to check the current file contents.
