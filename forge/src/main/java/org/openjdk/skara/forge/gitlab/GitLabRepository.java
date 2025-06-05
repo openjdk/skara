@@ -339,31 +339,34 @@ public class GitLabRepository implements HostedRepository {
                 .put("encoding", "base64")
                 .put("content", new String(Base64.getEncoder().encode(content.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
 
+        RestRequest.ErrorTransform onError = response -> {
+            // When GitLab returns 400, it may have still performed the update, so
+            // need to check the current file contents.
+            if (response.statusCode() == 400) {
+                log.info("Received status code 400 when writing file " + filename
+                        + " in repo " + name() + ", checking if file was stored anyway");
+                var currentContents = fileContents(filename, branch.name());
+                if (currentContents.isPresent() && content.equals(currentContents.get())) {
+                    // Need to return something other than empty
+                    log.info("Writing file " + filename + " in repo " + name()
+                            + " was found to be successful in spite of return code 400");
+                    return Optional.of(JSON.of());
+                }
+            }
+            return Optional.empty();
+        };
+
         if (createNewFile) {
             // Use POST to create a new file
             request.post("repository/files/" + encodedFileName)
                     .body(body)
+                    .onError(onError)
                     .execute();
         } else {
             // USE PUT to update the file
             request.put("repository/files/" + encodedFileName)
                     .body(body)
-                    .onError(response -> {
-                        // When GitLab returns 400, it may have still performed the update, so
-                        // need to check the current file contents.
-                        if (response.statusCode() == 400) {
-                            log.info("Received status code 400 when writing file " + filename
-                                    + " in repo " + name() + ", checking if file was stored anyway");
-                            var currentContents = fileContents(filename, branch.name());
-                            if (currentContents.isPresent() && content.equals(currentContents.get())) {
-                                // Need to return something other than empty
-                                log.info("Writing file " + filename + " in repo " + name()
-                                        + " was found to be successful in spite of return code 400");
-                                return Optional.of(JSON.of());
-                            }
-                        }
-                        return Optional.empty();
-                    })
+                    .onError(onError)
                     .execute();
         }
     }

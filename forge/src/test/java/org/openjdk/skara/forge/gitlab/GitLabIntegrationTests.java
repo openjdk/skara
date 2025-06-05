@@ -148,7 +148,7 @@ class GitLabIntegrationTests {
     }
 
     @Test
-    @EnabledIfTestProperties({"gitlab.user", "gitlab.pat", "gitlab.uri", "gitlab.group",
+    @EnabledIfTestProperties({"gitlab.user", "gitlab.pat", "gitlab.uri",
                               "gitlab.repository", "gitlab.repository.branch"})
     void writeFileContents() {
         var gitLabRepo = gitLabHost.repository(props.get("gitlab.repository")).orElseThrow();
