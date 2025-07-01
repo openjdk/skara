@@ -158,7 +158,7 @@ public class PullRequestPrunerBot implements Bot {
         }
 
         // Latest prune-delaying action (deliberately excluding pr.updatedAt, as it can be updated spuriously)
-        var latestAction = Stream.of(Stream.of(pr.createdAt()),
+        var latestAction = Stream.of(Stream.of(pr.createdAt(), pr.lastTouchedTime()),
                                    pr.comments().stream()
                                      .filter(comment -> !ignoredUsers.contains(comment.author().username()))
                                      .map(Comment::updatedAt),

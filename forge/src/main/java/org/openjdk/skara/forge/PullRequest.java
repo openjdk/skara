@@ -244,6 +244,12 @@ public interface PullRequest extends Issue {
     Object snapshot();
 
     /**
+     * Returns the last time of the pull request touched by user
+     * Valid Touch includes "mark as ready", "reopen", "commit"
+     */
+    ZonedDateTime lastTouchedTime();
+
+    /**
      * Helper method for implementations of this interface. Creates a new list
      * of Review objects with the targetRef field updated to match the target
      * ref change events. Ideally this method should have been part of a common

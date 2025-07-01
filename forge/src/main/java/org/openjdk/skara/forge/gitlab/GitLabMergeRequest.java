@@ -923,4 +923,30 @@ public class GitLabMergeRequest implements PullRequest {
         }
         return body;
     }
+
+    @Override
+    public ZonedDateTime lastTouchedTime() {
+        Set<String> relevantEvents = Set.of(
+                "marked this merge request as **ready**",
+                "marked this merge request as **draft**"
+        );
+        // Get relevant note timestamps
+        Stream<ZonedDateTime> noteTimes = request.get("notes")
+                .execute().stream()
+                .map(JSONValue::asObject)
+                .filter(note -> relevantEvents.contains(note.get("body").asString()))
+                .map(note -> ZonedDateTime.parse(note.get("created_at").asString()));
+
+        // Get commit dates
+        Stream<ZonedDateTime> commitTimes = request.get("commits")
+                .execute().stream()
+                .map(JSONValue::asObject)
+                .map(commit -> ZonedDateTime.parse(commit.get("committed_date").asString()));
+
+        // Combine and get latest time
+        return Stream.concat(noteTimes, commitTimes)
+                .max(ZonedDateTime::compareTo)
+                .orElseGet(this::createdAt);
+    }
+
 }
