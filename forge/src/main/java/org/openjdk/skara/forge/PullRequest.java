@@ -245,7 +245,7 @@ public interface PullRequest extends Issue {
 
     /**
      * Returns the last time of the pull request touched by user
-     * Valid Touch includes "mark as ready", "reopen", "commit"
+     * Valid Touch includes "mark as ready", "convert to draft", "reopen", "commit"
      */
     ZonedDateTime lastTouchedTime();
 
