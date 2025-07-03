@@ -48,6 +48,7 @@ public class TestIssueStore {
     private final List<HostUser> assignees = new ArrayList<>();
     private final ZonedDateTime created = ZonedDateTime.now();
     private ZonedDateTime lastUpdate = created;
+    private ZonedDateTime lastTouchedTime = created();
     private HostUser closedBy = null;
 
     public TestIssueStore(String id, IssueProject issueProject, HostUser author, String title, List<String> body) {
@@ -124,6 +125,14 @@ public class TestIssueStore {
 
     public void setLastUpdate(ZonedDateTime lastUpdate) {
         this.lastUpdate = lastUpdate;
+    }
+
+    public void setLastTouchedTime(ZonedDateTime lastTouchedTime) {
+        this.lastTouchedTime = lastTouchedTime;
+    }
+
+    public ZonedDateTime lastTouchedTime(){
+        return lastTouchedTime;
     }
 
     public void setClosedBy(HostUser closedBy) {

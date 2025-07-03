@@ -362,6 +362,6 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     // For TestPullRequest, we control the lastUpdate timestamp, so it won't be spurious
     @Override
     public ZonedDateTime lastTouchedTime() {
-        return store().lastUpdate();
+        return store().lastTouchedTime();
     }
 }

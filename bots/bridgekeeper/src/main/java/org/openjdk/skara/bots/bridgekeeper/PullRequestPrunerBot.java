@@ -81,7 +81,8 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
                     .filter(comment -> !ignoredUsers.contains(comment.author().username()))
                     .toList()
                     .getLast();
-            if (lastComment.author().equals(pr.repository().forge().currentUser()) && lastComment.body().contains(NOTICE_MARKER)) {
+            if (lastComment.author().equals(pr.repository().forge().currentUser()) && lastComment.body().contains(NOTICE_MARKER)
+                    && !lastComment.createdAt().isBefore(pr.lastTouchedTime())) {
                 var message = "@" + pr.author().username() + " This pull request has been inactive for more than " +
                         formatDuration(maxAge.multipliedBy(2)) + " and will now be automatically closed. If you would " +
                         "like to continue working on this pull request in the future, feel free to reopen it! This can be done " +

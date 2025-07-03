@@ -164,6 +164,7 @@ public class TestIssue implements Issue {
     public void setState(State state) {
         store.setState(state);
         store.setLastUpdate(ZonedDateTime.now());
+        store.setLastTouchedTime(ZonedDateTime.now());
         store.setClosedBy(user);
     }
 

@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.bridgekeeper;
 
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.test.*;
 
 import org.junit.jupiter.api.*;
@@ -71,6 +72,36 @@ class PullRequestPrunerBotTests {
 
             assertEquals(3, pr.comments().size());
             assertTrue(pr.comments().get(2).body().contains("will be automatically closed if"));
+
+            // Add a commit to the pr
+            var editHash2 = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash2, author.authenticatedUrl(), "edit", true);
+            TestBotRunner.runPeriodicItems(bot);
+
+            // Make sure the timeout expires again
+            Thread.sleep(100);
+            TestBotRunner.runPeriodicItems(bot);
+            assertEquals(Issue.State.OPEN, pr.store().state());
+            assertEquals(4, pr.comments().size());
+            assertTrue(pr.comments().get(3).body().contains("will be automatically closed if"));
+
+
+            pr.makeDraft();
+            // Make sure the timeout expires again
+            Thread.sleep(100);
+            TestBotRunner.runPeriodicItems(bot);
+            assertEquals(Issue.State.OPEN, pr.store().state());
+            assertEquals(5, pr.comments().size());
+            assertTrue(pr.comments().get(4).body().contains("will be automatically closed if"));
+
+
+            pr.makeNotDraft();
+            // Make sure the timeout expires again
+            Thread.sleep(100);
+            TestBotRunner.runPeriodicItems(bot);
+            assertEquals(Issue.State.OPEN, pr.store().state());
+            assertEquals(6, pr.comments().size());
+            assertTrue(pr.comments().get(5).body().contains("will be automatically closed if"));
 
             // Post a comment as ignored User
             ignoredUserPr.addComment("It should be ignored");
