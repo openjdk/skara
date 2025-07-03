@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -48,7 +48,7 @@ public class TestIssueStore {
     private final List<HostUser> assignees = new ArrayList<>();
     private final ZonedDateTime created = ZonedDateTime.now();
     private ZonedDateTime lastUpdate = created;
-    private ZonedDateTime lastTouchedTime = created();
+    private ZonedDateTime lastTouchedTime = created;
     private HostUser closedBy = null;
 
     public TestIssueStore(String id, IssueProject issueProject, HostUser author, String title, List<String> body) {

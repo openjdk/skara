@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -77,7 +77,6 @@ class PullRequestPrunerBotTests {
             var editHash2 = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash2, author.authenticatedUrl(), "edit", true);
             TestBotRunner.runPeriodicItems(bot);
-
             // Make sure the timeout expires again
             Thread.sleep(100);
             TestBotRunner.runPeriodicItems(bot);
@@ -105,10 +104,8 @@ class PullRequestPrunerBotTests {
 
             // Post a comment as ignored User
             ignoredUserPr.addComment("It should be ignored");
-
             // Make sure the timeout expires again
             Thread.sleep(100);
-
             // The bot should now close it
             TestBotRunner.runPeriodicItems(bot);
 
