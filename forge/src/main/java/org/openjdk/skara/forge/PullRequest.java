@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -242,6 +242,12 @@ public interface PullRequest extends Issue {
      * Used for detecting if anything has changed between two snapshots.
      */
     Object snapshot();
+
+    /**
+     * Returns the last time of the pull request touched by user
+     * Valid Touch includes "mark as ready", "convert to draft", "reopen", "commit"
+     */
+    ZonedDateTime lastTouchedTime();
 
     /**
      * Helper method for implementations of this interface. Creates a new list

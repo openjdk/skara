@@ -509,4 +509,15 @@ class GitHubIntegrationTests {
         var prDiff = pr.diff();
         assertFalse(prDiff.complete());
     }
+
+    @Test
+    @EnabledIfTestProperties({"github.user", "github.pat", "github.repository", "github.prId"})
+    void testLastCommitTime() {
+        var githubRepoOpt = githubHost.repository(props.get("github.repository"));
+        assumeTrue(githubRepoOpt.isPresent());
+        var githubRepo = githubRepoOpt.get();
+
+        var pr = githubRepo.pullRequest(props.get("github.prId"));
+        var lastTouchedTime = pr.lastTouchedTime();
+    }
 }
