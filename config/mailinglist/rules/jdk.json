@@ -47,14 +47,19 @@
             "make/jdk/src/classes/build/tools/taglet/Preview.java",
             "make/langtools/",
             "make/modules/jdk.compiler/",
+            "make/modules/jdk.jshell",
             "make/scripts/generate-symbol-data.sh",
             "src/java.base/share/classes/jdk/internal/javac/",
             "src/java.compiler/",
             "src/jdk.compiler/",
+            "src/jdk.editpad/",
+            "src/jdk.internal.ed/",
+            "src/jdk.internal.le/",
             "src/jdk.jartool/(?!.*/jarsigner)",
             "src/jdk.jdeps/share/classes/com/sun/tools/classfile/",
             "src/jdk.jdeps/share/classes/com/sun/tools/javap/",
             "src/jdk.jdeps/share/classes/com/sun/tools/jdeprscan/",
+            "src/jdk.jshell/",
             "test/langtools/TEST.ROOT",
             "test/langtools/TEST.groups",
             "test/langtools/ProblemList-graal.txt",
@@ -62,6 +67,7 @@
             "test/langtools/req.flg",
             "test/langtools/lib/combo/TEST.properties",
             "test/langtools/jdk/internal/shellsupport/",
+            "test/langtools/jdk/jshell/",
             "test/langtools/lib/annotations",
             "test/langtools/lib/combo/tools/javac/",
             "test/langtools/tools/"
@@ -490,14 +496,6 @@
             "test/jdk/javax/management/",
             "test/jdk/sun/management/",
             "test/jdk/com/sun/jmx"
-        ],
-        "kulla": [
-            "make/modules/jdk.jshell",
-            "src/jdk.editpad/",
-            "src/jdk.internal.ed/",
-            "src/jdk.internal.le/",
-            "src/jdk.jshell/",
-            "test/langtools/jdk/jshell/"
         ],
         "net": [
             "make/modules/jdk.net",
