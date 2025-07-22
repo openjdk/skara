@@ -34,7 +34,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class LabelerWorkItem extends PullRequestWorkItem {
-    private static final String INITIAL_LABEL_MESSAGE = "<!-- PullRequestBot initial label help comment -->";
+    protected static final String INITIAL_LABEL_MESSAGE = "<!-- PullRequestBot initial label help comment -->";
+    private static final String LABEL_COMMIT_MARKER = "<!-- PullRequest Bot label commit '%s' -->";
 
     LabelerWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler,
             ZonedDateTime prUpdatedAt) {
@@ -59,7 +60,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                        .findAny();
     }
 
-    private void updateLabelMessage(List<Comment> comments, List<String> newLabels) {
+    private void updateLabelMessage(List<Comment> comments, List<String> newLabels, String commitHash) {
         var existing = findComment(comments, INITIAL_LABEL_MESSAGE);
         if (existing.isPresent()) {
             // Only add the comment once per PR
@@ -111,6 +112,8 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
         message.append("\n");
         message.append(INITIAL_LABEL_MESSAGE);
+        message.append("\n");
+        message.append(String.format(LABEL_COMMIT_MARKER, commitHash));
         pr.addComment(message.toString());
     }
 
@@ -160,7 +163,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                      .filter(label -> !currentLabels.contains(label))
                      .filter(label -> !manuallyRemoved.contains(label))
                                        .collect(Collectors.toList());
-            updateLabelMessage(comments, labelsToAdd);
+            updateLabelMessage(comments, labelsToAdd, pr.headHash().toString());
             labelsToAdd.forEach(pr::addLabel);
 
             // Remove set labels no longer present unless it has been manually added

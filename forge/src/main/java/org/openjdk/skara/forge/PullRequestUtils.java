@@ -190,9 +190,27 @@ public class PullRequestUtils {
         return localRepo.mergeBase(targetHash(localRepo), pr.headHash());
     }
 
+    /**
+     * Returns the set of files changed in the pull request with respect to the base hash.
+     */
     public static Set<Path> changedFiles(PullRequest pr, Repository localRepo) throws IOException {
+        return changedFilesBetween(localRepo, baseHash(pr, localRepo), pr.headHash());
+    }
+
+    /**
+     * Returns the set of files changed in the pull request since a given commit.
+     */
+    public static Set<Path> changedFiles(PullRequest pr, Repository localRepo, Hash commitHash) throws IOException {
+        // If commitHash is not the ancestor of pr.headHash(), it means the user did force push.
+        if (!localRepo.isAncestor(commitHash, pr.headHash())) {
+            return changedFiles(pr, localRepo);
+        }
+        return changedFilesBetween(localRepo, commitHash, pr.headHash());
+    }
+
+    private static Set<Path> changedFilesBetween(Repository localRepo, Hash from, Hash to) throws IOException {
         var ret = new HashSet<Path>();
-        var changes = localRepo.diff(baseHash(pr, localRepo), pr.headHash());
+        var changes = localRepo.diff(from, to);
         for (var patch : changes.patches()) {
             if (patch.status().isDeleted() || patch.status().isRenamed()) {
                 patch.source().path().ifPresent(ret::add);

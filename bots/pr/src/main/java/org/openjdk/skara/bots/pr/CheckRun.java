@@ -43,6 +43,7 @@ import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.*;
 
 import static org.openjdk.skara.bots.common.PullRequestConstants.*;
@@ -77,6 +78,7 @@ class CheckRun {
     private static final String APPROVAL_NEEDED_MARKER = "<!-- PullRequestBot approval needed comment -->";
     private static final String BACKPORT_CSR_MARKER = "<!-- PullRequestBot backport csr comment -->";
     private static final Set<String> PRIMARY_TYPES = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
+    private static final Pattern LABEL_COMMIT_PATTERN = Pattern.compile("<!-- PullRequest Bot label commit '(.*?)' -->");
     protected static final String CSR_PROCESS_LINK = "https://wiki.openjdk.org/display/csr/Main";
     private static final Path JCHECK_CONF_PATH = Path.of(".jcheck", "conf");
     private static final int MESSAGE_LIMIT = 50;
@@ -1458,6 +1460,31 @@ class CheckRun {
             }
 
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
+
+
+            if (workItem.bot.isAutoLabelled(pr)) {
+                var labelComment = findComment(LabelerWorkItem.INITIAL_LABEL_MESSAGE);
+                if (labelComment.isPresent()) {
+                    var line = labelComment.get().body().lines()
+                            .map(LABEL_COMMIT_PATTERN::matcher)
+                            .filter(Matcher::find)
+                            .findFirst();
+                    if (line.isPresent()) {
+                        var evaluatedCommitHash = line.get().group(1);
+                        var changedFiles = PullRequestUtils.changedFiles(pr, localRepo, new Hash(evaluatedCommitHash));
+                        var newLabelsNeedToBeAdded = workItem.bot.labelConfiguration().label(changedFiles);
+                        newLabels.addAll(newLabelsNeedToBeAdded);
+                        var upgradedLabels = workItem.bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
+                        newLabels.addAll(upgradedLabels);
+                        newLabels.removeIf(label -> !upgradedLabels.contains(label));
+                    }
+                    pr.updateComment(labelComment.get().id(), labelComment.get().body().replaceAll(
+                            "(<!-- PullRequest Bot label commit ')[^']*(' -->)",
+                            "$1" + pr.headHash().toString() + "$2"
+                    ));
+                }
+            }
+
             var readyForReview = updateReadyForReview(visitor, additionalErrors, regularIssuesMap);
 
             var integrationBlockers = botSpecificIntegrationBlockers(regularIssuesMap);
