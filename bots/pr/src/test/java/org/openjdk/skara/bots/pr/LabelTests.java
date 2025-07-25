@@ -28,6 +28,7 @@ import org.openjdk.skara.test.*;
 
 import java.io.IOException;
 import java.nio.file.*;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -639,6 +640,18 @@ public class LabelTests {
             localRepo.push(addHash, author.authenticatedUrl(), "edit", true);
             TestBotRunner.runPeriodicItems(prBot);
             assertEquals(Set.of("group1", "rfr"), new HashSet<>(pr.store().labelNames()));
+
+            // Simulate force-push.
+            localRepo.checkout(editHash);
+            var test1txt = localRepo.root().resolve("test1.txt");
+            try (var output = Files.newBufferedWriter(test1txt)) {
+                output.append("test");
+            }
+            localRepo.add(test1txt);
+            var forcePushHash = localRepo.commit("add txt file", "duke", "duke@openjdk.org");
+            localRepo.push(forcePushHash, author.authenticatedUrl(), "edit", true);
+            TestBotRunner.runPeriodicItems(prBot);
+            assertEquals(Set.of("group1", "rfr", "3"), new HashSet<>(pr.store().labelNames()));
         }
     }
 }
