@@ -269,7 +269,9 @@ class CheckRun {
             var existingAllowed = new HashSet<>(pr.labelNames());
             existingAllowed.retainAll(workItem.bot.labelConfiguration().allowed());
             if (existingAllowed.isEmpty()) {
-                ret.add("This pull request must be associated with at least one component.");
+                ret.add("This pull request must be associated with at least one component. " +
+                        "Please use the [/label](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)" +
+                        " pull request command.");
             }
         }
 
