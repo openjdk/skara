@@ -237,11 +237,11 @@ class CheckRun {
     }
 
     // Additional bot-specific checks that are not handled by JCheck
-    private List<String> botSpecificChecks(boolean iscleanBackport) {
+    private List<String> botSpecificChecks(boolean isCleanBackport) {
         var ret = new ArrayList<String>();
 
         var bodyWithoutStatus = bodyWithoutStatus();
-        if ((bodyWithoutStatus.isBlank() || bodyWithoutStatus.equals(EMPTY_PR_BODY_MARKER)) && !iscleanBackport) {
+        if ((bodyWithoutStatus.isBlank() || bodyWithoutStatus.equals(EMPTY_PR_BODY_MARKER)) && !isCleanBackport) {
             ret.add(MSG_EMPTY_BODY);
         }
 
@@ -262,6 +262,15 @@ class CheckRun {
         if (!integrators.isEmpty() && PullRequestUtils.isMerge(pr) && !integrators.contains(pr.author().username())) {
             var error = "Only the designated integrators for this repository are allowed to create merge-style pull requests.";
             ret.add(error);
+        }
+
+        // If the bot has label configuration and the pr is already auto labelled, check if the pull request is associated with at least one component
+        if (!workItem.bot.labelConfiguration().allowed().isEmpty() && workItem.bot.isAutoLabelled(pr)) {
+            var existingAllowed = new HashSet<>(pr.labelNames());
+            existingAllowed.retainAll(workItem.bot.labelConfiguration().allowed());
+            if (existingAllowed.isEmpty()) {
+                ret.add("This pull request must be associated with at least one component.");
+            }
         }
 
         return ret;
