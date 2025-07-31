@@ -1462,7 +1462,7 @@ class CheckRun {
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
 
 
-            if (workItem.bot.isAutoLabelled(pr)) {
+            if (!workItem.bot.labelConfiguration().allowed().isEmpty() && workItem.bot.isAutoLabelled(pr)) {
                 var labelComment = findComment(LabelerWorkItem.INITIAL_LABEL_MESSAGE);
                 if (labelComment.isPresent()) {
                     var line = labelComment.get().body().lines()
