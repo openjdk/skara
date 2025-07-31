@@ -591,7 +591,7 @@ public class LabelTests {
 
 
     @Test
-    void adjustAutoApplied222(TestInfo testInfo) throws IOException {
+    void autoAdjustLabel(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
