@@ -358,4 +358,10 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     public void setReturnCompleteDiff(boolean complete){
         this.store().setReturnCompleteDiff(complete);
     }
+
+    // For TestPullRequest, we control the lastUpdate timestamp, so it won't be spurious
+    @Override
+    public ZonedDateTime lastTouchedTime() {
+        return store().lastTouchedTime();
+    }
 }

@@ -408,4 +408,14 @@ class GitLabIntegrationTests {
         var prDiff = pr.diff();
         assertFalse(prDiff.complete());
     }
+
+    @Test
+    @EnabledIfTestProperties({"gitlab.user", "gitlab.pat", "gitlab.uri", "gitlab.group",
+            "gitlab.repository", "gitlab.merge.request.id"})
+    void testLastCommitTIME() {
+        var gitLabRepo = gitLabHost.repository(props.get("gitlab.repository")).orElseThrow();
+
+        var pr = gitLabRepo.pullRequest(props.get("gitlab.merge.request.id"));
+        var lastTouchedTime = pr.lastTouchedTime();
+    }
 }

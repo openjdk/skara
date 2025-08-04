@@ -702,7 +702,8 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public Optional<ZonedDateTime> lastMarkedAsDraftTime() {
-        var lastMarkedAsDraftTime = request.get("issues/" + json.get("number").toString() + "/timeline")                .execute().stream()
+        var lastMarkedAsDraftTime = request.get("issues/" + json.get("number").toString() + "/timeline")
+                .execute().stream()
                 .map(JSONValue::asObject)
                 .filter(obj -> obj.contains("event"))
                 .filter(obj -> obj.get("event").asString().equals("convert_to_draft"))
@@ -822,4 +823,20 @@ public class GitHubPullRequest implements PullRequest {
                 .max(ZonedDateTime::compareTo)
                 .orElseGet(this::createdAt);
     }
+
+    @Override
+    public ZonedDateTime lastTouchedTime() {
+        Set<String> relevantEvents = Set.of("committed", "reopened", "ready_for_review", "convert_to_draft");
+
+        return request.get("issues/" + json.get("number").toString() + "/timeline")
+                .execute().stream()
+                .map(JSONValue::asObject)
+                .filter(obj -> obj.contains("event"))
+                .filter(obj -> relevantEvents.contains(obj.get("event").asString()))
+                .map(obj -> obj.get("event").asString().equals("committed") ? obj.get("committer").get("date").asString() : obj.get("created_at").asString())
+                .map(ZonedDateTime::parse)
+                .max(ZonedDateTime::compareTo)
+                .orElseGet(this::createdAt);
+    }
+
 }

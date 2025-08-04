@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -80,6 +80,7 @@ public class TestPullRequestStore extends TestIssueStore {
             if (headHash.isPresent() && !headHash.get().equals(this.headHash)) {
                 this.headHash = headHash.get();
                 setLastUpdate(ZonedDateTime.now());
+                setLastTouchedTime(ZonedDateTime.now());
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -138,6 +139,8 @@ public class TestPullRequestStore extends TestIssueStore {
 
     public void setDraft(boolean draft) {
         this.draft = draft;
+        setLastUpdate(ZonedDateTime.now());
+        setLastTouchedTime(ZonedDateTime.now());
         if (draft) {
             lastMarkedAsDraftTime = ZonedDateTime.now();
         } else {
