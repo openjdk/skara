@@ -180,7 +180,7 @@ public class LabelTests {
 
             // The bot should not apply labels since the user has manually removed labels
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(Set.of("rfr"), new HashSet<>(pr.store().labelNames()));
+            assertEquals(Set.of(), new HashSet<>(pr.store().labelNames()));
 
             // Adding the label manually is fine
             pr.addComment("/label add group");
