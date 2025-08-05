@@ -90,6 +90,7 @@ class CheckRun {
     // Only set if approval is configured for the repo
     private String realTargetRef;
     private boolean missingApprovalRequest = false;
+    private boolean rfrPendingOnOtherWorkItems = false;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
@@ -264,14 +265,19 @@ class CheckRun {
             ret.add(error);
         }
 
-        // If the bot has label configuration and the pr is already auto labelled, check if the pull request is associated with at least one component
-        if (!workItem.bot.labelConfiguration().allowed().isEmpty() && workItem.bot.isAutoLabelled(pr)) {
-            var existingAllowed = new HashSet<>(pr.labelNames());
-            existingAllowed.retainAll(workItem.bot.labelConfiguration().allowed());
-            if (existingAllowed.isEmpty()) {
-                ret.add("This pull request must be associated with at least one component. " +
-                        "Please use the [/label](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)" +
-                        " pull request command.");
+        // If the bot has label configuration
+        if (!workItem.bot.labelConfiguration().allowed().isEmpty()) {
+            // If the pr is already auto labelled, check if the pull request is associated with at least one component
+            if (workItem.bot.isAutoLabelled(pr)) {
+                var existingAllowed = new HashSet<>(pr.labelNames());
+                existingAllowed.retainAll(workItem.bot.labelConfiguration().allowed());
+                if (existingAllowed.isEmpty()) {
+                    ret.add("This pull request must be associated with at least one component. " +
+                            "Please use the [/label](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)" +
+                            " pull request command.");
+                }
+            } else {
+                rfrPendingOnOtherWorkItems = true;
             }
         }
 
@@ -452,6 +458,13 @@ class CheckRun {
     private boolean updateReadyForReview(PullRequestCheckIssueVisitor visitor, List<String> additionalErrors, Map<Issue, Optional<IssueTrackerIssue>> regularIssuesMap) {
         // All the issues must be accessible
         if (issueProject() != null && regularIssuesMap.values().stream().anyMatch(Optional::isEmpty)) {
+            return false;
+        }
+
+        // If rfr is still pending for other workItems, so don't mark this pr as rfr, wait for another round of CheckWorkItem
+        if (rfrPendingOnOtherWorkItems) {
+            newLabels.remove("rfr");
+            log.info("rfr is pending on other workItems for pr: " + pr.id());
             return false;
         }
 

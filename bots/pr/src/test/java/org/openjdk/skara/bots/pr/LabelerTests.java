@@ -67,9 +67,9 @@ class LabelerTests {
             localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
-            // Check the status - only the rfr label should be set
+            // Check the status - rfr label should not be set since the pr is not associated with any component
             TestBotRunner.runPeriodicItems(labelBot);
-            assertEquals(Set.of("rfr"), new HashSet<>(pr.labelNames()));
+            assertEquals(Set.of(), new HashSet<>(pr.labelNames()));
             assertLastCommentContains(pr, "However, no automatic labelling rule matches the changes in this pull request.");
             assertLastCommentContains(pr, "<details>");
             assertLastCommentContains(pr, "<summary>Applicable Labels</summary>");
