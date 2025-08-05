@@ -130,7 +130,7 @@ class CheckWorkItem extends PullRequestWorkItem {
     }
 
     /**
-     * Create Normal CheckWorkItem
+     * Create Normal CheckWorkItem with force update
      */
     public static CheckWorkItem fromWorkItemWithForceUpdate(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt) {
         return new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false, true, false, false);
