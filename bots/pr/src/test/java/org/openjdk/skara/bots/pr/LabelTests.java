@@ -227,6 +227,7 @@ public class LabelTests {
 
             // The bot will not add any label automatically
             TestBotRunner.runPeriodicItems(prBot);
+            // Since there is already a component associated, rfr should be added
             assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.store().labelNames()));
             assertEquals(2, pr.comments().size());
             assertLastCommentContains(pr, "The `1` label was successfully added.");

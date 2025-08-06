@@ -122,7 +122,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
         if (bot.labelConfiguration().allowed().isEmpty()) {
             bot.setAutoLabelled(pr);
-            return List.of();
+            return List.of(CheckWorkItem.fromWorkItemWithForceUpdate(bot, prId, errorHandler, triggerUpdatedAt));
         }
 
         var comments = prComments();
@@ -133,7 +133,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         // that is considered to be a request to override any automatic labelling
         if (manuallyAdded.size() > 0 || manuallyRemoved.size() > 0) {
             bot.setAutoLabelled(pr);
-            return List.of();
+            return List.of(CheckWorkItem.fromWorkItemWithForceUpdate(bot, prId, errorHandler, triggerUpdatedAt));
         }
 
         // If the PR already has one of the allowed labels, that is also considered to override automatic labelling
@@ -141,7 +141,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         existingAllowed.retainAll(bot.labelConfiguration().allowed());
         if (!existingAllowed.isEmpty()) {
             bot.setAutoLabelled(pr);
-            return List.of();
+            return List.of(CheckWorkItem.fromWorkItemWithForceUpdate(bot, prId, errorHandler, triggerUpdatedAt));
         }
 
         try {
@@ -172,7 +172,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-        return List.of();
+        return List.of(CheckWorkItem.fromWorkItemWithForceUpdate(bot, prId, errorHandler, triggerUpdatedAt));
     }
 
     @Override

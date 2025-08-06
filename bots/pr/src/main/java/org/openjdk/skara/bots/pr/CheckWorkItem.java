@@ -129,6 +129,13 @@ class CheckWorkItem extends PullRequestWorkItem {
         return new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false, false, false, false);
     }
 
+    /**
+     * Create Normal CheckWorkItem with force update
+     */
+    public static CheckWorkItem fromWorkItemWithForceUpdate(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler, ZonedDateTime triggerUpdatedAt) {
+        return new CheckWorkItem(bot, prId, errorHandler, triggerUpdatedAt, false, true, false, false);
+    }
+
     private String encodeReviewer(HostUser reviewer, CensusInstance censusInstance) {
         var census = censusInstance.census();
         var project = censusInstance.project();
