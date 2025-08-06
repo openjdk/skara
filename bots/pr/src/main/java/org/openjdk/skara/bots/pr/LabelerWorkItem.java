@@ -122,7 +122,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
         if (bot.labelConfiguration().allowed().isEmpty()) {
             bot.setAutoLabelled(pr);
-            return List.of(CheckWorkItem.fromWorkItemWithForceUpdate(bot, prId, errorHandler, triggerUpdatedAt));
+            return List.of();
         }
 
         var comments = prComments();
