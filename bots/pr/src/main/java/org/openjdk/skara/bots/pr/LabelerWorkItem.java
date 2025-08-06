@@ -116,12 +116,12 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
     @Override
     public Collection<WorkItem> prRun(ScratchArea scratchArea) {
-        if (bot.isAutoLabelled(pr) || pr.isClosed()) {
+        if (bot.labelConfiguration().allowed().isEmpty()) {
+            bot.setAutoLabelled(pr);
             return List.of();
         }
 
-        if (bot.labelConfiguration().allowed().isEmpty()) {
-            bot.setAutoLabelled(pr);
+        if (bot.isAutoLabelled(pr) || pr.isClosed()) {
             return List.of();
         }
 
