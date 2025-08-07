@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -188,7 +188,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         if (nextCommand.isEmpty()) {
             log.info("No new non-external PR commands found, stopping further processing");
 
-            if (!bot.isAutoLabelled(pr)) {
+            if (!bot.isAutoLabelled(pr) && !pr.isClosed()) {
                 // When all commands are processed, it's time to check labels
                 return List.of(new LabelerWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
             } else {
