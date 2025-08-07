@@ -263,11 +263,11 @@ public class JiraIssue implements IssueTrackerIssue {
 
         // Handle special cases
         if (state == State.RESOLVED) {
-            if (!availableTransitions.containsKey(State.RESOLVED.toString())) {
-                if (availableTransitions.containsKey(State.OPEN.toString())) {
+            if (!availableTransitions.containsKey(State.RESOLVED.getDisplayName())) {
+                if (availableTransitions.containsKey(State.OPEN.getDisplayName())) {
                     performTransition(State.OPEN);
                     availableTransitions = availableTransitions();
-                    if (!availableTransitions.containsKey(State.RESOLVED.toString())) {
+                    if (!availableTransitions.containsKey(State.RESOLVED.getDisplayName())) {
                         throw new RuntimeException("Cannot transition to Resolved after Open");
                     }
                 } else {
@@ -278,11 +278,11 @@ public class JiraIssue implements IssueTrackerIssue {
             }
             performTransition(State.RESOLVED);
         } else if (state == State.CLOSED) {
-            if (!availableTransitions.containsKey(State.CLOSED.toString())) {
-                if (availableTransitions.containsKey(State.RESOLVED.toString())) {
+            if (!availableTransitions.containsKey(State.CLOSED.getDisplayName())) {
+                if (availableTransitions.containsKey(State.RESOLVED.getDisplayName())) {
                     performTransition(State.RESOLVED);
                     availableTransitions = availableTransitions();
-                    if (!availableTransitions.containsKey(State.CLOSED.toString())) {
+                    if (!availableTransitions.containsKey(State.CLOSED.getDisplayName())) {
                         throw new RuntimeException("Cannot transition to Closed after Resolved");
                     }
                 } else {
@@ -291,7 +291,7 @@ public class JiraIssue implements IssueTrackerIssue {
             }
             performTransition(State.CLOSED);
         } else if (state == State.OPEN) {
-            if (!availableTransitions.containsKey(State.OPEN.toString())) {
+            if (!availableTransitions.containsKey(State.OPEN.getDisplayName())) {
                 throw new RuntimeException("Cannot transition to Open");
             }
             performTransition(State.OPEN);

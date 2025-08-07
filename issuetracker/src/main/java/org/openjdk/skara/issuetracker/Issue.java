@@ -120,8 +120,7 @@ public interface Issue {
         RESOLVED,
         CLOSED;
 
-        @Override
-        public String toString() {
+        public String getDisplayName() {
             String name = name().toLowerCase();
             return name.substring(0, 1).toUpperCase() + name.substring(1);
         }
