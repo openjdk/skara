@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -116,5 +116,18 @@ class JiraIntegrationTests {
         var inactiveUserId = props.get("jira.user.inactive");
         var inactiveUser = tracker.user(inactiveUserId).orElseThrow();
         assertFalse(inactiveUser.active());
+    }
+
+    @Test
+    @EnabledIfTestProperties({"jira.uri", "jira.pat", "jira.project", "jira.issue"})
+    void testResolutionOfResolvedIssue() throws IOException {
+        var project = tracker.project(props.get("jira.project"));
+        var issueId = props.get("jira.issue");
+
+        var issue = project.issue(issueId).orElseThrow();
+        issue.setState(Issue.State.RESOLVED);
+        issue = project.issue(issueId).orElseThrow();
+        assertTrue(issue.resolution().isPresent());
+        assertEquals("Fixed", issue.resolution().get());
     }
 }

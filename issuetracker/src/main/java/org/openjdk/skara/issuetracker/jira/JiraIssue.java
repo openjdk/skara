@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -238,12 +238,12 @@ public class JiraIssue implements IssueTrackerIssue {
                                                     v -> v.get("id").asString()));
     }
 
-    private void performTransition(String state) {
-        var id = availableTransitions.get(state);
+    private void performTransition(State state) {
+        var id = availableTransitions.get(state.toString());
         var query = JSON.object()
                 .put("transition", JSON.object()
                         .put("id", id));
-        if (state.equals("RESOLVED")) {
+        if (state == State.RESOLVED) {
             query.put("fields", JSON.object()
                     .put("resolution", JSON.object()
                             .put("name", "Fixed")));
@@ -263,11 +263,11 @@ public class JiraIssue implements IssueTrackerIssue {
 
         // Handle special cases
         if (state == State.RESOLVED) {
-            if (!availableTransitions.containsKey("Resolved")) {
-                if (availableTransitions.containsKey("Open")) {
-                    performTransition("Open");
+            if (!availableTransitions.containsKey(State.RESOLVED.toString())) {
+                if (availableTransitions.containsKey(State.OPEN.toString())) {
+                    performTransition(State.OPEN);
                     availableTransitions = availableTransitions();
-                    if (!availableTransitions.containsKey("Resolved")) {
+                    if (!availableTransitions.containsKey(State.RESOLVED.toString())) {
                         throw new RuntimeException("Cannot transition to Resolved after Open");
                     }
                 } else {
@@ -276,25 +276,25 @@ public class JiraIssue implements IssueTrackerIssue {
                     return;
                 }
             }
-            performTransition("Resolved");
+            performTransition(State.RESOLVED);
         } else if (state == State.CLOSED) {
-            if (!availableTransitions.containsKey("Closed")) {
-                if (availableTransitions.containsKey("Resolved")) {
-                    performTransition("Resolved");
+            if (!availableTransitions.containsKey(State.CLOSED.toString())) {
+                if (availableTransitions.containsKey(State.RESOLVED.toString())) {
+                    performTransition(State.RESOLVED);
                     availableTransitions = availableTransitions();
-                    if (!availableTransitions.containsKey("Closed")) {
+                    if (!availableTransitions.containsKey(State.CLOSED.toString())) {
                         throw new RuntimeException("Cannot transition to Closed after Resolved");
                     }
                 } else {
                     throw new RuntimeException("Cannot transition to Closed");
                 }
             }
-            performTransition("Closed");
+            performTransition(State.CLOSED);
         } else if (state == State.OPEN) {
-            if (!availableTransitions.containsKey("Open")) {
+            if (!availableTransitions.containsKey(State.OPEN.toString())) {
                 throw new RuntimeException("Cannot transition to Open");
             }
-            performTransition("Open");
+            performTransition(State.OPEN);
         } else {
             throw new IllegalStateException("Unknown state " + state);
         }
