@@ -118,12 +118,7 @@ public interface Issue {
     enum State {
         OPEN,
         RESOLVED,
-        CLOSED;
-
-        public String getDisplayName() {
-            String name = name().toLowerCase();
-            return name.substring(0, 1).toUpperCase() + name.substring(1);
-        }
+        CLOSED
     }
 
     /**

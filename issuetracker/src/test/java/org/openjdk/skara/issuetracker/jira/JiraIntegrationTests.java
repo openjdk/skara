@@ -22,10 +22,8 @@
  */
 package org.openjdk.skara.issuetracker.jira;
 
-import java.net.URI;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.IssueTracker;
 import org.openjdk.skara.network.URIBuilder;
@@ -34,7 +32,6 @@ import org.openjdk.skara.test.TestProperties;
 import org.openjdk.skara.test.EnabledIfTestProperties;
 
 import java.io.IOException;
-import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
@@ -125,6 +122,7 @@ class JiraIntegrationTests {
         var issueId = props.get("jira.issue");
 
         var issue = project.issue(issueId).orElseThrow();
+        issue.setState(Issue.State.OPEN);
         issue.setState(Issue.State.RESOLVED);
         issue = project.issue(issueId).orElseThrow();
         assertTrue(issue.resolution().isPresent());
