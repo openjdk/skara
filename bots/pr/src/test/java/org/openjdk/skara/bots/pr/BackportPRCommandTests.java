@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.openjdk.skara.forge.Review;
@@ -35,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
+@Disabled
 public class BackportPRCommandTests {
     @Test
     void simple(TestInfo testInfo) throws IOException {

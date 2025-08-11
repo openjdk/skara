@@ -76,97 +76,99 @@ public class BackportCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command,
                        List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
-        if (bot.checkContributorStatusForBackportCommand() && censusInstance.contributor(command.user()).isEmpty()) {
-            printInvalidUserWarning(bot, reply);
-            return;
-        }
+        reply.println("The command `backport` can only be used in a pull request that has been integrated.");
 
-        if (pr.isClosed() && !pr.labelNames().contains("integrated")) {
-            reply.println("`/backport` command can not be used in a closed but not integrated pull request");
-            return;
-        }
-
-        var args = command.args();
-        if (args.isBlank()) {
-            showHelpInPR(reply);
-            return;
-        }
-
-        var parts = args.split(" ");
-
-        // Preprocess args to support "repo:branch" argument
-        if (parts[0].equals("disable")) {
-            if (parts.length == 2 && parts[1].contains(":")) {
-                List<String> tempList = new ArrayList<>();
-                tempList.add("disable");
-                tempList.addAll(Arrays.asList(parts[1].split(":")));
-                parts = tempList.toArray(new String[0]);
-            }
-        } else {
-            if (parts.length == 1 && parts[0].contains(":")) {
-                parts = parts[0].split(":");
-            }
-        }
-
-        boolean argIsValid = parts[0].equals("disable") ? parts.length == 2 || parts.length == 3 : parts.length <= 2;
-        if (!argIsValid) {
-            showHelpInPR(reply);
-            return;
-        }
-
-        if (parts[0].equals("disable")) {
-            // Remove label
-            var targetRepo = getTargetRepo(bot, parts[1], reply);
-            if (targetRepo == null) {
-                return;
-            }
-            var targetRepoName = targetRepo.name();
-
-            var targetBranch = getTargetBranch(parts, 2, targetRepo, reply);
-            if (targetBranch == null) {
-                return;
-            }
-            var targetBranchName = targetBranch.name();
-
-            var backportLabel = generateBackportLabel(targetRepoName, targetBranchName);
-            if (pr.labelNames().contains(backportLabel)) {
-                labelsToRemove.add(backportLabel);
-                reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was successfully disabled.");
-            } else {
-                reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was already disabled.");
-            }
-        } else {
-            // Get target repo
-            var targetRepo = getTargetRepo(bot, parts[0], reply);
-            if (targetRepo == null) {
-                return;
-            }
-            var targetRepoName = targetRepo.name();
-
-            // Get target branch
-            var targetBranch = getTargetBranch(parts, 1, targetRepo, reply);
-            if (targetBranch == null) {
-                return;
-            }
-            var targetBranchName = targetBranch.name();
-
-            if (!targetRepo.canCreatePullRequest(command.user())) {
-                reply.println(INSUFFICIENT_ACCESS_WARNING);
-                return;
-            }
-
-            // Add label
-            var backportLabel = generateBackportLabel(targetRepoName, targetBranchName);
-            if (pr.labelNames().contains(backportLabel)) {
-                reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` has already been enabled.");
-            } else {
-                labelsToAdd.add(backportLabel);
-                reply.print("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was successfully enabled and will be performed once this pull request has been integrated.");
-                reply.println(" Further instructions will be provided at that time.");
-                reply.println("<!-- add backport " + targetRepoName + ":" + targetBranchName + " -->");
-                reply.println("<!-- " + command.user().username() + " -->");
-            }
-        }
+//        if (bot.checkContributorStatusForBackportCommand() && censusInstance.contributor(command.user()).isEmpty()) {
+//            printInvalidUserWarning(bot, reply);
+//            return;
+//        }
+//
+//        if (pr.isClosed() && !pr.labelNames().contains("integrated")) {
+//            reply.println("`/backport` command can not be used in a closed but not integrated pull request");
+//            return;
+//        }
+//
+//        var args = command.args();
+//        if (args.isBlank()) {
+//            showHelpInPR(reply);
+//            return;
+//        }
+//
+//        var parts = args.split(" ");
+//
+//        // Preprocess args to support "repo:branch" argument
+//        if (parts[0].equals("disable")) {
+//            if (parts.length == 2 && parts[1].contains(":")) {
+//                List<String> tempList = new ArrayList<>();
+//                tempList.add("disable");
+//                tempList.addAll(Arrays.asList(parts[1].split(":")));
+//                parts = tempList.toArray(new String[0]);
+//            }
+//        } else {
+//            if (parts.length == 1 && parts[0].contains(":")) {
+//                parts = parts[0].split(":");
+//            }
+//        }
+//
+//        boolean argIsValid = parts[0].equals("disable") ? parts.length == 2 || parts.length == 3 : parts.length <= 2;
+//        if (!argIsValid) {
+//            showHelpInPR(reply);
+//            return;
+//        }
+//
+//        if (parts[0].equals("disable")) {
+//            // Remove label
+//            var targetRepo = getTargetRepo(bot, parts[1], reply);
+//            if (targetRepo == null) {
+//                return;
+//            }
+//            var targetRepoName = targetRepo.name();
+//
+//            var targetBranch = getTargetBranch(parts, 2, targetRepo, reply);
+//            if (targetBranch == null) {
+//                return;
+//            }
+//            var targetBranchName = targetBranch.name();
+//
+//            var backportLabel = generateBackportLabel(targetRepoName, targetBranchName);
+//            if (pr.labelNames().contains(backportLabel)) {
+//                labelsToRemove.add(backportLabel);
+//                reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was successfully disabled.");
+//            } else {
+//                reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was already disabled.");
+//            }
+//        } else {
+//            // Get target repo
+//            var targetRepo = getTargetRepo(bot, parts[0], reply);
+//            if (targetRepo == null) {
+//                return;
+//            }
+//            var targetRepoName = targetRepo.name();
+//
+//            // Get target branch
+//            var targetBranch = getTargetBranch(parts, 1, targetRepo, reply);
+//            if (targetBranch == null) {
+//                return;
+//            }
+//            var targetBranchName = targetBranch.name();
+//
+//            if (!targetRepo.canCreatePullRequest(command.user())) {
+//                reply.println(INSUFFICIENT_ACCESS_WARNING);
+//                return;
+//            }
+//
+//            // Add label
+//            var backportLabel = generateBackportLabel(targetRepoName, targetBranchName);
+//            if (pr.labelNames().contains(backportLabel)) {
+//                reply.println("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` has already been enabled.");
+//            } else {
+//                labelsToAdd.add(backportLabel);
+//                reply.print("Backport for repo `" + targetRepoName + "` on branch `" + targetBranchName + "` was successfully enabled and will be performed once this pull request has been integrated.");
+//                reply.println(" Further instructions will be provided at that time.");
+//                reply.println("<!-- add backport " + targetRepoName + ":" + targetBranchName + " -->");
+//                reply.println("<!-- " + command.user().username() + " -->");
+//            }
+//        }
     }
 
     private String generateBackportLabel(String targetRepo, String targetBranchName) {
