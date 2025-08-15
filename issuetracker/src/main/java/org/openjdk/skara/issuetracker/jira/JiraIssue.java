@@ -48,7 +48,6 @@ public class JiraIssue implements IssueTrackerIssue {
     private static final List<String> VALID_RESOLUTIONS = List.of("Fixed", "Delivered");
 
     private List<Label> labels;
-    private Map<String, String> availableTransitions;
 
     JiraIssue(JiraProject jiraProject, RestRequest request, JSONValue json) {
         this.jiraProject = jiraProject;
@@ -244,7 +243,7 @@ public class JiraIssue implements IssueTrackerIssue {
                                                     v -> v.get("id").asString()));
     }
 
-    private void performTransition(JiraIssueState state) {
+    private void performTransition(JiraIssueState state, Map<String, String> availableTransitions) {
         var id = availableTransitions.get(state.name());
         var query = JSON.object()
                 .put("transition", JSON.object()
@@ -261,7 +260,7 @@ public class JiraIssue implements IssueTrackerIssue {
 
     @Override
     public void setState(State state) {
-        availableTransitions = availableTransitions();
+        var availableTransitions = availableTransitions();
 
         if (availableTransitions.isEmpty()) {
             throw new RuntimeException("Available transition states is empty");
@@ -271,7 +270,7 @@ public class JiraIssue implements IssueTrackerIssue {
         if (state == State.RESOLVED) {
             if (!availableTransitions.containsKey(JiraIssueState.Resolved.name())) {
                 if (availableTransitions.containsKey(JiraIssueState.Open.name())) {
-                    performTransition(JiraIssueState.Open);
+                    performTransition(JiraIssueState.Open, availableTransitions);
                     availableTransitions = availableTransitions();
                     if (!availableTransitions.containsKey(JiraIssueState.Resolved.name())) {
                         throw new RuntimeException("Cannot transition to Resolved after Open");
@@ -282,11 +281,11 @@ public class JiraIssue implements IssueTrackerIssue {
                     return;
                 }
             }
-            performTransition(JiraIssueState.Resolved);
+            performTransition(JiraIssueState.Resolved, availableTransitions);
         } else if (state == State.CLOSED) {
             if (!availableTransitions.containsKey(JiraIssueState.Closed.name())) {
                 if (availableTransitions.containsKey(JiraIssueState.Resolved.name())) {
-                    performTransition(JiraIssueState.Resolved);
+                    performTransition(JiraIssueState.Resolved, availableTransitions);
                     availableTransitions = availableTransitions();
                     if (!availableTransitions.containsKey(JiraIssueState.Closed.name())) {
                         throw new RuntimeException("Cannot transition to Closed after Resolved");
@@ -295,12 +294,12 @@ public class JiraIssue implements IssueTrackerIssue {
                     throw new RuntimeException("Cannot transition to Closed");
                 }
             }
-            performTransition(JiraIssueState.Closed);
+            performTransition(JiraIssueState.Closed, availableTransitions);
         } else if (state == State.OPEN) {
             if (!availableTransitions.containsKey(JiraIssueState.Open.name())) {
                 throw new RuntimeException("Cannot transition to Open");
             }
-            performTransition(JiraIssueState.Open);
+            performTransition(JiraIssueState.Open, availableTransitions);
         } else {
             throw new IllegalStateException("Unknown state " + state);
         }
