@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -57,6 +57,12 @@ public class JiraIssue implements IssueTrackerIssue {
                 .map(s -> new Label(s.asString()))
                 .collect(Collectors.toList());
         this.needSecurity = jiraProject.jiraHost().visibilityRole().isPresent();
+    }
+
+    private enum JiraIssueState {
+        Open,
+        Resolved,
+        Closed
     }
 
     @Override
@@ -237,13 +243,19 @@ public class JiraIssue implements IssueTrackerIssue {
                                                     v -> v.get("id").asString()));
     }
 
-    private void performTransition(String id) {
+    private void performTransition(JiraIssueState state, Map<String, String> availableTransitions) {
+        var id = availableTransitions.get(state.name());
         var query = JSON.object()
-                        .put("transition", JSON.object()
-                                               .put("id", id));
+                .put("transition", JSON.object()
+                        .put("id", id));
+        if (state == JiraIssueState.Resolved) {
+            query.put("fields", JSON.object()
+                    .put("resolution", JSON.object()
+                            .put("name", "Fixed")));
+        }
         request.post("/transitions")
-               .body(query)
-               .execute();
+                .body(query)
+                .execute();
     }
 
     @Override
@@ -256,11 +268,11 @@ public class JiraIssue implements IssueTrackerIssue {
 
         // Handle special cases
         if (state == State.RESOLVED) {
-            if (!availableTransitions.containsKey("Resolved")) {
-                if (availableTransitions.containsKey("Open")) {
-                    performTransition(availableTransitions.get("Open"));
+            if (!availableTransitions.containsKey(JiraIssueState.Resolved.name())) {
+                if (availableTransitions.containsKey(JiraIssueState.Open.name())) {
+                    performTransition(JiraIssueState.Open, availableTransitions);
                     availableTransitions = availableTransitions();
-                    if (!availableTransitions.containsKey("Resolved")) {
+                    if (!availableTransitions.containsKey(JiraIssueState.Resolved.name())) {
                         throw new RuntimeException("Cannot transition to Resolved after Open");
                     }
                 } else {
@@ -269,25 +281,25 @@ public class JiraIssue implements IssueTrackerIssue {
                     return;
                 }
             }
-            performTransition(availableTransitions.get("Resolved"));
+            performTransition(JiraIssueState.Resolved, availableTransitions);
         } else if (state == State.CLOSED) {
-            if (!availableTransitions.containsKey("Closed")) {
-                if (availableTransitions.containsKey("Resolved")) {
-                    performTransition(availableTransitions.get("Resolved"));
+            if (!availableTransitions.containsKey(JiraIssueState.Closed.name())) {
+                if (availableTransitions.containsKey(JiraIssueState.Resolved.name())) {
+                    performTransition(JiraIssueState.Resolved, availableTransitions);
                     availableTransitions = availableTransitions();
-                    if (!availableTransitions.containsKey("Closed")) {
+                    if (!availableTransitions.containsKey(JiraIssueState.Closed.name())) {
                         throw new RuntimeException("Cannot transition to Closed after Resolved");
                     }
                 } else {
                     throw new RuntimeException("Cannot transition to Closed");
                 }
             }
-            performTransition(availableTransitions.get("Closed"));
+            performTransition(JiraIssueState.Closed, availableTransitions);
         } else if (state == State.OPEN) {
-            if (!availableTransitions.containsKey("Open")) {
+            if (!availableTransitions.containsKey(JiraIssueState.Open.name())) {
                 throw new RuntimeException("Cannot transition to Open");
             }
-            performTransition(availableTransitions.get("Open"));
+            performTransition(JiraIssueState.Open, availableTransitions);
         } else {
             throw new IllegalStateException("Unknown state " + state);
         }
