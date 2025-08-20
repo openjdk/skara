@@ -461,13 +461,6 @@ class CheckRun {
             return false;
         }
 
-        // If rfr is still pending for other workItems, so don't mark this pr as rfr, wait for another round of CheckWorkItem
-        if (rfrPendingOnOtherWorkItems) {
-            newLabels.remove("rfr");
-            log.info("rfr is pending on other workItems for pr: " + pr.id());
-            return false;
-        }
-
         // Additional errors are not allowed
         if (!additionalErrors.isEmpty()) {
             newLabels.remove("rfr");
@@ -477,6 +470,12 @@ class CheckRun {
         // Draft requests are not for review
         if (pr.isDraft()) {
             newLabels.remove("rfr");
+            return false;
+        }
+
+        // If rfr is still pending for other workItems, so don't mark this pr as rfr, wait for another round of CheckWorkItem
+        if (rfrPendingOnOtherWorkItems) {
+            log.info("rfr is pending on other workItems for pr: " + pr.id());
             return false;
         }
 
