@@ -473,10 +473,10 @@ class CheckRun {
             return false;
         }
 
-        // If rfr is still pending for other workItems, so don't mark this pr as rfr, wait for another round of CheckWorkItem
+        // If rfr is still pending on other workItems, so don't actively mark this pr as rfr, wait for another round of CheckWorkItem
         if (rfrPendingOnOtherWorkItems) {
             log.info("rfr is pending on other workItems for pr: " + pr.id());
-            return false;
+            return newLabels.contains("rfr");
         }
 
         // Check if the visitor found any issues that should be resolved before reviewing
