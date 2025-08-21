@@ -461,13 +461,6 @@ class CheckRun {
             return false;
         }
 
-        // If rfr is still pending for other workItems, so don't mark this pr as rfr, wait for another round of CheckWorkItem
-        if (rfrPendingOnOtherWorkItems) {
-            newLabels.remove("rfr");
-            log.info("rfr is pending on other workItems for pr: " + pr.id());
-            return false;
-        }
-
         // Additional errors are not allowed
         if (!additionalErrors.isEmpty()) {
             newLabels.remove("rfr");
@@ -481,13 +474,20 @@ class CheckRun {
         }
 
         // Check if the visitor found any issues that should be resolved before reviewing
-        if (visitor.isReadyForReview()) {
-            newLabels.add("rfr");
-            return true;
-        } else {
+        if (!visitor.isReadyForReview()) {
             newLabels.remove("rfr");
             return false;
         }
+
+        // If rfr is still pending on other workItems, so don't actively mark this pr as rfr, wait for another round of CheckWorkItem
+        if (rfrPendingOnOtherWorkItems) {
+            log.info("rfr is pending on other workItems for pr: " + pr.id());
+            return newLabels.contains("rfr");
+        }
+
+        // No issues found, add rfr label now
+        newLabels.add("rfr");
+        return true;
     }
 
     private boolean updateClean(Commit commit) {
