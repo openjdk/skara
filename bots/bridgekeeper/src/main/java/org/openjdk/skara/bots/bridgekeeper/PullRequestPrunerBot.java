@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -81,7 +81,8 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
                     .filter(comment -> !ignoredUsers.contains(comment.author().username()))
                     .toList()
                     .getLast();
-            if (lastComment.author().equals(pr.repository().forge().currentUser()) && lastComment.body().contains(NOTICE_MARKER)) {
+            if (lastComment.author().equals(pr.repository().forge().currentUser()) && lastComment.body().contains(NOTICE_MARKER)
+                    && !lastComment.createdAt().isBefore(pr.lastTouchedTime())) {
                 var message = "@" + pr.author().username() + " This pull request has been inactive for more than " +
                         formatDuration(maxAge.multipliedBy(2)) + " and will now be automatically closed. If you would " +
                         "like to continue working on this pull request in the future, feel free to reopen it! This can be done " +
@@ -158,7 +159,7 @@ public class PullRequestPrunerBot implements Bot {
         }
 
         // Latest prune-delaying action (deliberately excluding pr.updatedAt, as it can be updated spuriously)
-        var latestAction = Stream.of(Stream.of(pr.createdAt()),
+        var latestAction = Stream.of(Stream.of(pr.createdAt(), pr.lastTouchedTime()),
                                    pr.comments().stream()
                                      .filter(comment -> !ignoredUsers.contains(comment.author().username()))
                                      .map(Comment::updatedAt),

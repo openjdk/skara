@@ -92,6 +92,7 @@ class CheckRun {
     // Only set if approval is configured for the repo
     private String realTargetRef;
     private boolean missingApprovalRequest = false;
+    private boolean rfrPendingOnOtherWorkItems = false;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
@@ -239,11 +240,11 @@ class CheckRun {
     }
 
     // Additional bot-specific checks that are not handled by JCheck
-    private List<String> botSpecificChecks(boolean iscleanBackport) {
+    private List<String> botSpecificChecks(boolean isCleanBackport) {
         var ret = new ArrayList<String>();
 
         var bodyWithoutStatus = bodyWithoutStatus();
-        if ((bodyWithoutStatus.isBlank() || bodyWithoutStatus.equals(EMPTY_PR_BODY_MARKER)) && !iscleanBackport) {
+        if ((bodyWithoutStatus.isBlank() || bodyWithoutStatus.equals(EMPTY_PR_BODY_MARKER)) && !isCleanBackport) {
             ret.add(MSG_EMPTY_BODY);
         }
 
@@ -264,6 +265,22 @@ class CheckRun {
         if (!integrators.isEmpty() && PullRequestUtils.isMerge(pr) && !integrators.contains(pr.author().username())) {
             var error = "Only the designated integrators for this repository are allowed to create merge-style pull requests.";
             ret.add(error);
+        }
+
+        // If the bot has label configuration
+        if (!workItem.bot.labelConfiguration().allowed().isEmpty()) {
+            // If the pr is already auto labelled, check if the pull request is associated with at least one component
+            if (workItem.bot.isAutoLabelled(pr)) {
+                var existingAllowed = new HashSet<>(pr.labelNames());
+                existingAllowed.retainAll(workItem.bot.labelConfiguration().allowed());
+                if (existingAllowed.isEmpty()) {
+                    ret.add("This pull request must be associated with at least one component. " +
+                            "Please use the [/label](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)" +
+                            " pull request command.");
+                }
+            } else {
+                rfrPendingOnOtherWorkItems = true;
+            }
         }
 
         return ret;
@@ -459,13 +476,20 @@ class CheckRun {
         }
 
         // Check if the visitor found any issues that should be resolved before reviewing
-        if (visitor.isReadyForReview()) {
-            newLabels.add("rfr");
-            return true;
-        } else {
+        if (!visitor.isReadyForReview()) {
             newLabels.remove("rfr");
             return false;
         }
+
+        // If rfr is still pending on other workItems, so don't actively mark this pr as rfr, wait for another round of CheckWorkItem
+        if (rfrPendingOnOtherWorkItems) {
+            log.info("rfr is pending on other workItems for pr: " + pr.id());
+            return newLabels.contains("rfr");
+        }
+
+        // No issues found, add rfr label now
+        newLabels.add("rfr");
+        return true;
     }
 
     private boolean updateClean(Commit commit) {

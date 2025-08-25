@@ -321,11 +321,15 @@ public class BackportCommand implements CommandHandler {
             if (message.reviewers().isEmpty()) {
                 info += " and had no reviewers";
             } else {
-                var reviewers = message.reviewers()
-                        .stream()
-                        .map(r -> censusInstance.census().contributor(r))
-                        .map(c -> c.fullName().isPresent() ? c.fullName().get() : c.username())
-                        .collect(Collectors.toList());
+                var reviewers = new ArrayList<String>();
+                for (var username : message.reviewers()) {
+                    var reviewerEntry = censusInstance.census.contributor(username);
+                    if (reviewerEntry != null) {
+                        reviewers.add(reviewerEntry.fullName().isPresent() ? reviewerEntry.fullName().get() : reviewerEntry.username());
+                    } else {
+                        reviewers.add(username);
+                    }
+                }
                 var numReviewers = reviewers.size();
                 var listing = numReviewers == 1 ?
                         reviewers.get(0) :

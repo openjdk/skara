@@ -181,7 +181,7 @@ public class LabelTests {
 
             // The bot should not apply labels since the user has manually removed labels
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(Set.of("rfr"), new HashSet<>(pr.store().labelNames()));
+            assertEquals(Set.of(), new HashSet<>(pr.store().labelNames()));
 
             // Adding the label manually is fine
             pr.addComment("/label add group");
@@ -228,6 +228,7 @@ public class LabelTests {
 
             // The bot will not add any label automatically
             TestBotRunner.runPeriodicItems(prBot);
+            // Since there is already a component associated, rfr should be added
             assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.store().labelNames()));
             assertEquals(2, pr.comments().size());
             assertLastCommentContains(pr, "The `1` label was successfully added.");

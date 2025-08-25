@@ -129,6 +129,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         }
 
         var comments = prComments();
+        var labelNames = pr.labelNames();
         var manuallyAdded = LabelTracker.currentAdded(pr.repository().forge().currentUser(), comments);
         var manuallyRemoved = LabelTracker.currentRemoved(pr.repository().forge().currentUser(), comments);
 
@@ -136,15 +137,15 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         // that is considered to be a request to override any automatic labelling
         if (manuallyAdded.size() > 0 || manuallyRemoved.size() > 0) {
             bot.setAutoLabelled(pr);
-            return List.of();
+            return needsRfrCheck(labelNames);
         }
 
         // If the PR already has one of the allowed labels, that is also considered to override automatic labelling
-        var existingAllowed = new HashSet<>(pr.labelNames());
+        var existingAllowed = new HashSet<>(labelNames);
         existingAllowed.retainAll(bot.labelConfiguration().allowed());
         if (!existingAllowed.isEmpty()) {
             bot.setAutoLabelled(pr);
-            return List.of();
+            return needsRfrCheck(labelNames);
         }
 
         try {
@@ -174,6 +175,13 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             bot.setAutoLabelled(pr);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+        return needsRfrCheck(labelNames);
+    }
+
+    private Collection<WorkItem> needsRfrCheck(List<String> labelNames) {
+        if (!labelNames.contains("rfr")) {
+            return List.of(CheckWorkItem.fromWorkItemWithForceUpdate(bot, prId, errorHandler, triggerUpdatedAt));
         }
         return List.of();
     }
