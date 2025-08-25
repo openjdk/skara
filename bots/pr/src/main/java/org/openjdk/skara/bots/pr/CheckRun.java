@@ -240,7 +240,7 @@ class CheckRun {
     }
 
     // Additional bot-specific checks that are not handled by JCheck
-    private List<String> botSpecificChecks(boolean isCleanBackport) {
+    private List<String> botSpecificChecks(boolean isCleanBackport) throws IOException {
         var ret = new ArrayList<String>();
 
         var bodyWithoutStatus = bodyWithoutStatus();
@@ -269,9 +269,32 @@ class CheckRun {
 
         // If the bot has label configuration
         if (!workItem.bot.labelConfiguration().allowed().isEmpty()) {
-            // If the pr is already auto labelled, check if the pull request is associated with at least one component
+            // If the pr is already auto labelled
             if (workItem.bot.isAutoLabelled(pr)) {
-                var existingAllowed = new HashSet<>(pr.labelNames());
+                // Update PR labels when new files are touched
+                var labelComment = findComment(LabelerWorkItem.INITIAL_LABEL_MESSAGE);
+                if (labelComment.isPresent()) {
+                    var line = labelComment.get().body().lines()
+                            .map(LABEL_COMMIT_PATTERN::matcher)
+                            .filter(Matcher::find)
+                            .findFirst();
+                    if (line.isPresent()) {
+                        var evaluatedCommitHash = line.get().group(1);
+                        var changedFiles = PullRequestUtils.changedFiles(pr, localRepo, new Hash(evaluatedCommitHash));
+                        var newLabelsNeedToBeAdded = workItem.bot.labelConfiguration().label(changedFiles);
+                        newLabels.addAll(newLabelsNeedToBeAdded);
+                        var upgradedLabels = workItem.bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
+                        newLabels.addAll(upgradedLabels);
+                        newLabels.removeIf(label -> !upgradedLabels.contains(label));
+                    }
+                    pr.updateComment(labelComment.get().id(), labelComment.get().body().replaceAll(
+                            "(<!-- PullRequest Bot label commit ')[^']*(' -->)",
+                            "$1" + pr.headHash().toString() + "$2"
+                    ));
+                }
+
+                // Check if the pull request is associated with at least one component
+                var existingAllowed = new HashSet<>(newLabels);
                 existingAllowed.retainAll(workItem.bot.labelConfiguration().allowed());
                 if (existingAllowed.isEmpty()) {
                     ret.add("This pull request must be associated with at least one component. " +
@@ -1484,30 +1507,6 @@ class CheckRun {
             }
 
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
-
-
-            if (!workItem.bot.labelConfiguration().allowed().isEmpty() && workItem.bot.isAutoLabelled(pr)) {
-                var labelComment = findComment(LabelerWorkItem.INITIAL_LABEL_MESSAGE);
-                if (labelComment.isPresent()) {
-                    var line = labelComment.get().body().lines()
-                            .map(LABEL_COMMIT_PATTERN::matcher)
-                            .filter(Matcher::find)
-                            .findFirst();
-                    if (line.isPresent()) {
-                        var evaluatedCommitHash = line.get().group(1);
-                        var changedFiles = PullRequestUtils.changedFiles(pr, localRepo, new Hash(evaluatedCommitHash));
-                        var newLabelsNeedToBeAdded = workItem.bot.labelConfiguration().label(changedFiles);
-                        newLabels.addAll(newLabelsNeedToBeAdded);
-                        var upgradedLabels = workItem.bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
-                        newLabels.addAll(upgradedLabels);
-                        newLabels.removeIf(label -> !upgradedLabels.contains(label));
-                    }
-                    pr.updateComment(labelComment.get().id(), labelComment.get().body().replaceAll(
-                            "(<!-- PullRequest Bot label commit ')[^']*(' -->)",
-                            "$1" + pr.headHash().toString() + "$2"
-                    ));
-                }
-            }
 
             var readyForReview = updateReadyForReview(visitor, additionalErrors, regularIssuesMap);
 
