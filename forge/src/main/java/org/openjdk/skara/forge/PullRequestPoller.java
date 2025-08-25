@@ -109,6 +109,8 @@ public class PullRequestPoller {
         var beforeQuery = Instant.now();
         List<PullRequest> prs = queryPullRequests();
         var afterQuery = Instant.now();
+        log.info("Found " + prs.size() + " updated pull requests before filtering for " + repository.name()
+                + " [" + prs.stream().map(Issue::id).collect(Collectors.joining(", ")) + "]");
 
         // Convert the query result into a map
         var pullRequestMap = prs.stream().collect(Collectors.toMap(PullRequest::id, pr -> pr));
@@ -130,6 +132,9 @@ public class PullRequestPoller {
         var filtered = prs.stream()
                 .filter(this::isUpdated)
                 .toList();
+
+        log.info("Found " + filtered.size() + " updated pull requests after filtering for " + repository.name()
+                + " [" + filtered.stream().map(Issue::id).collect(Collectors.joining(", ")) + "]");
 
         // If nothing was left after filtering, update the paddingNeeded state if enough time
         // has passed since last we found something.
@@ -153,7 +158,8 @@ public class PullRequestPoller {
         // Save the state of the current query results
         current = new QueryResult(pullRequestMap, comparisonSnapshots, maxUpdatedAt, afterQuery, result, negativePaddingNeeded);
 
-        log.info("Found " + result.size() + " updated pull requests for " + repository.name());
+        log.info("Found " + result.size() + " updated pull requests for " + repository.name()
+                + " [" + result.stream().map(Issue::id).collect(Collectors.joining(", ")) + "]");
         return result;
     }
 
