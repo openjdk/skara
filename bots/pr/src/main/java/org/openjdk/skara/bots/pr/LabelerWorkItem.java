@@ -60,7 +60,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                        .findAny();
     }
 
-    private void updateLabelMessage(List<Comment> comments, List<String> newLabels, String commitHash) {
+    private void updateLabelMessage(List<Comment> comments, List<String> newLabels, String commitHash, boolean autoLabeled) {
         var existing = findComment(comments, INITIAL_LABEL_MESSAGE);
         if (existing.isPresent()) {
             // Only add the comment once per PR
@@ -72,42 +72,46 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         message.append(pr.author().username());
         message.append(" ");
 
-        if (newLabels.isEmpty()) {
-            message.append("To determine the appropriate audience for reviewing this pull request, one or more ");
-            message.append("labels corresponding to different subsystems will normally be applied automatically. ");
-            message.append("However, no automatic labelling rule matches the changes in this pull request. ");
-            message.append("In order to have an \"RFR\" email sent to the correct mailing list, you will ");
-            message.append("need to add one or more applicable labels manually using the ");
-            message.append("[/label](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)");
-            message.append(" pull request command.\n\n");
-            message.append("<details>\n");
-            message.append("<summary>Applicable Labels</summary>\n");
-            message.append("<br>\n");
-            message.append("\n");
-            bot.labelConfiguration().allowed()
-                                    .stream()
-                                    .sorted()
-                                    .forEach(label -> message.append("- `" + label + "`\n"));
-            message.append("\n");
-            message.append("</details>");
+        if (autoLabeled) {
+            if (newLabels.isEmpty()) {
+                message.append("To determine the appropriate audience for reviewing this pull request, one or more ");
+                message.append("labels corresponding to different subsystems will normally be applied automatically. ");
+                message.append("However, no automatic labelling rule matches the changes in this pull request. ");
+                message.append("In order to have an \"RFR\" email sent to the correct mailing list, you will ");
+                message.append("need to add one or more applicable labels manually using the ");
+                message.append("[/label](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)");
+                message.append(" pull request command.\n\n");
+                message.append("<details>\n");
+                message.append("<summary>Applicable Labels</summary>\n");
+                message.append("<br>\n");
+                message.append("\n");
+                bot.labelConfiguration().allowed()
+                        .stream()
+                        .sorted()
+                        .forEach(label -> message.append("- `" + label + "`\n"));
+                message.append("\n");
+                message.append("</details>");
+            } else {
+                message.append("The following label");
+                if (newLabels.size() > 1) {
+                    message.append("s");
+                }
+                message.append(" will be automatically applied to this pull request:\n\n");
+                newLabels.stream()
+                        .sorted()
+                        .forEach(label -> message.append("- `" + label + "`\n"));
+                message.append("\n");
+                message.append("When this pull request is ready to be reviewed, an \"RFR\" email will be sent to the ");
+                message.append("corresponding mailing list");
+                if (newLabels.size() > 1) {
+                    message.append("s");
+                }
+                message.append(". If you would like to change these labels, use the ");
+                message.append("[/label](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)");
+                message.append(" pull request command.");
+            }
         } else {
-            message.append("The following label");
-            if (newLabels.size() > 1) {
-                message.append("s");
-            }
-            message.append(" will be automatically applied to this pull request:\n\n");
-            newLabels.stream()
-                     .sorted()
-                     .forEach(label -> message.append("- `" + label + "`\n"));
-            message.append("\n");
-            message.append("When this pull request is ready to be reviewed, an \"RFR\" email will be sent to the ");
-            message.append("corresponding mailing list");
-            if (newLabels.size() > 1) {
-                message.append("s");
-            }
-            message.append(". If you would like to change these labels, use the ");
-            message.append("[/label](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)");
-            message.append(" pull request command.");
+            message.append("There is manual label command issued before auto labeling, auto labelling is skipped.");
         }
 
         message.append("\n");
@@ -137,6 +141,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         // that is considered to be a request to override any automatic labelling
         if (manuallyAdded.size() > 0 || manuallyRemoved.size() > 0) {
             bot.setAutoLabelled(pr);
+            updateLabelMessage(comments, List.of(), pr.headHash().toString(), false);
             return needsRfrCheck(labelNames);
         }
 
@@ -164,7 +169,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                      .filter(label -> !currentLabels.contains(label))
                      .filter(label -> !manuallyRemoved.contains(label))
                                        .collect(Collectors.toList());
-            updateLabelMessage(comments, labelsToAdd, pr.headHash().toString());
+            updateLabelMessage(comments, labelsToAdd, pr.headHash().toString(), true);
             labelsToAdd.forEach(pr::addLabel);
 
             // Remove set labels no longer present unless it has been manually added
