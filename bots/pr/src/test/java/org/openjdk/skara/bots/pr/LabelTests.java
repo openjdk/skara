@@ -106,16 +106,17 @@ public class LabelTests {
             // One more
             pr.addComment("/cc group");
             TestBotRunner.runPeriodicItems(prBot);
+            // Since group label is added, 1 should be removed
+            assertFalse(pr.store().labelNames().contains("1"));
 
             // The bot should reply with a success message
             assertLastCommentContains(pr,"The `group` label was successfully added.");
 
-            // Drop both
-            pr.addComment("        /skara label remove 1   group");
+            // Drop group
+            pr.addComment("        /skara label remove   group");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(pr,"The `1` label was successfully removed.");
             assertLastCommentContains(pr,"The `group` label was successfully removed.");
 
             // And once more
@@ -179,9 +180,9 @@ public class LabelTests {
             editHash = localRepo.commit("Another one", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.authenticatedUrl(), "edit");
 
-            // The bot should not apply labels since the user has manually removed labels
+            // The bot should add label "1" since test.cpp is touched
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(Set.of(), new HashSet<>(pr.store().labelNames()));
+            assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.store().labelNames()));
 
             // Adding the label manually is fine
             pr.addComment("/label add group");
@@ -520,30 +521,31 @@ public class LabelTests {
 
             // The bot should reply with a success message
             assertLastCommentContains(pr,"The `2` label was successfully added.");
-            assertEquals(Set.of("1", "2", "rfr"), new HashSet<>(pr.store().labelNames()));
+            // label "1" and "2" should be upgraded to "group"
+            assertEquals(Set.of("group", "rfr"), new HashSet<>(pr.store().labelNames()));
 
             // Remove a label with `-`
-            pr.addComment("/label -2");
+            pr.addComment("/label -group");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(pr,"The `2` label was successfully removed.");
-            assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.store().labelNames()));
+            assertLastCommentContains(pr, "The `group` label was successfully removed.");
+            // The rfr label should be removed because the pr is not associated with any component
+            assertEquals(Set.of(), new HashSet<>(pr.store().labelNames()));
 
             // Add a label with `+`
             pr.addComment("/label +group");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(pr,"The `group` label was successfully added.");
-            assertEquals(Set.of("1", "rfr", "group"), new HashSet<>(pr.store().labelNames()));
+            assertLastCommentContains(pr, "The `group` label was successfully added.");
+            assertEquals(Set.of("rfr", "group"), new HashSet<>(pr.store().labelNames()));
 
             // Mixed `+/-` labels
-            pr.addComment("/label -1,+2,-group");
+            pr.addComment("/label +2,-group");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with the success messages
-            assertLastCommentContains(pr,"The `1` label was successfully removed.");
             assertLastCommentContains(pr,"The `2` label was successfully added.");
             assertLastCommentContains(pr,"The `group` label was successfully removed.");
             assertEquals(Set.of("2", "rfr"), new HashSet<>(pr.store().labelNames()));
@@ -556,7 +558,7 @@ public class LabelTests {
             assertLastCommentContains(pr,"The `group` label was successfully added.");
             assertLastCommentContains(pr,"The `1` label was successfully added.");
             assertLastCommentContains(pr,"The `2` label was successfully removed.");
-            assertEquals(Set.of("1", "rfr", "group"), new HashSet<>(pr.store().labelNames()));
+            assertEquals(Set.of("rfr", "group"), new HashSet<>(pr.store().labelNames()));
 
             // Mixed `+/-` labels and intentional whitespace.
             pr.addComment("/label - 1, + 2, - group");
@@ -564,7 +566,7 @@ public class LabelTests {
 
             // The bot should reply with a help message
             assertLastCommentContains(pr,"Usage: `/label");
-            assertEquals(Set.of("1", "rfr", "group"), new HashSet<>(pr.store().labelNames()));
+            assertEquals(Set.of("rfr", "group"), new HashSet<>(pr.store().labelNames()));
 
             // Mixed normal and short labels
             pr.addComment("/label add +2, -group");
@@ -572,7 +574,7 @@ public class LabelTests {
 
             // The bot should reply with a help message
             assertLastCommentContains(pr,"Usage: `/label");
-            assertEquals(Set.of("1", "rfr", "group"), new HashSet<>(pr.store().labelNames()));
+            assertEquals(Set.of("rfr", "group"), new HashSet<>(pr.store().labelNames()));
 
             // Check unknown labels
             pr.addComment("/label +unknown1, -unknown2, unknown3");
@@ -585,7 +587,7 @@ public class LabelTests {
             assertLastCommentContains(pr,"* `1`");
             assertLastCommentContains(pr,"* `group`");
             assertLastCommentContains(pr,"* `extra`");
-            assertEquals(Set.of("1", "rfr", "group"), new HashSet<>(pr.store().labelNames()));
+            assertEquals(Set.of("rfr", "group"), new HashSet<>(pr.store().labelNames()));
         }
     }
 
