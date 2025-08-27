@@ -38,6 +38,8 @@ import java.util.stream.*;
 
 import static org.openjdk.skara.bots.pr.CommitCommandWorkItem.COMMAND_REPLY_MARKER;
 import static org.openjdk.skara.bots.pr.CommitCommandWorkItem.COMMAND_REPLY_PATTERN;
+import static org.openjdk.skara.bots.pr.LabelerWorkItem.INITIAL_LABEL_MESSAGE;
+import static org.openjdk.skara.bots.pr.LabelerWorkItem.LABEL_COMMIT_PATTERN;
 
 public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
@@ -188,12 +190,17 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         if (nextCommand.isEmpty()) {
             log.info("No new non-external PR commands found, stopping further processing");
 
-            if (!bot.isAutoLabelled(pr) && !pr.isClosed()) {
-                // When all commands are processed, it's time to check labels
-                return List.of(new LabelerWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
-            } else {
+            // If there is no label configuration, don't generate LabelerWorkItem
+            if (bot.labelConfiguration().allowed().isEmpty()) {
+                bot.setAutoLabelled(pr);
                 return List.of();
             }
+
+            if (!pr.isClosed()) {
+                return List.of(new LabelerWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
+            }
+
+            return List.of();
         }
 
         var seedPath = bot.seedStorage().orElse(scratchArea.getSeeds());

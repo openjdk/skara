@@ -594,8 +594,6 @@ public class LabelTests {
         }
     }
 
-
-
     @Test
     void autoAdjustLabel(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,16 +26,22 @@ import java.time.ZonedDateTime;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class LabelerWorkItem extends PullRequestWorkItem {
     protected static final String INITIAL_LABEL_MESSAGE = "<!-- PullRequestBot initial label help comment -->";
     private static final String LABEL_COMMIT_MARKER = "<!-- PullRequest Bot label commit '%s' -->";
+    protected static final Pattern LABEL_COMMIT_PATTERN = Pattern.compile("<!-- PullRequest Bot label commit '(.*?)' -->");
+    private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     LabelerWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler,
             ZonedDateTime prUpdatedAt) {
@@ -123,15 +129,73 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
     @Override
     public Collection<WorkItem> prRun(ScratchArea scratchArea) {
-        if (bot.isAutoLabelled(pr)) {
-            return List.of();
-        }
-
+        // If no label configuration, return early
         if (bot.labelConfiguration().allowed().isEmpty()) {
             bot.setAutoLabelled(pr);
             return List.of();
         }
 
+        // Updating labels when new files are touched
+        if (bot.isAutoLabelled(pr)) {
+            try {
+                var labelAdded = false;
+                var oldLabels = new HashSet<>(pr.labelNames());
+                var newLabels = new HashSet<>(pr.labelNames());
+
+                var path = scratchArea.get(pr.repository());
+                var seedPath = bot.seedStorage().orElse(scratchArea.getSeeds());
+                var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
+                var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
+
+                var labelComment = findComment(prComments(), INITIAL_LABEL_MESSAGE);
+
+                if (labelComment.isPresent()) {
+                    var line = labelComment.get().body().lines()
+                            .map(LABEL_COMMIT_PATTERN::matcher)
+                            .filter(Matcher::find)
+                            .findFirst();
+
+                    if (line.isPresent()) {
+                        var evaluatedCommitHash = line.get().group(1);
+                        var changedFiles = PullRequestUtils.changedFiles(pr, localRepo, new Hash(evaluatedCommitHash));
+                        var newLabelsNeedToBeAdded = bot.labelConfiguration().label(changedFiles);
+                        newLabels.addAll(newLabelsNeedToBeAdded);
+
+                        var upgradedLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
+                        newLabels.addAll(upgradedLabels);
+                        newLabels.removeIf(label -> !upgradedLabels.contains(label));
+                    }
+
+                    for (var newLabel : newLabels) {
+                        if (!oldLabels.contains(newLabel)) {
+                            log.info("Adding label " + newLabel);
+                            pr.addLabel(newLabel);
+                            labelAdded = true;
+                        }
+                    }
+
+                    for (var oldLabel : oldLabels) {
+                        if (!newLabels.contains(oldLabel)) {
+                            log.info("Removing label " + oldLabel);
+                            pr.removeLabel(oldLabel);
+                        }
+                    }
+
+                    pr.updateComment(labelComment.get().id(), labelComment.get().body().replaceAll(
+                            "(<!-- PullRequest Bot label commit ')[^']*(' -->)",
+                            "$1" + pr.headHash().toString() + "$2"
+                    ));
+                }
+                if (labelAdded) {
+                    return needsRfrCheck(new ArrayList<>(newLabels));
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            return List.of();
+        }
+
+        // Initial auto labeling
         var comments = prComments();
         var labelNames = pr.labelNames();
         var manuallyAdded = LabelTracker.currentAdded(pr.repository().forge().currentUser(), comments);
@@ -169,7 +233,6 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                      .filter(label -> !currentLabels.contains(label))
                      .filter(label -> !manuallyRemoved.contains(label))
                                        .collect(Collectors.toList());
-            updateLabelMessage(comments, labelsToAdd, pr.headHash().toString(), true);
             labelsToAdd.forEach(pr::addLabel);
 
             // Remove set labels no longer present unless it has been manually added
@@ -178,6 +241,8 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                          .filter(label -> !manuallyAdded.contains(label))
                          .forEach(pr::removeLabel);
             bot.setAutoLabelled(pr);
+
+            updateLabelMessage(comments, labelsToAdd, pr.headHash().toString(), true);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
