@@ -43,7 +43,6 @@ import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.*;
 
 import static org.openjdk.skara.bots.common.PullRequestConstants.*;
@@ -239,7 +238,7 @@ class CheckRun {
     }
 
     // Additional bot-specific checks that are not handled by JCheck
-    private List<String> botSpecificChecks(boolean isCleanBackport) throws IOException {
+    private List<String> botSpecificChecks(boolean isCleanBackport) {
         var ret = new ArrayList<String>();
 
         var bodyWithoutStatus = bodyWithoutStatus();
@@ -270,7 +269,7 @@ class CheckRun {
         if (!workItem.bot.labelConfiguration().allowed().isEmpty()) {
             // If the pr is already auto labelled, check if the pull request is associated with at least one component
             if (workItem.bot.isAutoLabelled(pr)) {
-                var existingAllowed = new HashSet<>(newLabels);
+                var existingAllowed = new HashSet<>(pr.labelNames());
                 existingAllowed.retainAll(workItem.bot.labelConfiguration().allowed());
                 if (existingAllowed.isEmpty()) {
                     ret.add("This pull request must be associated with at least one component. " +
@@ -1483,7 +1482,6 @@ class CheckRun {
             }
 
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
-
             var readyForReview = updateReadyForReview(visitor, additionalErrors, regularIssuesMap);
 
             var integrationBlockers = botSpecificIntegrationBlockers(regularIssuesMap);

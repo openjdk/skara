@@ -187,7 +187,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                     ));
                 }
                 if (labelAdded) {
-                    return needsRfrCheck(new ArrayList<>(newLabels));
+                    return needsRfrCheck(newLabels);
                 }
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -197,7 +197,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
         // Initial auto labeling
         var comments = prComments();
-        var labelNames = pr.labelNames();
+        var labelNames = new HashSet<>(pr.labelNames());
         var manuallyAdded = LabelTracker.currentAdded(pr.repository().forge().currentUser(), comments);
         var manuallyRemoved = LabelTracker.currentRemoved(pr.repository().forge().currentUser(), comments);
 
@@ -249,7 +249,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         return needsRfrCheck(labelNames);
     }
 
-    private Collection<WorkItem> needsRfrCheck(List<String> labelNames) {
+    private Collection<WorkItem> needsRfrCheck(Set<String> labelNames) {
         if (!labelNames.contains("rfr")) {
             return List.of(CheckWorkItem.fromWorkItemWithForceUpdate(bot, prId, errorHandler, triggerUpdatedAt));
         }
