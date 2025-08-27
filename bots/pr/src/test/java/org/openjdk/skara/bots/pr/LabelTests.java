@@ -230,9 +230,10 @@ public class LabelTests {
             // The bot will not add any label automatically
             TestBotRunner.runPeriodicItems(prBot);
             // Since there is already a component associated, rfr should be added
+            assertLastCommentContains(pr, "A manual label command was issued before auto-labeling, so auto-labeling was skipped.");
             assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.store().labelNames()));
-            assertEquals(2, pr.comments().size());
-            assertLastCommentContains(pr, "The `1` label was successfully added.");
+            assertEquals(3, pr.comments().size());
+            assertTrue(pr.store().comments().get(1).body().contains("The `1` label was successfully added."));
 
             // Add another file to trigger a group match
             Files.writeString(localRepoFolder.resolve("test.cpp"), "Hello there");
@@ -249,7 +250,7 @@ public class LabelTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "The `group` label was successfully added.");
             assertLastCommentContains(pr, "The `2` label was successfully added.");
-            assertEquals(Set.of("1", "2", "group", "rfr"), new HashSet<>(pr.store().labelNames()));
+            assertEquals(Set.of("group", "rfr"), new HashSet<>(pr.store().labelNames()));
         }
     }
 
@@ -344,6 +345,8 @@ public class LabelTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
+
+            TestBotRunner.runPeriodicItems(prBot);
 
             // Add a label with -dev suffix
             pr.addComment("/label add 1-dev");

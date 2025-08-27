@@ -111,7 +111,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                 message.append(" pull request command.");
             }
         } else {
-            message.append("There is manual label command issued before auto labeling, auto labelling is skipped.");
+            message.append("A manual label command was issued before auto-labeling, so auto-labeling was skipped.");
         }
 
         message.append("\n");
