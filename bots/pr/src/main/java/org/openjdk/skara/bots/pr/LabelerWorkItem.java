@@ -145,12 +145,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             try {
                 var oldLabels = new HashSet<>(pr.labelNames());
                 var newLabels = new HashSet<>(pr.labelNames());
-
-                var path = scratchArea.get(pr.repository());
-                var seedPath = bot.seedStorage().orElse(scratchArea.getSeeds());
-                var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-                var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
-
+                var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchArea);
                 var labelComment = findComment(prComments(), INITIAL_LABEL_MESSAGE);
 
                 if (labelComment.isPresent()) {
@@ -188,6 +183,8 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                             "(<!-- PullRequest Bot label commit ')[^']*(' -->)",
                             "$1" + pr.headHash().toString() + "$2"
                     ));
+                } else {
+                    log.severe("This pr is marked as auto labeled but no auto label comment found, pr id: " + pr.id());
                 }
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -219,10 +216,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         }
 
         try {
-            var path = scratchArea.get(pr.repository());
-            var seedPath = bot.seedStorage().orElse(scratchArea.getSeeds());
-            var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-            var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
+            var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchArea);
             var newLabels = getLabels(localRepo);
             var currentLabels = pr.labelNames().stream()
                                   .filter(key -> bot.labelConfiguration().allowed().contains(key))
