@@ -188,12 +188,26 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         if (nextCommand.isEmpty()) {
             log.info("No new non-external PR commands found, stopping further processing");
 
-            if (!bot.isAutoLabelled(pr) && !pr.isClosed()) {
-                // When all commands are processed, it's time to check labels
-                return List.of(new LabelerWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
-            } else {
+            // If there is no label configuration, don't generate LabelerWorkItem
+            if (bot.labelConfiguration().allowed().isEmpty()) {
+                bot.setAutoLabelled(pr);
                 return List.of();
             }
+
+            if (!bot.isAutoLabelled(pr)) {
+                return List.of(new LabelerWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
+            }
+
+            if (!pr.isClosed()) {
+                // Check if the headHash of the pr has already been processed
+                var autoLabeledHashOpt = LabelerWorkItem.autoLabeledHash(prComments(), pr);
+                if (autoLabeledHashOpt.isPresent() && autoLabeledHashOpt.get().equals(pr.headHash().hex())) {
+                    return List.of();
+                }
+                return List.of(new LabelerWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
+            }
+
+            return List.of();
         }
 
         var seedPath = bot.seedStorage().orElse(scratchArea.getSeeds());
@@ -244,6 +258,9 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         // to run again to correct the state of the PR.
         if (!pr.labelNames().contains("integrated") || pr.findIntegratedCommitHash().isEmpty()) {
             processCommand(pr, census, scratchArea, command, comments, false);
+            if (command.name().equals("label") || command.name().equals("cc")) {
+                return List.of(CheckWorkItem.fromWorkItem(bot, prId, errorHandler, triggerUpdatedAt), new LabelerWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
+            }
             // Run another check to reflect potential changes from commands
             return List.of(CheckWorkItem.fromWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
         } else {
