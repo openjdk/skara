@@ -186,12 +186,10 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                             "$1" + pr.headHash().toString() + "$2"
                     ));
                 }
-                if (labelAdded) {
-                    return needsRfrCheck(newLabels);
-                }
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
+            // No need to return CheckWorkItem, if there is any label added, in the next round of CheckWorkItem, it will re-evaluate the pr
             return List.of();
         }
 

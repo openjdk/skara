@@ -181,6 +181,8 @@ public class LabelTests {
 
             // The bot should add label "1" since test.cpp is touched
             TestBotRunner.runPeriodicItems(prBot);
+            // After label "1" is added, in the next CheckWorkItem, rfr should be added
+            TestBotRunner.runPeriodicItems(prBot);
             assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.store().labelNames()));
 
             // Adding the label manually is fine
