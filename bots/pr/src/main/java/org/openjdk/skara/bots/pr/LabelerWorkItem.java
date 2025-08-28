@@ -138,7 +138,6 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         // Updating labels when new files are touched
         if (bot.isAutoLabelled(pr)) {
             try {
-                var labelAdded = false;
                 var oldLabels = new HashSet<>(pr.labelNames());
                 var newLabels = new HashSet<>(pr.labelNames());
 
@@ -170,7 +169,6 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                         if (!oldLabels.contains(newLabel)) {
                             log.info("Adding label " + newLabel);
                             pr.addLabel(newLabel);
-                            labelAdded = true;
                         }
                     }
 
