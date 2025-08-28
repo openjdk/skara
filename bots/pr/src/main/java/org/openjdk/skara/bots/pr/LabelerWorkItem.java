@@ -135,6 +135,11 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             return List.of();
         }
 
+        // If the label comment can be found, mark the pr as auto labelled
+        if (findComment(prComments(), INITIAL_LABEL_MESSAGE).isPresent()) {
+            bot.setAutoLabelled(pr);
+        }
+
         // Updating labels when new files are touched
         if (bot.isAutoLabelled(pr)) {
             try {
