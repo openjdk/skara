@@ -58,16 +58,16 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         return bot.labelConfiguration().label(files);
     }
 
-    private Optional<Comment> findComment(List<Comment> comments, String marker) {
+    static Optional<Comment> findComment(List<Comment> comments, String marker, PullRequest pr) {
         var self = pr.repository().forge().currentUser();
         return comments.stream()
-                       .filter(comment -> comment.author().equals(self))
-                       .filter(comment -> comment.body().contains(marker))
-                       .findAny();
+                .filter(comment -> comment.author().equals(self))
+                .filter(comment -> comment.body().contains(marker))
+                .findAny();
     }
 
     private void updateLabelMessage(List<Comment> comments, List<String> newLabels, String commitHash, boolean autoLabeled) {
-        var existing = findComment(comments, INITIAL_LABEL_MESSAGE);
+        var existing = findComment(comments, INITIAL_LABEL_MESSAGE, pr);
         if (existing.isPresent()) {
             // Only add the comment once per PR
             return;
@@ -136,7 +136,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         }
 
         // If the label comment can be found, mark the pr as auto labelled
-        if (findComment(prComments(), INITIAL_LABEL_MESSAGE).isPresent()) {
+        if (findComment(prComments(), INITIAL_LABEL_MESSAGE, pr).isPresent()) {
             bot.setAutoLabelled(pr);
         }
 
@@ -146,16 +146,12 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                 var oldLabels = new HashSet<>(pr.labelNames());
                 var newLabels = new HashSet<>(pr.labelNames());
                 var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchArea);
-                var labelComment = findComment(prComments(), INITIAL_LABEL_MESSAGE);
+                var labelComment = findComment(prComments(), INITIAL_LABEL_MESSAGE, pr);
 
                 if (labelComment.isPresent()) {
-                    var line = labelComment.get().body().lines()
-                            .map(LABEL_COMMIT_PATTERN::matcher)
-                            .filter(Matcher::find)
-                            .findFirst();
-
-                    if (line.isPresent()) {
-                        var evaluatedCommitHash = line.get().group(1);
+                    var autoLabeledHashOpt = autoLabeledHash(prComments(), pr);
+                    if (autoLabeledHashOpt.isPresent()) {
+                        var evaluatedCommitHash = autoLabeledHashOpt.get();
                         var changedFiles = PullRequestUtils.changedFiles(pr, localRepo, new Hash(evaluatedCommitHash));
                         var newLabelsNeedToBeAdded = bot.labelConfiguration().label(changedFiles);
                         newLabels.addAll(newLabelsNeedToBeAdded);
@@ -163,26 +159,29 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                         var upgradedLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
                         newLabels.addAll(upgradedLabels);
                         newLabels.removeIf(label -> !upgradedLabels.contains(label));
-                    }
 
-                    for (var newLabel : newLabels) {
-                        if (!oldLabels.contains(newLabel)) {
-                            log.info("Adding label " + newLabel);
-                            pr.addLabel(newLabel);
+                        for (var newLabel : newLabels) {
+                            if (!oldLabels.contains(newLabel)) {
+                                log.info("Adding label " + newLabel);
+                                pr.addLabel(newLabel);
+                            }
                         }
-                    }
 
-                    for (var oldLabel : oldLabels) {
-                        if (!newLabels.contains(oldLabel)) {
-                            log.info("Removing label " + oldLabel);
-                            pr.removeLabel(oldLabel);
+                        for (var oldLabel : oldLabels) {
+                            if (!newLabels.contains(oldLabel)) {
+                                log.info("Removing label " + oldLabel);
+                                pr.removeLabel(oldLabel);
+                            }
                         }
-                    }
 
-                    pr.updateComment(labelComment.get().id(), labelComment.get().body().replaceAll(
-                            "(<!-- PullRequest Bot label commit ')[^']*(' -->)",
-                            "$1" + pr.headHash().toString() + "$2"
-                    ));
+                        pr.updateComment(labelComment.get().id(), labelComment.get().body().replaceAll(
+                                "(<!-- PullRequest Bot label commit ')[^']*(' -->)",
+                                "$1" + pr.headHash().toString() + "$2"));
+                    } else {
+                        // If auto label comment is present but auto label hash isn't present, mark the headHash as handled.
+                        pr.updateComment(labelComment.get().id(),
+                                labelComment.get().body() + "\n" + String.format(LABEL_COMMIT_MARKER, pr.headHash().toString()));
+                    }
                 } else {
                     log.severe("This pr is marked as auto labeled but no auto label comment found, pr id: " + pr.id());
                 }
@@ -242,6 +241,20 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             throw new UncheckedIOException(e);
         }
         return needsRfrCheck(labelNames);
+    }
+
+    static Optional<String> autoLabeledHash(List<Comment> comments, PullRequest pr) {
+        var labelComment = findComment(comments, INITIAL_LABEL_MESSAGE, pr);
+        if (labelComment.isPresent()) {
+            var line = labelComment.get().body().lines()
+                    .map(LABEL_COMMIT_PATTERN::matcher)
+                    .filter(Matcher::find)
+                    .findFirst();
+            if (line.isPresent()) {
+                return Optional.of(line.get().group(1));
+            }
+        }
+        return Optional.empty();
     }
 
     private Collection<WorkItem> needsRfrCheck(Set<String> labelNames) {

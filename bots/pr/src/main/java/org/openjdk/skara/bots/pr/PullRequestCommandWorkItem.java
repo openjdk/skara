@@ -194,7 +194,16 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
                 return List.of();
             }
 
+            if (!bot.isAutoLabelled(pr)) {
+                return List.of(new LabelerWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
+            }
+
             if (!pr.isClosed()) {
+                // Check if the headHash of the pr has already been processed
+                var autoLabeledHashOpt = LabelerWorkItem.autoLabeledHash(prComments(), pr);
+                if (autoLabeledHashOpt.isPresent() && autoLabeledHashOpt.get().equals(pr.headHash().hex())) {
+                    return List.of();
+                }
                 return List.of(new LabelerWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
             }
 
@@ -249,6 +258,9 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         // to run again to correct the state of the PR.
         if (!pr.labelNames().contains("integrated") || pr.findIntegratedCommitHash().isEmpty()) {
             processCommand(pr, census, scratchArea, command, comments, false);
+            if (command.name().equals("label") || command.name().equals("cc")) {
+                return List.of(CheckWorkItem.fromWorkItem(bot, prId, errorHandler, triggerUpdatedAt), new LabelerWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
+            }
             // Run another check to reflect potential changes from commands
             return List.of(CheckWorkItem.fromWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
         } else {
