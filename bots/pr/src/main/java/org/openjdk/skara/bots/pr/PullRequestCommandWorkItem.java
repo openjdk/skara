@@ -38,8 +38,6 @@ import java.util.stream.*;
 
 import static org.openjdk.skara.bots.pr.CommitCommandWorkItem.COMMAND_REPLY_MARKER;
 import static org.openjdk.skara.bots.pr.CommitCommandWorkItem.COMMAND_REPLY_PATTERN;
-import static org.openjdk.skara.bots.pr.LabelerWorkItem.INITIAL_LABEL_MESSAGE;
-import static org.openjdk.skara.bots.pr.LabelerWorkItem.LABEL_COMMIT_PATTERN;
 
 public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
