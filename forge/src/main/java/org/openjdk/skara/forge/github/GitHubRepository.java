@@ -180,9 +180,10 @@ public class GitHubRepository implements HostedRepository {
         for (PullRequest pr : prs) {
             if (previousPr != null && previousPr.updatedAt().isBefore(pr.updatedAt())) {
                 log.info("GitHub PR for " + name() + " listed out of order: " + pr.id() + " updatedAt: " + pr.updatedAt()
-                        + " listed after " + previousPr.id());
+                        + " listed after " + previousPr.id() + " updatedAt: " + previousPr.updatedAt());
+            } else {
+                previousPr = pr;
             }
-            previousPr = pr;
         }
         return prs;
     }
