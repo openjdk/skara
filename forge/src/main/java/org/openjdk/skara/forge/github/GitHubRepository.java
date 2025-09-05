@@ -176,13 +176,13 @@ public class GitHubRepository implements HostedRepository {
                 .collect(Collectors.toList());
         // Check if any PRs were returned out of order and log it to keep track
         // of if GitHub ever stops this insanity.
-        ZonedDateTime previousUpdatedAt = null;
+        PullRequest previousPr = null;
         for (PullRequest pr : prs) {
-            if (previousUpdatedAt != null && previousUpdatedAt.isBefore(pr.updatedAt())) {
-                log.info("GitHub PR listed out of order: " + pr.repository().name() + "#" + pr.id()
-                        + " updatedAt: " + pr.updatedAt() + " previous updatedAt: " + previousUpdatedAt);
+            if (previousPr != null && previousPr.updatedAt().isBefore(pr.updatedAt())) {
+                log.info("GitHub PR for " + name() + " listed out of order: " + pr.id() + " updatedAt: " + pr.updatedAt()
+                        + " listed after " + previousPr.id());
             }
-            previousUpdatedAt = pr.updatedAt();
+            previousPr = pr;
         }
         return prs;
     }
