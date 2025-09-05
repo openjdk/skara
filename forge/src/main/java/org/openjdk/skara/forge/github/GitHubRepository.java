@@ -145,6 +145,7 @@ public class GitHubRepository implements HostedRepository {
                       .param("state", "all")
                       .param("sort", "updated")
                       .param("direction", "desc")
+                      .maxPages(1)
                       .execute().asArray().stream()
                       .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
                       .collect(Collectors.toList());
@@ -165,6 +166,8 @@ public class GitHubRepository implements HostedRepository {
                       .param("state", "all")
                       .param("sort", "updated")
                       .param("direction", "desc")
+                      .morePagesEvaluator(r -> r.asArray().stream()
+                              .noneMatch(json -> ZonedDateTime.parse(json.get("updated_at").asString()).isBefore(updatedAfter)))
                       .execute().asArray().stream()
                       .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
                       .filter(pr -> !pr.updatedAt().isBefore(updatedAfter))
