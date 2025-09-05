@@ -71,11 +71,6 @@ public class RestRequest {
         Optional<JSONValue> onError(HttpResponse<String> response);
     }
 
-    @FunctionalInterface
-    public interface MorePagesEvaluator {
-        boolean needNextPage(JSONValue currentPage);
-    }
-
     public class QueryBuilder {
         private class Param {
             String key;
@@ -95,7 +90,6 @@ public class RestRequest {
         private String sha256Header;
         private boolean skipLimiter = false;
         private boolean failOnEmptyResponse = false;
-        private MorePagesEvaluator morePagesEvaluator;
 
         private QueryBuilder(RequestType queryType, String endpoint) {
             this.queryType = queryType;
@@ -221,11 +215,6 @@ public class RestRequest {
 
         public QueryBuilder failOnEmptyResponse(boolean failOnEmptyResponse) {
             this.failOnEmptyResponse = failOnEmptyResponse;
-            return this;
-        }
-
-        public QueryBuilder morePagesEvaluator(MorePagesEvaluator morePagesEvaluator) {
-            this.morePagesEvaluator = morePagesEvaluator;
             return this;
         }
 
@@ -553,8 +542,7 @@ public class RestRequest {
         var parsedResponse = parseResponse(response);
         ret.add(parsedResponse);
 
-        while (nextRequest.isPresent() && ret.size() < queryBuilder.maxPages
-                && (queryBuilder.morePagesEvaluator == null || queryBuilder.morePagesEvaluator.needNextPage(parsedResponse))) {
+        while (nextRequest.isPresent() && ret.size() < queryBuilder.maxPages) {
             requestCounter.labels(queryBuilder.queryType.toString()).inc();
             response = sendRequest(nextRequest.get(), queryBuilder.skipLimiter);
 
