@@ -25,6 +25,7 @@ package org.openjdk.skara.forge.github;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Duration;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
@@ -42,6 +43,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class GitHubRepository implements HostedRepository {
+    private final Logger log = Logger.getLogger("org.openjdk.skara.forge.github");
     private final GitHubHost gitHubHost;
     private final String repository;
     private final RestRequest request;
@@ -145,6 +147,7 @@ public class GitHubRepository implements HostedRepository {
                       .param("state", "all")
                       .param("sort", "updated")
                       .param("direction", "desc")
+                      .maxPages(1)
                       .execute().asArray().stream()
                       .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
                       .collect(Collectors.toList());
@@ -161,14 +164,28 @@ public class GitHubRepository implements HostedRepository {
 
     @Override
     public List<PullRequest> pullRequestsAfter(ZonedDateTime updatedAfter) {
-        return request.get("pulls")
-                      .param("state", "all")
-                      .param("sort", "updated")
-                      .param("direction", "desc")
-                      .execute().asArray().stream()
-                      .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
-                      .filter(pr -> !pr.updatedAt().isBefore(updatedAfter))
-                      .collect(Collectors.toList());
+        List<PullRequest> prs = request.get("pulls")
+                .param("state", "all")
+                .param("sort", "updated")
+                .param("direction", "desc")
+                .param("per_page", "100")
+                .maxPages(2)
+                .execute().asArray().stream()
+                .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
+                .filter(pr -> !pr.updatedAt().isBefore(updatedAfter))
+                .collect(Collectors.toList());
+        // Check if any PRs were returned out of order and log it to keep track
+        // of if GitHub ever stops this insanity.
+        PullRequest previousPr = null;
+        for (PullRequest pr : prs) {
+            if (previousPr != null && previousPr.updatedAt().isBefore(pr.updatedAt())) {
+                log.info("GitHub PR for " + name() + " listed out of order: " + pr.id() + " updatedAt: " + pr.updatedAt()
+                        + " listed after " + previousPr.id() + " updatedAt: " + previousPr.updatedAt());
+            } else {
+                previousPr = pr;
+            }
+        }
+        return prs;
     }
 
     @Override
