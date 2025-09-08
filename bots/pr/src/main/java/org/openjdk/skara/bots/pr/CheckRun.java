@@ -46,6 +46,7 @@ import java.util.regex.Matcher;
 import java.util.stream.*;
 
 import static org.openjdk.skara.bots.common.PullRequestConstants.*;
+import static org.openjdk.skara.bots.pr.LabelerWorkItem.INITIAL_LABEL_MESSAGE;
 
 class CheckRun {
     public static final String MSG_EMPTY_BODY = "The pull request body must not be empty.";
@@ -268,7 +269,7 @@ class CheckRun {
         // If the bot has label configuration
         if (!workItem.bot.labelConfiguration().allowed().isEmpty()) {
             // If the pr is already auto labelled, check if the pull request is associated with at least one component
-            if (workItem.bot.isAutoLabelled(pr)) {
+            if (findComment(INITIAL_LABEL_MESSAGE).isPresent()) {
                 var existingAllowed = new HashSet<>(pr.labelNames());
                 existingAllowed.retainAll(workItem.bot.labelConfiguration().allowed());
                 if (existingAllowed.isEmpty()) {
@@ -1025,11 +1026,15 @@ class CheckRun {
     }
 
     private Optional<Comment> findComment(String marker) {
+        return findComment(comments, marker, pr);
+    }
+
+    static Optional<Comment> findComment(List<Comment> comments, String marker, PullRequest pr) {
         var self = pr.repository().forge().currentUser();
         return comments.stream()
-                       .filter(comment -> comment.author().equals(self))
-                       .filter(comment -> comment.body().contains(marker))
-                       .findAny();
+                .filter(comment -> comment.author().equals(self))
+                .filter(comment -> comment.body().contains(marker))
+                .findAny();
     }
 
     private String getMergeReadyComment(String commitMessage) {
@@ -1575,24 +1580,29 @@ class CheckRun {
         pr.updateCheck(check);
 
         // Synchronize the wanted set of labels
-        for (var newLabel : newLabels) {
-            if (!labels.contains(newLabel)) {
-                log.info("Adding label " + newLabel);
-                pr.addLabel(newLabel);
-            }
-        }
-        for (var oldLabel : labels) {
-            if (!newLabels.contains(oldLabel)) {
-                log.info("Removing label " + oldLabel);
-                pr.removeLabel(oldLabel);
-            }
-        }
+        syncLabels(pr, labels, newLabels, log);
 
         // After updating the PR, rethrow any exception to automatically retry on transient errors
         if (checkException != null) {
             throw new RuntimeException("Exception during jcheck", checkException);
         }
     }
+
+    static void syncLabels(PullRequest pr, Set<String> oldLabels, Set<String> newLabels, Logger log) {
+        for (var newLabel : newLabels) {
+            if (!oldLabels.contains(newLabel)) {
+                log.info("Adding label " + newLabel);
+                pr.addLabel(newLabel);
+            }
+        }
+        for (var oldLabel : oldLabels) {
+            if (!newLabels.contains(oldLabel)) {
+                log.info("Removing label " + oldLabel);
+                pr.removeLabel(oldLabel);
+            }
+        }
+    }
+
 
     private boolean isFileUpdated(Path filename, Hash from, Hash to) throws IOException {
         return !localRepo.diff(from, to, List.of(filename)).patches().isEmpty();

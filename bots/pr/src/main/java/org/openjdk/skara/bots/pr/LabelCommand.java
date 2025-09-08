@@ -27,14 +27,16 @@ import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.*;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.openjdk.skara.bots.common.CommandNameEnum.label;
+import static org.openjdk.skara.bots.pr.CheckRun.syncLabels;
 
 public class LabelCommand implements CommandHandler {
     private final String commandName;
-
+    private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private static final Pattern ARGUMENT_PATTERN = Pattern.compile("(?:(add|remove)\\s+)((?:[A-Za-z0-9_@.-]+[\\s,]*)+)");
     private static final Pattern SHORT_ARGUMENT_PATTERN = Pattern.compile("((?:[-+]?[A-Za-z0-9_@.-]+[\\s,]*)+)");
     private static final Pattern IGNORED_SUFFIXES = Pattern.compile("^(.*)(?:-dev(?:@openjdk.org)?)$");
@@ -86,6 +88,7 @@ public class LabelCommand implements CommandHandler {
             } else if (argumentMatcher.group(1).equals("remove")) {
                 removeLabels(labels, currentLabels, pr, reply);
             }
+            upgradeLabelsToGroups(pr, bot);
             return;
         }
 
@@ -117,6 +120,7 @@ public class LabelCommand implements CommandHandler {
 
             addLabels(labelsToAdd, currentLabels, pr, reply);
             removeLabels(labelsToRemove, currentLabels, pr, reply);
+            upgradeLabelsToGroups(pr, bot);
         }
     }
 
@@ -168,6 +172,13 @@ public class LabelCommand implements CommandHandler {
                 reply.println("The `" + label + "` label was not set.");
             }
         }
+    }
+
+    private void upgradeLabelsToGroups(PullRequest pr, PullRequestBot bot) {
+        Set<String> oldLabels = new HashSet<>(pr.labelNames());
+        Set<String> newLabels = new HashSet<>(pr.labelNames());
+        newLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
+        syncLabels(pr, oldLabels, newLabels, log);
     }
 
     @Override

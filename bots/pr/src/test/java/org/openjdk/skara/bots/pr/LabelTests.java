@@ -228,11 +228,11 @@ public class LabelTests {
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
             pr.setBody("/cc 1");
 
-            // The bot will not add any label automatically
+            // Although manually added label 1, the auto labeling should still happen
             TestBotRunner.runPeriodicItems(prBot);
             // Since there is already a component associated, rfr should be added
-            assertLastCommentContains(pr, "A manual label command was issued before auto-labeling, so auto-labeling was skipped.");
-            assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.store().labelNames()));
+            assertLastCommentContains(pr, "The following label will be automatically applied to this pull request:");
+            assertEquals(Set.of("group", "rfr"), new HashSet<>(pr.store().labelNames()));
             assertEquals(3, pr.comments().size());
             assertTrue(pr.store().comments().get(1).body().contains("The `1` label was successfully added."));
 

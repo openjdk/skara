@@ -190,12 +190,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
 
             // If there is no label configuration, don't generate LabelerWorkItem
             if (bot.labelConfiguration().allowed().isEmpty()) {
-                bot.setAutoLabelled(pr);
                 return List.of();
-            }
-
-            if (!bot.isAutoLabelled(pr)) {
-                return List.of(new LabelerWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
             }
 
             if (!pr.isClosed()) {
@@ -258,9 +253,6 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         // to run again to correct the state of the PR.
         if (!pr.labelNames().contains("integrated") || pr.findIntegratedCommitHash().isEmpty()) {
             processCommand(pr, census, scratchArea, command, comments, false);
-            if (command.name().equals("label") || command.name().equals("cc")) {
-                return List.of(CheckWorkItem.fromWorkItem(bot, prId, errorHandler, triggerUpdatedAt), new LabelerWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
-            }
             // Run another check to reflect potential changes from commands
             return List.of(CheckWorkItem.fromWorkItem(bot, prId, errorHandler, triggerUpdatedAt));
         } else {

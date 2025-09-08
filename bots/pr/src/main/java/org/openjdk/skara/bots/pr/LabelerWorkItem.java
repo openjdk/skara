@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import java.time.ZonedDateTime;
+
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
@@ -37,14 +38,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.openjdk.skara.bots.pr.CheckRun.findComment;
+import static org.openjdk.skara.bots.pr.CheckRun.syncLabels;
+
 public class LabelerWorkItem extends PullRequestWorkItem {
     protected static final String INITIAL_LABEL_MESSAGE = "<!-- PullRequestBot initial label help comment -->";
     private static final String LABEL_COMMIT_MARKER = "<!-- PullRequest Bot label commit '%s' -->";
     protected static final Pattern LABEL_COMMIT_PATTERN = Pattern.compile("<!-- PullRequest Bot label commit '(.*?)' -->");
+    private static final String AUTO_LABEL_ADDITIONAL_COMMENT_MARKER = "<!-- PullRequest Bot auto label additional comment '%s' -->";
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     LabelerWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler,
-            ZonedDateTime prUpdatedAt) {
+                    ZonedDateTime prUpdatedAt) {
         super(bot, prId, errorHandler, prUpdatedAt, false);
     }
 
@@ -58,15 +63,8 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         return bot.labelConfiguration().label(files);
     }
 
-    static Optional<Comment> findComment(List<Comment> comments, String marker, PullRequest pr) {
-        var self = pr.repository().forge().currentUser();
-        return comments.stream()
-                .filter(comment -> comment.author().equals(self))
-                .filter(comment -> comment.body().contains(marker))
-                .findAny();
-    }
 
-    private void updateLabelMessage(List<Comment> comments, List<String> newLabels, String commitHash, boolean autoLabeled) {
+    private void updateLabelMessage(List<Comment> comments, List<String> newLabels, String commitHash) {
         var existing = findComment(comments, INITIAL_LABEL_MESSAGE, pr);
         if (existing.isPresent()) {
             // Only add the comment once per PR
@@ -78,46 +76,42 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         message.append(pr.author().username());
         message.append(" ");
 
-        if (autoLabeled) {
-            if (newLabels.isEmpty()) {
-                message.append("To determine the appropriate audience for reviewing this pull request, one or more ");
-                message.append("labels corresponding to different subsystems will normally be applied automatically. ");
-                message.append("However, no automatic labelling rule matches the changes in this pull request. ");
-                message.append("In order to have an \"RFR\" email sent to the correct mailing list, you will ");
-                message.append("need to add one or more applicable labels manually using the ");
-                message.append("[/label](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)");
-                message.append(" pull request command.\n\n");
-                message.append("<details>\n");
-                message.append("<summary>Applicable Labels</summary>\n");
-                message.append("<br>\n");
-                message.append("\n");
-                bot.labelConfiguration().allowed()
-                        .stream()
-                        .sorted()
-                        .forEach(label -> message.append("- `" + label + "`\n"));
-                message.append("\n");
-                message.append("</details>");
-            } else {
-                message.append("The following label");
-                if (newLabels.size() > 1) {
-                    message.append("s");
-                }
-                message.append(" will be automatically applied to this pull request:\n\n");
-                newLabels.stream()
-                        .sorted()
-                        .forEach(label -> message.append("- `" + label + "`\n"));
-                message.append("\n");
-                message.append("When this pull request is ready to be reviewed, an \"RFR\" email will be sent to the ");
-                message.append("corresponding mailing list");
-                if (newLabels.size() > 1) {
-                    message.append("s");
-                }
-                message.append(". If you would like to change these labels, use the ");
-                message.append("[/label](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)");
-                message.append(" pull request command.");
-            }
+        if (newLabels.isEmpty()) {
+            message.append("To determine the appropriate audience for reviewing this pull request, one or more ");
+            message.append("labels corresponding to different subsystems will normally be applied automatically. ");
+            message.append("However, no automatic labelling rule matches the changes in this pull request. ");
+            message.append("In order to have an \"RFR\" email sent to the correct mailing list, you will ");
+            message.append("need to add one or more applicable labels manually using the ");
+            message.append("[/label](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)");
+            message.append(" pull request command.\n\n");
+            message.append("<details>\n");
+            message.append("<summary>Applicable Labels</summary>\n");
+            message.append("<br>\n");
+            message.append("\n");
+            bot.labelConfiguration().allowed()
+                    .stream()
+                    .sorted()
+                    .forEach(label -> message.append("- `" + label + "`\n"));
+            message.append("\n");
+            message.append("</details>");
         } else {
-            message.append("A manual label command was issued before auto-labeling, so auto-labeling was skipped.");
+            message.append("The following label");
+            if (newLabels.size() > 1) {
+                message.append("s");
+            }
+            message.append(" will be automatically applied to this pull request:\n\n");
+            newLabels.stream()
+                    .sorted()
+                    .forEach(label -> message.append("- `" + label + "`\n"));
+            message.append("\n");
+            message.append("When this pull request is ready to be reviewed, an \"RFR\" email will be sent to the ");
+            message.append("corresponding mailing list");
+            if (newLabels.size() > 1) {
+                message.append("s");
+            }
+            message.append(". If you would like to change these labels, use the ");
+            message.append("[/label](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)");
+            message.append(" pull request command.");
         }
 
         message.append("\n");
@@ -131,59 +125,40 @@ public class LabelerWorkItem extends PullRequestWorkItem {
     public Collection<WorkItem> prRun(ScratchArea scratchArea) {
         // If no label configuration, return early
         if (bot.labelConfiguration().allowed().isEmpty()) {
-            bot.setAutoLabelled(pr);
             return List.of();
         }
 
-        // If the label comment can be found, mark the pr as auto labelled
-        if (findComment(prComments(), INITIAL_LABEL_MESSAGE, pr).isPresent()) {
-            bot.setAutoLabelled(pr);
-        }
+        var comments = prComments();
+        var initialLabelComment = findComment(comments, INITIAL_LABEL_MESSAGE, pr);
+        Set<String> oldLabels = new HashSet<>(pr.labelNames());
+        Set<String> newLabels = new HashSet<>(pr.labelNames());
 
-        // Updating labels when new files are touched
-        if (bot.isAutoLabelled(pr)) {
+        // If the initial label comment can be found,Updating labels when new files are touched
+        if (initialLabelComment.isPresent()) {
             try {
-                var oldLabels = new HashSet<>(pr.labelNames());
-                var newLabels = new HashSet<>(pr.labelNames());
                 var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchArea);
-                var labelComment = findComment(prComments(), INITIAL_LABEL_MESSAGE, pr);
+                var autoLabeledHashOpt = autoLabeledHash(comments, pr);
+                if (autoLabeledHashOpt.isPresent()) {
+                    var evaluatedCommitHash = autoLabeledHashOpt.get();
+                    var changedFiles = PullRequestUtils.changedFiles(pr, localRepo, new Hash(evaluatedCommitHash));
+                    var newLabelsNeedToBeAdded = bot.labelConfiguration().label(changedFiles);
+                    newLabels.addAll(newLabelsNeedToBeAdded);
 
-                if (labelComment.isPresent()) {
-                    var autoLabeledHashOpt = autoLabeledHash(prComments(), pr);
-                    if (autoLabeledHashOpt.isPresent()) {
-                        var evaluatedCommitHash = autoLabeledHashOpt.get();
-                        var changedFiles = PullRequestUtils.changedFiles(pr, localRepo, new Hash(evaluatedCommitHash));
-                        var newLabelsNeedToBeAdded = bot.labelConfiguration().label(changedFiles);
-                        newLabels.addAll(newLabelsNeedToBeAdded);
+                    newLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
 
-                        var upgradedLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
-                        newLabels.addAll(upgradedLabels);
-                        newLabels.removeIf(label -> !upgradedLabels.contains(label));
+                    syncLabels(pr, oldLabels, newLabels, log);
 
-                        for (var newLabel : newLabels) {
-                            if (!oldLabels.contains(newLabel)) {
-                                log.info("Adding label " + newLabel);
-                                pr.addLabel(newLabel);
-                            }
-                        }
-
-                        for (var oldLabel : oldLabels) {
-                            if (!newLabels.contains(oldLabel)) {
-                                log.info("Removing label " + oldLabel);
-                                pr.removeLabel(oldLabel);
-                            }
-                        }
-
-                        pr.updateComment(labelComment.get().id(), labelComment.get().body().replaceAll(
-                                "(<!-- PullRequest Bot label commit ')[^']*(' -->)",
-                                "$1" + pr.headHash().toString() + "$2"));
-                    } else {
-                        // If auto label comment is present but auto label hash isn't present, mark the headHash as handled.
-                        pr.updateComment(labelComment.get().id(),
-                                labelComment.get().body() + "\n" + String.format(LABEL_COMMIT_MARKER, pr.headHash().toString()));
+                    if (!newLabelsNeedToBeAdded.isEmpty()) {
+                        addLabelAutoUpdateAdditionalComment(comments, new ArrayList<>(newLabelsNeedToBeAdded), pr.headHash().hex());
                     }
+
+                    pr.updateComment(initialLabelComment.get().id(), initialLabelComment.get().body().replaceAll(
+                            "(<!-- PullRequest Bot label commit ')[^']*(' -->)",
+                            "$1" + pr.headHash().toString() + "$2"));
                 } else {
-                    log.severe("This pr is marked as auto labeled but no auto label comment found, pr id: " + pr.id());
+                    // If auto label comment is present but auto label hash isn't present, mark the headHash as handled.
+                    pr.updateComment(initialLabelComment.get().id(),
+                            initialLabelComment.get().body() + "\n" + String.format(LABEL_COMMIT_MARKER, pr.headHash().toString()));
                 }
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -193,54 +168,39 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         }
 
         // Initial auto labeling
-        var comments = prComments();
-        var labelNames = new HashSet<>(pr.labelNames());
-        var manuallyAdded = LabelTracker.currentAdded(pr.repository().forge().currentUser(), comments);
-        var manuallyRemoved = LabelTracker.currentRemoved(pr.repository().forge().currentUser(), comments);
-
-        // If a manual label command has been issued before we have done any labeling,
-        // that is considered to be a request to override any automatic labelling
-        if (manuallyAdded.size() > 0 || manuallyRemoved.size() > 0) {
-            bot.setAutoLabelled(pr);
-            updateLabelMessage(comments, List.of(), pr.headHash().toString(), false);
-            return needsRfrCheck(labelNames);
-        }
-
-        // If the PR already has one of the allowed labels, that is also considered to override automatic labelling
-        var existingAllowed = new HashSet<>(labelNames);
-        existingAllowed.retainAll(bot.labelConfiguration().allowed());
-        if (!existingAllowed.isEmpty()) {
-            bot.setAutoLabelled(pr);
-            return needsRfrCheck(labelNames);
-        }
-
         try {
             var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchArea);
-            var newLabels = getLabels(localRepo);
-            var currentLabels = pr.labelNames().stream()
-                                  .filter(key -> bot.labelConfiguration().allowed().contains(key))
-                                  .collect(Collectors.toSet());
-
-
-            // Add all labels not already set that are not manually removed
-            var labelsToAdd = newLabels.stream()
-                     .filter(label -> !currentLabels.contains(label))
-                     .filter(label -> !manuallyRemoved.contains(label))
-                                       .collect(Collectors.toList());
-            labelsToAdd.forEach(pr::addLabel);
-
-            // Remove set labels no longer present unless it has been manually added
-            currentLabels.stream()
-                         .filter(label -> !newLabels.contains(label))
-                         .filter(label -> !manuallyAdded.contains(label))
-                         .forEach(pr::removeLabel);
-            bot.setAutoLabelled(pr);
-
-            updateLabelMessage(comments, labelsToAdd, pr.headHash().toString(), true);
+            var labelsToAdd = getLabels(localRepo);
+            newLabels.addAll(labelsToAdd);
+            newLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
+            syncLabels(pr, oldLabels, newLabels, log);
+            updateLabelMessage(comments, new ArrayList<>(labelsToAdd), pr.headHash().toString());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-        return needsRfrCheck(labelNames);
+        return needsRfrCheck(newLabels);
+    }
+
+    void addLabelAutoUpdateAdditionalComment(List<Comment> comments, List<String> labelsAdded, String commitHash) {
+        if (findComment(comments, String.format(AUTO_LABEL_ADDITIONAL_COMMENT_MARKER, commitHash), pr).isPresent()) {
+            // Only add the comment once
+            return;
+        }
+        var message = new StringBuilder();
+        message.append("@");
+        message.append(pr.author().username());
+        message.append(" ");
+        if (!labelsAdded.isEmpty()) {
+            Collections.sort(labelsAdded);
+            message.append(labelsAdded.stream()
+                    .map(label -> "`" + label + "`")
+                    .collect(Collectors.joining(", ")));
+            message.append(labelsAdded.size() == 1 ? " has" : " have");
+            message.append(" been added to this pr.");
+        }
+        message.append("\n");
+        message.append(String.format(AUTO_LABEL_ADDITIONAL_COMMENT_MARKER, commitHash));
+        pr.addComment(message.toString());
     }
 
     static Optional<String> autoLabeledHash(List<Comment> comments, PullRequest pr) {

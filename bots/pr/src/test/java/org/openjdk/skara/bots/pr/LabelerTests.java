@@ -212,13 +212,13 @@ class LabelerTests {
 
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
-            // Issue a manual label command
+            // Issue a manual label command, this shouldn't affect the auto labeling
             var reviewerPr = reviewer.pullRequest(pr.id());
             reviewerPr.addComment("/label add test2");
 
-            // Check the status - there should still only be a test2 label
+            // Check the status - there should be test1 and test2
             TestBotRunner.runPeriodicItems(labelBot);
-            assertEquals(Set.of("rfr", "test2"), new HashSet<>(pr.labelNames()));
+            assertEquals(Set.of("rfr", "test2", "test1"), new HashSet<>(pr.labelNames()));
         }
     }
 
@@ -260,12 +260,12 @@ class LabelerTests {
 
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
-            // Manually set a label
+            // Manually set a label shouldn't affect auto labeling
             pr.addLabel("test2");
 
-            // Check the status - there should still only be a test2 label
+            // Check the status - there should be test1 and test2
             TestBotRunner.runPeriodicItems(labelBot);
-            assertEquals(Set.of("rfr", "test2"), new HashSet<>(pr.labelNames()));
+            assertEquals(Set.of("rfr", "test2", "test1"), new HashSet<>(pr.labelNames()));
         }
     }
 
