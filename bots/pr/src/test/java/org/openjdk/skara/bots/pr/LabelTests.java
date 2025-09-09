@@ -242,14 +242,13 @@ public class LabelTests {
             editHash = localRepo.commit("Another one", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.authenticatedUrl(), "edit");
 
-            // The bot will still not do any automatic labelling
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.store().labelNames()));
+            assertEquals(Set.of("group", "rfr"), new HashSet<>(pr.store().labelNames()));
 
             // Adding manually is still fine
             pr.addComment("/label add group 2");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "The `group` label was successfully added.");
+            assertLastCommentContains(pr, "The `group` label was already applied.");
             assertLastCommentContains(pr, "The `2` label was successfully added.");
             assertEquals(Set.of("group", "rfr"), new HashSet<>(pr.store().labelNames()));
         }
