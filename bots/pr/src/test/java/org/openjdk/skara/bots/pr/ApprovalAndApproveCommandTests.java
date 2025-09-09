@@ -274,7 +274,7 @@ public class ApprovalAndApproveCommandTests {
             assertLastCommentContains(pr, "1: The approval request has been approved.");
             assertLastCommentContains(pr, "2: The approval request has been approved.");
             TestBotRunner.runPeriodicItems(issueBot);
-            assertTrue(pr.labelNames().contains("ready"));
+            assertTrue(pr.store().labelNames().contains("ready"));
         }
     }
 }
