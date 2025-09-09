@@ -69,7 +69,7 @@ class LabelerTests {
 
             // Check the status - rfr label should not be set since the pr is not associated with any component
             TestBotRunner.runPeriodicItems(labelBot);
-            assertEquals(Set.of(), new HashSet<>(pr.labelNames()));
+            assertEquals(Set.of(), new HashSet<>(pr.store().labelNames()));
             assertLastCommentContains(pr, "However, no automatic labelling rule matches the changes in this pull request.");
             assertLastCommentContains(pr, "<details>");
             assertLastCommentContains(pr, "<summary>Applicable Labels</summary>");
@@ -119,7 +119,7 @@ class LabelerTests {
 
             // Check the status - there should now be a test1 label
             TestBotRunner.runPeriodicItems(labelBot);
-            assertEquals(Set.of("rfr", "test1"), new HashSet<>(pr.labelNames()));
+            assertEquals(Set.of("rfr", "test1"), new HashSet<>(pr.store().labelNames()));
         }
     }
 
@@ -170,7 +170,7 @@ class LabelerTests {
 
             // Check the status - there should now be a test1 label
             TestBotRunner.runPeriodicItems(labelBot);
-            assertEquals(Set.of("rfr", "test1"), new HashSet<>(pr.labelNames()));
+            assertEquals(Set.of("rfr", "test1"), new HashSet<>(pr.store().labelNames()));
         }
     }
 
@@ -218,7 +218,7 @@ class LabelerTests {
 
             // Check the status - there should be test1 and test2
             TestBotRunner.runPeriodicItems(labelBot);
-            assertEquals(Set.of("rfr", "test2", "test1"), new HashSet<>(pr.labelNames()));
+            assertEquals(Set.of("rfr", "test2", "test1"), new HashSet<>(pr.store().labelNames()));
         }
     }
 
@@ -265,7 +265,7 @@ class LabelerTests {
 
             // Check the status - there should be test1 and test2
             TestBotRunner.runPeriodicItems(labelBot);
-            assertEquals(Set.of("rfr", "test2", "test1"), new HashSet<>(pr.labelNames()));
+            assertEquals(Set.of("rfr", "test2", "test1"), new HashSet<>(pr.store().labelNames()));
         }
     }
 
@@ -312,7 +312,7 @@ class LabelerTests {
 
             // Check the status - the test1 label should have been added
             TestBotRunner.runPeriodicItems(labelBot);
-            assertEquals(Set.of("rfr", "test1", "test42"), new HashSet<>(pr.labelNames()));
+            assertEquals(Set.of("rfr", "test1", "test42"), new HashSet<>(pr.store().labelNames()));
         }
     }
 }
