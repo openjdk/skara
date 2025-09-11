@@ -154,13 +154,14 @@ public class LabelCommand implements CommandHandler {
         for (var label : labelsToAdd) {
             if (!currentLabels.contains(label)) {
                 var groupLabel = bot.labelConfiguration().groupLabel(label);
-                if (groupLabel.isEmpty()) {
-                    pr.addLabel(label);
-                    reply.println(LabelTracker.addLabelMarker(label));
-                    reply.println("The `" + label + "` label was successfully added.");
-                } else {
+                if (groupLabel.isPresent() && currentLabels.contains(groupLabel.get())) {
                     reply.println(LabelTracker.addLabelMarker(label));
                     reply.println("The `" + groupLabel.get() + "` group label was already applied, so `" + label + "` label will not be added.");
+                } else {
+                    pr.addLabel(label);
+                    currentLabels.add(label);
+                    reply.println(LabelTracker.addLabelMarker(label));
+                    reply.println("The `" + label + "` label was successfully added.");
                 }
             } else {
                 reply.println("The `" + label + "` label was already applied.");
@@ -172,6 +173,7 @@ public class LabelCommand implements CommandHandler {
         for (var label : labelsToRemove) {
             if (currentLabels.contains(label)) {
                 pr.removeLabel(label);
+                currentLabels.remove(label);
                 reply.println(LabelTracker.removeLabelMarker(label));
                 reply.println("The `" + label + "` label was successfully removed.");
             } else {

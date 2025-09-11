@@ -249,7 +249,7 @@ public class LabelTests {
             pr.addComment("/label add group 2");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "The `group` label was already applied.");
-            assertLastCommentContains(pr, "The `2` label was successfully added.");
+            assertLastCommentContains(pr, "The `group` group label was already applied, so `2` label will not be added.");
             assertEquals(Set.of("group", "rfr"), new HashSet<>(pr.store().labelNames()));
         }
     }
@@ -549,9 +549,9 @@ public class LabelTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with the success messages
-            assertLastCommentContains(pr,"The `2` label was successfully added.");
+            assertLastCommentContains(pr,"The `group` group label was already applied, so `2` label will not be added.");
             assertLastCommentContains(pr,"The `group` label was successfully removed.");
-            assertEquals(Set.of("2", "rfr"), new HashSet<>(pr.store().labelNames()));
+            assertEquals(Set.of(), new HashSet<>(pr.store().labelNames()));
 
             // Mixed `+/-` labels again and check that the alias works as well
             pr.addComment("/label group, +1, -2");
@@ -559,8 +559,8 @@ public class LabelTests {
 
             // The bot should reply with the success messages
             assertLastCommentContains(pr,"The `group` label was successfully added.");
-            assertLastCommentContains(pr,"The `1` label was successfully added.");
-            assertLastCommentContains(pr,"The `2` label was successfully removed.");
+            assertLastCommentContains(pr,"The `group` group label was already applied, so `1` label will not be added.");
+            assertLastCommentContains(pr,"The `2` label was not set.");
             assertEquals(Set.of("rfr", "group"), new HashSet<>(pr.store().labelNames()));
 
             // Mixed `+/-` labels and intentional whitespace.
