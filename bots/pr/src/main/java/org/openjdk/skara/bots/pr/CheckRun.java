@@ -1603,7 +1603,6 @@ class CheckRun {
         }
     }
 
-
     private boolean isFileUpdated(Path filename, Hash from, Hash to) throws IOException {
         return !localRepo.diff(from, to, List.of(filename)).patches().isEmpty();
     }
