@@ -160,7 +160,7 @@ public class LabelCommand implements CommandHandler {
                     reply.println("The `" + label + "` label was successfully added.");
                 } else {
                     reply.println(LabelTracker.addLabelMarker(label));
-                    reply.println("The group label `" + groupLabel.get() + "` label was already applied.");
+                    reply.println("The `" + groupLabel.get() + "` group label was already applied, so `" + label + "` label will not be added.");
                 }
             } else {
                 reply.println("The `" + label + "` label was already applied.");
