@@ -167,4 +167,13 @@ public class LabelConfigurationJson implements LabelConfiguration {
         }
         return ret;
     }
+
+    public Optional<String> groupLabel(String label) {
+        for (var group : groups.entrySet()) {
+            if (group.getValue().contains(label)) {
+                return Optional.of(group.getKey());
+            }
+        }
+        return Optional.empty();
+    }
 }

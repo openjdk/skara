@@ -84,7 +84,7 @@ public class LabelCommand implements CommandHandler {
                 return;
             }
             if (argumentMatcher.group(1).equals("add")) {
-                addLabels(labels, currentLabels, pr, reply);
+                addLabels(labels, currentLabels, pr, reply, bot);
             } else if (argumentMatcher.group(1).equals("remove")) {
                 removeLabels(labels, currentLabels, pr, reply);
             }
@@ -118,7 +118,7 @@ public class LabelCommand implements CommandHandler {
                 return;
             }
 
-            addLabels(labelsToAdd, currentLabels, pr, reply);
+            addLabels(labelsToAdd, currentLabels, pr, reply, bot);
             removeLabels(labelsToRemove, currentLabels, pr, reply);
             upgradeLabelsToGroups(pr, bot);
         }
@@ -150,12 +150,18 @@ public class LabelCommand implements CommandHandler {
         return invalidLabels;
     }
 
-    private void addLabels(List<String> labelsToAdd,Set<String> currentLabels, PullRequest pr, PrintWriter reply) {
+    private void addLabels(List<String> labelsToAdd, Set<String> currentLabels, PullRequest pr, PrintWriter reply, PullRequestBot bot) {
         for (var label : labelsToAdd) {
             if (!currentLabels.contains(label)) {
-                pr.addLabel(label);
-                reply.println(LabelTracker.addLabelMarker(label));
-                reply.println("The `" + label + "` label was successfully added.");
+                var groupLabel = bot.labelConfiguration().groupLabel(label);
+                if (groupLabel.isEmpty()) {
+                    pr.addLabel(label);
+                    reply.println(LabelTracker.addLabelMarker(label));
+                    reply.println("The `" + label + "` label was successfully added.");
+                } else {
+                    reply.println(LabelTracker.addLabelMarker(label));
+                    reply.println("The group label `" + groupLabel.get() + "` label was already applied.");
+                }
             } else {
                 reply.println("The `" + label + "` label was already applied.");
             }

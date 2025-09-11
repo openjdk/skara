@@ -23,6 +23,7 @@
 package org.openjdk.skara.forge;
 
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.Set;
 
 public interface LabelConfiguration {
@@ -30,4 +31,5 @@ public interface LabelConfiguration {
     Set<String> allowed();
     boolean isAllowed(String s);
     Set<String> upgradeLabelsToGroups(Set<String> labels);
+    Optional<String> groupLabel(String label);
 }
