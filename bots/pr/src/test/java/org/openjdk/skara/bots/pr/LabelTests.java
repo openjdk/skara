@@ -142,6 +142,7 @@ public class LabelTests {
                                                            .addMatchers("1", List.of(Pattern.compile("cpp$")))
                                                            .addMatchers("2", List.of(Pattern.compile("hpp$")))
                                                            .addGroup("group", List.of("1", "2"))
+                                                           .addGroup("group2", List.of("1", "3"))
                                                            .addExtra("extra")
                                                            .build();
             var prBot = PullRequestBot.newBuilder()
@@ -190,6 +191,16 @@ public class LabelTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "The `group` label was successfully added.");
             assertEquals(Set.of("group", "rfr"), new HashSet<>(pr.store().labelNames()));
+
+            pr.addComment("/label add group2");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "The `group2` label was successfully added.");
+            assertEquals(Set.of("group", "group2", "rfr"), new HashSet<>(pr.store().labelNames()));
+
+            pr.addComment("/label add 1");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "The `group2`, `group` group labels were already applied, so `1` label will not be added.");
+            assertEquals(Set.of("group", "group2", "rfr"), new HashSet<>(pr.store().labelNames()));
         }
     }
 

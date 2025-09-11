@@ -25,7 +25,6 @@ package org.openjdk.skara.forge;
 import org.openjdk.skara.json.JSON;
 
 import java.nio.file.Path;
-import java.util.Optional;
 import java.util.Set;
 
 public class LabelConfigurationHostedRepository implements LabelConfiguration {
@@ -78,7 +77,7 @@ public class LabelConfigurationHostedRepository implements LabelConfiguration {
     }
 
     @Override
-    public Optional<String> groupLabel(String label) {
+    public Set<String> groupLabel(String label) {
         return labelConfiguration().groupLabel(label);
     }
 }

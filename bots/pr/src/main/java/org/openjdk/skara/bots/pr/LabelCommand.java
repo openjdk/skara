@@ -153,15 +153,23 @@ public class LabelCommand implements CommandHandler {
     private void addLabels(List<String> labelsToAdd, Set<String> currentLabels, PullRequest pr, PrintWriter reply, PullRequestBot bot) {
         for (var label : labelsToAdd) {
             if (!currentLabels.contains(label)) {
-                var groupLabel = bot.labelConfiguration().groupLabel(label);
-                if (groupLabel.isPresent() && currentLabels.contains(groupLabel.get())) {
-                    reply.println(LabelTracker.addLabelMarker(label));
-                    reply.println("The `" + groupLabel.get() + "` group label was already applied, so `" + label + "` label will not be added.");
-                } else {
+                var groups = bot.labelConfiguration().groupLabel(label);
+                // The group labels already set in this pr
+                Set<String> commonLabels = currentLabels.stream()
+                        .filter(groups::contains)
+                        .collect(Collectors.toSet());
+                // No group labels are set
+                if (commonLabels.isEmpty()) {
                     pr.addLabel(label);
                     currentLabels.add(label);
                     reply.println(LabelTracker.addLabelMarker(label));
                     reply.println("The `" + label + "` label was successfully added.");
+                } else {
+                    reply.println(LabelTracker.addLabelMarker(label));
+                    reply.println("The " + commonLabels.stream()
+                            .map(l -> "`" + l + "`")
+                            .collect(Collectors.joining(", "))
+                            + " group label" + (commonLabels.size() > 1 ? "s were" : " was") + " already applied, so `" + label + "` label will not be added.");
                 }
             } else {
                 reply.println("The `" + label + "` label was already applied.");

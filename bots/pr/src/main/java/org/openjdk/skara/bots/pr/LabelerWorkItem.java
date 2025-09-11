@@ -63,8 +63,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         return bot.labelConfiguration().label(files);
     }
 
-
-    private void updateLabelMessage(List<Comment> comments, List<String> newLabels, String commitHash) {
+    private void createInitialLabelMessage(List<Comment> comments, List<String> newLabels, String commitHash) {
         var existing = findComment(comments, INITIAL_LABEL_MESSAGE, pr);
         if (existing.isPresent()) {
             // Only add the comment once per PR
@@ -123,6 +122,11 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
     @Override
     public Collection<WorkItem> prRun(ScratchArea scratchArea) {
+        // If the pr is already closed, return early
+        if (pr.isClosed()) {
+            return List.of();
+        }
+
         // If no label configuration, return early
         if (bot.labelConfiguration().allowed().isEmpty()) {
             return List.of();
@@ -133,7 +137,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         Set<String> oldLabels = new HashSet<>(pr.labelNames());
         Set<String> newLabels = new HashSet<>(pr.labelNames());
 
-        // If the initial label comment can be found,Updating labels when new files are touched
+        // If the initial label comment can be found, updating labels when new files are touched
         if (initialLabelComment.isPresent()) {
             try {
                 var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchArea);
@@ -154,9 +158,9 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                         addLabelAutoUpdateAdditionalComment(comments, new ArrayList<>(newLabels), pr.headHash().hex());
                     }
 
-                    pr.updateComment(initialLabelComment.get().id(), initialLabelComment.get().body().replaceAll(
-                            "(<!-- PullRequest Bot label commit ')[^']*(' -->)",
-                            "$1" + pr.headHash().toString() + "$2"));
+                    Matcher matcher = LABEL_COMMIT_PATTERN.matcher(initialLabelComment.get().body());
+                    String updatedBody = matcher.replaceAll(String.format(LABEL_COMMIT_MARKER, pr.headHash().toString()));
+                    pr.updateComment(initialLabelComment.get().id(), updatedBody);
                 } else {
                     // If auto label comment is present but auto label hash isn't present, mark the headHash as handled.
                     pr.updateComment(initialLabelComment.get().id(),
@@ -167,20 +171,20 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             }
             // No need to return CheckWorkItem, if there is any label added, in the next round of CheckWorkItem, it will re-evaluate the pr
             return List.of();
+        } else {
+            // Initial auto labeling
+            try {
+                var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchArea);
+                var labelsToAdd = getLabels(localRepo);
+                newLabels.addAll(labelsToAdd);
+                newLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
+                syncLabels(pr, oldLabels, newLabels, log);
+                createInitialLabelMessage(comments, new ArrayList<>(labelsToAdd), pr.headHash().toString());
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            return needsRfrCheck(newLabels);
         }
-
-        // Initial auto labeling
-        try {
-            var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchArea);
-            var labelsToAdd = getLabels(localRepo);
-            newLabels.addAll(labelsToAdd);
-            newLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
-            syncLabels(pr, oldLabels, newLabels, log);
-            updateLabelMessage(comments, new ArrayList<>(labelsToAdd), pr.headHash().toString());
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-        return needsRfrCheck(newLabels);
     }
 
     void addLabelAutoUpdateAdditionalComment(List<Comment> comments, List<String> labelsAdded, String commitHash) {
@@ -198,7 +202,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                     .map(label -> "`" + label + "`")
                     .collect(Collectors.joining(", ")));
             message.append(labelsAdded.size() == 1 ? " has" : " have");
-            message.append(" been added to this pr based on the files touched in your new commit(s).");
+            message.append(" been added to this pull request based on files touched in new commit(s).");
         }
         message.append("\n");
         message.append(String.format(AUTO_LABEL_ADDITIONAL_COMMENT_MARKER, commitHash));

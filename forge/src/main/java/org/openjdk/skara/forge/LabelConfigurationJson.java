@@ -168,12 +168,13 @@ public class LabelConfigurationJson implements LabelConfiguration {
         return ret;
     }
 
-    public Optional<String> groupLabel(String label) {
+    public Set<String> groupLabel(String label) {
+        var ret = new HashSet<String>();
         for (var group : groups.entrySet()) {
             if (group.getValue().contains(label)) {
-                return Optional.of(group.getKey());
+                ret.add(group.getKey());
             }
         }
-        return Optional.empty();
+        return ret;
     }
 }
