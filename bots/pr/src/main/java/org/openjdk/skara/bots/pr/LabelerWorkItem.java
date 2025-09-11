@@ -148,8 +148,10 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
                     syncLabels(pr, oldLabels, newLabels, log);
 
-                    if (!newLabelsNeedToBeAdded.isEmpty()) {
-                        addLabelAutoUpdateAdditionalComment(comments, new ArrayList<>(newLabelsNeedToBeAdded), pr.headHash().hex());
+                    // The labels actually added
+                    newLabels.removeAll(oldLabels);
+                    if (!newLabels.isEmpty()) {
+                        addLabelAutoUpdateAdditionalComment(comments, new ArrayList<>(newLabels), pr.headHash().hex());
                     }
 
                     pr.updateComment(initialLabelComment.get().id(), initialLabelComment.get().body().replaceAll(
