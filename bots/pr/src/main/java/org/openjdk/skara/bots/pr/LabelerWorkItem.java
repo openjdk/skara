@@ -196,7 +196,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                     .map(label -> "`" + label + "`")
                     .collect(Collectors.joining(", ")));
             message.append(labelsAdded.size() == 1 ? " has" : " have");
-            message.append(" been added to this pr.");
+            message.append(" been added to this pr based on the files touched in your new commit(s).");
         }
         message.append("\n");
         message.append(String.format(AUTO_LABEL_ADDITIONAL_COMMENT_MARKER, commitHash));
