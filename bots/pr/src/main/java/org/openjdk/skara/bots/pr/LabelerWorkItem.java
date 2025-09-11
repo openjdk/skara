@@ -175,11 +175,16 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             // Initial auto labeling
             try {
                 var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchArea);
-                var labelsToAdd = getLabels(localRepo);
-                newLabels.addAll(labelsToAdd);
+                newLabels.addAll(getLabels(localRepo));
                 newLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
                 syncLabels(pr, oldLabels, newLabels, log);
-                createInitialLabelMessage(comments, new ArrayList<>(labelsToAdd), pr.headHash().toString());
+                var labelsAdded = new HashSet<String>();
+                for (var newLabel : newLabels) {
+                    if (!oldLabels.contains(newLabel)) {
+                        labelsAdded.add(newLabel);
+                    }
+                }
+                createInitialLabelMessage(comments, new ArrayList<>(labelsAdded), pr.headHash().toString());
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
