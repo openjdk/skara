@@ -33,5 +33,5 @@ public interface LabelConfiguration {
     /**
      * Returns the set of groups that this label belongs to.
      */
-    Set<String> groupLabel(String label);
+    Set<String> groupLabels(String label);
 }

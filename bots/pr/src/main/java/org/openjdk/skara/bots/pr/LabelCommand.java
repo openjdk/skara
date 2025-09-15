@@ -88,7 +88,7 @@ public class LabelCommand implements CommandHandler {
             } else if (argumentMatcher.group(1).equals("remove")) {
                 removeLabels(labels, currentLabels, pr, reply);
             }
-            upgradeLabelsToGroups(pr, bot);
+            upgradeLabelsToGroups(pr, bot, currentLabels);
             return;
         }
 
@@ -120,7 +120,7 @@ public class LabelCommand implements CommandHandler {
 
             addLabels(labelsToAdd, currentLabels, pr, reply, bot);
             removeLabels(labelsToRemove, currentLabels, pr, reply);
-            upgradeLabelsToGroups(pr, bot);
+            upgradeLabelsToGroups(pr, bot, currentLabels);
         }
     }
 
@@ -150,10 +150,15 @@ public class LabelCommand implements CommandHandler {
         return invalidLabels;
     }
 
+    /**
+     * Attempts to add each label in labelsToAdd to the pull request.
+     * Updates to currentLabels are performed immediately after each label addition, so group checks always
+     * reflect the latest state after any modifications.
+     */
     private void addLabels(List<String> labelsToAdd, Set<String> currentLabels, PullRequest pr, PrintWriter reply, PullRequestBot bot) {
         for (var label : labelsToAdd) {
             if (!currentLabels.contains(label)) {
-                var groups = bot.labelConfiguration().groupLabel(label);
+                var groups = bot.labelConfiguration().groupLabels(label);
                 // The group labels already set in this pr
                 Set<String> commonLabels = currentLabels.stream()
                         .filter(groups::contains)
@@ -177,6 +182,10 @@ public class LabelCommand implements CommandHandler {
         }
     }
 
+    /**
+     * Attempts to remove each label in labelsToRemove from the pull request.
+     * Updates to currentLabels are performed immediately after each label removal.
+     */
     private void removeLabels(List<String> labelsToRemove,Set<String> currentLabels, PullRequest pr, PrintWriter reply) {
         for (var label : labelsToRemove) {
             if (currentLabels.contains(label)) {
@@ -190,9 +199,9 @@ public class LabelCommand implements CommandHandler {
         }
     }
 
-    private void upgradeLabelsToGroups(PullRequest pr, PullRequestBot bot) {
-        Set<String> oldLabels = new HashSet<>(pr.labelNames());
-        Set<String> newLabels = new HashSet<>(pr.labelNames());
+    private void upgradeLabelsToGroups(PullRequest pr, PullRequestBot bot, Set<String> currentLabels) {
+        Set<String> oldLabels = new HashSet<>(currentLabels);
+        Set<String> newLabels = new HashSet<>(currentLabels);
         newLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
         syncLabels(pr, oldLabels, newLabels, log);
     }

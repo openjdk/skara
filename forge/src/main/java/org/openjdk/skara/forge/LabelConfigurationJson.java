@@ -168,7 +168,7 @@ public class LabelConfigurationJson implements LabelConfiguration {
         return ret;
     }
 
-    public Set<String> groupLabel(String label) {
+    public Set<String> groupLabels(String label) {
         var ret = new HashSet<String>();
         for (var group : groups.entrySet()) {
             if (group.getValue().contains(label)) {

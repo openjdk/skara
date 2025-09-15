@@ -77,8 +77,8 @@ public class LabelConfigurationHostedRepository implements LabelConfiguration {
     }
 
     @Override
-    public Set<String> groupLabel(String label) {
-        return labelConfiguration().groupLabel(label);
+    public Set<String> groupLabels(String label) {
+        return labelConfiguration().groupLabels(label);
     }
 }
 
