@@ -70,5 +70,15 @@ public class LabelConfigurationHostedRepository implements LabelConfiguration {
     public boolean isAllowed(String s) {
         return labelConfiguration().isAllowed(s);
     }
+
+    @Override
+    public Set<String> upgradeLabelsToGroups(Set<String> labels) {
+        return labelConfiguration().upgradeLabelsToGroups(labels);
+    }
+
+    @Override
+    public Set<String> groupLabels(String label) {
+        return labelConfiguration().groupLabels(label);
+    }
 }
 

@@ -27,14 +27,16 @@ import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.*;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.openjdk.skara.bots.common.CommandNameEnum.label;
+import static org.openjdk.skara.bots.pr.CheckRun.syncLabels;
 
 public class LabelCommand implements CommandHandler {
     private final String commandName;
-
+    private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private static final Pattern ARGUMENT_PATTERN = Pattern.compile("(?:(add|remove)\\s+)((?:[A-Za-z0-9_@.-]+[\\s,]*)+)");
     private static final Pattern SHORT_ARGUMENT_PATTERN = Pattern.compile("((?:[-+]?[A-Za-z0-9_@.-]+[\\s,]*)+)");
     private static final Pattern IGNORED_SUFFIXES = Pattern.compile("^(.*)(?:-dev(?:@openjdk.org)?)$");
@@ -82,10 +84,11 @@ public class LabelCommand implements CommandHandler {
                 return;
             }
             if (argumentMatcher.group(1).equals("add")) {
-                addLabels(labels, currentLabels, pr, reply);
+                addLabels(labels, currentLabels, pr, reply, bot);
             } else if (argumentMatcher.group(1).equals("remove")) {
                 removeLabels(labels, currentLabels, pr, reply);
             }
+            upgradeLabelsToGroups(pr, bot, currentLabels);
             return;
         }
 
@@ -115,8 +118,9 @@ public class LabelCommand implements CommandHandler {
                 return;
             }
 
-            addLabels(labelsToAdd, currentLabels, pr, reply);
+            addLabels(labelsToAdd, currentLabels, pr, reply, bot);
             removeLabels(labelsToRemove, currentLabels, pr, reply);
+            upgradeLabelsToGroups(pr, bot, currentLabels);
         }
     }
 
@@ -146,28 +150,60 @@ public class LabelCommand implements CommandHandler {
         return invalidLabels;
     }
 
-    private void addLabels(List<String> labelsToAdd,Set<String> currentLabels, PullRequest pr, PrintWriter reply) {
+    /**
+     * Attempts to add each label in labelsToAdd to the pull request.
+     * Updates to currentLabels are performed immediately after each label addition, so group checks always
+     * reflect the latest state after any modifications.
+     */
+    private void addLabels(List<String> labelsToAdd, Set<String> currentLabels, PullRequest pr, PrintWriter reply, PullRequestBot bot) {
         for (var label : labelsToAdd) {
             if (!currentLabels.contains(label)) {
-                pr.addLabel(label);
-                reply.println(LabelTracker.addLabelMarker(label));
-                reply.println("The `" + label + "` label was successfully added.");
+                var groups = bot.labelConfiguration().groupLabels(label);
+                // The group labels already set in this pr
+                Set<String> commonLabels = currentLabels.stream()
+                        .filter(groups::contains)
+                        .collect(Collectors.toSet());
+                // No group labels are set
+                if (commonLabels.isEmpty()) {
+                    pr.addLabel(label);
+                    currentLabels.add(label);
+                    reply.println(LabelTracker.addLabelMarker(label));
+                    reply.println("The `" + label + "` label was successfully added.");
+                } else {
+                    reply.println(LabelTracker.addLabelMarker(label));
+                    reply.println("The " + commonLabels.stream()
+                            .map(l -> "`" + l + "`")
+                            .collect(Collectors.joining(", "))
+                            + " group label" + (commonLabels.size() > 1 ? "s were" : " was") + " already applied, so `" + label + "` label will not be added.");
+                }
             } else {
                 reply.println("The `" + label + "` label was already applied.");
             }
         }
     }
 
+    /**
+     * Attempts to remove each label in labelsToRemove from the pull request.
+     * Updates to currentLabels are performed immediately after each label removal.
+     */
     private void removeLabels(List<String> labelsToRemove,Set<String> currentLabels, PullRequest pr, PrintWriter reply) {
         for (var label : labelsToRemove) {
             if (currentLabels.contains(label)) {
                 pr.removeLabel(label);
+                currentLabels.remove(label);
                 reply.println(LabelTracker.removeLabelMarker(label));
                 reply.println("The `" + label + "` label was successfully removed.");
             } else {
                 reply.println("The `" + label + "` label was not set.");
             }
         }
+    }
+
+    private void upgradeLabelsToGroups(PullRequest pr, PullRequestBot bot, Set<String> currentLabels) {
+        Set<String> oldLabels = new HashSet<>(currentLabels);
+        Set<String> newLabels = new HashSet<>(currentLabels);
+        newLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
+        syncLabels(pr, oldLabels, newLabels, log);
     }
 
     @Override

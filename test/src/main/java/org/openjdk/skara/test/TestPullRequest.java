@@ -51,7 +51,6 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     protected final String sourceRef;
     protected final String targetRef;
     protected final boolean draft;
-    private List<Label> labels;
 
     public TestPullRequest(TestPullRequestStore store, TestHostedRepository targetRepository) {
         super(store, targetRepository.forge().currentUser());
@@ -314,19 +313,6 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public Object snapshot() {
         return List.of(this, comments(), reviews());
-    }
-
-    /**
-     * Mimic GitHub/GitLab where the labels are fetched lazily and cached.
-     * In GitLabMergeRequest, the labels are actually part of the main json, but
-     * are still re-fetched once on the first call to labels().
-     */
-    @Override
-    public List<Label> labels() {
-        if (labels == null) {
-            labels = store().labels().keySet().stream().map(Label::new).collect(Collectors.toList());
-        }
-        return labels;
     }
 
     /**

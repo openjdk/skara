@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -130,6 +130,19 @@ public class LabelConfigurationJson implements LabelConfiguration {
             }
         }
 
+        return upgradeLabelsToGroups(labels);
+    }
+
+    public Set<String> allowed() {
+        return allowed;
+    }
+
+    public boolean isAllowed(String s) {
+        return allowed.contains(s);
+    }
+
+    @Override
+    public Set<String> upgradeLabelsToGroups(Set<String> labels) {
         var ret = new HashSet<>(labels);
         // If the current labels matches at least two members of a group, use the group
         for (var group : groups.entrySet()) {
@@ -152,15 +165,16 @@ public class LabelConfigurationJson implements LabelConfiguration {
                 ret.removeAll(group.getValue());
             }
         }
-
         return ret;
     }
 
-    public Set<String> allowed() {
-        return allowed;
-    }
-
-    public boolean isAllowed(String s) {
-        return allowed.contains(s);
+    public Set<String> groupLabels(String label) {
+        var ret = new HashSet<String>();
+        for (var group : groups.entrySet()) {
+            if (group.getValue().contains(label)) {
+                ret.add(group.getKey());
+            }
+        }
+        return ret;
     }
 }

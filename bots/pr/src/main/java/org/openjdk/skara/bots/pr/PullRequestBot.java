@@ -58,7 +58,6 @@ class PullRequestBot implements Bot {
     private final String confOverrideName;
     private final String confOverrideRef;
     private final String censusLink;
-    private final Set<String> autoLabelled;
     private final Map<String, HostedRepository> forks;
     private final Set<String> integrators;
     private final Set<Integer> excludeCommitCommentsFrom;
@@ -140,7 +139,6 @@ class PullRequestBot implements Bot {
         this.cleanCommandEnabled = cleanCommandEnabled;
         this.checkContributorStatusForBackportCommand = checkContributorStatusForBackportCommand;
 
-        autoLabelled = new HashSet<>();
         poller = new PullRequestPoller(repo, true);
 
         // Only check recently updated when starting up to avoid congestion
@@ -366,18 +364,6 @@ class PullRequestBot implements Bot {
 
     public Map<String, HostedRepository> forks() {
         return forks;
-    }
-
-    public boolean isAutoLabelled(PullRequest pr) {
-        synchronized (autoLabelled) {
-            return autoLabelled.contains(pr.id());
-        }
-    }
-
-    public void setAutoLabelled(PullRequest pr) {
-        synchronized (autoLabelled) {
-            autoLabelled.add(pr.id());
-        }
     }
 
     public boolean reviewCleanBackport() {

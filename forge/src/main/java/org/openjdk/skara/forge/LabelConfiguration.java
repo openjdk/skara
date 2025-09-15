@@ -29,4 +29,9 @@ public interface LabelConfiguration {
     Set<String> label(Set<Path> changes);
     Set<String> allowed();
     boolean isAllowed(String s);
+    Set<String> upgradeLabelsToGroups(Set<String> labels);
+    /**
+     * Returns the set of groups that this label belongs to.
+     */
+    Set<String> groupLabels(String label);
 }
