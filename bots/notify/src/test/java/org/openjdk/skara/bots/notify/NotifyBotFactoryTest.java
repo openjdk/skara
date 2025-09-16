@@ -116,7 +116,8 @@ class NotifyBotFactoryTest {
                           "issue": {
                             "project": "test_bugs/TEST",
                             "pronly": true,
-                            "resolve": false
+                            "resolve": false,
+                            "multifixversions": true,
                           },
                           "comment": {
                             "project": "test_bugs/TEST"

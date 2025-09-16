@@ -51,6 +51,7 @@ class IssueNotifierBuilder {
     private boolean tagMatchPrefix = false;
     private List<IssueNotifier.BranchSecurity> defaultSecurity = List.of();
     private boolean avoidForwardports = false;
+    private boolean multiFixVersions = false;
 
     IssueNotifierBuilder issueProject(IssueProject issueProject) {
         this.issueProject = issueProject;
@@ -158,6 +159,11 @@ class IssueNotifierBuilder {
         return this;
     }
 
+    public IssueNotifierBuilder multiFixVersions(boolean multiFixVersions) {
+        this.multiFixVersions = multiFixVersions;
+        return this;
+    }
+
     public boolean prOnly() {
         return prOnly;
     }
@@ -170,6 +176,6 @@ class IssueNotifierBuilder {
         return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
                 setFixVersion, fixVersions, altFixVersions, prOnly,
                 repoOnly, buildName, censusRepository, censusRef, namespace, useHeadVersion, originalRepository,
-                resolve, tagIgnoreOpt, tagMatchPrefix, defaultSecurity, avoidForwardports);
+                resolve, tagIgnoreOpt, tagMatchPrefix, defaultSecurity, avoidForwardports, multiFixVersions);
     }
 }

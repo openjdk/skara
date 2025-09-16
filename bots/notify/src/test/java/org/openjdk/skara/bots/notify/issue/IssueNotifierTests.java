@@ -2637,4 +2637,67 @@ public class IssueNotifierTests {
             assertTrue(issue.comments().getLast().body().contains("Branch: jdk23"));
         }
     }
+
+    @Test
+    void testIssueMultipleFixVersions(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+                var tempFolder = new TemporaryDirectory()) {
+
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("file.txt"), Set.of(), null);
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.authenticatedUrl());
+
+            var issueProject = credentials.getIssueProject();
+            var storageFolder = tempFolder.path().resolve("storage");
+            var jbsNotifierConfig = JSON.object()
+                    .put("fixversions", JSON.object()
+                            .put("other", "branch-foo1")
+                            .put("other2", "branch-foo2"))
+                    .put("multiFixVersions", true);
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+
+            // Initialize state for all active branches
+            localRepo.push("master:other", repo.authenticatedUrl());
+            localRepo.push("master:other2", repo.authenticatedUrl());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.authenticatedUrl(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The changeset should be reflected in a comment
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+
+            var comments = updatedIssue.comments();
+            assertEquals(1, comments.size());
+            var comment = comments.get(0);
+            assertTrue(comment.body().contains(editHash.toString()));
+
+            // As well as a fixVersion and a resolved in build
+            assertEquals(Set.of(), fixVersions(updatedIssue));
+
+            // The issue should be assigned and resolved
+            assertEquals(RESOLVED, updatedIssue.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
+
+            // Push to a branch with a fixVersion config
+            localRepo.push(editHash, repo.authenticatedUrl(), "other2");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            assertEquals(Set.of("branch-foo2"), fixVersions(updatedIssue));
+
+            // Push to the other branch with a fixVersion config
+            localRepo.push(editHash, repo.authenticatedUrl(), "other");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            assertEquals(Set.of("branch-foo2", "branch-foo1"), fixVersions(updatedIssue));
+        }
+    }
 }
