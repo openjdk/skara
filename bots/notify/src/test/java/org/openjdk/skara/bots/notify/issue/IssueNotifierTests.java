@@ -2655,7 +2655,7 @@ public class IssueNotifierTests {
                     .put("fixversions", JSON.object()
                             .put("other", "branch-foo1")
                             .put("other2", "branch-foo2"))
-                    .put("multiFixVersions", true);
+                    .put("multifixversions", true);
             var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
 
             // Initialize state for all active branches
