@@ -148,6 +148,7 @@
             "src/java.transaction.xa/",
             "src/java.xml/",
             "src/jdk.incubator.foreign/",
+            "src/jdk.incubator.vector/",
             "src/jdk.jpackage/",
             "src/jdk.internal.opt/",
             "src/jdk.jartool/(?!.*/jarsigner)",
