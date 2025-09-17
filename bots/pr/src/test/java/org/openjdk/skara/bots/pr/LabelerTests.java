@@ -29,6 +29,7 @@ import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -313,6 +314,144 @@ class LabelerTests {
             // Check the status - the test1 label should have been added
             TestBotRunner.runPeriodicItems(labelBot);
             assertEquals(Set.of("rfr", "test1", "test42"), new HashSet<>(pr.store().labelNames()));
+        }
+    }
+
+    @Test
+    void autoAdjustLabel(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(integrator.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var labelConfiguration = LabelConfigurationJson.builder()
+                    .addMatchers("1", List.of(Pattern.compile("cpp$")))
+                    .addMatchers("2", List.of(Pattern.compile("hpp$")))
+                    .addMatchers("3", List.of(Pattern.compile("txt$")))
+                    .addGroup("group1", List.of("1", "2"))
+                    .addExtra("extra")
+                    .build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .labelConfiguration(labelConfiguration)
+                    .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType(), Path.of("test.hpp"));
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
+
+            // The bot should have applied one label automatically
+            TestBotRunner.runPeriodicItems(prBot);
+            assertEquals(Set.of("2", "rfr"), new HashSet<>(pr.store().labelNames()));
+            assertLastCommentContains(pr, "The following label will be automatically applied");
+            assertLastCommentContains(pr, "`2`");
+
+            var test1Cpp = localRepo.root().resolve("test1.cpp");
+            try (var output = Files.newBufferedWriter(test1Cpp)) {
+                output.append("test");
+            }
+            localRepo.add(test1Cpp);
+            var addHash = localRepo.commit("add cpp file", "duke", "duke@openjdk.org");
+            localRepo.push(addHash, author.authenticatedUrl(), "edit", true);
+            TestBotRunner.runPeriodicItems(prBot);
+            assertEquals(Set.of("group1", "rfr"), new HashSet<>(pr.store().labelNames()));
+
+            // Simulate force-push.
+            localRepo.checkout(editHash);
+            var test1txt = localRepo.root().resolve("test1.txt");
+            try (var output = Files.newBufferedWriter(test1txt)) {
+                output.append("test");
+            }
+            localRepo.add(test1txt);
+            var forcePushHash = localRepo.commit("add txt file", "duke", "duke@openjdk.org");
+            localRepo.push(forcePushHash, author.authenticatedUrl(), "edit", true);
+            TestBotRunner.runPeriodicItems(prBot);
+            assertEquals(Set.of("group1", "rfr", "3"), new HashSet<>(pr.store().labelNames()));
+        }
+    }
+
+    @Test
+    void autoAdjustLabelWithMerge(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(integrator.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var labelConfiguration = LabelConfigurationJson.builder()
+                    .addMatchers("1", List.of(Pattern.compile("cpp$")))
+                    .addMatchers("2", List.of(Pattern.compile("hpp$")))
+                    .addMatchers("3", List.of(Pattern.compile("txt$")))
+                    .addGroup("group1", List.of("1", "2"))
+                    .addExtra("extra")
+                    .build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .labelConfiguration(labelConfiguration)
+                    .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType(), Path.of("test.hpp"));
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
+
+            // The bot should have applied one label automatically
+            TestBotRunner.runPeriodicItems(prBot);
+            assertEquals(Set.of("2", "rfr"), new HashSet<>(pr.store().labelNames()));
+            assertLastCommentContains(pr, "The following label will be automatically applied");
+            assertLastCommentContains(pr, "`2`");
+
+            // Update the target branch
+            localRepo.checkout(masterHash);
+            var txtFile = localRepo.root().resolve("unrelated.txt");
+            Files.writeString(txtFile, "Hello");
+            localRepo.add(txtFile);
+            var updatedMasterHash = localRepo.commit("add txt file", "duke", "duke@openjdk.org");
+            localRepo.push(updatedMasterHash, author.authenticatedUrl(), "master", true);
+
+            TestBotRunner.runPeriodicItems(prBot);
+            // Change to master branch shouldn't change labels
+            assertEquals(Set.of("2", "rfr"), new HashSet<>(pr.store().labelNames()));
+
+            // Merge master into edit
+            localRepo.checkout(editHash);
+            localRepo.merge(updatedMasterHash);
+            var mergeHash = localRepo.commit("merge master", "duke", "duke@openjdk.org");
+            localRepo.push(mergeHash, author.authenticatedUrl(), "edit", true);
+            // Add cpp file
+            localRepo.checkout(mergeHash);
+            var cppFile = localRepo.root().resolve("test.cpp");
+            Files.writeString(cppFile, "Hello cpp");
+            localRepo.add(cppFile);
+            var updatedEditHash = localRepo.commit("add cpp file", "duke", "duke@openjdk.org");
+            localRepo.push(updatedEditHash, author.authenticatedUrl(), "edit", true);
+
+            TestBotRunner.runPeriodicItems(prBot);
+            // The commit brought in by merge shouldn't affect labels, so "3" shouldn't be added
+            // After adding cpp file, "1" should be added and the labels should be upgraded to "group1"
+            assertEquals(Set.of("group1", "rfr"), new HashSet<>(pr.store().labelNames()));
         }
     }
 }
