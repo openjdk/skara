@@ -139,6 +139,10 @@ public class IssueNotifierFactory implements NotifierFactory {
             builder.avoidForwardports(notifierConfiguration.get("avoidforwardports").asBoolean());
         }
 
+        if (notifierConfiguration.contains("multifixversions")) {
+            builder.multiFixVersions(notifierConfiguration.get("multifixversions").asBoolean());
+        }
+
         return builder.build();
     }
 }

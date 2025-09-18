@@ -45,7 +45,7 @@ public class JdkVersion implements Comparable<JdkVersion> {
 
     private final static Pattern legacyPrefixPattern = Pattern.compile("^([^\\d]*)\\d+$");
 
-    private final static Pattern projectRepoPattern = Pattern.compile("repo-([a-z0-9]*)");
+    private final static Pattern projectRepoPattern = Pattern.compile("(repo|branch)-([a-z0-9]*)");
 
     private static List<String> splitComponents(String raw) {
         var finalComponents = new ArrayList<String>();
@@ -83,9 +83,8 @@ public class JdkVersion implements Comparable<JdkVersion> {
         if (finalComponents.isEmpty()) {
             var matcher = projectRepoPattern.matcher(raw);
             if (matcher.matches()) {
-                var project = matcher.group(1);
-                finalComponents.add("repo");
-                finalComponents.add(project);
+                finalComponents.add(matcher.group(1));
+                finalComponents.add(matcher.group(2));
             }
         }
 

@@ -156,4 +156,10 @@ public class JdkVersionTests {
         assertEquals(List.of("repo", "foo"), from("repo-foo").components());
         assertTrue(from("20").compareTo(from("repo-foo")) < 0);
     }
+
+    @Test
+    void teamBranch() {
+        assertEquals(List.of("branch", "foo"), from("branch-foo").components());
+        assertTrue(from("20").compareTo(from("branch-foo")) < 0);
+    }
 }

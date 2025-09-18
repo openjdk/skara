@@ -88,14 +88,19 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     private CensusInstance census = null;
 
     // If true, avoid creating a "forward backport" when creating a new backport
-    private boolean avoidForwardports;
+    private final boolean avoidForwardports;
+
+    // If true, allow multiple values in the Fix Versions field instead of using
+    // backport records for every additional fix version.
+    private final boolean multiFixVersions;
 
     IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
                   boolean setFixVersion, LinkedHashMap<Pattern, String> fixVersions, LinkedHashMap<Pattern, List<Pattern>> altFixVersions,
                   boolean prOnly, boolean repoOnly, String buildName,
                   HostedRepository censusRepository, String censusRef, String namespace, boolean useHeadVersion,
                   HostedRepository originalRepository, boolean resolve, Set<String> tagIgnoreOpt,
-                  boolean tagMatchPrefix, List<BranchSecurity> defaultSecurity, boolean avoidForwardports) {
+                  boolean tagMatchPrefix, List<BranchSecurity> defaultSecurity, boolean avoidForwardports,
+                  boolean multiFixVersions) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -117,6 +122,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.tagMatchPrefix = tagMatchPrefix;
         this.defaultSecurity = defaultSecurity;
         this.avoidForwardports = avoidForwardports;
+        this.multiFixVersions = multiFixVersions;
     }
 
     static IssueNotifierBuilder newBuilder() {
@@ -338,32 +344,34 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                         // Do not update fixVersion
                         requestedVersion = null;
                     } else if (requestedVersion != null) {
-                        var fixVersion = JdkVersion.parse(requestedVersion).orElseThrow();
-                        var existing = Backports.findIssue(issue, fixVersion);
-                        if (existing.isEmpty()) {
-                            var issueFixVersion = Backports.mainFixVersion(issue);
-                            try {
-                                if (issue.isOpen() && avoidForwardports && issueFixVersion.isPresent() && fixVersion.compareTo(issueFixVersion.get()) > 0) {
-                                    log.info("Avoiding 'forwardport', creating new backport for " + issue.id() + " with fixVersion " + issueFixVersion.get().raw());
-                                    Backports.createBackport(issue, issueFixVersion.get().raw(), username.orElse(null), defaultSecurity(branch));
-                                } else {
-                                    log.info("Creating new backport for " + issue.id() + " with fixVersion " + requestedVersion);
-                                    issue = Backports.createBackport(issue, requestedVersion, username.orElse(null), defaultSecurity(branch));
+                        if (!multiFixVersions) {
+                            var fixVersion = JdkVersion.parse(requestedVersion).orElseThrow();
+                            var existing = Backports.findIssue(issue, fixVersion);
+                            if (existing.isEmpty()) {
+                                var issueFixVersion = Backports.mainFixVersion(issue);
+                                try {
+                                    if (issue.isOpen() && avoidForwardports && issueFixVersion.isPresent() && fixVersion.compareTo(issueFixVersion.get()) > 0) {
+                                        log.info("Avoiding 'forwardport', creating new backport for " + issue.id() + " with fixVersion " + issueFixVersion.get().raw());
+                                        Backports.createBackport(issue, issueFixVersion.get().raw(), username.orElse(null), defaultSecurity(branch));
+                                    } else {
+                                        log.info("Creating new backport for " + issue.id() + " with fixVersion " + requestedVersion);
+                                        issue = Backports.createBackport(issue, requestedVersion, username.orElse(null), defaultSecurity(branch));
+                                    }
+                                } catch (UncheckedRestException e) {
+                                    existing = Backports.findIssue(issue, fixVersion);
+                                    if (existing.isPresent()) {
+                                        log.info("Race condition occurred while creating backport issue, returning the existing backport for " + issue.id() + " and requested fixVersion "
+                                                + requestedVersion + " " + existing.get().id());
+                                        issue = existing.get();
+                                    } else {
+                                        throw e;
+                                    }
                                 }
-                            } catch (UncheckedRestException e) {
-                                existing = Backports.findIssue(issue, fixVersion);
-                                if (existing.isPresent()) {
-                                    log.info("Race condition occurred while creating backport issue, returning the existing backport for " + issue.id() + " and requested fixVersion "
-                                            + requestedVersion + " " + existing.get().id());
-                                    issue = existing.get();
-                                } else {
-                                    throw e;
-                                }
+                            } else {
+                                log.info("Found existing backport for " + issue.id() + " and requested fixVersion "
+                                        + requestedVersion + " " + existing.get().id());
+                                issue = existing.get();
                             }
-                        } else {
-                            log.info("Found existing backport for " + issue.id() + " and requested fixVersion "
-                                    + requestedVersion + " " + existing.get().id());
-                            issue = existing.get();
                         }
                     }
                 }
@@ -404,8 +412,17 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                                 log.info("Not replacing build " + oldBuild.asString() + " with " + buildName + " for issue " + issue.id());
                             }
                         }
-                        log.info("Setting fixVersion for " + issue.id() + " to " + requestedVersion);
-                        issue.setProperty("fixVersions", JSON.array().add(requestedVersion));
+                        if (multiFixVersions) {
+                            var currentFixVersions = Backports.fixVersions(issue);
+                            log.info("Adding fixVersion " + requestedVersion + " to " + issue.id() + " current: " + currentFixVersions);
+                            var jsonFixVersions = JSON.array();
+                            currentFixVersions.forEach(jsonFixVersions::add);
+                            jsonFixVersions.add(requestedVersion);
+                            issue.setProperty("fixVersions", jsonFixVersions);
+                        } else {
+                            log.info("Setting fixVersion for " + issue.id() + " to " + requestedVersion);
+                            issue.setProperty("fixVersions", JSON.array().add(requestedVersion));
+                        }
                     }
                 }
             }
