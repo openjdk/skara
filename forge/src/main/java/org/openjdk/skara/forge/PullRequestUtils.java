@@ -209,17 +209,32 @@ public class PullRequestUtils {
     }
 
     private static Set<Path> changedFilesBetween(Repository localRepo, Hash from, Hash to) throws IOException {
-        var ret = new HashSet<Path>();
-        var changes = localRepo.diff(from, to);
-        for (var patch : changes.patches()) {
-            if (patch.status().isDeleted() || patch.status().isRenamed()) {
-                patch.source().path().ifPresent(ret::add);
-            }
-            if (!patch.status().isDeleted()) {
-                patch.target().path().ifPresent(ret::add);
+        Set<Path> changedFiles = new HashSet<>();
+
+        Set<Path> mergeBaseToFromChangedFiles = getChangedFilesSinceMergeBase(localRepo, from);
+        Set<Path> mergeBaseToToChangedFiles = getChangedFilesSinceMergeBase(localRepo, to);
+
+        for (Path file : mergeBaseToToChangedFiles) {
+            if (!mergeBaseToFromChangedFiles.contains(file)) {
+                changedFiles.add(file);
             }
         }
-        return ret;
+        return changedFiles;
+    }
+
+    private static Set<Path> getChangedFilesSinceMergeBase(Repository localRepo, Hash commit) throws IOException {
+        Set<Path> changedFiles = new HashSet<>();
+        Hash mergeBase = localRepo.mergeBase(targetHash(localRepo), commit);
+        var diff = localRepo.diff(mergeBase, commit);
+        for (var patch : diff.patches()) {
+            if (patch.status().isDeleted() || patch.status().isRenamed()) {
+                patch.source().path().ifPresent(changedFiles::add);
+            }
+            if (!patch.status().isDeleted()) {
+                patch.target().path().ifPresent(changedFiles::add);
+            }
+        }
+        return changedFiles;
     }
 
     public static boolean containsForeignMerge(PullRequest pr, Repository localRepo) throws IOException {
