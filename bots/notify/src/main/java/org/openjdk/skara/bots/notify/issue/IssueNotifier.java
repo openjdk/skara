@@ -350,24 +350,18 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                             if (existing.isEmpty()) {
                                 var issueFixVersion = Backports.mainFixVersion(issue);
                                 try {
-                                    if (issue.isOpen() && avoidForwardports && issueFixVersion.isPresent() &&
-                                            fixVersion.compareTo(issueFixVersion.get()) > 0) {
-                                        log.info("Avoiding 'forwardport', creating new backport for " + issue.id() +
-                                                " with fixVersion " + issueFixVersion.get().raw());
+                                    if (issue.isOpen() && avoidForwardports && issueFixVersion.isPresent() && fixVersion.compareTo(issueFixVersion.get()) > 0) {
+                                        log.info("Avoiding 'forwardport', creating new backport for " + issue.id() + " with fixVersion " + issueFixVersion.get().raw());
                                         Backports.createBackport(issue, issueFixVersion.get().raw(), username.orElse(null), defaultSecurity(branch));
                                     } else {
-                                        log.info("Creating new backport for " + issue.id() + " with fixVersion " +
-                                                requestedVersion);
-                                        issue =
-                                                Backports.createBackport(issue, requestedVersion, username.orElse(null), defaultSecurity(branch));
+                                        log.info("Creating new backport for " + issue.id() + " with fixVersion " + requestedVersion);
+                                        issue = Backports.createBackport(issue, requestedVersion, username.orElse(null), defaultSecurity(branch));
                                     }
                                 } catch (UncheckedRestException e) {
                                     existing = Backports.findIssue(issue, fixVersion);
                                     if (existing.isPresent()) {
-                                        log.info(
-                                                "Race condition occurred while creating backport issue, returning the existing backport for " +
-                                                        issue.id() + " and requested fixVersion "
-                                                        + requestedVersion + " " + existing.get().id());
+                                        log.info("Race condition occurred while creating backport issue, returning the existing backport for " + issue.id() + " and requested fixVersion "
+                                                + requestedVersion + " " + existing.get().id());
                                         issue = existing.get();
                                     } else {
                                         throw e;
