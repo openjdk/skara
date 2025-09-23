@@ -146,9 +146,18 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                     var evaluatedCommitHash = autoLabeledHashOpt.get();
                     var changedFiles = PullRequestUtils.changedFiles(pr, localRepo, new Hash(evaluatedCommitHash));
                     var newLabelsNeedToBeAdded = bot.labelConfiguration().label(changedFiles);
-                    newLabels.addAll(newLabelsNeedToBeAdded);
 
-                    newLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
+                    // Check if there is any associated group label already set, if not, add this label to new labels
+                    for (var label : newLabelsNeedToBeAdded) {
+                        var groups = bot.labelConfiguration().groupLabels(label);
+                        // The group labels already set in this pr
+                        Set<String> commonLabels = oldLabels.stream()
+                                .filter(groups::contains)
+                                .collect(Collectors.toSet());
+                        if (commonLabels.isEmpty()) {
+                            newLabels.add(label);
+                        }
+                    }
 
                     syncLabels(pr, oldLabels, newLabels, log);
 
@@ -176,7 +185,6 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             try {
                 var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchArea);
                 newLabels.addAll(getLabels(localRepo));
-                newLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
                 syncLabels(pr, oldLabels, newLabels, log);
                 var labelsAdded = new HashSet<String>();
                 for (var newLabel : newLabels) {

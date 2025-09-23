@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -358,15 +358,37 @@ class LabelerTests {
             assertLastCommentContains(pr, "The following label will be automatically applied");
             assertLastCommentContains(pr, "`2`");
 
+            // Add cpp and hpp together should add group label
             var test1Cpp = localRepo.root().resolve("test1.cpp");
             try (var output = Files.newBufferedWriter(test1Cpp)) {
                 output.append("test");
             }
             localRepo.add(test1Cpp);
-            var addHash = localRepo.commit("add cpp file", "duke", "duke@openjdk.org");
+            var test1Hpp = localRepo.root().resolve("test1.hpp");
+            try (var output = Files.newBufferedWriter(test1Hpp)) {
+                output.append("test");
+            }
+            localRepo.add(test1Hpp);
+            var addHash = localRepo.commit("add cpp,hpp file", "duke", "duke@openjdk.org");
             localRepo.push(addHash, author.authenticatedUrl(), "edit", true);
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(Set.of("group1", "rfr"), new HashSet<>(pr.store().labelNames()));
+            assertEquals(Set.of("group1", "2", "rfr"), new HashSet<>(pr.store().labelNames()));
+
+            // Add another Cpp file, since "group1" label is already added, the bot shouldn't add "1" label
+            var test2Cpp = localRepo.root().resolve("test2.cpp");
+            try (var output = Files.newBufferedWriter(test2Cpp)) {
+                output.append("test");
+            }
+            localRepo.add(test2Cpp);
+            addHash = localRepo.commit("add cpp2 file", "duke", "duke@openjdk.org");
+            localRepo.push(addHash, author.authenticatedUrl(), "edit", true);
+            TestBotRunner.runPeriodicItems(prBot);
+            assertEquals(Set.of("group1", "2", "rfr"), new HashSet<>(pr.store().labelNames()));
+
+            // But user should still be able to add "1" label manually
+            pr.addComment("/label 1");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertEquals(Set.of("group1", "1", "2", "rfr"), new HashSet<>(pr.store().labelNames()));
 
             // Simulate force-push.
             localRepo.checkout(editHash);
@@ -378,7 +400,7 @@ class LabelerTests {
             var forcePushHash = localRepo.commit("add txt file", "duke", "duke@openjdk.org");
             localRepo.push(forcePushHash, author.authenticatedUrl(), "edit", true);
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(Set.of("group1", "rfr", "3"), new HashSet<>(pr.store().labelNames()));
+            assertEquals(Set.of("group1", "1", "2", "rfr", "3"), new HashSet<>(pr.store().labelNames()));
         }
     }
 
@@ -450,8 +472,8 @@ class LabelerTests {
 
             TestBotRunner.runPeriodicItems(prBot);
             // The commit brought in by merge shouldn't affect labels, so "3" shouldn't be added
-            // After adding cpp file, "1" should be added and the labels should be upgraded to "group1"
-            assertEquals(Set.of("group1", "rfr"), new HashSet<>(pr.store().labelNames()));
+            // After adding cpp file, "1" should be added
+            assertEquals(Set.of("1", "2", "rfr"), new HashSet<>(pr.store().labelNames()));
         }
     }
 }
