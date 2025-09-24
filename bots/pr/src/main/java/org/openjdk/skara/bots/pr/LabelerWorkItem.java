@@ -146,12 +146,8 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                     var evaluatedCommitHash = autoLabeledHashOpt.get();
                     var changedFiles = PullRequestUtils.changedFiles(pr, localRepo, new Hash(evaluatedCommitHash));
                     var newLabelsNeedToBeAdded = bot.labelConfiguration().label(changedFiles);
-                    newLabels.addAll(newLabelsNeedToBeAdded);
 
-                    newLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
-
-                    syncLabels(pr, oldLabels, newLabels, log);
-
+                    processLabelsWithGroups(comments, oldLabels, newLabels, newLabelsNeedToBeAdded);
                     // The labels actually added
                     newLabels.removeAll(oldLabels);
                     if (!newLabels.isEmpty()) {
@@ -175,21 +171,58 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             // Initial auto labeling
             try {
                 var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchArea);
-                newLabels.addAll(getLabels(localRepo));
-                newLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
-                syncLabels(pr, oldLabels, newLabels, log);
-                var labelsAdded = new HashSet<String>();
-                for (var newLabel : newLabels) {
-                    if (!oldLabels.contains(newLabel)) {
-                        labelsAdded.add(newLabel);
-                    }
-                }
-                createInitialLabelMessage(comments, new ArrayList<>(labelsAdded), pr.headHash().toString());
+                var newLabelsNeedToBeAdded = getLabels(localRepo);
+                processLabelsWithGroups(comments, oldLabels, newLabels, newLabelsNeedToBeAdded);
+                // The labels actually added
+                newLabels.removeAll(oldLabels);
+                createInitialLabelMessage(comments, new ArrayList<>(newLabels), pr.headHash().toString());
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
             return needsRfrCheck(newLabels);
         }
+    }
+
+
+    /**
+     * For each label needing to be added, check if an associated group label should be set.
+     * If no group label applies, just add the original label.
+     */
+    private void processLabelsWithGroups(List<Comment> comments, Set<String> oldLabels, Set<String> newLabels, Set<String> newLabelsNeedToBeAdded) {
+        for (var label : newLabelsNeedToBeAdded) {
+            var groupLabels = bot.labelConfiguration().groupLabels(label);
+            if (groupLabels.isEmpty()) {
+                // If the label doesn't belong to any group, just add it.
+                newLabels.add(label);
+            } else {
+                for (var groupLabel : groupLabels) {
+                    // If old Labels already have this group label, skip adding this label or group label
+                    if (oldLabels.contains(groupLabel)) {
+                        continue;
+                    }
+                    // Check if this group label was manually removed by the user.
+                    if (LabelTracker.isLabelManuallyRemoved(pr.repository().forge().currentUser(), comments, groupLabel)) {
+                        // If the group was manually removed by user, don't upgrade this label to group label
+                        newLabels.add(label);
+                    } else {
+                        // See if any existing label belongs to the same group (excluding the current label).
+                        boolean hasOtherLabelInGroup = bot.labelConfiguration()
+                                .labelsInGroup(groupLabel)
+                                .stream()
+                                .filter(l -> !l.equals(label))
+                                .anyMatch(oldLabels::contains);
+                        if (hasOtherLabelInGroup) {
+                            // Upgrade: since another group label exists, we can add the group label itself.
+                            newLabels.add(groupLabel);
+                        } else {
+                            // No other group label found, so add the original label.
+                            newLabels.add(label);
+                        }
+                    }
+                }
+            }
+        }
+        syncLabels(pr, oldLabels, newLabels, log);
     }
 
     void addLabelAutoUpdateAdditionalComment(List<Comment> comments, List<String> labelsAdded, String commitHash) {

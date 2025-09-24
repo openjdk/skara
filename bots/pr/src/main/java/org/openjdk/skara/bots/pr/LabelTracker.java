@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -84,5 +84,20 @@ public class LabelTracker {
         }
 
         return Collections.unmodifiableSet(ret);
+    }
+
+    // Return true if the latest operation on the given label by the botUser was "removed"
+    static boolean isLabelManuallyRemoved(HostUser botUser, List<Comment> comments, String label) {
+        return comments.stream()
+                .filter(comment -> comment.author().equals(botUser))
+                .sorted(Comparator.comparing(Comment::createdAt).reversed())
+                .flatMap(comment -> comment.body().lines())
+                .map(LABEL_MARKER_PATTERN::matcher)
+                .filter(Matcher::find)
+                .filter(matcher -> matcher.group(2).equals(label))
+                .map(matcher -> matcher.group(1))
+                .findFirst()
+                .map(action -> action.equals("removed"))
+                .orElse(false);
     }
 }
