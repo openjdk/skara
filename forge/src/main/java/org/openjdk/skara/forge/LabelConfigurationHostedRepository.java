@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@ package org.openjdk.skara.forge;
 import org.openjdk.skara.json.JSON;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 
 public class LabelConfigurationHostedRepository implements LabelConfiguration {
@@ -79,6 +80,11 @@ public class LabelConfigurationHostedRepository implements LabelConfiguration {
     @Override
     public Set<String> groupLabels(String label) {
         return labelConfiguration().groupLabels(label);
+    }
+
+    @Override
+    public List<String> labelsInGroup(String label) {
+        return labelConfiguration().labelsInGroup(label);
     }
 }
 

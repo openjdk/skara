@@ -238,24 +238,25 @@ public class LabelTests {
             TestBotRunner.runPeriodicItems(prBot);
             // Since there is already a component associated, rfr should be added
             assertLastCommentContains(pr, "The following label will be automatically applied to this pull request:");
-            assertEquals(Set.of("1", "2", "rfr"), new HashSet<>(pr.store().labelNames()));
+            // hpp file would let the bot add label "2", since the user manually added "1", so "2" will be upgraded to "group"
+            assertEquals(Set.of("1", "group", "rfr"), new HashSet<>(pr.store().labelNames()));
             assertEquals(3, pr.comments().size());
             assertTrue(pr.store().comments().get(1).body().contains("The `1` label was successfully added."));
 
             // Add another file to trigger label 2
-            Files.writeString(localRepoFolder.resolve("test.cpp"), "Hello there");
-            localRepo.add(Path.of("test.cpp"));
+            Files.writeString(localRepoFolder.resolve("test2.hpp"), "Hello there");
+            localRepo.add(Path.of("test2.hpp"));
             editHash = localRepo.commit("Another one", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.authenticatedUrl(), "edit");
 
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(Set.of("1", "2", "rfr"), new HashSet<>(pr.store().labelNames()));
+            assertEquals(Set.of("1", "group", "rfr"), new HashSet<>(pr.store().labelNames()));
 
             // Adding manually is still fine
             pr.addComment("/label add group 2");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "The `group` label was successfully added.");
-            assertLastCommentContains(pr, "The `2` label was already applied.");
+            assertLastCommentContains(pr, "The `group` label was already applied.");
+            assertLastCommentContains(pr, "The `2` label was successfully added.");
             assertEquals(Set.of("1", "2", "group", "rfr"), new HashSet<>(pr.store().labelNames()));
         }
     }

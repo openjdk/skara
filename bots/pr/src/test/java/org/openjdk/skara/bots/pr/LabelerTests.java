@@ -472,7 +472,21 @@ class LabelerTests {
 
             TestBotRunner.runPeriodicItems(prBot);
             // The commit brought in by merge shouldn't affect labels, so "3" shouldn't be added
-            // After adding cpp file, "1" should be added
+            // After adding cpp file, "1" should be added, but "2" label already there, so "1" will be upgraded to "group1"
+            assertEquals(Set.of("group1", "2", "rfr"), new HashSet<>(pr.store().labelNames()));
+
+            // Remove group1 manually
+            pr.addComment("/label remove group1");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertEquals(Set.of("2", "rfr"), new HashSet<>(pr.store().labelNames()));
+
+            //Add another file trigger label "1"
+            var cpp2File = localRepo.root().resolve("test2.cpp");
+            Files.writeString(cpp2File, "Hello cpp");
+            localRepo.add(cpp2File);
+            var updated2EditHash = localRepo.commit("add test2.cpp file", "duke", "duke@openjdk.org");
+            localRepo.push(updated2EditHash, author.authenticatedUrl(), "edit", true);
+            TestBotRunner.runPeriodicItems(prBot);
             assertEquals(Set.of("1", "2", "rfr"), new HashSet<>(pr.store().labelNames()));
         }
     }
