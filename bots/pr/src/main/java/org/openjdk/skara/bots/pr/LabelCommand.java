@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,7 +32,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.openjdk.skara.bots.common.CommandNameEnum.label;
-import static org.openjdk.skara.bots.pr.CheckRun.syncLabels;
 
 public class LabelCommand implements CommandHandler {
     private final String commandName;
@@ -73,7 +72,7 @@ public class LabelCommand implements CommandHandler {
         var currentLabels = new HashSet<>(pr.labelNames());
 
         if (argumentMatcher.matches()) {
-            var labels =  Arrays.stream(argumentMatcher.group(2).split("[\\s,]+")).collect(Collectors.toList());
+            var labels = Arrays.stream(argumentMatcher.group(2).split("[\\s,]+")).collect(Collectors.toList());
             if (labels.size() == 0) {
                 showHelp(bot.labelConfiguration(), reply);
                 return;
@@ -88,7 +87,6 @@ public class LabelCommand implements CommandHandler {
             } else if (argumentMatcher.group(1).equals("remove")) {
                 removeLabels(labels, currentLabels, pr, reply);
             }
-            upgradeLabelsToGroups(pr, bot, currentLabels);
             return;
         }
 
@@ -120,7 +118,6 @@ public class LabelCommand implements CommandHandler {
 
             addLabels(labelsToAdd, currentLabels, pr, reply, bot);
             removeLabels(labelsToRemove, currentLabels, pr, reply);
-            upgradeLabelsToGroups(pr, bot, currentLabels);
         }
     }
 
@@ -152,30 +149,15 @@ public class LabelCommand implements CommandHandler {
 
     /**
      * Attempts to add each label in labelsToAdd to the pull request.
-     * Updates to currentLabels are performed immediately after each label addition, so group checks always
-     * reflect the latest state after any modifications.
+     * Updates to currentLabels are performed immediately after each label addition.
      */
     private void addLabels(List<String> labelsToAdd, Set<String> currentLabels, PullRequest pr, PrintWriter reply, PullRequestBot bot) {
         for (var label : labelsToAdd) {
             if (!currentLabels.contains(label)) {
-                var groups = bot.labelConfiguration().groupLabels(label);
-                // The group labels already set in this pr
-                Set<String> commonLabels = currentLabels.stream()
-                        .filter(groups::contains)
-                        .collect(Collectors.toSet());
-                // No group labels are set
-                if (commonLabels.isEmpty()) {
-                    pr.addLabel(label);
-                    currentLabels.add(label);
-                    reply.println(LabelTracker.addLabelMarker(label));
-                    reply.println("The `" + label + "` label was successfully added.");
-                } else {
-                    reply.println(LabelTracker.addLabelMarker(label));
-                    reply.println("The " + commonLabels.stream()
-                            .map(l -> "`" + l + "`")
-                            .collect(Collectors.joining(", "))
-                            + " group label" + (commonLabels.size() > 1 ? "s were" : " was") + " already applied, so `" + label + "` label will not be added.");
-                }
+                pr.addLabel(label);
+                currentLabels.add(label);
+                reply.println(LabelTracker.addLabelMarker(label));
+                reply.println("The `" + label + "` label was successfully added.");
             } else {
                 reply.println("The `" + label + "` label was already applied.");
             }
@@ -197,13 +179,6 @@ public class LabelCommand implements CommandHandler {
                 reply.println("The `" + label + "` label was not set.");
             }
         }
-    }
-
-    private void upgradeLabelsToGroups(PullRequest pr, PullRequestBot bot, Set<String> currentLabels) {
-        Set<String> oldLabels = new HashSet<>(currentLabels);
-        Set<String> newLabels = new HashSet<>(currentLabels);
-        newLabels = bot.labelConfiguration().upgradeLabelsToGroups(newLabels);
-        syncLabels(pr, oldLabels, newLabels, log);
     }
 
     @Override
