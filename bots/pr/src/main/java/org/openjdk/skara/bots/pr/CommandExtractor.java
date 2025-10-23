@@ -84,6 +84,8 @@ public class CommandExtractor {
                     bot.externalPullRequestCommands().entrySet().stream()
                             .map(entry -> entry.getKey() + " - " + entry.getValue())
             ).sorted().forEachOrdered(c -> reply.println(" * " + c));
+            reply.println();
+            reply.println("For additional details, see [Pull Request Commands documentation](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands)");
         }
 
         @Override
@@ -96,6 +98,8 @@ public class CommandExtractor {
                     bot.externalCommitCommands().entrySet().stream()
                             .map(entry -> entry.getKey() + " - " + entry.getValue())
             ).sorted().forEachOrdered(c -> reply.println(" * " + c));
+            reply.println();
+            reply.println("For additional details, see [Commit Commands documentation](https://wiki.openjdk.org/display/SKARA/Commit+Commands)");
         }
 
         @Override

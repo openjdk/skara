@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -69,6 +69,7 @@ public class CommitCommandTests {
             // Look at the reply
             var replies = author.commitComments(editHash);
             CommitCommandAsserts.assertLastCommentContains(replies, "Available commands");
+            CommitCommandAsserts.assertLastCommentContains(replies, "Commit Commands documentation");
 
             // Add a command which is only valid in pull request
             author.addCommitComment(editHash, "/issue 12");
@@ -321,6 +322,7 @@ public class CommitCommandTests {
             reviewerPr.addComment("/help");
             TestBotRunner.runPeriodicItems(bot);
             PullRequestAsserts.assertLastCommentContains(pr, "Available commands:");
+            PullRequestAsserts.assertLastCommentContains(pr, "Pull Request Commands documentation");
         }
     }
 
