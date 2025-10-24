@@ -38,7 +38,7 @@ public class LabelsUpdaterTests {
     @Test
     void simple(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var listServer = new TestMailmanServer();) {
+             var listServer = TestMailmanServer.createV2();) {
             var targetRepo = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mlBot = MailingListBridgeBot.newBuilder()
@@ -70,7 +70,7 @@ public class LabelsUpdaterTests {
     @Test
     void update(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var listServer = new TestMailmanServer();) {
+             var listServer = TestMailmanServer.createV2();) {
             var targetRepo = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var listAddress2 = EmailAddress.parse(listServer.createList("test2"));

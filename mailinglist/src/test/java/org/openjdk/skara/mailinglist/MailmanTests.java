@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class MailmanTests {
     @Test
     void simple() throws IOException {
-        try (var testServer = new TestMailmanServer()) {
+        try (var testServer = TestMailmanServer.createV2()) {
             var listAddress = testServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ZERO);
@@ -60,7 +60,7 @@ class MailmanTests {
 
     @Test
     void replies() throws IOException {
-        try (var testServer = new TestMailmanServer()) {
+        try (var testServer = TestMailmanServer.createV2()) {
             var listAddress = testServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ZERO);
@@ -106,7 +106,7 @@ class MailmanTests {
 
     @Test
     void cached() throws IOException {
-        try (var testServer = new TestMailmanServer()) {
+        try (var testServer = TestMailmanServer.createV2()) {
             var listAddress = testServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ZERO, true);
@@ -140,7 +140,7 @@ class MailmanTests {
 
     @Test
     void interval() throws IOException {
-        try (var testServer = new TestMailmanServer()) {
+        try (var testServer = TestMailmanServer.createV2()) {
             var listAddress = testServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ofDays(1));
@@ -172,7 +172,7 @@ class MailmanTests {
 
     @Test
     void poll3months() throws Exception {
-        try (var testServer = new TestMailmanServer()) {
+        try (var testServer = TestMailmanServer.createV2()) {
             var listAddress = testServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(),
                     testServer.getSMTP(), Duration.ZERO);

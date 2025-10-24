@@ -36,34 +36,27 @@ import java.time.Duration;
 import java.util.*;
 import java.util.regex.Pattern;
 
-public class TestMailmanServer implements AutoCloseable {
-    private final HttpServer httpServer;
+public abstract class TestMailmanServer implements AutoCloseable {
+    protected final HttpServer httpServer;
     private final SMTPServer smtpServer;
-    private final Map<String, HashMap<String, StringBuilder>> lists = new HashMap<>();
-
     private int callCount = 0;
-
     private boolean lastResponseCached;
 
-    static private final Pattern listPathPattern = Pattern.compile("^/test/(.*?)/(.*)\\.txt");
+    public static TestMailmanServer createV2() throws IOException {
+        return new TestMailman2Server();
+    }
 
     private class Handler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             callCount++;
-            var listMatcher = listPathPattern.matcher(exchange.getRequestURI().getPath());
-            if (!listMatcher.matches()) {
-                throw new RuntimeException();
-            }
-            var listPath = listMatcher.group(1);
-            var datePath = listMatcher.group(2);
-            var listMap = lists.get(listPath);
-            if (!listMap.containsKey(datePath)) {
+            var mboxContents = getMboxContents(exchange);
+            if (mboxContents == null) {
                 exchange.sendResponseHeaders(404, 0);
                 exchange.close();
                 return;
             }
-            var response = listMap.get(datePath).toString();
+            var response = mboxContents.toString();
             lastResponseCached = false;
 
             try {
@@ -91,8 +84,7 @@ public class TestMailmanServer implements AutoCloseable {
         }
     }
 
-    public TestMailmanServer() throws IOException
-    {
+    protected TestMailmanServer() throws IOException {
         InetSocketAddress address = new InetSocketAddress(InetAddress.getLoopbackAddress(), 0);
         httpServer = HttpServer.create(address, 0);
         httpServer.createContext("/test", new Handler());
@@ -102,6 +94,8 @@ public class TestMailmanServer implements AutoCloseable {
         smtpServer = new SMTPServer();
     }
 
+    protected abstract StringBuilder getMboxContents(HttpExchange exchange);
+
     public URI getArchive() {
         return URIBuilder.base("http://" + httpServer.getAddress().getHostString() + ":" +  httpServer.getAddress().getPort() + "/test/").build();
     }
@@ -110,13 +104,9 @@ public class TestMailmanServer implements AutoCloseable {
         return smtpServer.address();
     }
 
-    public String createList(String name) throws IOException {
-        var listName = EmailAddress.parse(name + "@" + httpServer.getAddress().getHostString()).toString();
-        lists.put(name, new HashMap<>());
-        return listName;
-    }
+    public abstract String createList(String name);
 
-    public void processIncoming(Duration timeout) throws IOException {
+    public void processIncoming(Duration timeout) {
         var email = smtpServer.receive(timeout);
         var subject = email.subject();
         if (subject.startsWith("Re: ")) {
@@ -127,18 +117,12 @@ public class TestMailmanServer implements AutoCloseable {
                             .build();
         var mboxEntry = Mbox.fromMail(stripped);
 
-        var listMap = email.recipients().stream()
-                            .filter(recipient -> lists.containsKey(recipient.localPart()))
-                            .map(recipient -> lists.get(recipient.localPart()))
-                            .findAny().orElseThrow();
-        var datePath = DateTimeFormatter.ofPattern("yyyy-MMMM", Locale.US).format(email.date());
-        if (!listMap.containsKey(datePath)) {
-            listMap.put(datePath, new StringBuilder());
-        }
-        listMap.get(datePath).append(mboxEntry);
+        archiveEmail(email, mboxEntry);
     }
 
-    public void processIncoming() throws IOException {
+    protected abstract void archiveEmail(Email email, String mboxEntry);
+
+    public void processIncoming() {
         processIncoming(Duration.ofSeconds(10));
     }
 
@@ -158,5 +142,48 @@ public class TestMailmanServer implements AutoCloseable {
 
     public int callCount() {
         return callCount;
+    }
+}
+
+class TestMailman2Server extends TestMailmanServer {
+
+    private static final Pattern listPathPattern = Pattern.compile("^/test/(.*?)/(.*)\\.txt");
+    // Map from local part of email list name to map from date string to mbox contents
+    private final Map<String, Map<String, StringBuilder>> lists = new HashMap<>();
+
+    public TestMailman2Server() throws IOException {
+        super();
+    }
+
+    @Override
+    protected void archiveEmail(Email email, String mboxEntry) {
+        var listMap = email.recipients().stream()
+                            .filter(recipient -> lists.containsKey(recipient.localPart()))
+                            .map(recipient -> lists.get(recipient.localPart()))
+                            .findAny().orElseThrow();
+        var datePath = DateTimeFormatter.ofPattern("yyyy-MMMM", Locale.US).format(email.date());
+        if (!listMap.containsKey(datePath)) {
+            listMap.put(datePath, new StringBuilder());
+        }
+        listMap.get(datePath).append(mboxEntry);
+    }
+
+    @Override
+    protected StringBuilder getMboxContents(HttpExchange exchange) {
+        var listMatcher = listPathPattern.matcher(exchange.getRequestURI().getPath());
+        if (!listMatcher.matches()) {
+            throw new RuntimeException();
+        }
+        var listPath = listMatcher.group(1);
+        var datePath = listMatcher.group(2);
+        var listMap = lists.get(listPath);
+        return listMap.get(datePath);
+    }
+
+    @Override
+    public String createList(String name) {
+        var listName = EmailAddress.parse(name + "@" + httpServer.getAddress().getHostString()).toString();
+        lists.put(name, new HashMap<>());
+        return listName;
     }
 }
