@@ -59,7 +59,7 @@ class MailingListArchiveReaderBotTests {
     void simpleArchive(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -85,7 +85,7 @@ class MailingListArchiveReaderBotTests {
                                             .build();
 
             // The mailing list as well
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(),
                                                                              Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var readerBot = new MailingListArchiveReaderBot(mailmanList, archive);
@@ -134,7 +134,7 @@ class MailingListArchiveReaderBotTests {
     void rememberBridged(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -161,7 +161,7 @@ class MailingListArchiveReaderBotTests {
                                             .build();
 
             // The mailing list as well
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(),
                                                                              Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var readerBot = new MailingListArchiveReaderBot(mailmanList, archive);
@@ -211,7 +211,7 @@ class MailingListArchiveReaderBotTests {
     void largeEmail(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -237,7 +237,7 @@ class MailingListArchiveReaderBotTests {
                                             .build();
 
             // The mailing list as well
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(),
                                                                              Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var readerBot = new MailingListArchiveReaderBot(mailmanList, archive);
@@ -293,7 +293,7 @@ class MailingListArchiveReaderBotTests {
     void branchMissing(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();

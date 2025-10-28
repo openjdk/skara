@@ -22,22 +22,22 @@
  */
 package org.openjdk.skara.mailinglist;
 
-import java.time.ZonedDateTime;
-import org.junit.jupiter.api.Test;
-import org.openjdk.skara.email.*;
-import org.openjdk.skara.test.TestMailmanServer;
-
 import java.io.IOException;
 import java.time.Duration;
+import java.time.ZonedDateTime;
+import org.junit.jupiter.api.Test;
+import org.openjdk.skara.email.Email;
+import org.openjdk.skara.email.EmailAddress;
+import org.openjdk.skara.test.TestMailmanServer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class MailmanTests {
+class Mailman3Tests {
     @Test
     void simple() throws IOException {
-        try (var testServer = TestMailmanServer.createV2()) {
+        try (var testServer = TestMailmanServer.createV3()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
+            var mailmanServer = MailingListServerFactory.createMailman3Server(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
@@ -60,9 +60,9 @@ class MailmanTests {
 
     @Test
     void replies() throws IOException {
-        try (var testServer = TestMailmanServer.createV2()) {
+        try (var testServer = TestMailmanServer.createV3()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
+            var mailmanServer = MailingListServerFactory.createMailman3Server(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
@@ -106,9 +106,9 @@ class MailmanTests {
 
     @Test
     void cached() throws IOException {
-        try (var testServer = TestMailmanServer.createV2()) {
+        try (var testServer = TestMailmanServer.createV3()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
+            var mailmanServer = MailingListServerFactory.createMailman3Server(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ZERO, true);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
@@ -140,9 +140,9 @@ class MailmanTests {
 
     @Test
     void interval() throws IOException {
-        try (var testServer = TestMailmanServer.createV2()) {
+        try (var testServer = TestMailmanServer.createV3()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
+            var mailmanServer = MailingListServerFactory.createMailman3Server(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ofDays(1));
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
@@ -172,9 +172,9 @@ class MailmanTests {
 
     @Test
     void poll3months() throws Exception {
-        try (var testServer = TestMailmanServer.createV2()) {
+        try (var testServer = TestMailmanServer.createV3()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(),
+            var mailmanServer = MailingListServerFactory.createMailman3Server(testServer.getArchive(),
                     testServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
@@ -195,7 +195,7 @@ class MailmanTests {
             {
                 var conversations = mailmanList.conversations(duration2Months);
                 assertEquals(0, conversations.size());
-                assertEquals(3, testServer.callCount(), "Server wasn't called for every month");
+                assertEquals(1, testServer.callCount(), "Server wasn't called once");
             }
             {
                 // A 2 months old mail should not be picked up now as old results should be cached
@@ -205,7 +205,7 @@ class MailmanTests {
                 var conversations = mailmanList.conversations(duration2Months);
                 assertEquals(0, conversations.size());
                 //
-                assertEquals(2, testServer.callCount(), "Server should only be called for the current and previous month");
+                assertEquals(1, testServer.callCount(), "Server wasn't called once");
             }
             {
                 // A mail from last month should be found
@@ -214,7 +214,7 @@ class MailmanTests {
                 testServer.resetCallCount();
                 var conversations = mailmanList.conversations(duration2Months);
                 assertEquals(1, conversations.size());
-                assertEquals(2, testServer.callCount());
+                assertEquals(1, testServer.callCount());
             }
             {
                 // A current mail should be found
@@ -223,7 +223,7 @@ class MailmanTests {
                 testServer.resetCallCount();
                 var conversations = mailmanList.conversations(duration2Months);
                 assertEquals(2, conversations.size());
-                assertEquals(2, testServer.callCount());
+                assertEquals(1, testServer.callCount());
             }
             {
                 // Another mail from last month should be found
@@ -236,7 +236,7 @@ class MailmanTests {
                 testServer.resetCallCount();
                 var conversations = mailmanList.conversations(duration2Months);
                 assertEquals(3, conversations.size());
-                assertEquals(2, testServer.callCount());
+                assertEquals(1, testServer.callCount());
             }
             {
                 // Another current mail should be found
@@ -248,7 +248,7 @@ class MailmanTests {
                 testServer.resetCallCount();
                 var conversations = mailmanList.conversations(duration2Months);
                 assertEquals(4, conversations.size());
-                assertEquals(2, testServer.callCount());
+                assertEquals(1, testServer.callCount());
             }
         }
     }

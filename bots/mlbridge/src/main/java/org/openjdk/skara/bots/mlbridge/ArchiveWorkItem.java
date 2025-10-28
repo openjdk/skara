@@ -378,7 +378,7 @@ class ArchiveWorkItem implements WorkItem {
 
             var jsonWebrevPath = scratchPath.resolve("mlbridge-webrevs").resolve("json");
             var htmlWebrevPath = scratchPath.resolve("mlbridge-webrevs").resolve("html");
-            var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer(), bot.sendInterval());
+            var listServer = MailingListServerFactory.createMailman2Server(bot.listArchive(), bot.smtpServer(), bot.sendInterval());
             var archiver = new ReviewArchive(pr, bot.emailAddress());
             var lastDraftTime = pr.lastMarkedAsDraftTime().orElse(null);
 

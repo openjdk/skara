@@ -45,7 +45,7 @@ public class MailingListNotifierFactory implements NotifierFactory {
         var sender = EmailAddress.parse(notifierConfiguration.get("sender").asString());
         var archive = URIBuilder.base(notifierConfiguration.get("archive").asString()).build();
         var interval = notifierConfiguration.contains("interval") ? Duration.parse(notifierConfiguration.get("interval").asString()) : Duration.ofSeconds(1);
-        var listServer = MailingListServerFactory.createMailmanServer(archive, smtp, interval);
+        var listServer = MailingListServerFactory.createMailman2Server(archive, smtp, interval);
 
         var recipient = notifierConfiguration.get("recipient").asString();
         var recipientAddress = EmailAddress.parse(recipient);

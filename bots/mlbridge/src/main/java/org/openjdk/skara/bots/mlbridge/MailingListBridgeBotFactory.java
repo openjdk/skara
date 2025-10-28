@@ -101,7 +101,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
         if (specific.get("server").contains("etag")) {
             useEtag = specific.get("server").get("etag").asBoolean();
         }
-        var mailmanServer = MailingListServerFactory.createMailmanServer(listArchive, listSmtp, Duration.ZERO, useEtag);
+        var mailmanServer = MailingListServerFactory.createMailman2Server(listArchive, listSmtp, Duration.ZERO, useEtag);
 
         var mailingListReaderMap = new HashMap<List<String>, MailingListReader>();
 

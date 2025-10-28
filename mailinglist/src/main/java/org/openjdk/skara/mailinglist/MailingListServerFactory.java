@@ -22,7 +22,8 @@
  */
 package org.openjdk.skara.mailinglist;
 
-import org.openjdk.skara.mailinglist.mailman.MailmanServer;
+import org.openjdk.skara.mailinglist.mailman.Mailman2Server;
+import org.openjdk.skara.mailinglist.mailman.Mailman3Server;
 import org.openjdk.skara.mailinglist.mboxfile.MboxFileListServer;
 
 import java.net.URI;
@@ -30,12 +31,20 @@ import java.nio.file.Path;
 import java.time.Duration;
 
 public class MailingListServerFactory {
-    public static MailingListServer createMailmanServer(URI archive, String smtp, Duration sendInterval) {
-        return new MailmanServer(archive, smtp, sendInterval, false);
+    public static MailingListServer createMailman2Server(URI archive, String smtp, Duration sendInterval) {
+        return new Mailman2Server(archive, smtp, sendInterval, false);
     }
 
-    public static MailingListServer createMailmanServer(URI archive, String smtp, Duration sendInterval, boolean useEtag) {
-        return new MailmanServer(archive, smtp, sendInterval, useEtag);
+    public static MailingListServer createMailman2Server(URI archive, String smtp, Duration sendInterval, boolean useEtag) {
+        return new Mailman2Server(archive, smtp, sendInterval, useEtag);
+    }
+
+    public static MailingListServer createMailman3Server(URI archive, String smtp, Duration sendInterval) {
+        return new Mailman3Server(archive, smtp, sendInterval, false);
+    }
+
+    public static MailingListServer createMailman3Server(URI archive, String smtp, Duration sendInterval, boolean useEtag) {
+        return new Mailman3Server(archive, smtp, sendInterval, useEtag);
     }
 
     public static MailingListServer createMboxFileServer(Path file) {

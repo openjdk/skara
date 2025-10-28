@@ -40,7 +40,7 @@ import static org.openjdk.skara.bots.notify.TestUtils.*;
 public class MailingListNotifierTests {
     @Test
     void testMailingList(TestInfo testInfo) throws IOException {
-        try (var listServer = TestMailmanServer.createV2();
+        try (var listServer = TestMailmanServer.createV3();
              var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -51,7 +51,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -114,7 +114,7 @@ public class MailingListNotifierTests {
 
     @Test
     void testMailingListMultiple(TestInfo testInfo) throws IOException {
-        try (var listServer = TestMailmanServer.createV2();
+        try (var listServer = TestMailmanServer.createV3();
              var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -125,7 +125,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -191,7 +191,7 @@ public class MailingListNotifierTests {
 
     @Test
     void testMailingListMerge(TestInfo testInfo) throws IOException {
-        try (var listServer = TestMailmanServer.createV2();
+        try (var listServer = TestMailmanServer.createV3();
              var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -202,7 +202,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -271,7 +271,7 @@ public class MailingListNotifierTests {
 
     @Test
     void testMailingListSponsored(TestInfo testInfo) throws IOException {
-        try (var listServer = TestMailmanServer.createV2();
+        try (var listServer = TestMailmanServer.createV3();
              var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -282,7 +282,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -336,7 +336,7 @@ public class MailingListNotifierTests {
 
     @Test
     void testMailingListMultipleBranches(TestInfo testInfo) throws IOException {
-        try (var listServer = TestMailmanServer.createV2();
+        try (var listServer = TestMailmanServer.createV3();
              var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -348,7 +348,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -441,7 +441,7 @@ public class MailingListNotifierTests {
 
     @Test
     void testMailingListPROnlyMultipleBranches(TestInfo testInfo) throws IOException {
-        try (var listServer = TestMailmanServer.createV2();
+        try (var listServer = TestMailmanServer.createV3();
              var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -452,7 +452,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -526,7 +526,7 @@ public class MailingListNotifierTests {
 
     @Test
     void testMailingListPR(TestInfo testInfo) throws IOException {
-        try (var listServer = TestMailmanServer.createV2();
+        try (var listServer = TestMailmanServer.createV3();
              var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -537,7 +537,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -617,7 +617,7 @@ public class MailingListNotifierTests {
 
     @Test
     void testMailingListMergePR(TestInfo testInfo) throws IOException {
-        try (var listServer = TestMailmanServer.createV2();
+        try (var listServer = TestMailmanServer.createV3();
              var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -628,7 +628,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -715,7 +715,7 @@ public class MailingListNotifierTests {
 
     @Test
     void testMailingListPROnce(TestInfo testInfo) throws IOException {
-        try (var listServer = TestMailmanServer.createV2();
+        try (var listServer = TestMailmanServer.createV3();
              var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -727,7 +727,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -814,7 +814,7 @@ public class MailingListNotifierTests {
     void testMailinglistTag(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var scratchFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
             var localRepoFolder = tempFolder.path().resolve("repo");
@@ -825,7 +825,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -938,7 +938,7 @@ public class MailingListNotifierTests {
     void testMailinglistPlainTags(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2()) {
+             var listServer = TestMailmanServer.createV3()) {
             var repo = credentials.getHostedRepository();
             var localRepoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
@@ -948,7 +948,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -1033,7 +1033,7 @@ public class MailingListNotifierTests {
 
     @Test
     void testMailingListBranch(TestInfo testInfo) throws IOException {
-        try (var listServer = TestMailmanServer.createV2();
+        try (var listServer = TestMailmanServer.createV3();
              var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -1045,7 +1045,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -1114,7 +1114,7 @@ public class MailingListNotifierTests {
 
     @Test
     void testMailingListNoIdempotence(TestInfo testInfo) throws IOException {
-        try (var listServer = TestMailmanServer.createV2();
+        try (var listServer = TestMailmanServer.createV3();
              var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -1125,7 +1125,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -1181,7 +1181,7 @@ public class MailingListNotifierTests {
 
     @Test
     void testMailingListWithExistingRepo(TestInfo testInfo) throws IOException {
-        try (var listServer = TestMailmanServer.createV2();
+        try (var listServer = TestMailmanServer.createV3();
              var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -1192,7 +1192,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);

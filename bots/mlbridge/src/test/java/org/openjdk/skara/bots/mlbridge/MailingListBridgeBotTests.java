@@ -111,7 +111,7 @@ class MailingListBridgeBotTests {
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -230,7 +230,7 @@ class MailingListBridgeBotTests {
 
             // The mailing list as well
             listServer.processIncoming();
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -307,7 +307,7 @@ class MailingListBridgeBotTests {
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -400,7 +400,7 @@ class MailingListBridgeBotTests {
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -474,7 +474,7 @@ class MailingListBridgeBotTests {
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -553,7 +553,7 @@ class MailingListBridgeBotTests {
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -630,7 +630,7 @@ class MailingListBridgeBotTests {
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -719,7 +719,7 @@ class MailingListBridgeBotTests {
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -773,7 +773,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -835,7 +835,7 @@ class MailingListBridgeBotTests {
             assertFalse(archiveContains(archiveFolder.path(), "Don't mind me"));
 
             // The mailing list as well
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -882,7 +882,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -936,7 +936,7 @@ class MailingListBridgeBotTests {
             assertEquals(2, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
 
             // As well as the mailing list
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -979,7 +979,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
@@ -1057,7 +1057,7 @@ class MailingListBridgeBotTests {
             assertTrue(archiveText.indexOf("Looks fine") < archiveText.indexOf("The final review comment"));
 
             // Check the mailing list
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -1108,7 +1108,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
@@ -1180,7 +1180,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
@@ -1244,7 +1244,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
@@ -1309,7 +1309,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
@@ -1374,7 +1374,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -1430,7 +1430,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -1506,7 +1506,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -1595,7 +1595,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -1667,7 +1667,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, webrevComments.size());
 
             // Check that sender address is set properly
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -1706,7 +1706,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository("author");
             var main = credentials.getHostedRepository("main");
@@ -1775,7 +1775,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, webrevComments.size());
 
             // Check that sender address is set properly
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -1793,7 +1793,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository("author");
             var main = credentials.getHostedRepository("main");
@@ -1869,7 +1869,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, webrevComments.size());
 
             // Check that sender address is set properly
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -1887,7 +1887,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -1966,7 +1966,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -2052,7 +2052,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -2124,7 +2124,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -2195,7 +2195,7 @@ class MailingListBridgeBotTests {
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -2275,7 +2275,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -2344,7 +2344,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
             listServer.processIncoming();
             listServer.processIncoming();
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertTrue(conversations.get(0).allMessages().get(1).body().contains("hosted.git/pr/1/review/0"));
@@ -2368,7 +2368,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
@@ -2434,7 +2434,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
@@ -2495,7 +2495,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var bot = credentials.getHostedRepository();
             var author = credentials.getHostedRepository();
@@ -2560,7 +2560,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var bot = credentials.getHostedRepository();
             var author = credentials.getHostedRepository();
@@ -2626,7 +2626,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var bot = credentials.getHostedRepository();
             var author = credentials.getHostedRepository();
@@ -2718,7 +2718,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -2775,7 +2775,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -2832,7 +2832,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -2890,7 +2890,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var bot = credentials.getHostedRepository();
             var author = credentials.getHostedRepository();
@@ -2983,7 +2983,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -3027,7 +3027,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The mail should have been sent to list1
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress1.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -3062,7 +3062,7 @@ class MailingListBridgeBotTests {
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory(false);
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -3159,7 +3159,7 @@ class MailingListBridgeBotTests {
 
             // The mailing list as well
             listServer.processIncoming();
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -3263,7 +3263,7 @@ class MailingListBridgeBotTests {
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -3351,7 +3351,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -3423,7 +3423,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var bridge = credentials.getHostedRepository();
@@ -3499,7 +3499,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -3676,7 +3676,7 @@ class MailingListBridgeBotTests {
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -3771,7 +3771,7 @@ class MailingListBridgeBotTests {
 
             // The mailing list as well
             listServer.processIncoming();
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -3822,7 +3822,7 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -3908,7 +3908,7 @@ class MailingListBridgeBotTests {
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -3980,7 +3980,7 @@ class MailingListBridgeBotTests {
 
             // The mailing list as well
             listServer.processIncoming();
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -4002,7 +4002,7 @@ class MailingListBridgeBotTests {
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory();
-             var listServer = TestMailmanServer.createV2();
+             var listServer = TestMailmanServer.createV3();
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -4063,7 +4063,7 @@ class MailingListBridgeBotTests {
             assertTrue(pr.store().comments().get(1).body().contains("[Full](Webrev is not available because diff is too large)"));
             // The mailing list as well
             listServer.processIncoming();
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
