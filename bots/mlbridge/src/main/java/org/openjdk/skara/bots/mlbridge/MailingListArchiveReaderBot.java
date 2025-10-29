@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class MailingListArchiveReaderBot implements Bot {
-    private final MailingListReader list;
+    private final MailingListReader mailingListReader;
     private final HostedRepository repository;
     private final Map<EmailAddress, String> parsedConversations = new HashMap<>();
     private final Map<EmailAddress, PullRequest> resolvedPullRequests = new HashMap<>();
@@ -44,8 +44,8 @@ public class MailingListArchiveReaderBot implements Bot {
     private static final Pattern PULL_REQUEST_LINK_PATTERN = Pattern.compile("^(?:PR: |Pull request:\\R)(.*?)$", Pattern.MULTILINE);
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
-    MailingListArchiveReaderBot(MailingListReader list, HostedRepository repository) {
-        this.list = list;
+    MailingListArchiveReaderBot(MailingListReader mailingListReader, HostedRepository repository) {
+        this.mailingListReader = mailingListReader;
         this.repository = repository;
     }
 
@@ -131,7 +131,7 @@ public class MailingListArchiveReaderBot implements Bot {
 
     @Override
     public List<WorkItem> getPeriodicItems() {
-        var readerItems = new ArchiveReaderWorkItem(this, list);
+        var readerItems = new ArchiveReaderWorkItem(this, mailingListReader);
         var ret = new ArrayList<WorkItem>();
         ret.add(readerItems);
 
@@ -143,6 +143,10 @@ public class MailingListArchiveReaderBot implements Bot {
         }
 
         return ret;
+    }
+
+    public MailingListReader mailingListReader() {
+        return mailingListReader;
     }
 
     @Override

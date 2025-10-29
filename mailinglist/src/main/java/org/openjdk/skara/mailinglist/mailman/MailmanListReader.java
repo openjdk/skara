@@ -25,7 +25,6 @@ package org.openjdk.skara.mailinglist.mailman;
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.zip.GZIPInputStream;
-import java.util.zip.Inflater;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.mailinglist.*;
 

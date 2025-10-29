@@ -22,9 +22,11 @@
  */
 package org.openjdk.skara.bots.mlbridge;
 
+import java.net.URI;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.mailinglist.MailingListReader;
+import org.openjdk.skara.mailinglist.MailingListServer;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
@@ -77,6 +79,10 @@ public class MailingListBridgeBotFactory implements BotFactory {
                                       .map(pattern -> Pattern.compile(pattern, Pattern.MULTILINE | Pattern.DOTALL))
                                       .collect(Collectors.toSet());
         var listArchive = URIBuilder.base(specific.get("server").get("archive").asString()).build();
+        String archiveType = null;
+        if (specific.get("server").contains("type")) {
+            archiveType = specific.get("server").get("type").asString();
+        }
         var listSmtp = specific.get("server").get("smtp").asString();
         var interval = specific.get("server").contains("interval") ? Duration.parse(specific.get("server").get("interval").asString()) : Duration.ofSeconds(1);
 
@@ -101,7 +107,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
         if (specific.get("server").contains("etag")) {
             useEtag = specific.get("server").get("etag").asBoolean();
         }
-        var mailmanServer = MailingListServerFactory.createMailman2Server(listArchive, listSmtp, Duration.ZERO, useEtag);
+        MailingListServer mailmanServer = createMailmanServer(archiveType, listArchive, listSmtp, useEtag);
 
         var mailingListReaderMap = new HashMap<List<String>, MailingListReader>();
 
@@ -121,6 +127,22 @@ public class MailingListBridgeBotFactory implements BotFactory {
                               .collect(Collectors.toMap(JSONObject.Field::name, field -> field.value().asString())) :
                     Map.of();
 
+            // Allow overriding the archive pre repository
+            URI repoListArchive = null;
+            if (repoConfig.contains("server") && repoConfig.get("server").contains("archive")) {
+                repoListArchive = URIBuilder.base(repoConfig.get("server").get("archive").asString()).build();
+            }
+            MailingListServer repoMailmanServer;
+            if (repoListArchive != null) {
+                String repoArchiveType = archiveType;
+                if (repoConfig.get("server").contains("type")) {
+                    repoArchiveType = repoConfig.get("server").get("type").asString();
+                }
+                repoMailmanServer = createMailmanServer(repoArchiveType, repoListArchive, listSmtp, useEtag);
+            } else {
+                repoMailmanServer = mailmanServer;
+            }
+
             var lists = parseLists(repoConfig.get("lists"));
             if (!repoConfig.contains("bidirectional") || repoConfig.get("bidirectional").asBoolean()) {
                 var listNamesForReading = new HashSet<EmailAddress>();
@@ -134,7 +156,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
                 // Reuse MailingListReaders with the exact same set of mailing lists between bots
                 // to benefit more from cached results.
                 if (!mailingListReaderMap.containsKey(listsForReading)) {
-                    mailingListReaderMap.put(listsForReading, mailmanServer.getListReader(listsForReading.toArray(new String[0])));
+                    mailingListReaderMap.put(listsForReading, repoMailmanServer.getListReader(listsForReading.toArray(new String[0])));
                 }
                 var bot = new MailingListArchiveReaderBot(mailingListReaderMap.get(listsForReading), hostedRepository);
                 ret.add(bot);
@@ -161,8 +183,6 @@ public class MailingListBridgeBotFactory implements BotFactory {
                                                  .lists(lists)
                                                  .ignoredUsers(ignoredUsers)
                                                  .ignoredComments(ignoredComments)
-                                                 .listArchive(listArchive)
-                                                 .smtpServer(listSmtp)
                                                  .webrevStorageHTMLRepository(webrevHTMLRepo)
                                                  .webrevStorageJSONRepository(webrevJSONRepo)
                                                  .webrevStorageRef(webrevRef)
@@ -174,9 +194,9 @@ public class MailingListBridgeBotFactory implements BotFactory {
                                                  .readyComments(readyComments)
                                                  .issueTracker(issueTracker)
                                                  .headers(headers)
-                                                 .sendInterval(interval)
                                                  .cooldown(cooldown)
-                                                 .seedStorage(configuration.storageFolder().resolve("seeds"));
+                                                 .seedStorage(configuration.storageFolder().resolve("seeds"))
+                                                 .mailingListServer(repoMailmanServer);
 
             if (repoConfig.contains("reponame")) {
                 botBuilder.repoInSubject(repoConfig.get("reponame").asBoolean());
@@ -188,5 +208,17 @@ public class MailingListBridgeBotFactory implements BotFactory {
         }
 
         return ret;
+    }
+
+    private static MailingListServer createMailmanServer(String archiveType, URI listArchive, String listSmtp, boolean useEtag) {
+        MailingListServer mailmanServer;
+        if (archiveType == null || archiveType.equals("mailman2")) {
+            mailmanServer = MailingListServerFactory.createMailman2Server(listArchive, listSmtp, Duration.ZERO, useEtag);
+        } else if (archiveType.equals("mailman3")) {
+            mailmanServer = MailingListServerFactory.createMailman3Server(listArchive, listSmtp, Duration.ZERO, useEtag);
+        } else {
+            throw new RuntimeException("Invalid server archive type: " + archiveType);
+        }
+        return mailmanServer;
     }
 }

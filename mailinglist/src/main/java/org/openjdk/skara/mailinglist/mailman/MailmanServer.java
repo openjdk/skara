@@ -24,13 +24,10 @@ package org.openjdk.skara.mailinglist.mailman;
 
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.mailinglist.*;
-import org.openjdk.skara.network.URIBuilder;
 
 import java.io.*;
 import java.net.URI;
 import java.time.*;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
 
 public abstract class MailmanServer implements MailingListServer {
     protected final URI archive;
@@ -65,5 +62,9 @@ public abstract class MailmanServer implements MailingListServer {
     @Override
     public void post(Email email) {
         sendMessage(email);
+    }
+
+    public URI archive() {
+        return archive;
     }
 }
