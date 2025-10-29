@@ -24,6 +24,7 @@ package org.openjdk.skara.mailinglist;
 
 import org.openjdk.skara.mailinglist.mailman.Mailman2Server;
 import org.openjdk.skara.mailinglist.mailman.Mailman3Server;
+import org.openjdk.skara.mailinglist.mailman.SendOnlyServer;
 import org.openjdk.skara.mailinglist.mboxfile.MboxFileListServer;
 
 import java.net.URI;
@@ -45,6 +46,10 @@ public class MailingListServerFactory {
 
     public static MailingListServer createMailman3Server(URI archive, String smtp, Duration sendInterval, boolean useEtag) {
         return new Mailman3Server(archive, smtp, sendInterval, useEtag);
+    }
+
+    public static MailingListServer createSendOnlyServer(String smtp, Duration sendInterval) {
+        return new SendOnlyServer(smtp, sendInterval);
     }
 
     public static MailingListServer createMboxFileServer(Path file) {
