@@ -26,6 +26,8 @@ import java.time.ZonedDateTime;
 import java.time.format.*;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -43,6 +45,8 @@ public class Email {
             "(\\r\\n){2}|(\\n){2}", Pattern.MULTILINE);
     private final static Pattern mboxMessageHeaderPattern = Pattern.compile(
             "^([-\\w]+): ((?:.(?!\\R\\w))*.)", Pattern.MULTILINE | Pattern.DOTALL);
+    private final static Pattern mboxMessageBodyHeaders = Pattern.compile(
+            "^(Content-Type|Content-Transfer-Encoding): .*");
 
     Email(EmailAddress id, ZonedDateTime date, List<EmailAddress> recipients, EmailAddress author, EmailAddress sender, String subject, String body, Map<String, String> headers) {
         this.id = id;
@@ -71,8 +75,43 @@ public class Email {
                                                                                       .replaceAll("\\R", "")));
         ret.headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         ret.headers.putAll(headers);
-        ret.body = parts[1].stripTrailing();
+
+        var boundary = parseBoundary(ret.headers);
+        if (boundary != null) {
+            // Content-Type: multipart/mixed; boundary="===============3685582790409215631=="
+            //
+            // --===============3685582790409215631==
+            // Content-Type: text/plain; charset="utf-8"
+            // Content-Transfer-Encoding: 7bit
+            //
+            // The body
+            //
+            // --===============3685582790409215631==
+            var firstEmptyLineRemoved = new AtomicBoolean(false);
+            ret.body = parts[1].lines()
+                    .dropWhile(s -> !s.equals(boundary))
+                    .skip(1)
+                    .dropWhile(s -> mboxMessageBodyHeaders.matcher(s).matches())
+                    .filter(s -> !(s.isEmpty() && !firstEmptyLineRemoved.getAndSet(true)))
+                    .takeWhile(s -> !s.equals(boundary))
+                    .collect(Collectors.joining("\n")).stripTrailing();
+        } else {
+            ret.body = parts[1].stripTrailing();
+        }
         return ret;
+    }
+
+    private final static Pattern mboxBoundaryPattern = Pattern.compile(".*boundary=\"([^\"]*)\".*");
+
+    private static String parseBoundary(Map<String, String> headers) {
+        if (headers.containsKey("Content-Type")) {
+            var contentType = headers.get("Content-Type");
+            var matcher = mboxBoundaryPattern.matcher(contentType);
+            if (matcher.matches()) {
+                return "--" + matcher.group(1);
+            }
+        }
+        return null;
     }
 
     private static final Pattern redundantTimeZonePattern = Pattern.compile("^(.*[-+\\d{4}]) \\(\\w+\\)$");

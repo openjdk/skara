@@ -46,18 +46,18 @@ class EmailTests {
         assertEquals(EmailAddress.from("B", "b@b.c"), mail.author());
         assertEquals(EmailAddress.from("B", "b@b.c"), mail.sender());
         assertEquals(List.of(EmailAddress.from("C", "c@c.c"),
-                             EmailAddress.from("d@d.c")),
-                     mail.recipients());
+                        EmailAddress.from("d@d.c")),
+                mail.recipients());
         assertEquals("The body", mail.body());
     }
 
     @Test
     void buildFrom() {
         var original = Email.create(EmailAddress.from("A", "a@b.c"), "Subject", "body")
-                            .header("X", "y")
-                            .header("Z", "a")
-                            .recipient(EmailAddress.from("B", "b@b.c"))
-                            .build();
+                .header("X", "y")
+                .header("Z", "a")
+                .recipient(EmailAddress.from("B", "b@b.c"))
+                .build();
         var copy = Email.from(original).build();
         assertEquals("Subject", copy.subject());
         assertEquals("body", copy.body());
@@ -70,14 +70,14 @@ class EmailTests {
     @Test
     void reparent() {
         var first = Email.create(EmailAddress.from("A", "a@b.c"), "First", "body")
-                         .recipient(EmailAddress.from("B", "b@b.c"))
-                         .build();
+                .recipient(EmailAddress.from("B", "b@b.c"))
+                .build();
         var second = Email.create(EmailAddress.from("A", "a@b.c"), "Second", "body")
-                          .recipient(EmailAddress.from("B", "b@b.c"))
-                          .build();
+                .recipient(EmailAddress.from("B", "b@b.c"))
+                .build();
         var reply = Email.reply(first, "The reply", "reply body")
-                         .author(EmailAddress.from("C", "c@b.c"))
-                         .build();
+                .author(EmailAddress.from("C", "c@b.c"))
+                .build();
         assertEquals(first.id().toString(), reply.headerValue("In-Reply-To"));
         assertEquals(first.id().toString(), reply.headerValue("References"));
         var updated = Email.reparent(second, reply).build();
@@ -88,13 +88,13 @@ class EmailTests {
     @Test
     void caseInsensitiveHeaders() {
         var mail = Email.parse("Message-ID: <a@b.c>\n" +
-                                       "date: Wed, 27 Mar 2019 14:31:00 +0100\n" +
-                                       "SUBJECT: hello\n" +
-                                       "FRom: B <b@b.c>\n" +
-                                       "tO: C <c@c.c>, <d@d.c>\n" +
-                                       "Extra-header: hello\n" +
-                                       "\n" +
-                                       "The body"
+                "date: Wed, 27 Mar 2019 14:31:00 +0100\n" +
+                "SUBJECT: hello\n" +
+                "FRom: B <b@b.c>\n" +
+                "tO: C <c@c.c>, <d@d.c>\n" +
+                "Extra-header: hello\n" +
+                "\n" +
+                "The body"
         );
 
         assertEquals(EmailAddress.from("a@b.c"), mail.id());
@@ -102,8 +102,8 @@ class EmailTests {
         assertEquals(EmailAddress.from("B", "b@b.c"), mail.author());
         assertEquals(EmailAddress.from("B", "b@b.c"), mail.sender());
         assertEquals(List.of(EmailAddress.from("C", "c@c.c"),
-                             EmailAddress.from("d@d.c")),
-                     mail.recipients());
+                        EmailAddress.from("d@d.c")),
+                mail.recipients());
         assertEquals("The body", mail.body());
         assertEquals(Set.of("Extra-header"), mail.headers());
         assertEquals("hello", mail.headerValue("ExTra-HeaDer"));
@@ -112,12 +112,12 @@ class EmailTests {
     @Test
     void redundantTimeZone() {
         var mail = Email.parse("Message-Id: <a@b.c>\n" +
-                                       "Date: Wed, 27 Mar 2019 14:31:00 +0700 (PDT)\n" +
-                                       "Subject: hello\n" +
-                                       "From: B <b@b.c>\n" +
-                                       "To: C <c@c.c>, <d@d.c>\n" +
-                                       "\n" +
-                                       "The body"
+                "Date: Wed, 27 Mar 2019 14:31:00 +0700 (PDT)\n" +
+                "Subject: hello\n" +
+                "From: B <b@b.c>\n" +
+                "To: C <c@c.c>, <d@d.c>\n" +
+                "\n" +
+                "The body"
         );
         assertEquals(ZonedDateTime.of(2019, 3, 27, 14, 31, 0, 0, ZoneOffset.ofHours(7)), mail.date());
         assertEquals(EmailAddress.from("a@b.c"), mail.id());
@@ -125,20 +125,20 @@ class EmailTests {
         assertEquals(EmailAddress.from("B", "b@b.c"), mail.author());
         assertEquals(EmailAddress.from("B", "b@b.c"), mail.sender());
         assertEquals(List.of(EmailAddress.from("C", "c@c.c"),
-                             EmailAddress.from("d@d.c")),
-                     mail.recipients());
+                        EmailAddress.from("d@d.c")),
+                mail.recipients());
         assertEquals("The body", mail.body());
     }
 
     @Test
     void parseEncoded() {
         var mail = Email.parse("Message-Id: <a@b.c>\n" +
-                                       "Date: Wed, 27 Mar 2019 14:31:00 +0100\n" +
-                                       "Subject: hello\n" +
-                                       "From: r.b at c.d (r =?iso-8859-1?Q?b=E4?=)\n" +
-                                       "To: C <c@c.c>, <d@d.c>\n" +
-                                       "\n" +
-                                       "The body"
+                "Date: Wed, 27 Mar 2019 14:31:00 +0100\n" +
+                "Subject: hello\n" +
+                "From: r.b at c.d (r =?iso-8859-1?Q?b=E4?=)\n" +
+                "To: C <c@c.c>, <d@d.c>\n" +
+                "\n" +
+                "The body"
         );
 
         assertEquals(EmailAddress.from("a@b.c"), mail.id());
@@ -146,8 +146,38 @@ class EmailTests {
         assertEquals(EmailAddress.from("r bä", "r.b@c.d"), mail.author());
         assertEquals(EmailAddress.from("r bä", "r.b@c.d"), mail.sender());
         assertEquals(List.of(EmailAddress.from("C", "c@c.c"),
-                             EmailAddress.from("d@d.c")),
-                     mail.recipients());
+                        EmailAddress.from("d@d.c")),
+                mail.recipients());
+        assertEquals("The body", mail.body());
+    }
+
+    @Test
+    void parseContentType() {
+        var mail = Email.parse("""
+                Message-Id: <a@b.c>
+                Date: Wed, 27 Mar 2019 14:31:00 +0100
+                Subject: hello
+                From: B <b@b.c>
+                To: C <c@c.c>, <d@d.c>
+                Content-Type: multipart/mixed; boundary="===============3685582790409215631=="
+
+                --===============3685582790409215631==
+                Content-Type: text/plain; charset="utf-8"
+                Content-Transfer-Encoding: 7bit
+                
+                The body
+                
+                --===============3685582790409215631==
+                """
+        );
+
+        assertEquals(EmailAddress.from("a@b.c"), mail.id());
+        assertEquals("hello", mail.subject());
+        assertEquals(EmailAddress.from("B", "b@b.c"), mail.author());
+        assertEquals(EmailAddress.from("B", "b@b.c"), mail.sender());
+        assertEquals(List.of(EmailAddress.from("C", "c@c.c"),
+                        EmailAddress.from("d@d.c")),
+                mail.recipients());
         assertEquals("The body", mail.body());
     }
 }
