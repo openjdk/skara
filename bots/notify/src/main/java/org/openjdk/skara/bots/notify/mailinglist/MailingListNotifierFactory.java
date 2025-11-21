@@ -22,14 +22,11 @@
  */
 package org.openjdk.skara.bots.notify.mailinglist;
 
-import java.util.Optional;
 import org.openjdk.skara.bot.BotConfiguration;
 import org.openjdk.skara.bots.notify.*;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.json.JSONObject;
-import org.openjdk.skara.mailinglist.MailingListServer;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
-import org.openjdk.skara.network.URIBuilder;
 
 import java.time.Duration;
 import java.util.regex.Pattern;

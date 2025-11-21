@@ -84,7 +84,6 @@ public class MailingListBridgeBotFactory implements BotFactory {
             archiveType = specific.get("server").get("type").asString();
         }
         var listSmtp = specific.get("server").get("smtp").asString();
-        var interval = specific.get("server").contains("interval") ? Duration.parse(specific.get("server").get("interval").asString()) : Duration.ofSeconds(1);
 
         var webrevHTMLRepo = configuration.repository(specific.get("webrevs").get("repository").get("html").asString());
         var webrevJSONRepo = configuration.repository(specific.get("webrevs").get("repository").get("json").asString());
@@ -127,22 +126,6 @@ public class MailingListBridgeBotFactory implements BotFactory {
                               .collect(Collectors.toMap(JSONObject.Field::name, field -> field.value().asString())) :
                     Map.of();
 
-            // Allow overriding the archive pre repository
-            URI repoListArchive = null;
-            if (repoConfig.contains("server") && repoConfig.get("server").contains("archive")) {
-                repoListArchive = URIBuilder.base(repoConfig.get("server").get("archive").asString()).build();
-            }
-            MailingListServer repoMailmanServer;
-            if (repoListArchive != null) {
-                String repoArchiveType = archiveType;
-                if (repoConfig.get("server").contains("type")) {
-                    repoArchiveType = repoConfig.get("server").get("type").asString();
-                }
-                repoMailmanServer = createMailmanServer(repoArchiveType, repoListArchive, listSmtp, useEtag);
-            } else {
-                repoMailmanServer = mailmanServer;
-            }
-
             var lists = parseLists(repoConfig.get("lists"));
             if (!repoConfig.contains("bidirectional") || repoConfig.get("bidirectional").asBoolean()) {
                 var listNamesForReading = new HashSet<EmailAddress>();
@@ -156,7 +139,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
                 // Reuse MailingListReaders with the exact same set of mailing lists between bots
                 // to benefit more from cached results.
                 if (!mailingListReaderMap.containsKey(listsForReading)) {
-                    mailingListReaderMap.put(listsForReading, repoMailmanServer.getListReader(listsForReading.toArray(new String[0])));
+                    mailingListReaderMap.put(listsForReading, mailmanServer.getListReader(listsForReading.toArray(new String[0])));
                 }
                 var bot = new MailingListArchiveReaderBot(mailingListReaderMap.get(listsForReading), hostedRepository);
                 ret.add(bot);
@@ -196,7 +179,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
                                                  .headers(headers)
                                                  .cooldown(cooldown)
                                                  .seedStorage(configuration.storageFolder().resolve("seeds"))
-                                                 .mailingListServer(repoMailmanServer);
+                                                 .mailingListServer(mailmanServer);
 
             if (repoConfig.contains("reponame")) {
                 botBuilder.repoInSubject(repoConfig.get("reponame").asBoolean());

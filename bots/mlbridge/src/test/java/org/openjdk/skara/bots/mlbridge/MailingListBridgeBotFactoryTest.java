@@ -137,11 +137,7 @@ class MailingListBridgeBotFactoryTest {
                               ]
                             }
                           ],
-                          "issues": "https://test.test.com/issueProject",
-                          "server": {
-                            "archive": "https://test.example.com/archive",
-                            "type": "mailman3"
-                          }
+                          "issues": "https://test.test.com/issueProject"
                         }
                       ]
                     }
@@ -182,7 +178,7 @@ class MailingListBridgeBotFactoryTest {
                     (MailingListArchiveReaderBot) mailingListArchiveReaderBots.get(1);
             assertEquals("MailingListArchiveReaderBot@repo5", mailingListArchiveReaderBot2.toString());
             MailingListReader readerBot2MailingListReader = mailingListArchiveReaderBot2.mailingListReader();
-            assertTrue(readerBot2MailingListReader.getClass().getName().contains("Mailman3"),
+            assertTrue(readerBot2MailingListReader.getClass().getName().contains("Mailman2"),
                     readerBot2MailingListReader.getClass().getName());
 
             MailingListBridgeBot mailingListBridgeBot1 = (MailingListBridgeBot) mailingListBridgeBots.get(0);
@@ -243,7 +239,7 @@ class MailingListBridgeBotFactoryTest {
             assertTrue(mailingListBridgeBot3.repoInSubject());
             assertEquals("master", mailingListBridgeBot3.branchInSubject().toString());
             MailingListServer bridgeBot3MailingListServer = mailingListBridgeBot3.mailingListServer();
-            assertTrue(bridgeBot3MailingListServer.getClass().getName().contains("Mailman3"));
+            assertTrue(bridgeBot3MailingListServer.getClass().getName().contains("Mailman2"));
         }
     }
 }

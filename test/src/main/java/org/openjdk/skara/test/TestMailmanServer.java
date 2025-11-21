@@ -23,7 +23,6 @@
 package org.openjdk.skara.test;
 
 import com.sun.net.httpserver.*;
-import java.nio.charset.Charset;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
