@@ -22,11 +22,11 @@
  */
 package org.openjdk.skara.email;
 
+import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.time.format.*;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -45,8 +45,10 @@ public class Email {
             "(\\r\\n){2}|(\\n){2}", Pattern.MULTILINE);
     private final static Pattern mboxMessageHeaderPattern = Pattern.compile(
             "^([-\\w]+): ((?:.(?!\\R\\w))*.)", Pattern.MULTILINE | Pattern.DOTALL);
-    private final static Pattern mboxMessageBodyHeaders = Pattern.compile(
+    private final static Pattern mimeHeadersPattern = Pattern.compile(
             "^(Content-Type|Content-Transfer-Encoding): .*");
+    private final static Pattern quotedPrintableUtf8Pattern = Pattern.compile("=([0-9A-Fa-f]{2})=([0-9A-Fa-f]{2})");
+    private final static Pattern quotedPrintablePattern = Pattern.compile("=([0-9A-Fa-f]{2})");
 
     Email(EmailAddress id, ZonedDateTime date, List<EmailAddress> recipients, EmailAddress author, EmailAddress sender, String subject, String body, Map<String, String> headers) {
         this.id = id;
@@ -76,25 +78,47 @@ public class Email {
         ret.headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         ret.headers.putAll(headers);
 
-        var boundary = parseBoundary(ret.headers);
+        var boundary = extractContentBoundary(ret.headers);
         if (boundary != null) {
-            // Content-Type: multipart/mixed; boundary="===============3685582790409215631=="
-            //
-            // --===============3685582790409215631==
-            // Content-Type: text/plain; charset="utf-8"
-            // Content-Transfer-Encoding: 7bit
-            //
-            // The body
-            //
-            // --===============3685582790409215631==
-            var firstEmptyLineRemoved = new AtomicBoolean(false);
-            ret.body = parts[1].lines()
-                    .dropWhile(s -> !s.equals(boundary))
-                    .skip(1)
-                    .dropWhile(s -> mboxMessageBodyHeaders.matcher(s).matches())
-                    .filter(s -> !(s.isEmpty() && !firstEmptyLineRemoved.getAndSet(true)))
-                    .takeWhile(s -> !s.equals(boundary))
-                    .collect(Collectors.joining("\n")).stripTrailing();
+            var body = new StringBuilder();
+            var bodySections = parts[1].split("\\R?--" + boundary + "(?:--)?\\R");
+            for (String bodySection : bodySections) {
+                if (bodySection.lines().findFirst().map(e -> mimeHeadersPattern.matcher(e).matches()).orElse(false)) {
+                    var mimeHeaders = bodySection.lines()
+                            .takeWhile(s -> !s.isEmpty())
+                            .map(mboxMessageHeaderPattern::matcher)
+                            .filter(Matcher::matches)
+                            .collect(Collectors.toMap(match -> match.group(1), match -> match.group(2)));
+                    // Skip any non plain text part
+                    if (mimeHeaders.containsKey("Content-Type") && !mimeHeaders.get("Content-Type").startsWith("text/plain")) {
+                        continue;
+                    }
+                    // Remove the mime headers from the rest of the body section
+                    var bodySectionBody = bodySection.split("\\R{2}", 2)[1];
+                    // Mailman3 encodes mail bodies with "quoted-printable".
+                    if ("quoted-printable".equals(mimeHeaders.get("Content-Transfer-Encoding"))) {
+                        // Remove soft line breaks
+                        bodySectionBody = bodySectionBody
+                                .replace("=\r\n", "")
+                                .replace("=\n", "");
+                        if (mimeHeaders.get("Content-Type").contains("charset=\"utf-8\"")) {
+                            // Decode UTF-8 characters which are encoded as pairs of =XX=YY.
+                            bodySectionBody = quotedPrintableUtf8Pattern.matcher(bodySectionBody).replaceAll(m -> {
+                                        var bytes = new byte[]{(byte) Integer.parseInt(m.group(1), 16),
+                                                (byte) Integer.parseInt(m.group(2), 16)};
+                                        return new String(bytes, StandardCharsets.UTF_8);
+                                    });
+                        }
+                        // Replace all possibly remaining single instances of =XX.
+                        bodySectionBody = quotedPrintablePattern.matcher(bodySectionBody).replaceAll(m ->
+                                Character.toString((char) Integer.parseInt(m.group(1), 16)));
+                    }
+                    body.append(bodySectionBody.stripTrailing());
+                } else {
+                    body.append(bodySection.stripTrailing());
+                }
+            }
+            ret.body = body.toString();
         } else {
             ret.body = parts[1].stripTrailing();
         }
@@ -103,12 +127,13 @@ public class Email {
 
     private final static Pattern mboxBoundaryPattern = Pattern.compile(".*boundary=\"([^\"]*)\".*");
 
-    private static String parseBoundary(Map<String, String> headers) {
+    // Content-Type: multipart/mixed; boundary="===============3685582790409215631=="
+    private static String extractContentBoundary(Map<String, String> headers) {
         if (headers.containsKey("Content-Type")) {
             var contentType = headers.get("Content-Type");
             var matcher = mboxBoundaryPattern.matcher(contentType);
             if (matcher.matches()) {
-                return "--" + matcher.group(1);
+                return matcher.group(1);
             }
         }
         return null;
