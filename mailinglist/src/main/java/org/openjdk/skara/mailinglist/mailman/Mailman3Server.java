@@ -24,13 +24,20 @@ package org.openjdk.skara.mailinglist.mailman;
 
 import java.net.URI;
 import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import org.openjdk.skara.mailinglist.MailingListReader;
 
 public class Mailman3Server extends MailmanServer {
+    private final ZonedDateTime startTime;
 
-    public Mailman3Server(URI archive, String smtpServer, Duration sendInterval, boolean useEtag) {
-        super(archive, smtpServer, sendInterval, useEtag);
+    public Mailman3Server(URI archive, String smtpServer, Duration sendInterval, ZonedDateTime startTime) {
+        super(archive, smtpServer, sendInterval, false);
+        this.startTime = startTime;
+    }
+
+    public Mailman3Server(URI archive, String smtpServer, Duration sendInterval) {
+        this(archive, smtpServer, sendInterval, ZonedDateTime.now());
     }
 
     URI getArchiveUri() {
@@ -39,6 +46,6 @@ public class Mailman3Server extends MailmanServer {
 
     @Override
     public MailingListReader getListReader(String... listNames) {
-        return new Mailman3ListReader(this, Arrays.asList(listNames), useEtag);
+        return new Mailman3ListReader(this, Arrays.asList(listNames), startTime);
     }
 }

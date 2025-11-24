@@ -28,6 +28,7 @@ import java.time.ZonedDateTime;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.email.Email;
 import org.openjdk.skara.email.EmailAddress;
+import org.openjdk.skara.mailinglist.mailman.Mailman3Server;
 import org.openjdk.skara.test.TestMailmanServer;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -105,40 +106,6 @@ class Mailman3Tests {
     }
 
     @Test
-    void cached() throws IOException {
-        try (var testServer = TestMailmanServer.createV3()) {
-            var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(testServer.getArchive(), testServer.getSMTP(),
-                                                                             Duration.ZERO, true);
-            var mailmanList = mailmanServer.getListReader(listAddress);
-            var sender = EmailAddress.from("Test", "test@test.email");
-            var mail = Email.create(sender, "Subject", "Body")
-                            .recipient(EmailAddress.parse(listAddress))
-                            .build();
-            mailmanServer.post(mail);
-            testServer.processIncoming();
-
-            var expectedMail = Email.from(mail)
-                                    .sender(EmailAddress.parse(listAddress))
-                                    .build();
-            {
-                var conversations = mailmanList.conversations(Duration.ofDays(1));
-                assertEquals(1, conversations.size());
-                var conversation = conversations.get(0);
-                assertEquals(expectedMail, conversation.first());
-                assertFalse(testServer.lastResponseCached());
-            }
-            {
-                var conversations = mailmanList.conversations(Duration.ofDays(1));
-                assertEquals(1, conversations.size());
-                var conversation = conversations.get(0);
-                assertEquals(expectedMail, conversation.first());
-                assertTrue(testServer.lastResponseCached());
-            }
-        }
-    }
-
-    @Test
     void interval() throws IOException {
         try (var testServer = TestMailmanServer.createV3()) {
             var listAddress = testServer.createList("test");
@@ -171,71 +138,80 @@ class Mailman3Tests {
     }
 
     @Test
-    void poll3months() throws Exception {
+    void poll3days() throws Exception {
         try (var testServer = TestMailmanServer.createV3()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(testServer.getArchive(),
-                    testServer.getSMTP(), Duration.ZERO);
+            var now = ZonedDateTime.now();
+            var mailmanServer = new Mailman3Server(testServer.getArchive(),
+                    testServer.getSMTP(), Duration.ZERO, now.minusDays(2));
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
-            var now = ZonedDateTime.now();
-            var mail2monthsAgo = Email.create(sender, "Subject 2 months ago", "Body 1")
-                    .recipient(EmailAddress.parse(listAddress))
-                    .date(now.minusMonths(2))
-                    .build();
-            var mail1monthAgo = Email.create(sender, "Subject 1 month ago", "Body 2")
-                    .recipient(EmailAddress.parse(listAddress))
-                    .date(now.minusMonths(1))
-                    .build();
-            var mailNow = Email.create(sender, "Subject now", "Body 3")
-                    .recipient(EmailAddress.parse(listAddress))
-                    .build();
 
-            var duration2Months = Duration.between(now.minusMonths(2), now);
+            var duration3Days = Duration.between(now.minusDays(3), now);
+
             {
-                var conversations = mailmanList.conversations(duration2Months);
-                assertEquals(0, conversations.size());
+                // A 2 days old should be picked up
+                var mail2daysAgo = Email.create(sender, "Subject 2 day2 ago", "Body 1")
+                        .recipient(EmailAddress.parse(listAddress))
+                        .date(now.minusDays(2))
+                        .build();
+                mailmanServer.post(mail2daysAgo);
+                testServer.processIncoming();
+                testServer.resetCallCount();
+                var conversations = mailmanList.conversations(duration3Days);
+                assertEquals(1, conversations.size());
+                assertEquals(3, testServer.callCount(),
+                        "Server wasn't for initial interval plus every day since start time");
+            }
+            {
+                // A 2 days old mail should not be picked up now as old results should be cached
+                var mail2daysAgo2 = Email.create(sender, "Subject 2 days ago 2", "Body 2")
+                        .recipient(EmailAddress.parse(listAddress))
+                        .date(now.minusDays(2))
+                        .build();
+                mailmanServer.post(mail2daysAgo2);
+                testServer.processIncoming();
+                testServer.resetCallCount();
+                var conversations = mailmanList.conversations(duration3Days);
+                assertEquals(1, conversations.size());
                 assertEquals(1, testServer.callCount(), "Server wasn't called once");
             }
             {
-                // A 2 months old mail should not be picked up now as old results should be cached
-                mailmanServer.post(mail2monthsAgo);
+                // A 1-day-old mail should not be picked up now as old results should be cached
+                var mail1dayAgo = Email.create(sender, "Subject 1 day ago", "Body 2")
+                        .recipient(EmailAddress.parse(listAddress))
+                        .date(now.minusDays(1))
+                        .build();
+                mailmanServer.post(mail1dayAgo);
                 testServer.processIncoming();
                 testServer.resetCallCount();
-                var conversations = mailmanList.conversations(duration2Months);
-                assertEquals(0, conversations.size());
-                //
-                assertEquals(1, testServer.callCount(), "Server wasn't called once");
-            }
-            {
-                // A mail from last month should be found
-                mailmanServer.post(mail1monthAgo);
-                testServer.processIncoming();
-                testServer.resetCallCount();
-                var conversations = mailmanList.conversations(duration2Months);
+                var conversations = mailmanList.conversations(duration3Days);
                 assertEquals(1, conversations.size());
                 assertEquals(1, testServer.callCount());
             }
             {
                 // A current mail should be found
+                var mailNow = Email.create(sender, "Subject now", "Body 3")
+                        .recipient(EmailAddress.parse(listAddress))
+                        .build();
                 mailmanServer.post(mailNow);
                 testServer.processIncoming();
                 testServer.resetCallCount();
-                var conversations = mailmanList.conversations(duration2Months);
+                var conversations = mailmanList.conversations(duration3Days);
                 assertEquals(2, conversations.size());
                 assertEquals(1, testServer.callCount());
             }
             {
-                // Another mail from last month should be found
-                var mail1monthAgo2 = Email.create(sender, "Subject 1 month ago 2", "Body 2")
+                // Another mail from last month should not be found
+                var mail1dayAgo2 = Email.create(sender, "Subject 1 day ago 2", "Body 2")
                         .recipient(EmailAddress.parse(listAddress))
-                        .date(now.minusMonths(1))
+                        .date(now.minusDays(1))
                         .build();
-                mailmanServer.post(mail1monthAgo2);
+                mailmanServer.post(mail1dayAgo2);
                 testServer.processIncoming();
                 testServer.resetCallCount();
-                var conversations = mailmanList.conversations(duration2Months);
-                assertEquals(3, conversations.size());
+                var conversations = mailmanList.conversations(duration3Days);
+                assertEquals(2, conversations.size());
                 assertEquals(1, testServer.callCount());
             }
             {
@@ -246,8 +222,8 @@ class Mailman3Tests {
                 mailmanServer.post(mailNow2);
                 testServer.processIncoming();
                 testServer.resetCallCount();
-                var conversations = mailmanList.conversations(duration2Months);
-                assertEquals(4, conversations.size());
+                var conversations = mailmanList.conversations(duration3Days);
+                assertEquals(3, conversations.size());
                 assertEquals(1, testServer.callCount());
             }
         }

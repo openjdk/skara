@@ -198,7 +198,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
         if (archiveType == null || archiveType.equals("mailman2")) {
             mailmanServer = MailingListServerFactory.createMailman2Server(listArchive, listSmtp, Duration.ZERO, useEtag);
         } else if (archiveType.equals("mailman3")) {
-            mailmanServer = MailingListServerFactory.createMailman3Server(listArchive, listSmtp, Duration.ZERO, useEtag);
+            mailmanServer = MailingListServerFactory.createMailman3Server(listArchive, listSmtp, Duration.ZERO);
         } else {
             throw new RuntimeException("Invalid server archive type: " + archiveType);
         }

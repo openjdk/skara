@@ -183,34 +183,62 @@ class Mailman2ListReader extends MailmanListReader {
 
 class Mailman3ListReader extends MailmanListReader {
     private final Mailman3Server server;
+    private final ZonedDateTime startTime;
 
-    Mailman3ListReader(Mailman3Server server, Collection<String> names, boolean useEtag) {
-        super(names, useEtag);
+    Mailman3ListReader(Mailman3Server server, Collection<String> names, ZonedDateTime startTime) {
+        // Mailman3 does not support etag for mbox API
+        super(names, false);
         this.server = server;
+        this.startTime = startTime;
     }
 
+    /**
+     * Reads all emails newer than maxAge. Reads everything older than start
+     * time in one go and caches that result. This chunk will always read start
+     * time minus max age. Emails older than now minus max age are filtered out
+     * later. Chunks newer than start time are read one day at a time, each day
+     * getting cached when the next day starts. This means only the current day
+     * is refreshed each time this method is called.
+     *
+     * @param maxAge Maximum age of emails to read relative to the start time.
+     * @return Emails sorted in conversations
+     */
     @Override
     public List<Conversation> conversations(Duration maxAge) {
         var now = ZonedDateTime.now();
-        var start = now.minus(maxAge).withDayOfMonth(1);
-        var query = Map.of("start", List.of(start.format(DateTimeFormatter.ISO_LOCAL_DATE)));
+        // First interval is everything before start time
+        var start = startTime.minus(maxAge);
+        var end = startTime.plusDays(1);
+
         var emails = new ArrayList<Email>();
         var newContent = false;
         // https://mail-dev.example.com/archives/list/skara-test@mail-dev.example.com/export/foo.mbox.gz?start=2024-10-25&end=2025-10-25
-        for (String name : names) {
-            var mboxUri = URIBuilder.base(server.getArchiveUri()).appendPath("list/").appendPath(name)
-                    .appendPath("@").appendPath(server.getArchiveUri().getHost())
-                    .appendPath("/export/foo.mbox.gz").setQuery(query).build();
-            var mboxResponse = getPage(mboxUri);
-            if (mboxResponse.isPresent()) {
+
+        while (start.isBefore(now)) {
+            var query = Map.of("start", List.of(start.format(DateTimeFormatter.ISO_LOCAL_DATE)),
+                    "end", List.of(end.format(DateTimeFormatter.ISO_LOCAL_DATE)));
+            for (String name : names) {
+                var mboxUri = URIBuilder.base(server.getArchiveUri()).appendPath("list/").appendPath(name)
+                        .appendPath("@").appendPath(server.getArchiveUri().getHost())
+                        .appendPath("/export/foo.mbox.gz").setQuery(query).build();
                 var sender = EmailAddress.from(name + "@" + server.getArchiveUri().getHost());
-                if (mboxResponse.get().statusCode() == 304) {
-                    emails.addAll(0, Mbox.splitMbox(gunzipToString(pageCache.get(mboxUri).body()), sender));
+                // For archives older than today, always use cached results
+                if (end.isBefore(now) && pageCache.containsKey(mboxUri)) {
+                    var cachedResponse = pageCache.get(mboxUri);
+                    if (cachedResponse != null && cachedResponse.statusCode() != 404) {
+                        emails.addAll(0, Mbox.splitMbox(gunzipToString(cachedResponse.body()), sender));
+                    }
                 } else {
-                    emails.addAll(0, Mbox.splitMbox(gunzipToString(mboxResponse.get().body()), sender));
-                    newContent = true;
+                    var mboxResponse = getPage(mboxUri);
+                    if (mboxResponse.isPresent()) {
+                        emails.addAll(0, Mbox.splitMbox(gunzipToString(mboxResponse.get().body()), sender));
+                        newContent = true;
+                    }
                 }
             }
+            // Every interval after the first is one day
+            start = end;
+            end = end.plusDays(1);
         }
 
         if (newContent) {

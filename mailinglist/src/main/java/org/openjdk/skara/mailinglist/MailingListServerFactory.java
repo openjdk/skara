@@ -41,11 +41,7 @@ public class MailingListServerFactory {
     }
 
     public static MailingListServer createMailman3Server(URI archive, String smtp, Duration sendInterval) {
-        return new Mailman3Server(archive, smtp, sendInterval, false);
-    }
-
-    public static MailingListServer createMailman3Server(URI archive, String smtp, Duration sendInterval, boolean useEtag) {
-        return new Mailman3Server(archive, smtp, sendInterval, useEtag);
+        return new Mailman3Server(archive, smtp, sendInterval);
     }
 
     public static MailingListServer createSendOnlyServer(String smtp, Duration sendInterval) {
