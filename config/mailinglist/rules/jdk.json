@@ -241,6 +241,9 @@
         ],
         "hotspot": [
             "doc/hotspot-.*",
+            "src/hotspot/share/cppstdlib/",
+            "src/hotspot/share/metaprogramming/",
+            "src/hotspot/share/precompiled/",
             "src/hotspot/share/prims/",
             "src/hotspot/share/utilities/",
             "test/hotspot/gtest/utilities/",
@@ -351,6 +354,7 @@
             "src/hotspot/share/oops/",
             "src/hotspot/share/prims/(cds|jni|method|native|perf|resolved|stackwalk|unsafe).*",
             "src/hotspot/share/runtime/",
+            "src/hotspot/share/sanitizers/",
             "src/hotspot/share/services/(?!gc)",
             "test/hotspot/gtest/classfile/",
             "test/hotspot/gtest/\\w+(.cpp|.hpp)",
