@@ -164,9 +164,9 @@ class EmailTests {
                 --===============3685582790409215631==
                 Content-Type: text/plain; charset="utf-8"
                 Content-Transfer-Encoding: 7bit
-                
+
                 The body text
-                
+
                 --===============3685582790409215631==--
                 """
         );
