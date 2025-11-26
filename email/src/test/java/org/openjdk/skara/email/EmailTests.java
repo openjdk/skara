@@ -150,4 +150,87 @@ class EmailTests {
                      mail.recipients());
         assertEquals("The body", mail.body());
     }
+
+    @Test
+    void parseContentType7bit() {
+        var mail = Email.parse("""
+                Message-Id: <a@b.c>
+                Date: Wed, 27 Mar 2019 14:31:00 +0100
+                Subject: hello
+                From: B <b@b.c>
+                To: C <c@c.c>, <d@d.c>
+                Content-Type: multipart/mixed; boundary="===============3685582790409215631=="
+
+                --===============3685582790409215631==
+                Content-Type: text/plain; charset="utf-8"
+                Content-Transfer-Encoding: 7bit
+
+                The body text
+
+                --===============3685582790409215631==--
+                """
+        );
+
+        assertEquals("The body text", mail.body());
+    }
+
+    @Test
+    void parseContentTypeQuotedPrintable() {
+        var mail = Email.parse("""
+                Message-Id: <a@b.c>
+                Date: Wed, 27 Mar 2019 14:31:00 +0100
+                Subject: hello
+                From: B <b@b.c>
+                To: C <c@c.c>, <d@d.c>
+                Content-Type: multipart/mixed; boundary="===============3685582790409215631=="
+
+                --===============3685582790409215631==
+                Content-Type: text/plain; charset="utf-8"
+                Content-Transfer-Encoding: quoted-printable
+
+                A response with weird characters r=C3=A4ksm=C3=B6rg=C3=A5s and a line longer =
+                than 76=20
+                characters.
+
+                --===============3685582790409215631==--
+                """
+        );
+
+        assertEquals("A response with weird characters räksmörgås and a line longer than 76 \ncharacters.", mail.body());
+    }
+
+    @Test
+    void parseContentTypeMultipart() {
+        var mail = Email.parse("""
+                Message-Id: <a@b.c>
+                Date: Wed, 27 Mar 2019 14:31:00 +0100
+                Subject: hello
+                From: B <b@b.c>
+                To: C <c@c.c>, <d@d.c>
+                Content-Type: multipart/mixed; boundary="===============3685582790409215631=="
+
+                --===============3685582790409215631==
+                Content-Type: text/plain; charset="utf-8"
+                Content-Transfer-Encoding: 7bit
+
+                The body text
+
+                --===============3685582790409215631==
+                Content-Type: text/html
+                Content-Transfer-Encoding: base64
+                Content-Disposition: attachment; filename="attachment.html"
+                MIME-Version: 1.0
+
+                PCFET0NUWVBFIGh0bWw+PGh0bWw+PGhlYWQ+CjxtZXRhIGh0dHAtZXF1aXY9IkNvbnRlbnQtVHlw
+                ZSIgY29udGVudD0idGV4dC9odG1sOyBjaGFyc2V0PXV0Zi04Ij4KICA8L2hlYWQ+CiAgPGJvZHk+
+                CiAgICA8aDE+VGhpcyBpcyBhbiBlbWFpbCB3aXRoIGZvcm1hdHRpbmc8L2gxPgogICAgPHA+UGFy
+                YWdyYXBoIHRleHQuPC9wPgogICAgPHByZT5QcmVmb3JtYXQgdGV4dC48L3ByZT4KICA8L2JvZHk+
+                CjwvaHRtbD4K
+
+                --===============3685582790409215631==--
+                """
+        );
+
+        assertEquals("The body text", mail.body());
+    }
 }

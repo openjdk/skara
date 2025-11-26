@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.mlbridge;
 
+import org.openjdk.skara.mailinglist.MailingListServer;
 import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.VCS;
 import org.openjdk.skara.email.EmailAddress;
@@ -43,8 +44,6 @@ public class MailingListBridgeBotBuilder {
     private List<MailingListConfiguration> lists;
     private Set<String> ignoredUsers = Set.of();
     private Set<Pattern> ignoredComments = Set.of();
-    private URI listArchive;
-    private String smtpServer;
     private HostedRepository webrevStorageHTMLRepository;
     private HostedRepository webrevStorageJSONRepository;
     private String webrevStorageRef;
@@ -56,11 +55,11 @@ public class MailingListBridgeBotBuilder {
     private Map<String, Pattern> readyComments = Map.of();
     private URI issueTracker;
     private Map<String, String> headers = Map.of();
-    private Duration sendInterval = Duration.ZERO;
     private Duration cooldown = Duration.ZERO;
     private boolean repoInSubject = false;
     private Pattern branchInSubject = Pattern.compile("a^"); // Does not match anything
     private Path seedStorage = null;
+    private MailingListServer mailingListServer;
 
     MailingListBridgeBotBuilder() {
     }
@@ -107,16 +106,6 @@ public class MailingListBridgeBotBuilder {
 
     public MailingListBridgeBotBuilder ignoredComments(Set<Pattern> ignoredComments) {
         this.ignoredComments = ignoredComments;
-        return this;
-    }
-
-    public MailingListBridgeBotBuilder listArchive(URI listArchive) {
-        this.listArchive = listArchive;
-        return this;
-    }
-
-    public MailingListBridgeBotBuilder smtpServer(String smtpServer) {
-        this.smtpServer = smtpServer;
         return this;
     }
 
@@ -175,11 +164,6 @@ public class MailingListBridgeBotBuilder {
         return this;
     }
 
-    public MailingListBridgeBotBuilder sendInterval(Duration sendInterval) {
-        this.sendInterval = sendInterval;
-        return this;
-    }
-
     public MailingListBridgeBotBuilder cooldown(Duration cooldown) {
         this.cooldown = cooldown;
         return this;
@@ -200,12 +184,17 @@ public class MailingListBridgeBotBuilder {
         return this;
     }
 
+    public MailingListBridgeBotBuilder mailingListServer(MailingListServer mailingListServer) {
+        this.mailingListServer = mailingListServer;
+        return this;
+    }
+
     public MailingListBridgeBot build() {
         return new MailingListBridgeBot(from, repo, archive, archiveRef, censusRepo, censusRef, lists,
-                                        ignoredUsers, ignoredComments, listArchive, smtpServer,
+                                        ignoredUsers, ignoredComments,
                                         webrevStorageHTMLRepository, webrevStorageJSONRepository, webrevStorageRef,
                                         webrevStorageBase, webrevStorageBaseUri, webrevGenerateHTML, webrevGenerateJSON,
-                                        readyLabels, readyComments, issueTracker, headers, sendInterval,
-                                        cooldown, repoInSubject, branchInSubject, seedStorage);
+                                        readyLabels, readyComments, issueTracker, headers,
+                                        cooldown, repoInSubject, branchInSubject, seedStorage, mailingListServer);
     }
 }

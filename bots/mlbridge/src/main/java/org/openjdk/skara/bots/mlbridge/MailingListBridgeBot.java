@@ -32,6 +32,7 @@ import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import org.openjdk.skara.mailinglist.MailingListServer;
 
 public class MailingListBridgeBot implements Bot {
     private final EmailAddress emailAddress;
@@ -43,19 +44,17 @@ public class MailingListBridgeBot implements Bot {
     private final List<MailingListConfiguration> lists;
     private final Set<String> ignoredUsers;
     private final Set<Pattern> ignoredComments;
-    private final URI listArchive;
-    private final String smtpServer;
     private final WebrevStorage webrevStorage;
     private final Set<String> readyLabels;
     private final Map<String, Pattern> readyComments;
     private final Map<String, String> headers;
     private final URI issueTracker;
-    private final Duration sendInterval;
     private final Duration cooldown;
     private final boolean repoInSubject;
     private final Pattern branchInSubject;
     private final Path seedStorage;
     private final PullRequestPoller poller;
+    private final MailingListServer mailingListServer;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
@@ -63,13 +62,13 @@ public class MailingListBridgeBot implements Bot {
 
     MailingListBridgeBot(EmailAddress from, HostedRepository repo, HostedRepository archive, String archiveRef,
                          HostedRepository censusRepo, String censusRef, List<MailingListConfiguration> lists,
-                         Set<String> ignoredUsers, Set<Pattern> ignoredComments, URI listArchive, String smtpServer,
+                         Set<String> ignoredUsers, Set<Pattern> ignoredComments,
                          HostedRepository webrevStorageHTMLRepository, HostedRepository webrevStorageJSONRepository,
                          String webrevStorageRef, Path webrevStorageBase, URI webrevStorageBaseUri,
                          boolean webrevGenerateHTML, boolean webrevGenerateJSON, Set<String> readyLabels,
                          Map<String, Pattern> readyComments, URI issueTracker, Map<String, String> headers,
-                         Duration sendInterval, Duration cooldown, boolean repoInSubject, Pattern branchInSubject,
-                         Path seedStorage) {
+                         Duration cooldown, boolean repoInSubject, Pattern branchInSubject,
+                         Path seedStorage, MailingListServer mailingListServer) {
         emailAddress = from;
         codeRepo = repo;
         archiveRepo = archive;
@@ -79,17 +78,15 @@ public class MailingListBridgeBot implements Bot {
         this.lists = lists;
         this.ignoredUsers = ignoredUsers;
         this.ignoredComments = ignoredComments;
-        this.listArchive = listArchive;
-        this.smtpServer = smtpServer;
         this.readyLabels = readyLabels;
         this.readyComments = readyComments;
         this.headers = headers;
         this.issueTracker = issueTracker;
-        this.sendInterval = sendInterval;
         this.cooldown = cooldown;
         this.repoInSubject = repoInSubject;
         this.branchInSubject = branchInSubject;
         this.seedStorage = seedStorage;
+        this.mailingListServer = mailingListServer;
 
         webrevStorage = new WebrevStorage(webrevStorageHTMLRepository, webrevStorageJSONRepository, webrevStorageRef,
                                           webrevStorageBase, webrevStorageBaseUri, from,
@@ -129,10 +126,6 @@ public class MailingListBridgeBot implements Bot {
         return lists;
     }
 
-    Duration sendInterval() {
-        return sendInterval;
-    }
-
     Duration cooldown() {
         return cooldown;
     }
@@ -143,14 +136,6 @@ public class MailingListBridgeBot implements Bot {
 
     Set<Pattern> ignoredComments() {
         return ignoredComments;
-    }
-
-    URI listArchive() {
-        return listArchive;
-    }
-
-    String smtpServer() {
-        return smtpServer;
     }
 
     WebrevStorage webrevStorage() {
@@ -191,6 +176,10 @@ public class MailingListBridgeBot implements Bot {
 
     public void setLabelsUpdated(boolean labelsUpdated) {
         this.labelsUpdated = labelsUpdated;
+    }
+
+    public MailingListServer mailingListServer() {
+        return mailingListServer;
     }
 
     @Override

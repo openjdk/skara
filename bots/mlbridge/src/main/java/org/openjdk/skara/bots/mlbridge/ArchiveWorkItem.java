@@ -378,7 +378,6 @@ class ArchiveWorkItem implements WorkItem {
 
             var jsonWebrevPath = scratchPath.resolve("mlbridge-webrevs").resolve("json");
             var htmlWebrevPath = scratchPath.resolve("mlbridge-webrevs").resolve("html");
-            var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer(), bot.sendInterval());
             var archiver = new ReviewArchive(pr, bot.emailAddress());
             var lastDraftTime = pr.lastMarkedAsDraftTime().orElse(null);
 
@@ -449,7 +448,7 @@ class ArchiveWorkItem implements WorkItem {
                                          .headers(bot.headers())
                                          .recipients(recipients)
                                          .build();
-                listServer.post(filteredEmail);
+                bot.mailingListServer().post(filteredEmail);
             }
             // Mixing forge time and local time for the latency is not ideal, but the best
             // we can do here.
