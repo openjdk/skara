@@ -27,7 +27,6 @@ import org.openjdk.skara.bots.notify.*;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.json.JSONObject;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
-import org.openjdk.skara.network.URIBuilder;
 
 import java.time.Duration;
 import java.util.regex.Pattern;
@@ -43,9 +42,8 @@ public class MailingListNotifierFactory implements NotifierFactory {
     public Notifier create(BotConfiguration botConfiguration, JSONObject notifierConfiguration) {
         var smtp = notifierConfiguration.get("smtp").asString();
         var sender = EmailAddress.parse(notifierConfiguration.get("sender").asString());
-        var archive = URIBuilder.base(notifierConfiguration.get("archive").asString()).build();
         var interval = notifierConfiguration.contains("interval") ? Duration.parse(notifierConfiguration.get("interval").asString()) : Duration.ofSeconds(1);
-        var listServer = MailingListServerFactory.createMailmanServer(archive, smtp, interval);
+        var listServer = MailingListServerFactory.createSendOnlyServer(smtp, interval);
 
         var recipient = notifierConfiguration.get("recipient").asString();
         var recipientAddress = EmailAddress.parse(recipient);
