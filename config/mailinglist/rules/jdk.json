@@ -231,14 +231,6 @@
             "test/micro/org/openjdk/bench/jdk",
             "test/micro/org/openjdk/bench/vm/lang/"
         ],
-        "graal": [
-            "src/hotspot/share/jvmci/",
-            "src/hotspot/share/opto/library_call.cpp",
-            "src/java.base/share/man/java.md",
-            "src/jdk.internal.vm.ci/",
-            "src/jdk.internal.vm.compiler/",
-            "src/jdk.internal.vm.compiler.management/"
-        ],
         "hotspot": [
             "doc/hotspot-.*",
             "src/hotspot/share/cppstdlib/",
