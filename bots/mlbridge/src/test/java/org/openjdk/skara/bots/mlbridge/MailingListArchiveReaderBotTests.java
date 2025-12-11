@@ -64,7 +64,7 @@ class MailingListArchiveReaderBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -85,7 +85,7 @@ class MailingListArchiveReaderBotTests {
                                             .mailingListServer(mailmanServer)
                                             .build();
 
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var readerBot = new MailingListArchiveReaderBot(mailmanList, archive);
 
             // Populate the projects repository
@@ -137,7 +137,7 @@ class MailingListArchiveReaderBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -159,7 +159,7 @@ class MailingListArchiveReaderBotTests {
                                             .mailingListServer(mailmanServer)
                                             .build();
 
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var readerBot = new MailingListArchiveReaderBot(mailmanList, archive);
 
             // Populate the projects repository
@@ -212,7 +212,7 @@ class MailingListArchiveReaderBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -234,7 +234,7 @@ class MailingListArchiveReaderBotTests {
                                             .mailingListServer(mailmanServer)
                                             .build();
 
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var readerBot = new MailingListArchiveReaderBot(mailmanList, archive);
 
             // Populate the projects repository
@@ -293,7 +293,7 @@ class MailingListArchiveReaderBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");

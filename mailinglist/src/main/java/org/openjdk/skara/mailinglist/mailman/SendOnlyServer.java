@@ -23,6 +23,7 @@
 package org.openjdk.skara.mailinglist.mailman;
 
 import java.time.Duration;
+import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.mailinglist.MailingListReader;
 
 /**
@@ -34,7 +35,7 @@ public class SendOnlyServer extends MailmanServer {
     }
 
     @Override
-    public MailingListReader getListReader(String... listNames) {
+    public MailingListReader getListReader(EmailAddress... listNames) {
         throw new UnsupportedOperationException();
     }
 }
