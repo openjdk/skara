@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.email;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.time.format.*;
@@ -47,8 +48,7 @@ public class Email {
             "^([-\\w]+): ((?:.(?!\\R\\w))*.)", Pattern.MULTILINE | Pattern.DOTALL);
     private final static Pattern mimeHeadersPattern = Pattern.compile(
             "^(Content-Type|Content-Transfer-Encoding): .*");
-    private final static Pattern quotedPrintableUtf8Pattern = Pattern.compile("=([0-9A-Fa-f]{2})=([0-9A-Fa-f]{2})");
-    private final static Pattern quotedPrintablePattern = Pattern.compile("=([0-9A-Fa-f]{2})");
+    private final static Pattern charsetPattern = Pattern.compile("charset=\"([a-zA-Z0-9-]+)\"");
 
     Email(EmailAddress id, ZonedDateTime date, List<EmailAddress> recipients, EmailAddress author, EmailAddress sender, String subject, String body, Map<String, String> headers) {
         this.id = id;
@@ -97,21 +97,14 @@ public class Email {
                     var bodySectionBody = bodySection.split("\\R{2}", 2)[1];
                     // Mailman3 encodes mail bodies with "quoted-printable".
                     if ("quoted-printable".equals(mimeHeaders.get("Content-Transfer-Encoding"))) {
-                        // Remove soft line breaks
-                        bodySectionBody = bodySectionBody
-                                .replace("=\r\n", "")
-                                .replace("=\n", "");
-                        if (mimeHeaders.get("Content-Type").contains("charset=\"utf-8\"")) {
-                            // Decode UTF-8 characters which are encoded as pairs of =XX=YY.
-                            bodySectionBody = quotedPrintableUtf8Pattern.matcher(bodySectionBody).replaceAll(m -> {
-                                        var bytes = new byte[]{(byte) Integer.parseInt(m.group(1), 16),
-                                                (byte) Integer.parseInt(m.group(2), 16)};
-                                        return new String(bytes, StandardCharsets.UTF_8);
-                                    });
+                        Matcher encodingMatcher = charsetPattern.matcher(mimeHeaders.get("Content-Type"));
+                        String charsetName;
+                        if (encodingMatcher.find()) {
+                            charsetName = encodingMatcher.group(1);
+                        } else {
+                            charsetName = "utf-8";
                         }
-                        // Replace all possibly remaining single instances of =XX.
-                        bodySectionBody = quotedPrintablePattern.matcher(bodySectionBody).replaceAll(m ->
-                                Character.toString((char) Integer.parseInt(m.group(1), 16)));
+                        bodySectionBody = decodeQuotedPrintable(bodySectionBody, charsetName);
                     }
                     body.append(bodySectionBody.stripTrailing());
                 } else {
@@ -123,6 +116,46 @@ public class Email {
             ret.body = parts[1].stripTrailing();
         }
         return ret;
+    }
+
+    /**
+     * Decode quoted printable encoding text. Non ASCII characters are encoded
+     * as series of `=XX` where `XX` is the hex value of a byte. Newlines in
+     * the encoding are escaped with `=`.
+     * @param s The string to be decoded.
+     * @param charsetName The charset name to use when converting bytes to a
+     *                    back to a String.
+     * @return A String with the decoded contents.
+     */
+    private static String decodeQuotedPrintable(String s, String charsetName) {
+        byte[] in = s.getBytes(StandardCharsets.US_ASCII);
+        byte[] out = new byte[in.length];
+        int j = 0;
+        for (int i = 0; i < in.length; i++) {
+            if (in[i] == '=') {
+                i++;
+                switch (in[i]) {
+                    case '\n' : break;
+                    case '\r' : {
+                        if (in[i + 1] == '\n') {
+                            i++;
+                        }
+                        break;
+                    }
+                    default : {
+                        out[j++] = (byte) Integer.parseInt("" + (char) in[i++] + (char) in[i], 16);
+                        break;
+                    }
+                }
+            } else {
+                out[j++] = in[i];
+            }
+        }
+        try {
+            return new String(out, 0, j, charsetName);
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private final static Pattern mboxBoundaryPattern = Pattern.compile(".*boundary=\"([^\"]*)\".*");

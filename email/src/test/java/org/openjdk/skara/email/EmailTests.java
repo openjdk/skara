@@ -190,13 +190,13 @@ class EmailTests {
 
                 A response with weird characters r=C3=A4ksm=C3=B6rg=C3=A5s and a line longer =
                 than 76=20
-                characters.
+                characters=E2=80=A6
 
                 --===============3685582790409215631==--
                 """
         );
 
-        assertEquals("A response with weird characters räksmörgås and a line longer than 76 \ncharacters.", mail.body());
+        assertEquals("A response with weird characters räksmörgås and a line longer than 76 \ncharacters…", mail.body());
     }
 
     @Test
