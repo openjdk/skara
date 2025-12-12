@@ -26,6 +26,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
+import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.mailinglist.MailingListReader;
 
 public class Mailman3Server extends MailmanServer {
@@ -45,7 +46,7 @@ public class Mailman3Server extends MailmanServer {
     }
 
     @Override
-    public MailingListReader getListReader(String... listNames) {
+    public MailingListReader getListReader(EmailAddress... listNames) {
         return new Mailman3ListReader(this, Arrays.asList(listNames), startTime);
     }
 }

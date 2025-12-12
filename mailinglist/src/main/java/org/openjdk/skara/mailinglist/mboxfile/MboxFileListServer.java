@@ -23,6 +23,7 @@
 package org.openjdk.skara.mailinglist.mboxfile;
 
 import org.openjdk.skara.email.Email;
+import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.mailinglist.*;
 
 import java.io.*;
@@ -82,7 +83,7 @@ public class MboxFileListServer implements MailingListServer {
     }
 
     @Override
-    public MailingListReader getListReader(String... listNames) {
+    public MailingListReader getListReader(EmailAddress... listNames) {
         return new MboxFileListReader(base, Arrays.asList(listNames));
     }
 }

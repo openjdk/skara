@@ -50,9 +50,9 @@ public class MailingListNotifierTests {
             credentials.commitLock(localRepo);
             localRepo.pushAll(repo.authenticatedUrl());
 
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -124,9 +124,9 @@ public class MailingListNotifierTests {
             credentials.commitLock(localRepo);
             localRepo.pushAll(repo.authenticatedUrl());
 
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -201,9 +201,9 @@ public class MailingListNotifierTests {
             credentials.commitLock(localRepo);
             localRepo.pushAll(repo.authenticatedUrl());
 
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -281,9 +281,9 @@ public class MailingListNotifierTests {
             credentials.commitLock(localRepo);
             localRepo.pushAll(repo.authenticatedUrl());
 
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -347,9 +347,9 @@ public class MailingListNotifierTests {
             var branch = localRepo.branch(masterHash, "another");
             localRepo.pushAll(repo.authenticatedUrl());
 
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -451,9 +451,9 @@ public class MailingListNotifierTests {
             credentials.commitLock(localRepo);
             localRepo.pushAll(repo.authenticatedUrl());
 
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -536,9 +536,9 @@ public class MailingListNotifierTests {
             credentials.commitLock(localRepo);
             localRepo.pushAll(repo.authenticatedUrl());
 
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -627,9 +627,9 @@ public class MailingListNotifierTests {
             credentials.commitLock(localRepo);
             localRepo.pushAll(repo.authenticatedUrl());
 
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -726,9 +726,9 @@ public class MailingListNotifierTests {
             credentials.commitLock(localRepo);
             localRepo.pushAll(repo.authenticatedUrl());
 
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -824,9 +824,9 @@ public class MailingListNotifierTests {
             localRepo.tag(masterHash, "jdk-12+1", "Added tag 1", "Duke Tagger", "tagger@openjdk.org");
             localRepo.pushAll(repo.authenticatedUrl());
 
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -947,9 +947,9 @@ public class MailingListNotifierTests {
             localRepo.tag(masterHash, "jdk-12+1", "Added tag 1", "Duke Tagger", "tagger@openjdk.org");
             localRepo.pushAll(repo.authenticatedUrl());
 
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -1044,9 +1044,9 @@ public class MailingListNotifierTests {
             CheckableRepository.appendAndCommit(localRepo, "update master branch");
             localRepo.pushAll(repo.authenticatedUrl());
 
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -1124,9 +1124,9 @@ public class MailingListNotifierTests {
             credentials.commitLock(localRepo);
             localRepo.pushAll(repo.authenticatedUrl());
 
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -1191,9 +1191,9 @@ public class MailingListNotifierTests {
             credentials.commitLock(localRepo);
             localRepo.pushAll(repo.authenticatedUrl());
 
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);

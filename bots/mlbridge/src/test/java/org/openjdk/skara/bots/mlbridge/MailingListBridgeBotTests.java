@@ -116,7 +116,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -229,7 +229,7 @@ class MailingListBridgeBotTests {
 
             // The mailing list as well
             listServer.processIncoming();
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
@@ -310,7 +310,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -404,7 +404,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -479,7 +479,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -559,7 +559,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -637,7 +637,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -727,7 +727,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -782,7 +782,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -840,7 +840,7 @@ class MailingListBridgeBotTests {
             assertFalse(archiveContains(archiveFolder.path(), "Don't mind me"));
 
             // The mailing list as well
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
@@ -890,7 +890,7 @@ class MailingListBridgeBotTests {
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -941,7 +941,7 @@ class MailingListBridgeBotTests {
             assertEquals(2, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
 
             // As well as the mailing list
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
@@ -988,7 +988,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
@@ -1062,7 +1062,7 @@ class MailingListBridgeBotTests {
             assertTrue(archiveText.indexOf("Looks fine") < archiveText.indexOf("The final review comment"));
 
             // Check the mailing list
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
@@ -1117,7 +1117,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
@@ -1190,7 +1190,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
@@ -1255,7 +1255,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
@@ -1321,7 +1321,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
@@ -1386,7 +1386,7 @@ class MailingListBridgeBotTests {
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -1443,7 +1443,7 @@ class MailingListBridgeBotTests {
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -1520,7 +1520,7 @@ class MailingListBridgeBotTests {
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -1611,7 +1611,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var commenter = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -1679,7 +1679,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, webrevComments.size());
 
             // Check that sender address is set properly
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             for (var newMail : conversations.get(0).allMessages()) {
@@ -1722,7 +1722,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository("author");
             var main = credentials.getHostedRepository("main");
             var archive = credentials.getHostedRepository("archive");
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var sender = EmailAddress.from("test", "test@test.mail");
@@ -1787,7 +1787,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, webrevComments.size());
 
             // Check that sender address is set properly
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             for (var newMail : conversations.get(0).allMessages()) {
@@ -1809,7 +1809,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository("author");
             var main = credentials.getHostedRepository("main");
             var archive = credentials.getHostedRepository("archive");
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var sender = EmailAddress.from("test", "test@test.mail");
@@ -1881,7 +1881,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, webrevComments.size());
 
             // Check that sender address is set properly
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             for (var newMail : conversations.get(0).allMessages()) {
@@ -1902,7 +1902,7 @@ class MailingListBridgeBotTests {
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var sender = EmailAddress.from("test", "test@test.mail");
@@ -1983,7 +1983,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var commenter = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -2070,7 +2070,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var commenter = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -2143,7 +2143,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var commenter = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -2215,7 +2215,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -2296,7 +2296,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var from = EmailAddress.from("test", "test@test.mail");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
@@ -2361,7 +2361,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
             listServer.processIncoming();
             listServer.processIncoming();
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertTrue(conversations.get(0).allMessages().get(1).body().contains("hosted.git/pr/1/review/0"));
             assertTrue(conversations.get(0).allMessages().get(2).body().contains("hosted.git/pr/1/review/1"));
@@ -2389,7 +2389,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -2456,7 +2456,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
@@ -2518,7 +2518,7 @@ class MailingListBridgeBotTests {
             var bot = credentials.getHostedRepository();
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -2584,7 +2584,7 @@ class MailingListBridgeBotTests {
             var bot = credentials.getHostedRepository();
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -2651,7 +2651,7 @@ class MailingListBridgeBotTests {
             var bot = credentials.getHostedRepository();
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -2743,7 +2743,7 @@ class MailingListBridgeBotTests {
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -2801,7 +2801,7 @@ class MailingListBridgeBotTests {
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -2859,7 +2859,7 @@ class MailingListBridgeBotTests {
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -2919,7 +2919,7 @@ class MailingListBridgeBotTests {
             var bot = credentials.getHostedRepository();
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -3012,8 +3012,8 @@ class MailingListBridgeBotTests {
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress1 = EmailAddress.parse(listServer.createList("test1"));
-            var listAddress2 = EmailAddress.parse(listServer.createList("test2"));
+            var listAddress1 = listServer.createList("test1");
+            var listAddress2 = listServer.createList("test2");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -3053,7 +3053,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // The mail should have been sent to list1
-            var mailmanList = mailmanServer.getListReader(listAddress1.address());
+            var mailmanList = mailmanServer.getListReader(listAddress1);
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
@@ -3092,7 +3092,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -3184,7 +3184,7 @@ class MailingListBridgeBotTests {
 
             // The mailing list as well
             listServer.processIncoming();
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
@@ -3292,7 +3292,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -3379,7 +3379,7 @@ class MailingListBridgeBotTests {
              var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -3453,7 +3453,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var bridge = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -3530,7 +3530,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -3707,7 +3707,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -3797,7 +3797,7 @@ class MailingListBridgeBotTests {
 
             // The mailing list as well
             listServer.processIncoming();
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
@@ -3852,7 +3852,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var commenter = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -3939,7 +3939,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -4006,7 +4006,7 @@ class MailingListBridgeBotTests {
 
             // The mailing list as well
             listServer.processIncoming();
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
@@ -4032,7 +4032,7 @@ class MailingListBridgeBotTests {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
@@ -4088,7 +4088,7 @@ class MailingListBridgeBotTests {
             assertTrue(pr.store().comments().get(1).body().contains("[Full](Webrev is not available because diff is too large)"));
             // The mailing list as well
             listServer.processIncoming();
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();

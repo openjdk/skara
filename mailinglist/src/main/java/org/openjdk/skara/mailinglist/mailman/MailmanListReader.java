@@ -41,7 +41,7 @@ import org.openjdk.skara.network.URIBuilder;
 
 public abstract class MailmanListReader implements MailingListReader {
     private final boolean useEtag;
-    protected final List<String> names = new ArrayList<>();
+    protected final List<EmailAddress> names;
     private final Logger log = Logger.getLogger("org.openjdk.skara.mailinglist");
     protected final ConcurrentMap<URI, HttpResponse<byte[]>> pageCache = new ConcurrentHashMap<>();
     protected List<Conversation> cachedConversations = new ArrayList<>();
@@ -52,15 +52,9 @@ public abstract class MailmanListReader implements MailingListReader {
     private static final Counter.WithOneLabel POLLING_COUNTER =
             Counter.name("skara_mailman_polling").labels("code").register();
 
-    MailmanListReader(Collection<String> names, boolean useEtag) {
+    MailmanListReader(Collection<EmailAddress> names, boolean useEtag) {
         this.useEtag = useEtag;
-        for (var name : names) {
-            if (name.contains("@")) {
-                this.names.add(EmailAddress.parse(name).localPart());
-            } else {
-                this.names.add(name);
-            }
-        }
+        this.names = List.copyOf(names);
     }
 
     protected Optional<HttpResponse<byte[]>> getPage(URI uri) {
@@ -110,14 +104,14 @@ public abstract class MailmanListReader implements MailingListReader {
 class Mailman2ListReader extends MailmanListReader {
     private final Mailman2Server server;
 
-    Mailman2ListReader(Mailman2Server server, Collection<String> names, boolean useEtag) {
+    Mailman2ListReader(Mailman2Server server, Collection<EmailAddress> names, boolean useEtag) {
         super(names, useEtag);
         this.server = server;
     }
 
     @Override
     public String toString() {
-        return "Mailman2List:" + String.join(", ", names);
+        return "Mailman2List:" + names;
     }
 
     private List<ZonedDateTime> getMonthRange(Duration maxAge) {
@@ -150,7 +144,7 @@ class Mailman2ListReader extends MailmanListReader {
         for (var month : potentialPages) {
             for (var name : names) {
                 URI mboxUri = server.getMboxUri(name, month);
-                var sender = EmailAddress.from(name + "@" + mboxUri.getHost());
+                var sender = EmailAddress.from(name.localPart() + "@" + mboxUri.getHost());
 
                 // For archives older than the previous month, always use cached results
                 if (monthCount > 1 && pageCache.containsKey(mboxUri)) {
@@ -185,7 +179,7 @@ class Mailman3ListReader extends MailmanListReader {
     private final Mailman3Server server;
     private final ZonedDateTime startTime;
 
-    Mailman3ListReader(Mailman3Server server, Collection<String> names, ZonedDateTime startTime) {
+    Mailman3ListReader(Mailman3Server server, Collection<EmailAddress> names, ZonedDateTime startTime) {
         // Mailman3 does not support etag for mbox API
         super(names, false);
         this.server = server;
@@ -217,11 +211,10 @@ class Mailman3ListReader extends MailmanListReader {
         while (start.isBefore(now)) {
             var query = Map.of("start", List.of(start.format(DateTimeFormatter.ISO_LOCAL_DATE)),
                     "end", List.of(end.format(DateTimeFormatter.ISO_LOCAL_DATE)));
-            for (String name : names) {
-                var mboxUri = URIBuilder.base(server.getArchiveUri()).appendPath("list/").appendPath(name)
-                        .appendPath("@").appendPath(server.getArchiveUri().getHost())
+            for (EmailAddress name : names) {
+                var mboxUri = URIBuilder.base(server.getArchiveUri()).appendPath("list/").appendPath(name.address())
                         .appendPath("/export/foo.mbox.gz").setQuery(query).build();
-                var sender = EmailAddress.from(name + "@" + server.getArchiveUri().getHost());
+                var sender = EmailAddress.from(name.localPart() + "@" + server.getArchiveUri().getHost());
                 // For archives older than today, always use cached results
                 if (end.isBefore(now) && pageCache.containsKey(mboxUri)) {
                     var cachedResponse = pageCache.get(mboxUri);

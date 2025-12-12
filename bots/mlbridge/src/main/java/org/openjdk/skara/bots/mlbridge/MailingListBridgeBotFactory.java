@@ -110,7 +110,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
         }
         MailingListServer mailmanServer = createMailmanServer(archiveType, listArchive, listSmtp, interval, useEtag);
 
-        var mailingListReaderMap = new HashMap<List<String>, MailingListReader>();
+        var mailingListReaderMap = new HashMap<Set<EmailAddress>, MailingListReader>();
 
         for (var repoConfig : specific.get("repositories").asArray()) {
             var repo = repoConfig.get("repository").asString();
@@ -130,18 +130,14 @@ public class MailingListBridgeBotFactory implements BotFactory {
 
             var lists = parseLists(repoConfig.get("lists"));
             if (!repoConfig.contains("bidirectional") || repoConfig.get("bidirectional").asBoolean()) {
-                var listNamesForReading = new HashSet<EmailAddress>();
+                var listsForReading = new HashSet<EmailAddress>();
                 for (var list : lists) {
-                    listNamesForReading.add(list.list());
+                    listsForReading.add(list.list());
                 }
-                var listsForReading = listNamesForReading.stream()
-                                                         .map(EmailAddress::localPart)
-                                                         .collect(Collectors.toList());
-
                 // Reuse MailingListReaders with the exact same set of mailing lists between bots
                 // to benefit more from cached results.
                 if (!mailingListReaderMap.containsKey(listsForReading)) {
-                    mailingListReaderMap.put(listsForReading, mailmanServer.getListReader(listsForReading.toArray(new String[0])));
+                    mailingListReaderMap.put(listsForReading, mailmanServer.getListReader(listsForReading.toArray(new EmailAddress[0])));
                 }
                 var bot = new MailingListArchiveReaderBot(mailingListReaderMap.get(listsForReading), hostedRepository);
                 ret.add(bot);
