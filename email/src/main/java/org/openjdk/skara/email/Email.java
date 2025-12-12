@@ -129,6 +129,8 @@ public class Email {
      */
     private static String decodeQuotedPrintable(String s, String charsetName) {
         byte[] in = s.getBytes(StandardCharsets.US_ASCII);
+        // The decoded buffer can never be longer than the encoded buffer as
+        // every decoding step reduces bytes.
         byte[] out = new byte[in.length];
         int j = 0;
         for (int i = 0; i < in.length; i++) {
