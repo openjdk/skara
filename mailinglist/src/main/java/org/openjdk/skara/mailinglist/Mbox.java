@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.mailinglist;
 
+import java.util.logging.Level;
 import org.openjdk.skara.email.*;
 
 import java.io.*;
@@ -63,7 +64,8 @@ public class Mbox {
                 }
                 parsedMails.add(email.build());
                 messageBuilder.setLength(0);
-            } catch (RuntimeException ignored) {
+            } catch (RuntimeException e) {
+                log.log(Level.WARNING, "Failed to parse email: " + e.getMessage(), e);
             }
         }
 
