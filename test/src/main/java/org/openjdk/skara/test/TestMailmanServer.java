@@ -110,7 +110,7 @@ public abstract class TestMailmanServer implements AutoCloseable {
         return smtpServer.address();
     }
 
-    public abstract String createList(String name);
+    public abstract EmailAddress createList(String name);
 
     public void processIncoming(Duration timeout) {
         var email = smtpServer.receive(timeout);
@@ -155,7 +155,7 @@ class TestMailman2Server extends TestMailmanServer {
 
     private static final Pattern listPathPattern = Pattern.compile("^/test/(.*?)/(.*)\\.txt");
     // Map from local part of email list name to map from date string to mbox contents
-    private final Map<String, Map<String, StringBuilder>> lists = new HashMap<>();
+    private final Map<EmailAddress, Map<String, StringBuilder>> lists = new HashMap<>();
 
     public TestMailman2Server() throws IOException {
         super();
@@ -164,8 +164,8 @@ class TestMailman2Server extends TestMailmanServer {
     @Override
     protected void archiveEmail(Email email, String mboxEntry) {
         var listMap = email.recipients().stream()
-                            .filter(recipient -> lists.containsKey(recipient.localPart()))
-                            .map(recipient -> lists.get(recipient.localPart()))
+                            .filter(lists::containsKey)
+                            .map(lists::get)
                             .findAny().orElseThrow();
         var datePath = DateTimeFormatter.ofPattern("yyyy-MMMM", Locale.US).format(email.date());
         if (!listMap.containsKey(datePath)) {
@@ -182,7 +182,7 @@ class TestMailman2Server extends TestMailmanServer {
         }
         var listPath = listMatcher.group(1);
         var datePath = listMatcher.group(2);
-        var listMap = lists.get(listPath);
+        var listMap = lists.get(EmailAddress.parse(listPath + "@" + httpServer.getAddress().getHostString()));
         var contents = listMap.get(datePath);
         if (contents != null) {
             return contents.toString().getBytes(StandardCharsets.UTF_8);
@@ -192,9 +192,9 @@ class TestMailman2Server extends TestMailmanServer {
     }
 
     @Override
-    public String createList(String name) {
-        var listName = EmailAddress.parse(name + "@" + httpServer.getAddress().getHostString()).toString();
-        lists.put(name, new HashMap<>());
+    public EmailAddress createList(String name) {
+        var listName = EmailAddress.parse(name + "@" + httpServer.getAddress().getHostString());
+        lists.put(listName, new HashMap<>());
         return listName;
     }
 }
@@ -203,7 +203,7 @@ class TestMailman3Server extends TestMailmanServer {
 
     private record EmailEntry(Email email, String mbox) {}
 
-    private Map<String, List<EmailEntry>> lists = new HashMap<>();
+    private Map<EmailAddress, List<EmailEntry>> lists = new HashMap<>();
 
     private static final Pattern listPathPattern = Pattern.compile("^/test/list/(.*?)/export/(.*)\\.mbox.gz");
 
@@ -218,7 +218,7 @@ class TestMailman3Server extends TestMailmanServer {
         if (!listMatcher.matches()) {
             throw new RuntimeException();
         }
-        var listPath = listMatcher.group(1);
+        var listPath = EmailAddress.parse(listMatcher.group(1));
 
         var query = exchange.getRequestURI().getRawQuery();
         String[] pairs = query.split("&");
@@ -257,17 +257,17 @@ class TestMailman3Server extends TestMailmanServer {
     }
 
     @Override
-    public String createList(String name) {
+    public EmailAddress createList(String name) {
         var emailAddress = EmailAddress.parse(name + "@" + httpServer.getAddress().getHostString());
-        lists.put(emailAddress.address(), new ArrayList<>());
-        return emailAddress.toString();
+        lists.put(emailAddress, new ArrayList<>());
+        return emailAddress;
     }
 
     @Override
     protected void archiveEmail(Email email, String mboxEntry) {
         var entryList = email.recipients().stream()
-                .filter(recipient -> lists.containsKey(recipient.address()))
-                .map(recipient -> lists.get(recipient.address()))
+                .filter(recipient -> lists.containsKey(recipient))
+                .map(recipient -> lists.get(recipient))
                 .findAny().orElseThrow();
         entryList.add(new EmailEntry(email, mboxEntry));
     }

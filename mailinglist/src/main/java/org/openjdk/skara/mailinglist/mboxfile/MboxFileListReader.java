@@ -34,10 +34,10 @@ import java.util.stream.Collectors;
 
 public class MboxFileListReader implements MailingListReader {
     private final Path base;
-    private final Collection<String> names;
+    private final Collection<EmailAddress> names;
     private final Logger log = Logger.getLogger("org.openjdk.skara.mailinglist");
 
-    MboxFileListReader(Path base, Collection<String> names) {
+    MboxFileListReader(Path base, Collection<EmailAddress> names) {
         this.base = base;
         this.names = names;
     }
@@ -47,9 +47,9 @@ public class MboxFileListReader implements MailingListReader {
         var emails = new ArrayList<Email>();
         for (var name : names) {
             try {
-                var file = base.resolve(name + ".mbox");
+                var file = base.resolve(name.localPart() + ".mbox");
                 var currentMbox = Files.readString(file);
-                emails.addAll(Mbox.splitMbox(currentMbox, EmailAddress.from(name + "@mbox.file")));
+                emails.addAll(Mbox.splitMbox(currentMbox, name));
             } catch (IOException e) {
                 log.info("Failed to open mbox file");
             }

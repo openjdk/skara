@@ -28,6 +28,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Locale;
+import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.mailinglist.MailingListReader;
 import org.openjdk.skara.network.URIBuilder;
 
@@ -37,13 +38,13 @@ public class Mailman2Server extends MailmanServer {
         super(archive, smtpServer, sendInterval, useEtag);
     }
 
-    URI getMboxUri(String listName, ZonedDateTime month) {
+    URI getMboxUri(EmailAddress listName, ZonedDateTime month) {
         var dateStr = DateTimeFormatter.ofPattern("yyyy-MMMM", Locale.US).format(month);
-        return URIBuilder.base(archive).appendPath(listName + "/" + dateStr + ".txt").build();
+        return URIBuilder.base(archive).appendPath(listName.localPart() + "/" + dateStr + ".txt").build();
     }
 
     @Override
-    public MailingListReader getListReader(String... listNames) {
+    public MailingListReader getListReader(EmailAddress... listNames) {
         return new Mailman2ListReader(this, Arrays.asList(listNames), useEtag);
     }
 }

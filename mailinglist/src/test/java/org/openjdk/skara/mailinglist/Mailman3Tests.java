@@ -43,11 +43,11 @@ class Mailman3Tests {
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var mail = Email.create(sender, "Subject", "Body")
-                            .recipient(EmailAddress.parse(listAddress))
+                            .recipient(listAddress)
                             .build();
             mailmanServer.post(mail);
             var expectedMail = Email.from(mail)
-                                    .sender(EmailAddress.parse(listAddress))
+                                    .sender(listAddress)
                                     .build();
 
             testServer.processIncoming();
@@ -68,12 +68,12 @@ class Mailman3Tests {
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var sentParent = Email.create(sender, "Subject", "Body")
-                                  .recipient(EmailAddress.parse(listAddress))
+                                  .recipient(listAddress)
                                   .build();
             mailmanServer.post(sentParent);
             testServer.processIncoming();
             var expectedParent = Email.from(sentParent)
-                                      .sender(EmailAddress.parse(listAddress))
+                                      .sender(listAddress)
                                       .build();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
@@ -83,12 +83,12 @@ class Mailman3Tests {
 
             var replier = EmailAddress.from("Replier", "replier@test.email");
             var sentReply = Email.create(replier, "Reply subject", "Reply body")
-                                 .recipient(EmailAddress.parse(listAddress))
+                                 .recipient(listAddress)
                                  .header("In-Reply-To", sentParent.id().toString())
                                  .build();
             mailmanServer.post(sentReply);
             var expectedReply = Email.from(sentReply)
-                                     .sender(EmailAddress.parse(listAddress))
+                                     .sender(listAddress)
                                      .build();
 
             testServer.processIncoming();
@@ -114,17 +114,17 @@ class Mailman3Tests {
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var mail1 = Email.create(sender, "Subject 1", "Body 1")
-                             .recipient(EmailAddress.parse(listAddress))
+                             .recipient(listAddress)
                              .build();
             var mail2 = Email.create(sender, "Subject 2", "Body 2")
-                             .recipient(EmailAddress.parse(listAddress))
+                             .recipient(listAddress)
                              .build();
             new Thread(() -> {
                 mailmanServer.post(mail1);
                 mailmanServer.post(mail2);
             }).start();
             var expectedMail = Email.from(mail1)
-                                    .sender(EmailAddress.parse(listAddress))
+                                    .sender(listAddress)
                                     .build();
 
             testServer.processIncoming();
@@ -152,7 +152,7 @@ class Mailman3Tests {
             {
                 // A 2 days old should be picked up
                 var mail2daysAgo = Email.create(sender, "Subject 2 day2 ago", "Body 1")
-                        .recipient(EmailAddress.parse(listAddress))
+                        .recipient(listAddress)
                         .date(now.minusDays(2))
                         .build();
                 mailmanServer.post(mail2daysAgo);
@@ -166,7 +166,7 @@ class Mailman3Tests {
             {
                 // A 2 days old mail should not be picked up now as old results should be cached
                 var mail2daysAgo2 = Email.create(sender, "Subject 2 days ago 2", "Body 2")
-                        .recipient(EmailAddress.parse(listAddress))
+                        .recipient(listAddress)
                         .date(now.minusDays(2))
                         .build();
                 mailmanServer.post(mail2daysAgo2);
@@ -179,7 +179,7 @@ class Mailman3Tests {
             {
                 // A 1-day-old mail should not be picked up now as old results should be cached
                 var mail1dayAgo = Email.create(sender, "Subject 1 day ago", "Body 2")
-                        .recipient(EmailAddress.parse(listAddress))
+                        .recipient(listAddress)
                         .date(now.minusDays(1))
                         .build();
                 mailmanServer.post(mail1dayAgo);
@@ -192,7 +192,7 @@ class Mailman3Tests {
             {
                 // A current mail should be found
                 var mailNow = Email.create(sender, "Subject now", "Body 3")
-                        .recipient(EmailAddress.parse(listAddress))
+                        .recipient(listAddress)
                         .build();
                 mailmanServer.post(mailNow);
                 testServer.processIncoming();
@@ -204,7 +204,7 @@ class Mailman3Tests {
             {
                 // Another mail from last month should not be found
                 var mail1dayAgo2 = Email.create(sender, "Subject 1 day ago 2", "Body 2")
-                        .recipient(EmailAddress.parse(listAddress))
+                        .recipient(listAddress)
                         .date(now.minusDays(1))
                         .build();
                 mailmanServer.post(mail1dayAgo2);
@@ -217,7 +217,7 @@ class Mailman3Tests {
             {
                 // Another current mail should be found
                 var mailNow2 = Email.create(sender, "Subject now 2", "Body 3")
-                        .recipient(EmailAddress.parse(listAddress))
+                        .recipient(listAddress)
                         .build();
                 mailmanServer.post(mailNow2);
                 testServer.processIncoming();

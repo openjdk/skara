@@ -23,8 +23,9 @@
 package org.openjdk.skara.mailinglist;
 
 import org.openjdk.skara.email.Email;
+import org.openjdk.skara.email.EmailAddress;
 
 public interface MailingListServer {
-    MailingListReader getListReader(String... listNames);
+    MailingListReader getListReader(EmailAddress... listNames);
     void post(Email email);
 }

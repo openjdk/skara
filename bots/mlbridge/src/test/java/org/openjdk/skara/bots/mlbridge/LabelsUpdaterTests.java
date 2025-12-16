@@ -23,7 +23,6 @@
 package org.openjdk.skara.bots.mlbridge;
 
 import org.junit.jupiter.api.*;
-import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
@@ -40,7 +39,7 @@ public class LabelsUpdaterTests {
         try (var credentials = new HostCredentials(testInfo);
              var listServer = TestMailmanServer.createV2();) {
             var targetRepo = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var listAddress = listServer.createList("test");
             var mlBot = MailingListBridgeBot.newBuilder()
                     .repo(targetRepo)
                     .lists(List.of(new MailingListConfiguration(listAddress, Set.of("foo", "bar"))))
@@ -72,8 +71,8 @@ public class LabelsUpdaterTests {
         try (var credentials = new HostCredentials(testInfo);
              var listServer = TestMailmanServer.createV2();) {
             var targetRepo = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var listAddress2 = EmailAddress.parse(listServer.createList("test2"));
+            var listAddress = listServer.createList("test");
+            var listAddress2 = listServer.createList("test2");
             var mlBot = MailingListBridgeBot.newBuilder()
                     .repo(targetRepo)
                     .lists(List.of(new MailingListConfiguration(listAddress, Set.of("foo"))))
