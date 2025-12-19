@@ -45,7 +45,7 @@ public class Email {
     private final static Pattern mboxMessageHeaderBodyPattern = Pattern.compile(
             "(\\r\\n){2}|(\\n){2}", Pattern.MULTILINE);
     private final static Pattern mboxMessageHeaderPattern = Pattern.compile(
-            "^([-\\w]+): ((?:.(?!\\R\\w))*.)", Pattern.MULTILINE | Pattern.DOTALL);
+            "^([-\\w]+):\\R? ((?:.(?!\\R\\w))*.)", Pattern.MULTILINE | Pattern.DOTALL);
     private final static Pattern mimeHeadersPattern = Pattern.compile(
             "^(Content-Type|Content-Transfer-Encoding): .*");
     private final static Pattern charsetPattern = Pattern.compile("charset=\"([a-zA-Z0-9-]+)\"");

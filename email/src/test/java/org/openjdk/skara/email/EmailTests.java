@@ -233,4 +233,55 @@ class EmailTests {
 
         assertEquals("The body text", mail.body());
     }
+
+    @Test
+    void headerWithNewline() {
+        var mail = Email.parse("""
+                Message-Id: <a@b.c>
+                Date: Wed, 27 Mar 2019 14:31:00 +0100
+                Subject: hello
+                 hello
+                From: B <b@b.c>
+                To: C <c@c.c>, <d@d.c>
+
+                the body
+                """
+        );
+
+        assertEquals("hello hello", mail.subject());
+    }
+
+    @Test
+    void headerStartsWithNewline() {
+        var mail = Email.parse("""
+                Message-Id: <a@b.c>
+                Date: Wed, 27 Mar 2019 14:31:00 +0100
+                Subject:
+                 hello
+                From: B <b@b.c>
+                To: C <c@c.c>, <d@d.c>
+
+                the body
+                """
+        );
+
+        assertEquals("hello", mail.subject());
+    }
+
+    @Test
+    void headerStartsWithNewlineFirstWordColon() {
+        var mail = Email.parse("""
+                Message-Id: <a@b.c>
+                Date: Wed, 27 Mar 2019 14:31:00 +0100
+                Subject:
+                 RFR:
+                From: B <b@b.c>
+                To: C <c@c.c>, <d@d.c>
+
+                the body
+                """
+        );
+
+        assertEquals("RFR:", mail.subject());
+    }
 }
