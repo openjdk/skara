@@ -76,7 +76,7 @@ public class IssueBotTests {
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + " : This is an issue");
 
             TestBotRunner.runPeriodicItems(prBot);
             var checks = pr.checks(editHash);
