@@ -863,7 +863,7 @@ class CheckTests {
 
             assertTrue(prBadTitle.store().body().contains("Title mismatch between PR and JBS for issue"));
 
-            var prCutOff =  credentials.createPullRequest(author, "master", "edit", issue1.id() + ": My first issue with a very long title that is going to be cut off by …", List.of("…the Git Forge provider", "", "It also has a second line!"), false);
+            var prCutOff =  credentials.createPullRequest(author, "master", "edit", issue1.id() + " : My first issue with a very long title that is going to be cut off by …", List.of("…the Git Forge provider", "", "It also has a second line!"), false);
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
