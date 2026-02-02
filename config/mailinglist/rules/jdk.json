@@ -331,7 +331,7 @@
         ],
         "hotspot-runtime": [
             "make/data/hotspot-symbols/",
-            "src/hotspot/cpu/\\w+/(\\w*interpreter|frame|macroassembler|rdtsc|vm_version)",
+            "src/hotspot/cpu/\\w+/(\\w*abstractInt|assembler|bytes|compressed|continuation|copy|global|interp|frame|jni|macroassembler|rdtsc|register|sharedRuntime|small|template|upcall|vm_version|vmStruct)",
             "src/hotspot/os/",
             "src/hotspot/os_cpu/",
             "src/hotspot/share/cds/",
