@@ -486,15 +486,6 @@
         "jdk": [
             "(?!makefile|configure)\\w+$"
         ],
-        "jmx": [
-            "src/java.management.rmi/share/classes/javax/management/",
-            "src/jdk.management.agent/",
-            "src/jdk.management/",
-            "test/jdk/com/sun/management/",
-            "test/jdk/javax/management/",
-            "test/jdk/sun/management/",
-            "test/jdk/com/sun/jmx"
-        ],
         "net": [
             "make/modules/jdk.net",
             "make/modules/jdk.sctp",
@@ -628,6 +619,9 @@
             "src/jdk.jstatd/",
             "src/jdk.management.agent/",
             "src/jdk.management/",
+            "src/java.management.rmi/share/classes/javax/management/",
+            "src/jdk.management.agent/",
+            "src/jdk.management/",
             "test/hotspot/jtreg/serviceability/",
             "test/hotspot/jtreg/vmTestbase/nsk/aod/",
             "test/hotspot/jtreg/vmTestbase/nsk/jdb",
@@ -661,7 +655,11 @@
             "test/lib/jdk/test/lib/util/core",
             "test/lib/jdk/test/lib/SA",
             "test/lib/jdk/test/lib/dcmd/",
-            "test/lib/jdk/test/lib/hprof/"
+            "test/lib/jdk/test/lib/hprof/",
+            "test/jdk/com/sun/management/",
+            "test/jdk/javax/management/",
+            "test/jdk/sun/management/",
+            "test/jdk/com/sun/jmx"
         ],
         "shenandoah": [
             "src/hotspot/cpu/\\w+/gc/shenandoah/",

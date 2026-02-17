@@ -568,7 +568,6 @@ public class GitMlRules {
                                   "hotspot-runtime-dev",
                                   "i18n-dev",
                                   "javadoc-dev",
-                                  "jmx-dev",
                                   "net-dev",
                                   "nio-dev",
                                   "security-dev",
