@@ -90,6 +90,7 @@ public class RestRequest {
         private String sha256Header;
         private boolean skipLimiter = false;
         private boolean failOnEmptyResponse = false;
+        private Duration timeout = Duration.ofSeconds(30);
 
         private QueryBuilder(RequestType queryType, String endpoint) {
             this.queryType = queryType;
@@ -215,6 +216,14 @@ public class RestRequest {
 
         public QueryBuilder failOnEmptyResponse(boolean failOnEmptyResponse) {
             this.failOnEmptyResponse = failOnEmptyResponse;
+            return this;
+        }
+
+        /**
+         * Set the HTTP timeout for the request. Defaults to 30 seconds.
+         */
+        public QueryBuilder timeout(Duration timeout) {
+            this.timeout = timeout;
             return this;
         }
 
@@ -414,7 +423,7 @@ public class RestRequest {
 
     private HttpRequest.Builder createRequest(RequestType requestType, String endpoint, String body,
                                               List<QueryBuilder.Param> params, Map<String, String> headers,
-                                              boolean isJSON, String sha256Header) {
+                                              boolean isJSON, String sha256Header, Duration timeout) {
         var uriBuilder = URIBuilder.base(apiBase);
         if (endpoint != null && !endpoint.isEmpty()) {
             uriBuilder = uriBuilder.appendPath(endpoint);
@@ -433,7 +442,7 @@ public class RestRequest {
 
         var requestBuilder = HttpRequest.newBuilder()
                                         .uri(uri)
-                                        .timeout(Duration.ofSeconds(30));
+                                        .timeout(timeout);
 
         if (isJSON) {
             requestBuilder = requestBuilder.header("Content-type", "application/json");
@@ -511,13 +520,15 @@ public class RestRequest {
 
     private HttpRequest build(QueryBuilder queryBuilder) {
         var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
-                queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON(), queryBuilder.sha256Header);
+                queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON(), queryBuilder.sha256Header,
+                queryBuilder.timeout);
         return request.build();
     }
 
     private JSONValue execute(QueryBuilder queryBuilder) throws IOException {
         var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
-                queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON(), queryBuilder.sha256Header);
+                queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON(), queryBuilder.sha256Header,
+                queryBuilder.timeout);
         requestCounter.labels(queryBuilder.queryType.toString()).inc();
         var response = sendRequest(request, queryBuilder.skipLimiter);
         var errorTransform = transformBadResponse(response, queryBuilder);
@@ -563,7 +574,8 @@ public class RestRequest {
 
     private String executeUnparsed(QueryBuilder queryBuilder) throws IOException {
         var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
-                queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON(), queryBuilder.sha256Header);
+                queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON(), queryBuilder.sha256Header,
+                queryBuilder.timeout);
         requestCounter.labels(queryBuilder.queryType.toString()).inc();
         var response = sendRequest(request, queryBuilder.skipLimiter);
         responseCounter.labels(Integer.toString(response.statusCode()), Boolean.toString(false)).inc();

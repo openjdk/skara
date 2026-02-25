@@ -360,12 +360,14 @@ public class GitLabRepository implements HostedRepository {
             // Use POST to create a new file
             request.post("repository/files/" + encodedFileName)
                     .body(body)
+                    .timeout(Duration.ofSeconds(60))
                     .onError(onError)
                     .execute();
         } else {
             // USE PUT to update the file
             request.put("repository/files/" + encodedFileName)
                     .body(body)
+                    .timeout(Duration.ofSeconds(60))
                     .onError(onError)
                     .execute();
         }
