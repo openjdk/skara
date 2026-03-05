@@ -2151,6 +2151,20 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testRemoteBranches(VCS vcs) throws IOException {
         assumeFalse(vcs == VCS.HG && !hgAvailable);
+
+        // Skip HG if ls-remote extension is not available
+        if (vcs == VCS.HG) {
+            try {
+                var pb = new ProcessBuilder("hg", "ls-remote", "--help");
+                pb.redirectErrorStream(true);
+                var process = pb.start();
+                process.waitFor();
+                assumeTrue(process.exitValue() == 0, "hg ls-remote extension not available");
+            } catch (Exception e) {
+                assumeTrue(false, "hg ls-remote extension check failed");
+            }
+        }
+
         try (var dir = new TemporaryDirectory()) {
             var upstream = TestableRepository.init(dir.path().resolve("upstream"), vcs);
             var readme = upstream.root().resolve("README");
