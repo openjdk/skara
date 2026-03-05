@@ -260,7 +260,6 @@ public class GitHubHost implements Forge {
                        .supplier(() -> user(username).orElseGet(() -> HostUser.builder()
                                .id(id)
                                .username(username)
-                               .fullName(null)
                                .build()))
                        .build();
     }
