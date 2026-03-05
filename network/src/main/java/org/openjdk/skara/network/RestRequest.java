@@ -580,12 +580,15 @@ public class RestRequest {
         var response = sendRequest(request, queryBuilder.skipLimiter);
         responseCounter.labels(Integer.toString(response.statusCode()), Boolean.toString(false)).inc();
         if (response.statusCode() >= 400) {
-            var responseJSONValue = JSON.parse(response.body());
-            if (responseJSONValue.contains("message")) {
-                throw new UncheckedRestException(responseJSONValue.get("message").asString(), response.statusCode(), response.request());
-            } else {
-                throw new UncheckedRestException(response.statusCode(), response.request());
+            try {
+                var responseJSONValue = JSON.parse(response.body());
+                if (responseJSONValue.contains("message")) {
+                    throw new UncheckedRestException(responseJSONValue.get("message").asString(), response.statusCode(), response.request());
+                }
+            } catch (Exception ignored) {
+                // Ignore parsing errors
             }
+            throw new UncheckedRestException(response.statusCode(), response.request());
         }
         return response.body();
     }
