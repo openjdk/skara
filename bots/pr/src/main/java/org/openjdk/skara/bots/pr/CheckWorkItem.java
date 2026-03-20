@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -729,7 +729,7 @@ class CheckWorkItem extends PullRequestWorkItem {
 
                 var expiresAt = CheckRun.execute(this, pr, localRepo, comments, allReviews,
                         activeReviews, labels, census, bot.useStaleReviews(), bot.integrators(), bot.reviewCleanBackport(),
-                        bot.reviewMerge(), bot.approval());
+                        bot.reviewMerge(), bot.approval(), bot.requiredCheckedLines());
                 if (log.isLoggable(Level.INFO)) {
                     // Log latency from the original updatedAt of the PR when this WorkItem
                     // was triggered to when it was just updated by the CheckRun.execute above.

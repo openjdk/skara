@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -113,6 +113,12 @@ public class PullRequestBotFactory implements BotFactory {
             }
         }
 
+        List<String> requiredCheckedLines = new ArrayList<String>();
+        if (specific.contains("requiredCheckedLines")) {
+            requiredCheckedLines =
+                specific.get("requiredCheckedLines").asArray().stream().map(JSONValue::asString).toList();
+        }
+
         for (var repo : specific.get("repositories").fields()) {
             var censusRepo = configuration.repository(repo.value().get("census").asString());
             var censusRef = configuration.repositoryRef(repo.value().get("census").asString());
@@ -129,7 +135,8 @@ public class PullRequestBotFactory implements BotFactory {
                                            .seedStorage(configuration.storageFolder().resolve("seeds"))
                                            .excludeCommitCommentsFrom(excludeCommitCommentsFrom)
                                            .forks(forks)
-                                           .mlbridgeBotName(mlbridgeBotName);
+                                           .mlbridgeBotName(mlbridgeBotName)
+                                           .requiredCheckedLines(requiredCheckedLines);
 
             if (repo.value().contains("labels")) {
                 var labelGroup = repo.value().get("labels").asString();
@@ -272,6 +279,18 @@ public class PullRequestBotFactory implements BotFactory {
 
             if (repo.value().contains("checkContributorStatusForBackportCommand")) {
                 botBuilder.checkContributorStatusForBackportCommand(repo.value().get("checkContributorStatusForBackportCommand").asBoolean());
+            }
+
+            // A repository can override the "default" required checked lines that are
+            // configured for all repositories handled by the bot.
+            if (repo.value().contains("requiredCheckedLines")) {
+                var requiredCheckedLinesOverride = repo.value()
+                                                       .get("requiredCheckedLines")
+                                                       .asArray()
+                                                       .stream()
+                                                       .map(JSONValue::asString)
+                                                       .toList();
+                botBuilder.requiredCheckedLines(requiredCheckedLinesOverride);
             }
 
             var prBot = botBuilder.build();

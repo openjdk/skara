@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -83,6 +83,7 @@ class PullRequestBot implements Bot {
     private final boolean versionMismatchWarning;
     private final boolean cleanCommandEnabled;
     private final boolean checkContributorStatusForBackportCommand;
+    private final List<String> requiredCheckedLines;
 
     private Instant lastFullUpdate;
 
@@ -98,7 +99,7 @@ class PullRequestBot implements Bot {
                    boolean reviewCleanBackport, String mlbridgeBotName, MergePullRequestReviewConfiguration reviewMerge, boolean processPR, boolean processCommit,
                    boolean enableMerge, Set<String> mergeSources, boolean jcheckMerge, boolean enableBackport,
                    Map<String, List<PRRecord>> issuePRMap, Approval approval, boolean versionMismatchWarning, boolean cleanCommandEnabled,
-                   boolean checkContributorStatusForBackportCommand) {
+                   boolean checkContributorStatusForBackportCommand, List<String> requiredCheckedLines) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -138,6 +139,7 @@ class PullRequestBot implements Bot {
         this.versionMismatchWarning = versionMismatchWarning;
         this.cleanCommandEnabled = cleanCommandEnabled;
         this.checkContributorStatusForBackportCommand = checkContributorStatusForBackportCommand;
+        this.requiredCheckedLines = requiredCheckedLines;
 
         poller = new PullRequestPoller(repo, true);
 
@@ -368,6 +370,10 @@ class PullRequestBot implements Bot {
 
     public boolean reviewCleanBackport() {
         return reviewCleanBackport;
+    }
+
+    public List<String> requiredCheckedLines() {
+        return requiredCheckedLines;
     }
 
     public String mlbridgeBotName() {
