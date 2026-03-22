@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -52,6 +52,7 @@ public class GitHubForgeFactory implements ForgeFactory {
         List<String> altwebUriReplacements = List.of();
         var offline = false;
         Set<String> orgs = new HashSet<>();
+        String prTemplate = null;
 
         if (configuration != null) {
             if (configuration.contains("weburl")) {
@@ -75,6 +76,10 @@ public class GitHubForgeFactory implements ForgeFactory {
                     .map(JSONValue::asString)
                     .collect(Collectors.toSet());
             }
+
+            if (configuration.contains("prTemplate")) {
+                prTemplate = configuration.get("prTemplate").asString();
+            }
         }
 
         if (credential != null) {
@@ -83,12 +88,12 @@ public class GitHubForgeFactory implements ForgeFactory {
                 var id = credential.username().substring(0, separator);
                 var installation = credential.username().substring(separator + 1);
                 var app = new GitHubApplication(credential.password(), id, installation);
-                return new GitHubHost(uri, app, webUriPattern, webUriReplacement, altwebUriReplacements, orgs);
+                return new GitHubHost(uri, app, webUriPattern, webUriReplacement, altwebUriReplacements, orgs, prTemplate);
             } else {
-                return new GitHubHost(uri, credential, webUriPattern, webUriReplacement, altwebUriReplacements, orgs);
+                return new GitHubHost(uri, credential, webUriPattern, webUriReplacement, altwebUriReplacements, orgs, prTemplate);
             }
         } else {
-            return new GitHubHost(uri, webUriPattern, webUriReplacement, altwebUriReplacements, orgs, offline);
+            return new GitHubHost(uri, webUriPattern, webUriReplacement, altwebUriReplacements, orgs, prTemplate, offline);
         }
     }
 }

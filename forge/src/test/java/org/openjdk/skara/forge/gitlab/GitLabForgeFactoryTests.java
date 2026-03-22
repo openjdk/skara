@@ -24,6 +24,7 @@ package org.openjdk.skara.forge.gitlab;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 
 import org.openjdk.skara.json.JSON;
 
@@ -50,11 +51,21 @@ class GitLabForgeFactoryTests {
     }
 
     @Test
+    void prTemplateConfiguration() {
+        var conf = JSON.object().put("prTemplate", "FOO");
+        var factory = new GitLabForgeFactory();
+        var forge = factory.create(URI.create("http://www.example.com"), null, conf);
+
+        assertEquals(Optional.of("FOO"), forge.defaultPullRequestTemplate());
+    }
+
+    @Test
     void defaultConfiguration() {
         var factory = new GitLabForgeFactory();
         var gl = (GitLabHost) factory.create(URI.create("http://www.example.com"), null, null);
 
         assertEquals("GitLab", gl.name());
         assertEquals(List.of(), gl.groups());
+        assertEquals(Optional.empty(), gl.defaultPullRequestTemplate());
     }
 }

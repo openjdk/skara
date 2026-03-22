@@ -23,6 +23,7 @@
 package org.openjdk.skara.forge.bitbucket;
 
 import java.net.URI;
+import java.util.Optional;
 
 import org.openjdk.skara.json.JSON;
 
@@ -40,10 +41,20 @@ class BitbucketForgeFactoryTests {
     }
 
     @Test
+    void prTemplateConfiguration() {
+        var conf = JSON.object().put("prTemplate", "FOO");
+        var factory = new BitbucketForgeFactory();
+        var forge = factory.create(URI.create("http://www.example.com"), null, conf);
+
+        assertEquals(Optional.of("FOO"), forge.defaultPullRequestTemplate());
+    }
+
+    @Test
     void defaultConfiguration() {
         var factory = new BitbucketForgeFactory();
         var bb = (BitbucketHost) factory.create(URI.create("http://www.example.com"), null, null);
 
         assertEquals("Bitbucket", bb.name());
+        assertEquals(Optional.empty(), bb.defaultPullRequestTemplate());
     }
 }

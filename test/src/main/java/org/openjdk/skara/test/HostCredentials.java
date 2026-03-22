@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -190,10 +190,19 @@ public class HostCredentials implements AutoCloseable {
                 HostUser.create(4, "user4", "User Number 4"),
                 HostUser.create(5, "user5", "User Number 5")
         );
+        private final JSONObject hostConf;
+
+        private TestCredentials() {
+            this(null);
+        }
+
+        private TestCredentials(JSONObject hostConf) {
+            this.hostConf = hostConf;
+        }
 
         private TestHost createHost(int userIndex) {
             if (userIndex == 0) {
-                hosts.add(TestHost.createNew(users));
+                hosts.add(TestHost.createNew(users, hostConf));
             } else {
                 hosts.add(TestHost.createFromExisting(hosts.get(0), userIndex));
             }
@@ -261,6 +270,10 @@ public class HostCredentials implements AutoCloseable {
     }
 
     public HostCredentials(TestInfo testInfo) throws IOException  {
+        this(testInfo, null);
+    }
+
+    public HostCredentials(TestInfo testInfo, JSONObject testHostConf) throws IOException  {
         HttpProxy.setup();
 
         var credentialsFile = System.getProperty("credentials");
@@ -268,7 +281,7 @@ public class HostCredentials implements AutoCloseable {
 
         // If no credentials have been specified, use the test host implementation
         if (credentialsFile == null) {
-            credentials = new TestCredentials();
+            credentials = new TestCredentials(testHostConf);
         } else {
             var credentialsPath = Paths.get(credentialsFile);
             var credentialsData = Files.readAllBytes(credentialsPath);

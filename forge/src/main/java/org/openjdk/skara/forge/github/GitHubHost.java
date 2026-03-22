@@ -52,13 +52,14 @@ public class GitHubHost implements Forge {
     private volatile Instant lastSearch = Instant.now();
     private final Logger log = Logger.getLogger("org.openjdk.skara.forge.github");
     private final Set<String> orgs;
+    private final String pullRequestTemplate;
     // If this Forge is created as offline, it will avoid making remote calls
     // when not needed. This is currently limited to only prevent validation
     // when creating a repository object.
     private final boolean offline;
 
     public GitHubHost(URI uri, GitHubApplication application, Pattern webUriPattern, String webUriReplacement,
-            List<String> altWebUriReplacements, Set<String> orgs) {
+            List<String> altWebUriReplacements, Set<String> orgs, String pullRequestTemplate) {
         this.uri = uri;
         this.webUriPattern = webUriPattern;
         this.webUriReplacement = webUriReplacement;
@@ -66,6 +67,7 @@ public class GitHubHost implements Forge {
         this.application = application;
         this.pat = null;
         this.orgs = orgs;
+        this.pullRequestTemplate = pullRequestTemplate;
         offline = false;
         searchInterval = Duration.ofSeconds(3);
 
@@ -102,7 +104,7 @@ public class GitHubHost implements Forge {
     }
 
     public GitHubHost(URI uri, Credential pat, Pattern webUriPattern, String webUriReplacement,
-            List<String> altWebUriReplacements, Set<String> orgs) {
+            List<String> altWebUriReplacements, Set<String> orgs, String pullRequestTemplate) {
         this.uri = uri;
         this.webUriPattern = webUriPattern;
         this.webUriReplacement = webUriReplacement;
@@ -110,6 +112,7 @@ public class GitHubHost implements Forge {
         this.pat = pat;
         this.application = null;
         this.orgs = orgs;
+        this.pullRequestTemplate = pullRequestTemplate;
         offline = false;
         searchInterval = Duration.ofSeconds(3);
 
@@ -139,7 +142,8 @@ public class GitHubHost implements Forge {
     }
 
     GitHubHost(URI uri, Pattern webUriPattern, String webUriReplacement,
-            List<String> altWebUriReplacements, Set<String> orgs, boolean offline) {
+            List<String> altWebUriReplacements, Set<String> orgs, String pullRequestTemplate,
+            boolean offline) {
         this.uri = uri;
         this.webUriPattern = webUriPattern;
         this.webUriReplacement = webUriReplacement;
@@ -147,6 +151,7 @@ public class GitHubHost implements Forge {
         this.pat = null;
         this.application = null;
         this.orgs = orgs;
+        this.pullRequestTemplate = pullRequestTemplate;
         this.offline = offline;
         searchInterval = Duration.ofSeconds(10);
 
@@ -171,6 +176,11 @@ public class GitHubHost implements Forge {
     @Override
     public String hostname() {
         return uri.getHost();
+    }
+
+    @Override
+    public Optional<String> defaultPullRequestTemplate() {
+        return Optional.ofNullable(pullRequestTemplate);
     }
 
     boolean isOffline() {

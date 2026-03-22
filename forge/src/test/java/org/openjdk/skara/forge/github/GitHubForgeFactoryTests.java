@@ -24,6 +24,7 @@ package org.openjdk.skara.forge.github;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.openjdk.skara.json.JSON;
@@ -79,6 +80,14 @@ class GitHubForgeFactoryTests {
     }
 
     @Test
+    void prTemplateConfiguration() {
+        var conf = JSON.object().put("prTemplate", "FOO");
+        var factory = new GitHubForgeFactory();
+        var forge = factory.create(URI.create("https://github.test"), null, conf);
+        assertEquals(Optional.of("FOO"), forge.defaultPullRequestTemplate());
+    }
+
+    @Test
     void defaultConfiguration() {
         var factory = new GitHubForgeFactory();
         var gh = (GitHubHost) factory.create(URI.create("http://github.test"), null, null);
@@ -87,5 +96,6 @@ class GitHubForgeFactoryTests {
         assertFalse(gh.isOffline());
         assertEquals(URI.create("http://github.test/hello"), gh.getWebURI("/hello"));
         assertEquals(List.of(URI.create("http://github.test/hello")), gh.getAllWebURIs("/hello"));
+        assertEquals(Optional.empty(), gh.defaultPullRequestTemplate());
     }
 }
