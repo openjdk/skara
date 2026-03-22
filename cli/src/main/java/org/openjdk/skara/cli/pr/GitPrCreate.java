@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -60,6 +60,11 @@ public class GitPrCreate {
               .fullname("cc")
               .describe("MAILING LISTS")
               .helptext("Mailing lists to CC for inital RFR e-mail")
+              .optional(),
+        Option.shortcut("")
+              .fullname("template")
+              .describe("TEMPLATE")
+              .helptext("Template for pull request body")
               .optional(),
         Switch.shortcut("")
               .fullname("ignore-workspace")
@@ -390,6 +395,7 @@ public class GitPrCreate {
 
         var project = jbsProjectFromJcheckConf(repo, targetBranch);
         var issue = getIssue(currentBranch, project);
+
         var file = Files.createTempFile("PULL_REQUEST_", ".md");
         var headCommit = commits.get(0);
         var headCommitMessage = CommitMessageParsers.v1.parse(headCommit.message());
@@ -409,6 +415,30 @@ public class GitPrCreate {
                 if (!headCommitMessage.additional().isEmpty()) {
                     Files.write(file, headCommitMessage.additional(), StandardOpenOption.APPEND);
                 }
+            }
+        }
+
+        var templateOption = getOption("template", "create", arguments);
+        if (templateOption != null) {
+            var templatePath = Path.of(templateOption).toAbsolutePath();
+            if (!Files.exists(templatePath)) {
+                System.err.println("error: file passed to --template does not exist: " + templatePath);
+                System.exit(1);
+            }
+            if (!Files.isRegularFile(templatePath)) {
+                System.err.println("error: file passed to --template is not a regular file: " + templatePath);
+                System.exit(1);
+            }
+            if (!Files.isReadable(templatePath)) {
+                System.err.println("error: file passed to --template is not readable: " + templatePath);
+                System.exit(1);
+            }
+
+            var templateContent = Files.readString(Path.of(templateOption));
+            Files.writeString(file, "\n", StandardOpenOption.APPEND);
+            Files.writeString(file, templateContent, StandardOpenOption.APPEND);
+            if (!templateContent.endsWith("\n")) {
+                Files.writeString(file, "\n", StandardOpenOption.APPEND);
             }
         }
 
