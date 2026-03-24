@@ -26,6 +26,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.forge.ForgeFactory;
 import org.openjdk.skara.forge.internal.ForgeUtils;
@@ -62,7 +63,11 @@ public class GitLabForgeFactory implements ForgeFactory {
             }
 
             if (configuration.contains("prTemplate")) {
-                prTemplate = configuration.get("prTemplate").asString();
+                prTemplate = configuration.get("prTemplate")
+                    .asArray()
+                    .stream()
+                    .map(JSONValue::asString)
+                    .collect(Collectors.joining("\n"));
             }
         }
 

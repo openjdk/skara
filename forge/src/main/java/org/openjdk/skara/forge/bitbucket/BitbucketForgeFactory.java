@@ -24,11 +24,13 @@ package org.openjdk.skara.forge.bitbucket;
 
 import java.net.URI;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.forge.ForgeFactory;
 import org.openjdk.skara.forge.internal.ForgeUtils;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.json.JSONObject;
+import org.openjdk.skara.json.JSONValue;
 
 public class BitbucketForgeFactory implements ForgeFactory {
 
@@ -51,7 +53,11 @@ public class BitbucketForgeFactory implements ForgeFactory {
                 name = configuration.get("name").asString();
             }
             if (configuration.contains("prTemplate")) {
-                prTemplate = configuration.get("prTemplate").asString();
+                prTemplate = configuration.get("prTemplate")
+                    .asArray()
+                    .stream()
+                    .map(JSONValue::asString)
+                    .collect(Collectors.joining("\n"));
             }
         }
         var useSsh = false;

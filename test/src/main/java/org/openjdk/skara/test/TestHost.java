@@ -177,7 +177,11 @@ public class TestHost implements Forge, IssueTracker {
         data.users.addAll(users);
         if (conf != null) {
             if (conf.contains("prTemplate")) {
-                data.pullRequestTemplate = conf.get("prTemplate").asString();
+                data.pullRequestTemplate = conf.get("prTemplate")
+                    .asArray()
+                    .stream()
+                    .map(JSONValue::asString)
+                    .collect(Collectors.joining("\n"));
             }
         }
         var host = new TestHost(data, 0);

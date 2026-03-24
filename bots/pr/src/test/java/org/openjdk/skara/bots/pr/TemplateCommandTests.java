@@ -334,8 +334,8 @@ public class TemplateCommandTests {
 
     @Test
     void forgeConfiguredTemplate(TestInfo testInfo) throws IOException {
-        var forgeConf = JSON.object().put("prTemplate",
-                                          "FORGE DEFAULT PR TEMPLATE");
+        var forgeConf =
+            JSON.object().put("prTemplate", JSON.array().add("").add("foo").add("bar"));
         try (var credentials = new HostCredentials(testInfo, forgeConf);
              var tmp = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -382,7 +382,8 @@ public class TemplateCommandTests {
             var expectedBodyPrefix =
                 "First line in body\n" +
                 "\n" +
-                "FORGE DEFAULT PR TEMPLATE\n" +
+                "foo\n" +
+                "bar\n" +
                 "\n" +
                 PROGRESS_MARKER;
             assertTrue(updatedPR.body().startsWith(expectedBodyPrefix), updatedPR.body());

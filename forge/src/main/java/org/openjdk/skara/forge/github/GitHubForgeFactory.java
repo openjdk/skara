@@ -78,7 +78,11 @@ public class GitHubForgeFactory implements ForgeFactory {
             }
 
             if (configuration.contains("prTemplate")) {
-                prTemplate = configuration.get("prTemplate").asString();
+                prTemplate = configuration.get("prTemplate")
+                    .asArray()
+                    .stream()
+                    .map(JSONValue::asString)
+                    .collect(Collectors.joining("\n"));
             }
         }
 

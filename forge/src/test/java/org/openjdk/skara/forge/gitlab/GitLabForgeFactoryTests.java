@@ -52,11 +52,11 @@ class GitLabForgeFactoryTests {
 
     @Test
     void prTemplateConfiguration() {
-        var conf = JSON.object().put("prTemplate", "FOO");
+        var conf = JSON.object().put("prTemplate", JSON.array().add("").add("second").add("third"));
         var factory = new GitLabForgeFactory();
         var forge = factory.create(URI.create("http://www.example.com"), null, conf);
 
-        assertEquals(Optional.of("FOO"), forge.defaultPullRequestTemplate());
+        assertEquals(Optional.of("\nsecond\nthird"), forge.defaultPullRequestTemplate());
     }
 
     @Test
