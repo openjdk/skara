@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.json.JSON;
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.test.*;
