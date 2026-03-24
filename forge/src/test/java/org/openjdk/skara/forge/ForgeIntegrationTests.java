@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -62,7 +62,7 @@ class ForgeIntegrationTests {
 
         var keyContents = Files.readString(keyFile);
         var app = new GitHubApplication(keyContents, id, installation);
-        var gitHubHost = new GitHubHost(uri, app, null, null, null, Set.of());
+        var gitHubHost = new GitHubHost(uri, app, null, null, null, Set.of(), null);
 
         var repo = gitHubHost.repository(props.get("github.repository")).orElseThrow();
 
@@ -77,7 +77,7 @@ class ForgeIntegrationTests {
         var pat = props.get("gitlab.pat");
         var credential = new Credential(user, pat);
 
-        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of());
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, List.of(), null);
 
         var repo = gitLabHost.repository(props.get("gitlab.repository")).orElseThrow();
 

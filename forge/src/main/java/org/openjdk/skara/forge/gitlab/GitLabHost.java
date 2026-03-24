@@ -43,15 +43,17 @@ public class GitLabHost implements Forge {
     private final RestRequest request;
     private final Logger log = Logger.getLogger("org.openjdk.skara.forge.gitlab");
     private final List<String> groups;
+    private final String mergeRequestTemplate;
 
     private HostUser cachedCurrentUser = null;
 
-    public GitLabHost(String name, URI uri, boolean useSsh, Credential pat, List<String> groups) {
+    public GitLabHost(String name, URI uri, boolean useSsh, Credential pat, List<String> groups, String mergeRequestTemplate) {
         this.name = name;
         this.uri = uri;
         this.useSsh = useSsh;
         this.pat = pat;
         this.groups = groups;
+        this.mergeRequestTemplate = mergeRequestTemplate;
 
         var baseApi = URIBuilder.base(uri)
                                 .setPath("/api/v4/")
@@ -59,12 +61,13 @@ public class GitLabHost implements Forge {
         request = new RestRequest(baseApi, pat.username(), (r) -> Arrays.asList("Private-Token", pat.password()));
     }
 
-    GitLabHost(String name, URI uri, boolean useSsh, List<String> groups) {
+    GitLabHost(String name, URI uri, boolean useSsh, List<String> groups, String mergeRequestTemplate) {
         this.name = name;
         this.uri = uri;
         this.useSsh = useSsh;
         this.pat = null;
         this.groups = groups;
+        this.mergeRequestTemplate = mergeRequestTemplate;
 
         var baseApi = URIBuilder.base(uri)
                                 .setPath("/api/v4/")
@@ -105,6 +108,11 @@ public class GitLabHost implements Forge {
             log.fine("Error during GitLab host validation: " + e);
             return false;
         }
+    }
+
+    @Override
+    public Optional<String> defaultPullRequestTemplate() {
+        return Optional.ofNullable(mergeRequestTemplate);
     }
 
     Optional<JSONObject> getProjectInfo(String name) {

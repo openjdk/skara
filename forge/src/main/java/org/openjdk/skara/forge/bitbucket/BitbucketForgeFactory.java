@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,11 +24,13 @@ package org.openjdk.skara.forge.bitbucket;
 
 import java.net.URI;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.forge.ForgeFactory;
 import org.openjdk.skara.forge.internal.ForgeUtils;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.json.JSONObject;
+import org.openjdk.skara.json.JSONValue;
 
 public class BitbucketForgeFactory implements ForgeFactory {
 
@@ -45,8 +47,18 @@ public class BitbucketForgeFactory implements ForgeFactory {
     @Override
     public Forge create(URI uri, Credential credential, JSONObject configuration) {
         var name = "Bitbucket";
-        if (configuration != null && configuration.contains("name")) {
-            name = configuration.get("name").asString();
+        String prTemplate = null;
+        if (configuration != null) {
+            if (configuration.contains("name")) {
+                name = configuration.get("name").asString();
+            }
+            if (configuration.contains("prTemplate")) {
+                prTemplate = configuration.get("prTemplate")
+                    .asArray()
+                    .stream()
+                    .map(JSONValue::asString)
+                    .collect(Collectors.joining("\n"));
+            }
         }
         var useSsh = false;
         if (configuration != null && configuration.contains("sshkey")) {
@@ -60,6 +72,6 @@ public class BitbucketForgeFactory implements ForgeFactory {
         if (configuration != null && configuration.contains("sshport")) {
             sshport = configuration.get("sshport").asInt();
         }
-        return new BitbucketHost(name, uri, useSsh, sshport, credential);
+        return new BitbucketHost(name, uri, useSsh, sshport, credential, prTemplate);
     }
 }

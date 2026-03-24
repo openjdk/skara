@@ -26,6 +26,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.forge.ForgeFactory;
 import org.openjdk.skara.forge.internal.ForgeUtils;
@@ -48,6 +49,7 @@ public class GitLabForgeFactory implements ForgeFactory {
     public Forge create(URI uri, Credential credential, JSONObject configuration) {
         var name = "GitLab";
         List<String> groups = List.of();
+        String prTemplate = null;
         if (configuration != null) {
             if (configuration.contains("name")) {
                 name = configuration.get("name").asString();
@@ -59,6 +61,14 @@ public class GitLabForgeFactory implements ForgeFactory {
                                     .map(JSONValue::asString)
                                     .toList();
             }
+
+            if (configuration.contains("prTemplate")) {
+                prTemplate = configuration.get("prTemplate")
+                    .asArray()
+                    .stream()
+                    .map(JSONValue::asString)
+                    .collect(Collectors.joining("\n"));
+            }
         }
 
         var useSsh = false;
@@ -68,9 +78,9 @@ public class GitLabForgeFactory implements ForgeFactory {
         }
 
         if (credential != null) {
-            return new GitLabHost(name, uri, useSsh, credential, groups);
+            return new GitLabHost(name, uri, useSsh, credential, groups, prTemplate);
         } else {
-            return new GitLabHost(name, uri, useSsh, groups);
+            return new GitLabHost(name, uri, useSsh, groups, prTemplate);
         }
     }
 }

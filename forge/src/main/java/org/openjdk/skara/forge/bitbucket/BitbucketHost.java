@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,18 +40,25 @@ public class BitbucketHost implements Forge {
     private final boolean useSsh;
     private final int sshPort;
     private final Credential credential;
+    private final String pullRequestTemplate;
 
-    public BitbucketHost(String name, URI uri, boolean useSsh, int sshPort, Credential credential) {
+    public BitbucketHost(String name, URI uri, boolean useSsh, int sshPort, Credential credential, String pullRequestTemplate) {
         this.name = name;
         this.uri = uri;
         this.useSsh = useSsh;
         this.sshPort = sshPort;
         this.credential = credential;
+        this.pullRequestTemplate = pullRequestTemplate;
     }
 
     @Override
     public String name() {
         return name;
+    }
+
+    @Override
+    public Optional<String> defaultPullRequestTemplate() {
+        return Optional.ofNullable(pullRequestTemplate);
     }
 
     public URI getUri() {

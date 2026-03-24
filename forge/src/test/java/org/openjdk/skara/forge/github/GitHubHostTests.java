@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,7 +39,7 @@ class GitHubHostTests {
     void webUriPatternReplacement() throws URISyntaxException {
         var host = new GitHubHost(URIBuilder.base("http://www.example.com").build(),
                 Pattern.compile("^(http://www.example.com)/test/(.*)$"), "$1/another/$2",
-                List.of(), Set.of(), false);
+                List.of(), Set.of(), null, false);
         assertEquals(new URI("http://www.example.com/another/hello"), host.getWebURI("/test/hello"));
     }
 
@@ -47,7 +47,7 @@ class GitHubHostTests {
     void nonTransformedWebUrl() throws URISyntaxException {
         var host = new GitHubHost(URIBuilder.base("http://www.example.com").build(),
                 Pattern.compile("^(http://www.example.com)/test/(.*)$"), "$1/another/$2",
-                List.of(), Set.of(), false);
+                List.of(), Set.of(), null, false);
         assertEquals(new URI("http://www.example.com/another/hello"), host.getWebURI("/test/hello"));
         assertEquals(new URI("http://www.example.com/test/hello"), host.getWebURI("/test/hello", false));
     }
@@ -56,7 +56,7 @@ class GitHubHostTests {
     void webAltUriPatternReplacement() throws URISyntaxException {
         var host = new GitHubHost(URIBuilder.base("http://www.example.com").build(),
                 Pattern.compile("^(http://www.example.com)/test/(.*)$"), "$1/another/$2",
-                List.of("http://localhost/$2"), Set.of(), false);
+                List.of("http://localhost/$2"), Set.of(), null, false);
         assertEquals(new URI("http://www.example.com/another/hello"), host.getWebURI("/test/hello"));
         assertEquals(List.of(
                         new URI("http://www.example.com/another/hello"),
