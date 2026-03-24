@@ -173,6 +173,14 @@ public class GitHubHost implements Forge {
         return uri.getHost();
     }
 
+    boolean isOffline() {
+        return offline;
+    }
+
+    Set<String> organizations() {
+        return Set.copyOf(orgs);
+    }
+
     URI getWebURI(String endpoint) {
         return getWebURI(endpoint, true);
     }
