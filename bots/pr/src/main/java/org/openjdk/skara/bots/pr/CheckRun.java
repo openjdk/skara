@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -994,7 +994,7 @@ class CheckRun {
         var markerIndex = description.lastIndexOf(PROGRESS_MARKER);
         return (markerIndex < 0 ?
                 description :
-                description.substring(0, markerIndex)).trim();
+                description.substring(0, markerIndex)).stripTrailing();
     }
 
     private String updateStatusMessage(String message) {
