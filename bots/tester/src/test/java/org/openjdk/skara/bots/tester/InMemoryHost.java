@@ -90,4 +90,9 @@ class InMemoryHost implements Forge {
     public MemberState groupMemberState(String group, HostUser user) {
         return null;
     }
+
+    @Override
+    public Optional<String> defaultPullRequestTemplate() {
+        return Optional.empty();
+    }
 }
