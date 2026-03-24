@@ -452,4 +452,142 @@ public class TemplateCommandTests {
             assertTrue(updatedPR.body().startsWith(expectedBodyPrefix), updatedPR.body());
         }
     }
+
+    @Test
+    void templateWithLeadingWhitespace(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tmp = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
+
+            var issues = credentials.getIssueProject();
+            var bot = PullRequestBot.newBuilder()
+                                    .repo(integrator)
+                                    .issueProject(issues)
+                                    .censusRepo(censusBuilder.build())
+                                    .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tmp.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Add pull request template
+            var prTemplate = localRepo.root().resolve(".github/pull_request_template.md");
+            Files.createDirectories(prTemplate.getParent());
+            Files.writeString(prTemplate, "\n\n--------\nTEMPLATE WITH LEADING WHITESPACE");
+            localRepo.add(prTemplate);
+            var issue1 = credentials.createIssue(issues, "Add PR template");
+            var issue1Number = issue1.id().split("-")[1];
+            var originalMessage = issue1Number + ": An issue\n" +
+                                  "\n" +
+                                  "Reviewed-by: integrationreviewer2";
+            var prTemplateHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
+            localRepo.push(prTemplateHash, author.authenticatedUrl(), "refs/heads/master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request",
+                    List.of("First line in body")
+            );
+
+            // Check status
+            TestBotRunner.runPeriodicItems(bot);
+
+            // Add the "/template append" PR command
+            pr.addComment("/template append");
+
+            // Check status again
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The PR template should have been added to the PR body
+            var updatedPR = author.pullRequest(pr.id());
+            assertLastCommentContains(updatedPR,
+                "The pull request template has been appended to the pull request body");
+            var expectedBodyPrefix =
+                "First line in body\n" +
+                "\n" +
+                "--------\n" +
+                "TEMPLATE WITH LEADING WHITESPACE\n" +
+                "\n" +
+                PROGRESS_MARKER;
+            assertTrue(updatedPR.body().startsWith(expectedBodyPrefix), updatedPR.body());
+        }
+    }
+
+    @Test
+    void templateWithTrailingWhitespace(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tmp = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
+
+            var issues = credentials.getIssueProject();
+            var bot = PullRequestBot.newBuilder()
+                                    .repo(integrator)
+                                    .issueProject(issues)
+                                    .censusRepo(censusBuilder.build())
+                                    .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tmp.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            // Add pull request template
+            var prTemplate = localRepo.root().resolve(".github/pull_request_template.md");
+            Files.createDirectories(prTemplate.getParent());
+            Files.writeString(prTemplate, "--------\nTEMPLATE WITH TRAILING WHITESPACE\n\n\t\n");
+            localRepo.add(prTemplate);
+            var issue1 = credentials.createIssue(issues, "Add PR template");
+            var issue1Number = issue1.id().split("-")[1];
+            var originalMessage = issue1Number + ": An issue\n" +
+                                  "\n" +
+                                  "Reviewed-by: integrationreviewer2";
+            var prTemplateHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
+            localRepo.push(prTemplateHash, author.authenticatedUrl(), "refs/heads/master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request",
+                    List.of("First line in body")
+            );
+
+            // Check status
+            TestBotRunner.runPeriodicItems(bot);
+
+            // Add the "/template append" PR command
+            pr.addComment("/template append");
+
+            // Check status again
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The PR template should have been added to the PR body
+            var updatedPR = author.pullRequest(pr.id());
+            assertLastCommentContains(updatedPR,
+                "The pull request template has been appended to the pull request body");
+            var expectedBodyPrefix =
+                "First line in body\n" +
+                "\n" +
+                "--------\n" +
+                "TEMPLATE WITH TRAILING WHITESPACE\n" +
+                "\n" +
+                PROGRESS_MARKER;
+            assertTrue(updatedPR.body().startsWith(expectedBodyPrefix), updatedPR.body());
+        }
+    }
 }

@@ -107,7 +107,7 @@ public class TemplateCommand implements CommandHandler {
         var body = repo.pullRequest(pr.id()).body();
         var markerIndex = body.lastIndexOf(PROGRESS_MARKER);
         var userBody = markerIndex == -1 ? body : body.substring(0, markerIndex).stripTrailing();
-        var newBody = userBody + "\n\n" + template.get();
+        var newBody = userBody + "\n\n" + template.get().trim();
         if (markerIndex != -1) {
             newBody += "\n\n" + body.substring(markerIndex);
         }
