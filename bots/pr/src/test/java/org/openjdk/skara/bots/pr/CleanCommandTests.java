@@ -414,4 +414,243 @@ public class CleanCommandTests {
             assertLastCommentContains(pr, "The `/clean` pull request command is not enabled for this repository");
         }
     }
+
+    @Test
+    void remomveCleanLabel(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory(false)) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+
+            var newFile = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile, "a\nb\nc\nd");
+            localRepo.add(newFile);
+            var issue1 = credentials.createIssue(issues, "An issue");
+            var issue1Number = issue1.id().split("-")[1];
+            var originalMessage = issue1Number + ": An issue\n" +
+                                  "\n" +
+                                  "Reviewed-by: integrationreviewer2";
+            var masterHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
+
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            var releaseBranch = localRepo.branch(masterHash, "release");
+            localRepo.checkout(releaseBranch);
+            Files.writeString(newFile, "a\nb\nc\nd\ne");
+            localRepo.add(newFile);
+            var issue2 = credentials.createIssue(issues, "Another issue");
+            var issue2Number = issue2.id().split("-")[1];
+            var upstreamMessage = issue2Number + ": Another issue\n" +
+                                  "\n" +
+                                  "Reviewed-by: integrationreviewer2";
+            var upstreamHash = localRepo.commit(upstreamMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
+            localRepo.push(upstreamHash, author.authenticatedUrl(), "refs/heads/release", true);
+
+            // "backport" the new file to the master branch
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            Files.writeString(newFile, "a\nb\nc\nd\nd");
+            localRepo.add(newFile);
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + upstreamHash.hex());
+
+            // The bot should reply with a backport message
+            TestBotRunner.runPeriodicItems(bot);
+            var comments = pr.comments();
+            var backportComment = comments.get(1).body();
+            assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
+            assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
+            assertEquals(issue2Number + ": Another issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
+
+            // The bot should not have added the "clean" label
+            assertFalse(pr.store().labelNames().contains("clean"));
+
+            // Use "/clean set" to mark the backport PR as clean
+            pr.addComment("/clean set");
+            TestBotRunner.runPeriodicItems(bot);
+            assertTrue(pr.store().labelNames().contains("clean"), "PR not marked clean");
+            assertTrue(pr.comments().stream()
+                    .anyMatch(c -> c.body().contains("This backport pull request is now marked as clean")));
+            assertTrue(pr.store().labelNames().contains("ready"), "PR not marked ready");
+
+            // Use "/clean remove" to no longer mark the backport PR as clean
+            pr.addComment("/clean remove");
+            TestBotRunner.runPeriodicItems(bot);
+            assertFalse(pr.store().labelNames().contains("clean"), "PR still marked clean");
+            assertTrue(pr.comments().stream()
+                    .anyMatch(c -> c.body().contains("This backport pull request is no longer marked as clean")));
+            assertFalse(pr.store().labelNames().contains("ready"), "PR marked ready");
+        }
+    }
+
+    @Test
+    void unknownArgument(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory(false)) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+
+            var newFile = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile, "a\nb\nc\nd");
+            localRepo.add(newFile);
+            var issue1 = credentials.createIssue(issues, "An issue");
+            var issue1Number = issue1.id().split("-")[1];
+            var originalMessage = issue1Number + ": An issue\n" +
+                                  "\n" +
+                                  "Reviewed-by: integrationreviewer2";
+            var masterHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
+
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            var releaseBranch = localRepo.branch(masterHash, "release");
+            localRepo.checkout(releaseBranch);
+            Files.writeString(newFile, "a\nb\nc\nd\ne");
+            localRepo.add(newFile);
+            var issue2 = credentials.createIssue(issues, "Another issue");
+            var issue2Number = issue2.id().split("-")[1];
+            var upstreamMessage = issue2Number + ": Another issue\n" +
+                                  "\n" +
+                                  "Reviewed-by: integrationreviewer2";
+            var upstreamHash = localRepo.commit(upstreamMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
+            localRepo.push(upstreamHash, author.authenticatedUrl(), "refs/heads/release", true);
+
+            // "backport" the new file to the master branch
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            Files.writeString(newFile, "a\nb\nc\nd\nd");
+            localRepo.add(newFile);
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + upstreamHash.hex());
+
+            // The bot should reply with a backport message
+            TestBotRunner.runPeriodicItems(bot);
+            var comments = pr.comments();
+            var backportComment = comments.get(1).body();
+            assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
+            assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
+            assertEquals(issue2Number + ": Another issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
+
+            // The bot should not have added the "clean" label
+            assertFalse(pr.store().labelNames().contains("clean"));
+
+            // Try to provide "foo" arugment to clean
+            pr.addComment("/clean foo");
+            TestBotRunner.runPeriodicItems(bot);
+            assertFalse(pr.store().labelNames().contains("clean"), "PR marked clean");
+            assertTrue(pr.comments().stream()
+                    .anyMatch(c -> c.body().contains("Unknown argument passed to `/clear`: `foo`")));
+            assertFalse(pr.store().labelNames().contains("ready"), "PR marked ready");
+        }
+    }
+
+    @Test
+    void removeCleanFromNonCleanBackport(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory(false)) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .issuePRMap(new HashMap<>())
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+
+            var newFile = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile, "a\nb\nc\nd");
+            localRepo.add(newFile);
+            var issue1 = credentials.createIssue(issues, "An issue");
+            var issue1Number = issue1.id().split("-")[1];
+            var originalMessage = issue1Number + ": An issue\n" +
+                                  "\n" +
+                                  "Reviewed-by: integrationreviewer2";
+            var masterHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
+
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            var releaseBranch = localRepo.branch(masterHash, "release");
+            localRepo.checkout(releaseBranch);
+            Files.writeString(newFile, "a\nb\nc\nd\ne");
+            localRepo.add(newFile);
+            var issue2 = credentials.createIssue(issues, "Another issue");
+            var issue2Number = issue2.id().split("-")[1];
+            var upstreamMessage = issue2Number + ": Another issue\n" +
+                                  "\n" +
+                                  "Reviewed-by: integrationreviewer2";
+            var upstreamHash = localRepo.commit(upstreamMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
+            localRepo.push(upstreamHash, author.authenticatedUrl(), "refs/heads/release", true);
+
+            // "backport" the new file to the master branch
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            Files.writeString(newFile, "a\nb\nc\nd\nd");
+            localRepo.add(newFile);
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
+            localRepo.push(editHash, author.authenticatedUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + upstreamHash.hex());
+
+            // The bot should reply with a backport message
+            TestBotRunner.runPeriodicItems(bot);
+            var comments = pr.comments();
+            var backportComment = comments.get(1).body();
+            assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
+            assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
+            assertEquals(issue2Number + ": Another issue", pr.store().title());
+            assertTrue(pr.store().labelNames().contains("backport"));
+
+            // The bot should not have added the "clean" label
+            assertFalse(pr.store().labelNames().contains("clean"));
+
+            // Try to issue "/clean remove"
+            pr.addComment("/clean remove");
+            TestBotRunner.runPeriodicItems(bot);
+            assertFalse(pr.store().labelNames().contains("clean"), "PR marked clean");
+            assertTrue(pr.comments().stream()
+                    .anyMatch(c -> c.body().contains("This backport pull request is not marked as clean")));
+            assertFalse(pr.store().labelNames().contains("ready"), "PR marked ready");
+        }
+    }
 }

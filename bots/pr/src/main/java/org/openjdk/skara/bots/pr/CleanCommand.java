@@ -32,7 +32,7 @@ import static org.openjdk.skara.bots.common.CommandNameEnum.clean;
 
 public class CleanCommand implements CommandHandler {
     private void showHelp(PrintWriter reply) {
-        reply.println("Usage: `/clean`");
+        reply.println("Usage: `/clean [set|remove]`");
     }
 
     @Override
@@ -70,12 +70,24 @@ public class CleanCommand implements CommandHandler {
             return;
         }
 
-        if (pr.labelNames().contains("clean")) {
-            reply.println("This backport pull request is already marked as clean");
-            return;
-        }
+        if (command.args().isEmpty() || command.args().equals("set")) {
+            if (pr.labelNames().contains("clean")) {
+                reply.println("This backport pull request is already marked as clean");
+                return;
+            }
 
-        pr.addLabel("clean");
-        reply.println("This backport pull request is now marked as clean");
+            pr.addLabel("clean");
+            reply.println("This backport pull request is now marked as clean");
+        } else if (command.args().equals("remove")) {
+            if (!pr.labelNames().contains("clean")) {
+                reply.println("This backport pull request is not marked as clean");
+                return;
+            }
+
+            pr.removeLabel("clean");
+            reply.println("This backport pull request is no longer marked as clean");
+        } else {
+            reply.println("Unknown argument passed to `/clear`: `" + command.args() + "`");
+        }
     }
 }
