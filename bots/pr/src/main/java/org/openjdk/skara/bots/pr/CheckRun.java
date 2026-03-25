@@ -83,6 +83,7 @@ class CheckRun {
     private static final int MESSAGE_LIMIT = 50;
     private final Set<String> newLabels;
     private final boolean reviewCleanBackport;
+    private final List<String> requiredCheckedLines;
     private final Approval approval;
     private final boolean reviewersCommandIssued;
     private final ReviewCoverage reviewCoverage;
@@ -96,7 +97,7 @@ class CheckRun {
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
                      CensusInstance censusInstance, boolean useStaleReviews, Set<String> integrators, boolean reviewCleanBackport,
-                     MergePullRequestReviewConfiguration reviewMerge, Approval approval) throws IOException {
+                     MergePullRequestReviewConfiguration reviewMerge, Approval approval, List<String> requiredCheckedLines) throws IOException {
         this.workItem = workItem;
         this.pr = pr;
         this.localRepo = localRepo;
@@ -110,6 +111,7 @@ class CheckRun {
         this.integrators = integrators;
         this.reviewCleanBackport = reviewCleanBackport;
         this.approval = approval;
+        this.requiredCheckedLines = requiredCheckedLines;
         this.reviewersCommandIssued = ReviewersTracker.additionalRequiredReviewers(pr.repository().forge().currentUser(), comments).isPresent();
 
         // If reviewers command is issued, enable reviewers check for merge pull requests
@@ -131,9 +133,9 @@ class CheckRun {
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance,
                                      boolean useStaleReviews, Set<String> integrators, boolean reviewCleanBackport, MergePullRequestReviewConfiguration reviewMerge,
-                                     Approval approval) throws IOException {
+                                     Approval approval, List<String> requiredCheckedLines) throws IOException {
         var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance,
-                useStaleReviews, integrators, reviewCleanBackport, reviewMerge, approval);
+                useStaleReviews, integrators, reviewCleanBackport, reviewMerge, approval, requiredCheckedLines);
         run.checkStatus();
         if (run.expiresIn != null) {
             return Optional.of(Instant.now().plus(run.expiresIn));
@@ -238,6 +240,39 @@ class CheckRun {
                  .collect(Collectors.toList());
     }
 
+    private static boolean containsCheckedRequiredLine(String body, String requiredLine) {
+        // Filter out lines in the body that are inside HTML block comments and
+        // also filter out lines containing HTML comments
+        var outsideBlockComments = new ArrayList<String>();
+        var isInOpenComment = false;
+        for (var line : body.lines().toList()) {
+            var closeCommentIndex = line.indexOf("-->");
+            isInOpenComment = isInOpenComment && closeCommentIndex == -1;
+
+            var outsideStartIndex = closeCommentIndex == -1 ? 0 : closeCommentIndex + "-->".length();
+            var outside = line.substring(outsideStartIndex);
+
+            var lastOpenCommentStartIndex = outside.lastIndexOf("<!--");
+            if (lastOpenCommentStartIndex != -1) {
+                if (outside.indexOf("-->", lastOpenCommentStartIndex) == -1) {
+                    isInOpenComment = true;
+                }
+            }
+
+            if (!isInOpenComment && closeCommentIndex == -1 && lastOpenCommentStartIndex == -1) {
+                outsideBlockComments.add(line);
+            }
+        }
+
+        // Check that the required line is present and checked
+        var dashLowercaseCheched = "- [x] " + requiredLine;
+        var dashUppercaseCheched = "- [X] " + requiredLine;
+        return outsideBlockComments.stream()
+            .map(String::stripTrailing)
+            .filter(l -> l.equals(dashLowercaseCheched) || l.equals(dashUppercaseCheched))
+            .count() > 0;
+    }
+
     // Additional bot-specific checks that are not handled by JCheck
     private List<String> botSpecificChecks(boolean isCleanBackport) {
         var ret = new ArrayList<String>();
@@ -245,6 +280,12 @@ class CheckRun {
         var bodyWithoutStatus = bodyWithoutStatus();
         if ((bodyWithoutStatus.isBlank() || bodyWithoutStatus.equals(EMPTY_PR_BODY_MARKER)) && !isCleanBackport) {
             ret.add(MSG_EMPTY_BODY);
+        }
+
+        for (var line : requiredCheckedLines) {
+            if (!containsCheckedRequiredLine(bodyWithoutStatus, line)) {
+                ret.add("Pull request body is missing required line: `- [x] " + line + "`");
+            }
         }
 
         if (!isTargetBranchAllowed()) {
