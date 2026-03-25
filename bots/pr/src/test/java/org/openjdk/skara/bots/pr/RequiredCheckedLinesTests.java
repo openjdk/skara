@@ -116,7 +116,7 @@ class RequiredCheckedLinesTests {
             // PR should be ready for review
             var updatedPR = committer.pullRequest(pr.id());
             assertTrue(updatedPR.body().startsWith(
-                "- [X] foo" + 
+                "- [X] foo" +
                 "\n\n" +
                 PROGRESS_MARKER
             ), updatedPR.body());
