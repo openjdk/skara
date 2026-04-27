@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.json.JWCC;
 import org.openjdk.skara.test.*;
@@ -69,6 +68,7 @@ class PullRequestBotFactoryTest {
                           "key": "global-trailer",
                           "alias": "global",
                           "description": "Example global trailer",
+                          "type": "single",
                           "values": "foo.*"
                         }
                       ],
@@ -171,7 +171,8 @@ class PullRequestBotFactoryTest {
                           "trailers": [
                             {
                               "key": "trailer-1",
-                              "description": "Example repo specific trailer"
+                              "description": "Example repo specific trailer",
+                              "type": "list",
                               "values": [
                                 "foo",
                                 "bar"
@@ -227,6 +228,7 @@ class PullRequestBotFactoryTest {
             assertEquals("global-trailer", trailerConfig.key());
             assertEquals("global", trailerConfig.alias());
             assertEquals("Example global trailer", trailerConfig.description());
+            assertEquals(TrailerCommand.TrailerType.SINGLE, trailerConfig.type());
             assertEquals("foo.*", trailerConfig.values().getFirst().pattern());
 
             var pullRequestBot5 = (PullRequestBot) bots.stream()
@@ -283,6 +285,7 @@ class PullRequestBotFactoryTest {
             assertEquals("trailer-1", trailerConfig1.key());
             assertNull(trailerConfig1.alias());
             assertEquals("Example repo specific trailer", trailerConfig1.description());
+            assertEquals(TrailerCommand.TrailerType.LIST, trailerConfig1.type());
             assertEquals("foo", trailerConfig1.values().getFirst().pattern());
             assertEquals("bar", trailerConfig1.values().get(1).pattern());
 

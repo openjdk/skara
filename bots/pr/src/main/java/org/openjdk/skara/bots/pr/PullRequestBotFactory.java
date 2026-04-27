@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import java.util.stream.Stream;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.IssueProject;
@@ -335,6 +334,8 @@ public class PullRequestBotFactory implements BotFactory {
                         } else {
                             patternList = List.of(Pattern.compile(values.asString()));
                         }
+                        // default type is "single"
+                        var type = TrailerCommand.TrailerType.fromString(js.contains("type") ? js.get("type").asString() : "single");
                         JSONValue jsonAlias = js.get("alias");
                         String alias;
                         if (jsonAlias == null) {
@@ -345,6 +346,7 @@ public class PullRequestBotFactory implements BotFactory {
                         return new TrailerCommand.TrailerConfig(js.get("key").asString(),
                                 alias,
                                 js.get("description").asString(),
+                                type,
                                 patternList);
                     })
                     .toList();

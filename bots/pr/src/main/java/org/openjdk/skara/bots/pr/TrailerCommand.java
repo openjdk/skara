@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -32,7 +33,21 @@ import org.openjdk.skara.issuetracker.Comment;
 import static org.openjdk.skara.bots.common.CommandNameEnum.trailer;
 
 public class TrailerCommand implements CommandHandler {
-    public record TrailerConfig(String key, String alias, String description, List<Pattern> values) {}
+    public enum TrailerType {
+        SINGLE,
+        LIST;
+
+        static TrailerType fromString(String value) {
+            return switch (value) {
+                case "single" -> SINGLE;
+                case "list" -> LIST;
+                default -> throw new IllegalArgumentException("Unknown trailer type: " + value
+                        + ", expected one of: single, list");
+            };
+        }
+    }
+
+    public record TrailerConfig(String key, String alias, String description, TrailerType type, List<Pattern> values) {}
 
     private static final Pattern COMMAND_PATTERN = Pattern.compile(
             "^(?:(set)\\s+([\\p{Alnum}-]+) (.+)?|(remove)\\s+([\\p{Alnum}-]+))$");
@@ -75,7 +90,25 @@ public class TrailerCommand implements CommandHandler {
                 reply.println("- Alias: " + trailerConfig.alias);
             }
             reply.println("- Description: " + trailerConfig.description);
+            reply.println("- Type: " + trailerConfig.type);
+            reply.println("- Valid value pattern(s):");
+            for (Pattern pattern : trailerConfig.values()) {
+                reply.println("  - `" + pattern.pattern() + "`");
+            }
         }
+    }
+
+    private static boolean matchesAnyPattern(String value, List<Pattern> patterns) {
+        return patterns.stream().anyMatch(p -> p.matcher(value).matches());
+    }
+
+    private static boolean isValidValue(TrailerConfig config, String value) {
+        return switch (config.type()) {
+            case SINGLE -> matchesAnyPattern(value, config.values());
+            case LIST -> Arrays.stream(value.split(","))
+                    .map(String::trim)
+                    .allMatch(item -> !item.isEmpty() && matchesAnyPattern(item, config.values()));
+        };
     }
 
     @Override
@@ -98,13 +131,17 @@ public class TrailerCommand implements CommandHandler {
             if (config.isPresent()) {
                 var configKey = config.get().key();
                 var value = matcher.group(3);
-                if (config.get().values().stream()
-                        .anyMatch(p -> p.matcher(value).matches())) {
+                if (isValidValue(config.get(), value)) {
                     reply.println(Trailers.setTrailerMarker(configKey, value));
                     reply.println("Trailer `" + configKey + "` with value `" + value + "` successfully set.");
                 } else {
-                    reply.println("Trailer value `" + value + "` for trailer `" + configKey
-                            + "` does not match any valid value pattern:");
+                    if (config.get().type() == TrailerType.LIST) {
+                        reply.println("Trailer value `" + value + "` for trailer `" + configKey
+                                + "` does not match any valid value pattern. Each list item must match one of:");
+                    } else {
+                        reply.println("Trailer value `" + value + "` for trailer `" + configKey
+                                + "` does not match any valid value pattern:");
+                    }
                     for (Pattern pattern : config.get().values()) {
                         reply.println("- `" + pattern.pattern() + "`");
                     }
