@@ -193,6 +193,13 @@ public class TrailersTests {
             assertTrue(reply.toString().contains("does not match any valid value pattern"), reply.toString());
             assertTrue(reply.toString().contains("- `foo-[0-9]`"), reply.toString());
             assertTrue(reply.toString().contains("- `bar-[0-9]`"), reply.toString());
+
+            command = new CommandInvocation("2", author, new TrailerCommand(), "trailer", "set Trailer-1 foo-1,", null);
+            reply = new StringWriter();
+            new TrailerCommand().handle(prBot, pr, null, null, command, null, new PrintWriter(reply));
+            assertTrue(reply.toString().contains("does not match any valid value pattern"), reply.toString());
+            assertTrue(reply.toString().contains("- `foo-[0-9]`"), reply.toString());
+            assertTrue(reply.toString().contains("- `bar-[0-9]`"), reply.toString());
         }
     }
 

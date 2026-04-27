@@ -105,7 +105,7 @@ public class TrailerCommand implements CommandHandler {
     private static boolean isValidValue(TrailerConfig config, String value) {
         return switch (config.type()) {
             case SINGLE -> matchesAnyPattern(value, config.values());
-            case LIST -> Arrays.stream(value.split(","))
+            case LIST -> Arrays.stream(value.split(",", -1))
                     .map(String::trim)
                     .allMatch(item -> !item.isEmpty() && matchesAnyPattern(item, config.values()));
         };
