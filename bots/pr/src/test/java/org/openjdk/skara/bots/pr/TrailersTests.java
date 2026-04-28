@@ -131,7 +131,7 @@ public class TrailersTests {
                     .repo(repo)
                     .trailerConfigs(List.of(
                             new TrailerCommand.TrailerConfig("Trailer-1", "1", "Trailer description",
-                                    List.of(Pattern.compile(".*")))))
+                                    TrailerCommand.TrailerType.SINGLE, List.of(Pattern.compile(".*")))))
                     .build();
             var author = new HostUser.Builder().id("17").build();
             var pr = new TestPullRequest(new TestPullRequestStore(null, author, null, List.of(), repo, null, null, false), repo);
@@ -145,6 +145,65 @@ public class TrailersTests {
     }
 
     @Test
+    public void commandSetListTypeValid(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var repo = (TestHostedRepository) credentials.getHostedRepository(FAKE_REPO);
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(repo)
+                    .trailerConfigs(List.of(
+                            new TrailerCommand.TrailerConfig("Trailer-1", "1", "Trailer description",
+                                    TrailerCommand.TrailerType.LIST,
+                                    List.of(Pattern.compile("foo-[0-9]"), Pattern.compile("bar-[0-9]")))))
+                    .build();
+            var author = new HostUser.Builder().id("17").build();
+            var pr = new TestPullRequest(new TestPullRequestStore(null, author, null, List.of(), repo, null, null, false), repo);
+            var command = new CommandInvocation("1", author, new TrailerCommand(), "trailer", "set Trailer-1 foo-1, bar-2", null);
+
+            var reply = new StringWriter();
+            new TrailerCommand().handle(prBot, pr, null, null, command, null, new PrintWriter(reply));
+
+            assertTrue(reply.toString().contains("Trailer `Trailer-1` with value `foo-1, bar-2` successfully set"), reply.toString());
+
+            command = new CommandInvocation("2", author, new TrailerCommand(), "trailer", "set Trailer-1 bar-3", null);
+            reply = new StringWriter();
+            new TrailerCommand().handle(prBot, pr, null, null, command, null, new PrintWriter(reply));
+
+            assertTrue(reply.toString().contains("Trailer `Trailer-1` with value `bar-3` successfully set"), reply.toString());
+        }
+    }
+
+    @Test
+    public void commandSetListTypeInvalid(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var repo = (TestHostedRepository) credentials.getHostedRepository(FAKE_REPO);
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(repo)
+                    .trailerConfigs(List.of(
+                            new TrailerCommand.TrailerConfig("Trailer-1", "1", "Trailer description",
+                                    TrailerCommand.TrailerType.LIST,
+                                    List.of(Pattern.compile("foo-[0-9]"), Pattern.compile("bar-[0-9]")))))
+                    .build();
+            var author = new HostUser.Builder().id("17").build();
+            var pr = new TestPullRequest(new TestPullRequestStore(null, author, null, List.of(), repo, null, null, false), repo);
+            var command = new CommandInvocation("1", author, new TrailerCommand(), "trailer", "set Trailer-1 foo-1, bar-b", null);
+
+            var reply = new StringWriter();
+            new TrailerCommand().handle(prBot, pr, null, null, command, null, new PrintWriter(reply));
+
+            assertTrue(reply.toString().contains("does not match any valid value pattern"), reply.toString());
+            assertTrue(reply.toString().contains("- `foo-[0-9]`"), reply.toString());
+            assertTrue(reply.toString().contains("- `bar-[0-9]`"), reply.toString());
+
+            command = new CommandInvocation("2", author, new TrailerCommand(), "trailer", "set Trailer-1 foo-1,", null);
+            reply = new StringWriter();
+            new TrailerCommand().handle(prBot, pr, null, null, command, null, new PrintWriter(reply));
+            assertTrue(reply.toString().contains("does not match any valid value pattern"), reply.toString());
+            assertTrue(reply.toString().contains("- `foo-[0-9]`"), reply.toString());
+            assertTrue(reply.toString().contains("- `bar-[0-9]`"), reply.toString());
+        }
+    }
+
+    @Test
     public void commandInvalidValue(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var repo = (TestHostedRepository) credentials.getHostedRepository(FAKE_REPO);
@@ -152,7 +211,7 @@ public class TrailersTests {
                     .repo(repo)
                     .trailerConfigs(List.of(
                             new TrailerCommand.TrailerConfig("Trailer-1", "1", "Trailer description",
-                                    List.of(Pattern.compile("foo")))))
+                                    TrailerCommand.TrailerType.SINGLE, List.of(Pattern.compile("foo")))))
                     .build();
             var author = new HostUser.Builder().id("17").build();
             var pr = new TestPullRequest(new TestPullRequestStore(null, author, null, List.of(), repo, null, null, false), repo);
@@ -174,7 +233,7 @@ public class TrailersTests {
                     .repo(repo)
                     .trailerConfigs(List.of(
                             new TrailerCommand.TrailerConfig("Trailer-1", "1", "Trailer description",
-                                    List.of(Pattern.compile(".*")))))
+                                    TrailerCommand.TrailerType.SINGLE, List.of(Pattern.compile(".*")))))
                     .build();
             var author = new HostUser.Builder().id("17").build();
             var pr = new TestPullRequest(new TestPullRequestStore(null, author, null, List.of(), repo, null, null, false), repo);
@@ -195,7 +254,7 @@ public class TrailersTests {
                     .repo(repo)
                     .trailerConfigs(List.of(
                             new TrailerCommand.TrailerConfig("Trailer-1", "1", "Trailer description",
-                                    List.of(Pattern.compile(".*")))))
+                                    TrailerCommand.TrailerType.SINGLE, List.of(Pattern.compile(".*")))))
                     .build();
             var author = new HostUser.Builder().id("17").username("author").build();
             var otherUser = new HostUser.Builder().id("4711").username("other").build();
@@ -217,7 +276,7 @@ public class TrailersTests {
                     .repo(repo)
                     .trailerConfigs(List.of(
                             new TrailerCommand.TrailerConfig("Trailer-1", "1", "Trailer description",
-                                    List.of(Pattern.compile(".*")))))
+                                    TrailerCommand.TrailerType.SINGLE, List.of(Pattern.compile(".*")))))
                     .build();
             var author = new HostUser.Builder().id("17").username("author").build();
             var pr = new TestPullRequest(new TestPullRequestStore(null, author, null, List.of(), repo, null, null, false), repo);
@@ -240,7 +299,7 @@ public class TrailersTests {
                     .repo(repo)
                     .trailerConfigs(List.of(
                             new TrailerCommand.TrailerConfig("Trailer-1", "1", "Trailer description",
-                                    List.of(Pattern.compile(".*")))))
+                                    TrailerCommand.TrailerType.SINGLE, List.of(Pattern.compile(".*")))))
                     .build();
             var author = new HostUser.Builder().id("17").username("author").build();
             var pr = new TestPullRequest(new TestPullRequestStore(null, author, null, List.of(), repo, null, null, false), repo);
@@ -284,7 +343,7 @@ public class TrailersTests {
                     .repo(repo)
                     .trailerConfigs(List.of(
                             new TrailerCommand.TrailerConfig("Trailer-1", "1", "Trailer description",
-                                    List.of(Pattern.compile(".*")))))
+                                    TrailerCommand.TrailerType.SINGLE, List.of(Pattern.compile(".*")))))
                     .build();
             var author = new HostUser.Builder().id("17").username("author").build();
             var pr = new TestPullRequest(new TestPullRequestStore(null, author, null, List.of(), repo, null, null, false), repo);
@@ -307,7 +366,7 @@ public class TrailersTests {
                     .repo(repo)
                     .trailerConfigs(List.of(
                             new TrailerCommand.TrailerConfig("Trailer-1", "1", "Trailer description",
-                                    List.of(Pattern.compile(".*")))))
+                                    TrailerCommand.TrailerType.SINGLE, List.of(Pattern.compile(".*")))))
                     .build();
             var author = new HostUser.Builder().id("17").username("author").build();
             var pr = new TestPullRequest(new TestPullRequestStore(null, author, null, List.of(), repo, null, null, false), repo);
@@ -328,9 +387,9 @@ public class TrailersTests {
                     .repo(repo)
                     .trailerConfigs(List.of(
                             new TrailerCommand.TrailerConfig("Trailer-1", "1", "Trailer description",
-                                    List.of(Pattern.compile(".*"))),
+                                    TrailerCommand.TrailerType.SINGLE, List.of(Pattern.compile(".*"))),
                             new TrailerCommand.TrailerConfig("Trailer-2", "2", "Trailer description",
-                                    List.of(Pattern.compile(".*")))))
+                                    TrailerCommand.TrailerType.SINGLE, List.of(Pattern.compile(".*")))))
                     .build();
             var author = new HostUser.Builder().id("17").username("author").build();
             var pr = new TestPullRequest(new TestPullRequestStore(null, author, null, List.of(), repo, null, null, false), repo);
@@ -373,9 +432,9 @@ public class TrailersTests {
                     .repo(repo)
                     .trailerConfigs(List.of(
                             new TrailerCommand.TrailerConfig("Trailer-1", "1", "Trailer description",
-                                    List.of(Pattern.compile(".*"))),
+                                    TrailerCommand.TrailerType.SINGLE, List.of(Pattern.compile(".*"))),
                             new TrailerCommand.TrailerConfig("Trailer-2", "2", "Trailer description",
-                                    List.of(Pattern.compile(".*")))))
+                                    TrailerCommand.TrailerType.SINGLE, List.of(Pattern.compile(".*")))))
                     .build();
             var author = new HostUser.Builder().id("17").username("author").build();
             var pr = new TestPullRequest(new TestPullRequestStore(null, author, null, List.of(), repo, null, null, false), repo);
@@ -397,9 +456,9 @@ public class TrailersTests {
                     .repo(repo)
                     .trailerConfigs(List.of(
                             new TrailerCommand.TrailerConfig("Trailer-1", "1", "Trailer description",
-                                    List.of(Pattern.compile(".*"))),
+                                    TrailerCommand.TrailerType.SINGLE, List.of(Pattern.compile(".*"))),
                             new TrailerCommand.TrailerConfig("Trailer-2", "2", "Trailer description",
-                                    List.of(Pattern.compile(".*")))))
+                                    TrailerCommand.TrailerType.SINGLE, List.of(Pattern.compile(".*")))))
                     .build();
             var author = new HostUser.Builder().id("17").username("author").build();
             var pr = new TestPullRequest(new TestPullRequestStore(null, author, null, List.of(), repo, null, null, false), repo);
@@ -429,7 +488,7 @@ public class TrailersTests {
                     .censusRepo(censusBuilder.build())
                     .trailerConfigs(List.of(
                             new TrailerCommand.TrailerConfig("Trailer-1", "1", "Trailer description",
-                                    List.of(Pattern.compile(".*value")))))
+                                    TrailerCommand.TrailerType.SINGLE, List.of(Pattern.compile(".*value")))))
                     .build();
 
             // Populate the projects repository
