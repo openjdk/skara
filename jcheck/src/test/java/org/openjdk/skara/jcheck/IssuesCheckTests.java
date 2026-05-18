@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,8 +35,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.time.ZonedDateTime;
-import java.io.IOException;
 
 class IssuesCheckTests {
     private final Utilities utils = new Utilities();
@@ -112,6 +112,7 @@ class IssuesCheckTests {
         assertEquals(message, issue.message());
         assertEquals(Severity.ERROR, issue.severity());
         assertEquals(check.getClass(), issue.check().getClass());
+        assertEquals(IssuesIssue.Reason.MISSING, issue.reason());
     }
 
     @Test
@@ -195,6 +196,9 @@ class IssuesCheckTests {
         assertEquals(message, issue.message());
         assertEquals(Severity.ERROR, issue.severity());
         assertEquals(check.getClass(), issue.check().getClass());
+        assertEquals(IssuesIssue.Reason.INVALID_FORMAT, issue.reason());
+        assertEquals(Optional.of("1234567: A bug"), issue.issue());
+        assertEquals(Optional.of("^(PROJ-[1-9][0-9]+): (\\S.*)$"), issue.pattern());
     }
 
     @Test

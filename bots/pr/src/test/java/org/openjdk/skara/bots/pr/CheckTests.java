@@ -827,6 +827,57 @@ class CheckTests {
     }
 
     @Test
+    void issuePatternMismatchMessage(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var issuePRMap = new HashMap<String, List<PRRecord>>();
+            var checkBot = PullRequestBot.newBuilder()
+                                         .repo(author)
+                                         .censusRepo(censusBuilder.build())
+                                         .issueProject(issues)
+                                         .issuePRMap(issuePRMap)
+                                         .build();
+
+            var issue = issues.createIssue("My first bug", List.of("A bug"), Map.of());
+            var numericId = issue.id().split("-")[1];
+
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
+                                                     Set.of("issues"), null);
+            var checkConf = tempFolder.path().resolve(".jcheck/conf");
+            var defaultConf = Files.readString(checkConf);
+            var newConf = defaultConf.replace("[checks \"whitespace\"]",
+                    "[checks \"issues\"]\npattern=^([0-9]{7}): (\\S.*)$\n\n[checks \"whitespace\"]");
+            Files.writeString(checkConf, newConf);
+            localRepo.add(checkConf);
+            var masterHash = localRepo.commit("Configure issue pattern", "testauthor", "ta@none.none");
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", numericId);
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertEquals(numericId + ": " + issue.title(), pr.store().title());
+            var check = pr.checks(editHash).get("jcheck");
+            assertEquals(CheckStatus.FAILURE, check.status());
+            var summary = check.summary().orElseThrow();
+            assertTrue(summary.contains("references issue `" + numericId + ": " + issue.title() + "`"));
+            assertTrue(summary.contains("does not match the issue format configured for this repository"));
+            assertTrue(summary.contains("Update the issue reference so the generated commit message matches this format"));
+            assertTrue(summary.contains("^([0-9]{7}): (\\S.*)$"));
+            assertFalse(summary.contains("does not reference any issue"));
+        }
+    }
+
+    @Test
     void issueTitleCutOff(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
