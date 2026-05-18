@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -244,7 +244,12 @@ class JCheckCLIVisitor implements IssueVisitor {
 
     public void visit(IssuesIssue i) {
         if (!ignore.contains(i.check().name()) && !isLax) {
-            println(i, "missing reference to JBS issue in commit message");
+            if (i.reason() == IssuesIssue.Reason.INVALID_FORMAT) {
+                println(i, "issue reference '" + i.issue().orElseThrow() +
+                        "' does not match configured pattern '" + i.pattern().orElseThrow() + "'");
+            } else {
+                println(i, "missing reference to JBS issue in commit message");
+            }
             for (var line : i.commit().message()) {
                 System.out.println("> " + line);
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,9 +22,35 @@
  */
 package org.openjdk.skara.jcheck;
 
+import java.util.Optional;
+
 public class IssuesIssue extends CommitIssue {
-    IssuesIssue(CommitIssue.Metadata metadata) {
+    public enum Reason {
+        MISSING,
+        INVALID_FORMAT
+    }
+
+    private final Reason reason;
+    private final String issue;
+    private final String pattern;
+
+    IssuesIssue(CommitIssue.Metadata metadata, Reason reason, String issue, String pattern) {
         super(metadata);
+        this.reason = reason;
+        this.issue = issue;
+        this.pattern = pattern;
+    }
+
+    public Reason reason() {
+        return reason;
+    }
+
+    public Optional<String> issue() {
+        return Optional.ofNullable(issue);
+    }
+
+    public Optional<String> pattern() {
+        return Optional.ofNullable(pattern);
     }
 
     @Override
@@ -32,4 +58,3 @@ public class IssuesIssue extends CommitIssue {
         visitor.visit(this);
     }
 }
-

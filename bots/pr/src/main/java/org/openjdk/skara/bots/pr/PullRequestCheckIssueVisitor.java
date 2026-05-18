@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -298,8 +298,16 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(IssuesIssue issue) {
-        addMessage(issue.check(), "The commit message does not reference any issue. To add an issue reference to this PR, " +
-                "edit the title to be of the format `issue number`: `message`.", issue.severity());
+        if (issue.reason() == IssuesIssue.Reason.INVALID_FORMAT) {
+            var issueReference = issue.issue().orElseThrow();
+            var pattern = issue.pattern().orElseThrow();
+            addMessage(issue.check(), "The commit message references issue `" + issueReference + "`, but that issue reference " +
+                    "does not match the issue format configured for this repository: `" + pattern + "`. " +
+                    "Update the issue reference so the generated commit message matches this format.", issue.severity());
+        } else {
+            addMessage(issue.check(), "The commit message does not reference any issue. To add an issue reference to this PR, " +
+                    "edit the title to be of the format `issue number`: `message`.", issue.severity());
+        }
         setNotReadyForReviewOnError(issue.severity());
     }
 

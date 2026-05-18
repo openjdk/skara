@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -48,13 +48,14 @@ public class IssuesCheck extends CommitCheck {
         if (conf.checks().issues().required() &&
             (commit.message().isEmpty() || message.issues().isEmpty())) {
             log.finer("issue: no reference to a JBS issue");
-            return iterator(new IssuesIssue(metadata));
+            return iterator(new IssuesIssue(metadata, IssuesIssue.Reason.MISSING, null, null));
         }
 
         var pattern = Pattern.compile(conf.checks().issues().pattern());
         for (var issue : message.issues()) {
             if (!pattern.matcher(issue.toString()).matches()) {
-                return iterator(new IssuesIssue(metadata));
+                log.finer("issue: reference does not match configured pattern: " + issue);
+                return iterator(new IssuesIssue(metadata, IssuesIssue.Reason.INVALID_FORMAT, issue.toString(), conf.checks().issues().pattern()));
             }
         }
 
