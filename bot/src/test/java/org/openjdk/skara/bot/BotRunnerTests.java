@@ -278,6 +278,45 @@ class BotRunnerTests {
     }
 
     @Test
+    void periodItemsThrowIncludesBotContext() throws TimeoutException {
+        var errors = new ArrayList<String>();
+        var botContexts = new ArrayList<String>();
+        var log = Logger.getLogger("org.openjdk.skara.bot");
+        var handler = new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                if (record.getLevel().equals(Level.SEVERE)) {
+                    errors.add(record.getMessage());
+                    botContexts.add(LogContextMap.get("bot"));
+                }
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() throws SecurityException {
+            }
+        };
+        log.addHandler(handler);
+        TestBot bot;
+        try {
+            bot = new TestBot(() -> {
+                throw new NullPointerException();
+            });
+
+            new BotRunner(config(), List.of(bot)).runOnce(Duration.ofSeconds(10));
+        } finally {
+            log.removeHandler(handler);
+        }
+
+        assertTrue(errors.stream()
+                .anyMatch(message -> message.equals("Exception during periodic items checking: null")));
+        assertTrue(botContexts.contains(bot.toString()));
+    }
+
+    @Test
     void discardAdditionalBlockedItems() throws TimeoutException {
         var item1 = new TestWorkItem(i -> false, "Item 1");
         var item2 = new TestWorkItem(i -> false, "Item 2");
