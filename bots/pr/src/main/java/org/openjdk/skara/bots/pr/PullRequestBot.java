@@ -38,6 +38,8 @@ import java.util.logging.*;
 import java.util.regex.Pattern;
 
 class PullRequestBot implements Bot {
+    private static final int PULL_REQUEST_WORK_ITEM_BATCH_SIZE = 5;
+
     private final HostedRepository remoteRepo;
     private final HostedRepository censusRepo;
     private final String censusRef;
@@ -78,6 +80,7 @@ class PullRequestBot implements Bot {
     private final Map<String, Boolean> initializedPRs = new ConcurrentHashMap<>();
     private final Map<String, String> jCheckConfMap = new HashMap<>();
     private final Map<String, Set<String>> targetRefPRMap = new HashMap<>();
+    private final List<PullRequest> initialPullRequestBacklog = new ArrayList<>();
     private final Approval approval;
     private boolean initialRun = true;
     private final boolean versionMismatchWarning;
@@ -85,8 +88,6 @@ class PullRequestBot implements Bot {
     private final boolean checkContributorStatusForBackportCommand;
     private final List<String> requiredCheckedLines;
     private final List<TrailerCommand.TrailerConfig> trailerConfigs;
-
-    private Instant lastFullUpdate;
 
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef, LabelConfiguration labelConfiguration,
                    Map<String, String> externalPullRequestCommands, Map<String, String> externalCommitCommands,
@@ -145,9 +146,6 @@ class PullRequestBot implements Bot {
         this.trailerConfigs = trailerConfigs;
 
         poller = new PullRequestPoller(repo, true);
-
-        // Only check recently updated when starting up to avoid congestion
-        lastFullUpdate = Instant.now();
     }
 
     static PullRequestBotBuilder newBuilder() {
@@ -159,12 +157,12 @@ class PullRequestBot implements Bot {
         poller.retryPullRequest(pr, expiresAt);
     }
 
-    private List<WorkItem> getPullRequestWorkItems(List<PullRequest> pullRequests) {
+    private List<WorkItem> getPullRequestWorkItems(List<PullRequest> pullRequests, boolean initialRunItems) {
         var ret = new ArrayList<WorkItem>();
 
         for (var pr : pullRequests) {
             if (pr.state() == Issue.State.OPEN) {
-                if (initialRun) {
+                if (initialRunItems) {
                     ret.add(CheckWorkItem.fromInitialRunOfPRBot(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt()));
                 } else {
                     ret.add(CheckWorkItem.fromPRBot(this, pr.id(), e -> poller.retryPullRequest(pr), pr.updatedAt()));
@@ -175,9 +173,34 @@ class PullRequestBot implements Bot {
             }
         }
 
-        initialRun = false;
-
         return ret;
+    }
+
+    private synchronized void addToInitialPullRequestBacklog(List<PullRequest> pullRequests) {
+        initialPullRequestBacklog.addAll(pullRequests);
+        initialPullRequestBacklog.sort(Comparator.comparing(PullRequest::updatedAt).reversed());
+    }
+
+    private synchronized int initialPullRequestBacklogSize() {
+        return initialPullRequestBacklog.size();
+    }
+
+    private synchronized List<PullRequest> nextInitialPullRequestBatch(int batchSizeLimit) {
+        var batchSize = Math.min(batchSizeLimit, initialPullRequestBacklog.size());
+        var batch = new ArrayList<>(initialPullRequestBacklog.subList(0, batchSize));
+        initialPullRequestBacklog.subList(0, batchSize).clear();
+        return batch;
+    }
+
+    private void updateTargetRefPRMap(List<PullRequest> pullRequests) {
+        for (var pr : pullRequests) {
+            var targetRef = pr.targetRef();
+            var prId = pr.id();
+            targetRefPRMap.values().forEach(s -> s.remove(prId));
+            if (pr.isOpen()) {
+                targetRefPRMap.computeIfAbsent(targetRef, key -> new HashSet<>()).add(prId);
+            }
+        }
     }
 
     @Override
@@ -188,16 +211,26 @@ class PullRequestBot implements Bot {
         }
         if (processPR) {
             List<PullRequest> prs = poller.updatedPullRequests();
-            workItems.addAll(getPullRequestWorkItems(prs));
+            updateTargetRefPRMap(prs);
+            var currentPullRequestWorkItemCount = 0;
 
-            // Update targetRefPRMap
-            for (var pr : prs) {
-                var targetRef = pr.targetRef();
-                var prId = pr.id();
-                targetRefPRMap.values().forEach(s -> s.remove(prId));
-                if (pr.isOpen()) {
-                    targetRefPRMap.computeIfAbsent(targetRef, key -> new HashSet<>()).add(prId);
-                }
+            if (initialRun) {
+                initialRun = false;
+                var openPullRequests = prs.stream()
+                        .filter(PullRequest::isOpen)
+                        .toList();
+                var closedPullRequests = prs.stream()
+                        .filter(pr -> !pr.isOpen())
+                        .toList();
+                addToInitialPullRequestBacklog(openPullRequests);
+                log.info("Adding " + openPullRequests.size() + " pull requests to the initial backlog for " + remoteRepo.name());
+                var closedPullRequestWorkItems = getPullRequestWorkItems(closedPullRequests, false);
+                workItems.addAll(closedPullRequestWorkItems);
+                currentPullRequestWorkItemCount += closedPullRequestWorkItems.size();
+            } else {
+                var updatedPullRequestWorkItems = getPullRequestWorkItems(prs, false);
+                workItems.addAll(updatedPullRequestWorkItems);
+                currentPullRequestWorkItemCount += updatedPullRequestWorkItems.size();
             }
 
             var activeBranches = remoteRepo.branches().stream()
@@ -215,7 +248,17 @@ class PullRequestBot implements Bot {
                     .filter(pullRequest -> prs.stream()
                             .noneMatch(pr -> pr.isSame(pullRequest)))
                     .toList();
-            workItems.addAll(getPullRequestWorkItems(filteredPrs));
+            var jcheckConfUpdateRelatedWorkItems = getPullRequestWorkItems(filteredPrs, false);
+            workItems.addAll(jcheckConfUpdateRelatedWorkItems);
+            currentPullRequestWorkItemCount += jcheckConfUpdateRelatedWorkItems.size();
+
+            var initialPullRequestBatchSize = Math.max(0, PULL_REQUEST_WORK_ITEM_BATCH_SIZE - currentPullRequestWorkItemCount);
+            var initialPullRequestBatch = nextInitialPullRequestBatch(initialPullRequestBatchSize);
+            if (!initialPullRequestBatch.isEmpty()) {
+                log.info("Processing " + initialPullRequestBatch.size() + " pull requests from the initial backlog for "
+                        + remoteRepo.name() + ", " + initialPullRequestBacklogSize() + " remaining");
+                workItems.addAll(getPullRequestWorkItems(initialPullRequestBatch, true));
+            }
             poller.lastBatchHandled();
         }
         return workItems;
@@ -263,7 +306,8 @@ class PullRequestBot implements Bot {
             workItems.add(new CommitCommentsWorkItem(this, remoteRepo, excludeCommitCommentsFrom));
         }
         if (processPR) {
-            workItems.addAll(getPullRequestWorkItems(webHook.get().updatedPullRequests()));
+            var updatedPullRequests = webHook.get().updatedPullRequests();
+            workItems.addAll(getPullRequestWorkItems(updatedPullRequests, false));
         }
         return workItems;
     }
