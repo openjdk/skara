@@ -421,6 +421,14 @@ public class RestRequest {
         }
     }
 
+    private void failOnEmptyResponse(HttpResponse<String> response, QueryBuilder queryBuilder) {
+        if (queryBuilder.failOnEmptyResponse && response.body().isBlank()) {
+            throw new UncheckedRestException("Empty response body"
+                    + response.headers().firstValue("Location").map(s -> ", redirect: " + s).orElse(""),
+                    response.statusCode(), response.request());
+        }
+    }
+
     private HttpRequest.Builder createRequest(RequestType requestType, String endpoint, String body,
                                               List<QueryBuilder.Param> params, Map<String, String> headers,
                                               boolean isJSON, String sha256Header, Duration timeout) {
@@ -537,11 +545,7 @@ public class RestRequest {
             return errorTransform.get();
         }
 
-        if (queryBuilder.failOnEmptyResponse && response.body().isBlank()) {
-            throw new UncheckedRestException("Empty response body"
-                    + response.headers().firstValue("Location").map(s -> ", redirect: " + s).orElse(""),
-                    response.statusCode(), request.build());
-        }
+        failOnEmptyResponse(response, queryBuilder);
 
         var nextRequest = nextLinkExtractor.getNextLinkRequest(response);
         if (nextRequest.isEmpty() || queryBuilder.maxPages < 2) {
@@ -563,6 +567,8 @@ public class RestRequest {
             if (errorTransform.isPresent()) {
                 return errorTransform.get();
             }
+
+            failOnEmptyResponse(response, queryBuilder);
 
             nextRequest = nextLinkExtractor.getNextLinkRequest(response);
 

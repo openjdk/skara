@@ -190,6 +190,17 @@ class RestRequestTests {
     }
 
     @Test
+    void paginationEmptyPageFails() throws IOException {
+        var page1 = "[ { \"a\": 1 } ]";
+        var page2 = "";
+        try (var receiver = new RestReceiver(List.of(page1, page2))) {
+            var request = new RestRequest(receiver.getEndpoint());
+            var exception = assertThrows(UncheckedRestException.class, () -> request.get("/test").execute());
+            assertTrue(exception.getMessage().contains("Empty response body"));
+        }
+    }
+
+    @Test
     void fieldPagination() throws IOException {
         var page1 = "{ \"a\": 1, \"b\": [ 1, 2, 3 ] }";
         var page2 = "{ \"a\": 1, \"b\": [ 4, 5, 6 ] }";
