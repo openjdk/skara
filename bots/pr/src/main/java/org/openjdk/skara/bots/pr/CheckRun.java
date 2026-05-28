@@ -667,7 +667,7 @@ class CheckRun {
         var checks = reviewNeeded ? visitor.getChecks() : visitor.getReadyForReviewChecks();
         checks.putAll(additionalProgresses);
         return checks.entrySet().stream()
-                .map(entry -> "- [" + (entry.getValue() ? "x" : " ") + "] " + entry.getKey())
+                .map(entry -> "- \\[" + (entry.getValue() ? "x" : " ") + "\\] " + entry.getKey())
                 .collect(Collectors.joining("\n"));
     }
 
