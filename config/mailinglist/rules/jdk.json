@@ -538,8 +538,6 @@
             "src/java.base/share/classes/javax/crypto/",
             "src/java.base/share/classes/javax/net/ssl/",
             "src/java.base/share/classes/javax/security/",
-            "src/java.base/share/classes/jdk/internal/access/",
-            "src/java.base/share/classes/jdk/internal/event/",
             "src/java.base/share/classes/sun/security/",
             "src/java.base/share/conf/security/",
             "src/java.base/share/data/cacerts/",
