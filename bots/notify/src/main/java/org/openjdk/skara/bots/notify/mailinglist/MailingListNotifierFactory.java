@@ -95,17 +95,9 @@ public class MailingListNotifierFactory implements NotifierFactory {
     }
 
     private EmailSender emailSender(JSONObject notifierConfiguration) {
-        var hasDelivery = notifierConfiguration.contains("delivery");
-        var hasSmtp = notifierConfiguration.contains("smtp");
-        if (hasDelivery && hasSmtp) {
-            throw new RuntimeException("Only one of mailinglist.delivery or mailinglist.smtp can be configured");
+        if (!notifierConfiguration.contains("delivery")) {
+            throw new RuntimeException("mailinglist.delivery must be configured");
         }
-        if (hasDelivery) {
-            return EmailSenderFactory.create(notifierConfiguration.get("delivery").asObject());
-        }
-        if (hasSmtp) {
-            return new SmtpEmailSender(notifierConfiguration.get("smtp").asString());
-        }
-        throw new RuntimeException("Either mailinglist.delivery or mailinglist.smtp must be configured");
+        return EmailSenderFactory.create(notifierConfiguration.get("delivery").asObject());
     }
 }
