@@ -37,8 +37,8 @@ import static org.openjdk.skara.bots.pr.CheckRun.CSR_PROCESS_LINK;
 
 public class CSRCommand implements CommandHandler {
 
-    private static final Pattern CSR_PROGRESS_PATTERN = Pattern.compile("- \\[[ x]?\\] Change requires CSR request \\[(.*?)\\]\\((.*?)\\) to be approved");
-    private static final Pattern RESOLVED_CSR_PROGRESS_PATTERN = Pattern.compile("- \\[x\\] Change requires CSR request \\[(.*?)\\]\\((.*?)\\) to be approved");
+    private static final Pattern CSR_PROGRESS_PATTERN = Pattern.compile("- \\\\?\\[[ x]?\\\\?\\] Change requires CSR request \\[(.*?)\\]\\((.*?)\\) to be approved");
+    private static final Pattern RESOLVED_CSR_PROGRESS_PATTERN = Pattern.compile("- \\\\?\\[x\\\\?\\] Change requires CSR request \\[(.*?)\\]\\((.*?)\\) to be approved");
 
     private static void showHelp(PrintWriter writer) {
         writer.println("usage: `/csr [needed|unneeded]`, requires that the issue the pull request refers to links to an approved [CSR](" + CSR_PROCESS_LINK + ") request.");
