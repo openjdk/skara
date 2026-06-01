@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -68,8 +68,7 @@ class MailingListArchiveReaderBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -141,8 +140,7 @@ class MailingListArchiveReaderBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -217,8 +215,7 @@ class MailingListArchiveReaderBotTests {
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             // The mailing list as well
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -297,8 +294,7 @@ class MailingListArchiveReaderBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                     .from(from)
                     .repo(author)

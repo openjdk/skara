@@ -37,7 +37,7 @@ class Mailman2Tests {
     void simple() throws IOException {
         try (var testServer = TestMailmanServer.createV2()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman2Server(testServer.getArchive(), testServer.getSMTP(),
+            var mailmanServer = MailingListServerFactory.createMailman2Server(testServer.getArchive(), new SmtpEmailSender(testServer.getSMTP()),
                                                                              Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
@@ -62,7 +62,7 @@ class Mailman2Tests {
     void replies() throws IOException {
         try (var testServer = TestMailmanServer.createV2()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman2Server(testServer.getArchive(), testServer.getSMTP(),
+            var mailmanServer = MailingListServerFactory.createMailman2Server(testServer.getArchive(), new SmtpEmailSender(testServer.getSMTP()),
                                                                              Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
@@ -108,7 +108,7 @@ class Mailman2Tests {
     void cached() throws IOException {
         try (var testServer = TestMailmanServer.createV2()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman2Server(testServer.getArchive(), testServer.getSMTP(),
+            var mailmanServer = MailingListServerFactory.createMailman2Server(testServer.getArchive(), new SmtpEmailSender(testServer.getSMTP()),
                                                                              Duration.ZERO, true);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
@@ -142,7 +142,7 @@ class Mailman2Tests {
     void interval() throws IOException {
         try (var testServer = TestMailmanServer.createV2()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman2Server(testServer.getArchive(), testServer.getSMTP(),
+            var mailmanServer = MailingListServerFactory.createMailman2Server(testServer.getArchive(), new SmtpEmailSender(testServer.getSMTP()),
                                                                              Duration.ofDays(1));
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
@@ -175,7 +175,7 @@ class Mailman2Tests {
         try (var testServer = TestMailmanServer.createV2()) {
             var listAddress = testServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailman2Server(testServer.getArchive(),
-                    testServer.getSMTP(), Duration.ZERO);
+                    new SmtpEmailSender(testServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var now = ZonedDateTime.now();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -120,7 +120,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -314,8 +314,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -408,8 +407,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -483,8 +481,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -563,8 +560,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -641,8 +637,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -731,8 +726,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -786,8 +780,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -894,8 +887,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -993,8 +985,7 @@ class MailingListBridgeBotTests {
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -1122,8 +1113,7 @@ class MailingListBridgeBotTests {
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -1195,8 +1185,7 @@ class MailingListBridgeBotTests {
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -1260,8 +1249,7 @@ class MailingListBridgeBotTests {
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -1326,8 +1314,7 @@ class MailingListBridgeBotTests {
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -1390,8 +1377,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -1447,8 +1433,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -1524,8 +1509,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -1615,8 +1599,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -1726,8 +1709,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var sender = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(sender)
                                             .repo(author)
@@ -1813,8 +1795,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var sender = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                     .from(sender)
                     .repo(author)
@@ -1906,8 +1887,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var sender = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(sender)
                                             .repo(author)
@@ -1987,8 +1967,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -2074,8 +2053,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -2147,8 +2125,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -2219,8 +2196,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -2301,8 +2277,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -2393,8 +2368,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -2461,8 +2435,7 @@ class MailingListBridgeBotTests {
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -2522,8 +2495,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBotBuilder = MailingListBridgeBot.newBuilder()
                                                    .from(from)
                                                    .repo(bot)
@@ -2588,8 +2560,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBotBuilder = MailingListBridgeBot.newBuilder()
                                                    .from(from)
                                                    .repo(bot)
@@ -2656,8 +2627,7 @@ class MailingListBridgeBotTests {
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var cooldown = Duration.ofMillis(500);
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBotBuilder = MailingListBridgeBot.newBuilder()
                                                    .from(from)
                                                    .repo(bot)
@@ -2747,8 +2717,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -2805,8 +2774,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -2863,8 +2831,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -2924,8 +2891,7 @@ class MailingListBridgeBotTests {
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var cooldown = Duration.ofMillis(500);
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBotBuilder = MailingListBridgeBot.newBuilder()
                                                    .from(from)
                                                    .repo(bot)
@@ -3017,8 +2983,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -3096,8 +3061,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -3296,8 +3260,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -3383,8 +3346,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -3457,8 +3419,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                                             .from(from)
                                             .repo(author)
@@ -3534,8 +3495,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                     .from(from)
                     .repo(author)
@@ -3711,8 +3671,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                     .from(from)
                     .repo(author)
@@ -3856,8 +3815,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                     .from(from)
                     .repo(author)
@@ -3943,8 +3901,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                     .from(from)
                     .repo(author)
@@ -4036,8 +3993,7 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(),
-                    listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mlBot = MailingListBridgeBot.newBuilder()
                     .from(from)
                     .repo(author)

@@ -31,14 +31,14 @@ import java.time.*;
 
 public abstract class MailmanServer implements MailingListServer {
     protected final URI archive;
-    private final String smtpServer;
+    private final EmailSender sender;
     private final Duration sendInterval;
     protected final boolean useEtag;
     private volatile Instant lastSend;
 
-    protected MailmanServer(URI archive, String smtpServer, Duration sendInterval, boolean useEtag) {
+    protected MailmanServer(URI archive, EmailSender sender, Duration sendInterval, boolean useEtag) {
         this.archive = archive;
-        this.smtpServer = smtpServer;
+        this.sender = sender;
         this.sendInterval = sendInterval;
         this.useEtag = useEtag;
         lastSend = Instant.EPOCH;
@@ -53,7 +53,7 @@ public abstract class MailmanServer implements MailingListServer {
         }
         lastSend = Instant.now();
         try {
-            SMTP.send(smtpServer, message);
+            sender.send(message);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

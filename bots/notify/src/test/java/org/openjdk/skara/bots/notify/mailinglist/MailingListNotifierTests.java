@@ -51,7 +51,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = listServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -125,7 +125,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = listServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -202,7 +202,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = listServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -282,7 +282,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = listServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -348,7 +348,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = listServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -452,7 +452,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = listServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -537,7 +537,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = listServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -628,7 +628,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = listServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -727,7 +727,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = listServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -825,7 +825,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = listServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -948,7 +948,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = listServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -1045,7 +1045,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = listServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -1125,7 +1125,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = listServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -1192,7 +1192,7 @@ public class MailingListNotifierTests {
             localRepo.pushAll(repo.authenticatedUrl());
 
             var listAddress = listServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(listServer.getArchive(), new SmtpEmailSender(listServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
