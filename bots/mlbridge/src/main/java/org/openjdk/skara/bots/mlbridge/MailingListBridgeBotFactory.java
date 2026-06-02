@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,8 @@ package org.openjdk.skara.bots.mlbridge;
 import java.net.URI;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.email.EmailAddress;
+import org.openjdk.skara.email.EmailSender;
+import org.openjdk.skara.email.EmailSenderFactory;
 import org.openjdk.skara.mailinglist.MailingListReader;
 import org.openjdk.skara.mailinglist.MailingListServer;
 import org.openjdk.skara.network.URIBuilder;
@@ -83,7 +85,11 @@ public class MailingListBridgeBotFactory implements BotFactory {
         if (specific.get("server").contains("type")) {
             archiveType = specific.get("server").get("type").asString();
         }
-        var listSmtp = specific.get("server").get("smtp").asString();
+        if (!specific.get("server").contains("sender")) {
+            throw new RuntimeException("server.sender must be configured");
+        }
+        var senderConfig = specific.get("server").get("sender").asObject();
+        var emailSender = EmailSenderFactory.create(senderConfig);
         var interval = specific.get("server").contains("interval") ?
                 Duration.parse(specific.get("server").get("interval").asString()) : Duration.ofSeconds(1);
 
@@ -108,7 +114,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
         if (specific.get("server").contains("etag")) {
             useEtag = specific.get("server").get("etag").asBoolean();
         }
-        MailingListServer mailmanServer = createMailmanServer(archiveType, listArchive, listSmtp, interval, useEtag);
+        MailingListServer mailmanServer = createMailmanServer(archiveType, listArchive, emailSender, interval, useEtag);
 
         var mailingListReaderMap = new HashMap<Set<EmailAddress>, MailingListReader>();
 
@@ -191,13 +197,15 @@ public class MailingListBridgeBotFactory implements BotFactory {
         return ret;
     }
 
-    private static MailingListServer createMailmanServer(String archiveType, URI listArchive, String listSmtp,
-            Duration sendInterval, boolean useEtag) {
+    private static MailingListServer createMailmanServer(String archiveType, URI listArchive, EmailSender emailSender,
+                                                         Duration sendInterval, boolean useEtag) {
         MailingListServer mailmanServer;
         if (archiveType == null || archiveType.equals("mailman2")) {
-            mailmanServer = MailingListServerFactory.createMailman2Server(listArchive, listSmtp, sendInterval, useEtag);
+            mailmanServer = MailingListServerFactory.createMailman2Server(listArchive, emailSender,
+                                                                          sendInterval, useEtag);
         } else if (archiveType.equals("mailman3")) {
-            mailmanServer = MailingListServerFactory.createMailman3Server(listArchive, listSmtp, sendInterval);
+            mailmanServer = MailingListServerFactory.createMailman3Server(listArchive, emailSender,
+                                                                          sendInterval);
         } else {
             throw new RuntimeException("Invalid server archive type: " + archiveType);
         }

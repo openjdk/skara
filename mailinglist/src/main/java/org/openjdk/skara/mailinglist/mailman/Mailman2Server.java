@@ -29,13 +29,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Locale;
 import org.openjdk.skara.email.EmailAddress;
+import org.openjdk.skara.email.EmailSender;
 import org.openjdk.skara.mailinglist.MailingListReader;
 import org.openjdk.skara.network.URIBuilder;
 
 public class Mailman2Server extends MailmanServer {
-
-    public Mailman2Server(URI archive, String smtpServer, Duration sendInterval, boolean useEtag) {
-        super(archive, smtpServer, sendInterval, useEtag);
+    public Mailman2Server(URI archive, EmailSender sender, Duration sendInterval, boolean useEtag) {
+        super(archive, sender, sendInterval, useEtag);
     }
 
     URI getMboxUri(EmailAddress listName, ZonedDateTime month) {

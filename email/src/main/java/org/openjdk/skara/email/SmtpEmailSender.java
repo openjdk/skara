@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,23 +20,19 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.mailinglist.mailman;
+package org.openjdk.skara.email;
 
-import java.time.Duration;
-import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.email.EmailSender;
-import org.openjdk.skara.mailinglist.MailingListReader;
+import java.io.IOException;
 
-/**
- * MailingListServer implementation that only implements the send message API.
- */
-public class SendOnlyServer extends MailmanServer {
-    public SendOnlyServer(EmailSender sender, Duration sendInterval) {
-        super(null, sender, sendInterval, false);
+public class SmtpEmailSender implements EmailSender {
+    private final String server;
+
+    public SmtpEmailSender(String server) {
+        this.server = server;
     }
 
     @Override
-    public MailingListReader getListReader(EmailAddress... listNames) {
-        throw new UnsupportedOperationException();
+    public void send(Email email) throws IOException {
+        SMTP.send(server, email);
     }
 }

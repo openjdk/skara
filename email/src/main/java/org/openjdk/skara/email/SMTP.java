@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,6 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -56,10 +55,7 @@ public class SMTP {
             server = parts[0];
             port = Integer.parseInt(parts[1]);
         }
-        var recipientList = email.recipients().stream()
-                                 .map(EmailAddress::toString)
-                                 .map(MimeText::encode)
-                                 .collect(Collectors.joining(", "));
+        var rawMessage = EmailMessage.toRfc822(email);
         try (var socket = new Socket(server, port);
              var out = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
              var in = new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8)) {
@@ -73,18 +69,7 @@ public class SMTP {
                 session.sendCommand("RCPT TO:<" + recipient.address() + ">", rcptReply);
             }
             session.sendCommand("DATA", dataReply);
-            session.sendCommand("From: " + MimeText.encode(email.author().toString()));
-            session.sendCommand("Message-Id: " + email.id());
-            session.sendCommand("Date: " + email.date().format(DateTimeFormatter.RFC_1123_DATE_TIME));
-            session.sendCommand("Sender: " + MimeText.encode(email.sender().toString()));
-            session.sendCommand("To: " + recipientList);
-            for (var header : email.headers()) {
-                session.sendCommand(header + ": " + MimeText.encode(email.headerValue(header)));
-            }
-            session.sendCommand("Subject: " + MimeText.encode(email.subject()));
-            session.sendCommand("Content-type: text/plain; charset=utf-8");
-            session.sendCommand("");
-            var escapedBody = email.body().lines()
+            var escapedBody = rawMessage.lines()
                                    .map(line -> line.startsWith(".") ? "." + line : line)
                                    .collect(Collectors.joining("\n"));
             session.sendCommand(escapedBody);

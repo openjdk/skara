@@ -27,18 +27,19 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import org.openjdk.skara.email.EmailAddress;
+import org.openjdk.skara.email.EmailSender;
 import org.openjdk.skara.mailinglist.MailingListReader;
 
 public class Mailman3Server extends MailmanServer {
     private final ZonedDateTime startTime;
 
-    public Mailman3Server(URI archive, String smtpServer, Duration sendInterval, ZonedDateTime startTime) {
-        super(archive, smtpServer, sendInterval, false);
+    public Mailman3Server(URI archive, EmailSender sender, Duration sendInterval, ZonedDateTime startTime) {
+        super(archive, sender, sendInterval, false);
         this.startTime = startTime;
     }
 
-    public Mailman3Server(URI archive, String smtpServer, Duration sendInterval) {
-        this(archive, smtpServer, sendInterval, ZonedDateTime.now());
+    public Mailman3Server(URI archive, EmailSender sender, Duration sendInterval) {
+        this(archive, sender, sendInterval, ZonedDateTime.now());
     }
 
     URI getArchiveUri() {
