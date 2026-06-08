@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,6 +22,10 @@
  */
 module org.openjdk.skara.email {
     requires java.logging;
+    requires org.openjdk.skara.json;
 
     exports org.openjdk.skara.email;
+
+    uses org.openjdk.skara.email.EmailSenderFactory;
+    provides org.openjdk.skara.email.EmailSenderFactory with org.openjdk.skara.email.SmtpEmailSenderFactory;
 }

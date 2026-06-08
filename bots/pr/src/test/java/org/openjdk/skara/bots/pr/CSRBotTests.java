@@ -98,7 +98,7 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(csrIssueBot);
             // The bot should have removed the CSR label
             assertFalse(pr.store().labelNames().contains("csr"));
-            assertTrue(pr.store().body().contains("- [x] Change requires CSR request"));
+            assertTrue(pr.store().body().contains("- \\[x\\] Change requires CSR request"));
         }
     }
 

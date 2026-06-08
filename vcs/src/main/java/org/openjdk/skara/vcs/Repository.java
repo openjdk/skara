@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -80,6 +80,10 @@ public interface Repository extends ReadOnlyRepository {
     void add(List<Path> files) throws IOException;
     default void add(Path... files) throws IOException {
         add(Arrays.asList(files));
+    }
+    void forceAdd(List<Path> files) throws IOException;
+    default void forceAdd(Path... files) throws IOException {
+        forceAdd(Arrays.asList(files));
     }
     void remove(List<Path> files) throws IOException;
     default void remove(Path... files) throws IOException {

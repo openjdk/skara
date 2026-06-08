@@ -244,10 +244,10 @@ public class BotRunner {
                     synchronized (executor) {
                         scratchPaths.addLast(scratchPath);
                         done(item);
+                        if (followUpItems != null) {
+                            followUpItems.forEach(BotRunner.this::submitOrSchedule);
+                        }
                     }
-                }
-                if (followUpItems != null) {
-                    followUpItems.forEach(BotRunner.this::submitOrSchedule);
                 }
 
                 synchronized (executor) {

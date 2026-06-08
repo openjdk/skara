@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -87,6 +87,57 @@ class WebrevStorageTests {
             generator.generate(masterHash, editHash, "00", WebrevDescription.Type.FULL);
             Repository.materialize(repoFolder, archive.authenticatedUrl(), "webrev");
             assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/00/index.html")));
+        }
+    }
+
+    @Test
+    void ignoredFilesInWebrev(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+
+            // Populate the projects repository
+            var reviewFile = Path.of("reviewfile.txt");
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, author.repositoryType(), reviewFile);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            localRepo.push(masterHash, archive.authenticatedUrl(), "webrev", true);
+
+            // Make a valid source commit where .gitignore ignores a force-added file.
+            var gitignore = repoFolder.resolve(".gitignore");
+            var ignoredFile = repoFolder.resolve("jdk/jdk-packages.json");
+            Files.writeString(gitignore, "jdk/jdk*\n");
+            Files.createDirectories(ignoredFile.getParent());
+            Files.writeString(ignoredFile, "{}\n");
+            localRepo.add(gitignore);
+            localRepo.forceAdd(ignoredFile);
+            var editHash = localRepo.commit("Add ignored file", "duke", "duke@openjdk.org");
+
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
+            pr.addLabel("rfr");
+            pr.setBody("This is now ready");
+
+            var from = EmailAddress.from("test", "test@test.mail");
+            var storage = new WebrevStorage(archive, "webrev", Path.of("test"),
+                                            webrevServer.uri(), from);
+
+            var prFolder = tempFolder.path().resolve("pr");
+            var prRepo = Repository.materialize(prFolder, pr.repository().authenticatedUrl(), "edit");
+            var jsonScratchFolder = tempFolder.path().resolve("scratch").resolve("json");
+            var htmlScratchFolder = tempFolder.path().resolve("scratch").resolve("html");
+            var seedPath = tempFolder.path().resolve("seed");
+            var generator = storage.generator(pr, prRepo, jsonScratchFolder, htmlScratchFolder, new HostedRepositoryPool(seedPath));
+            generator.generate(masterHash, editHash, "00", WebrevDescription.Type.FULL);
+
+            // Update the local repository and check that ignored webrev artifacts were archived.
+            Repository.materialize(repoFolder, archive.authenticatedUrl(), "webrev");
+            assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/00/.gitignore")));
+            assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/00/jdk/jdk-packages.json.html")));
+            assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/00/jdk/jdk-packages.json.patch")));
         }
     }
 

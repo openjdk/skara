@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.mailinglist;
 
+import org.openjdk.skara.email.*;
 import org.openjdk.skara.mailinglist.mailman.Mailman2Server;
 import org.openjdk.skara.mailinglist.mailman.Mailman3Server;
 import org.openjdk.skara.mailinglist.mailman.SendOnlyServer;
@@ -32,20 +33,20 @@ import java.nio.file.Path;
 import java.time.Duration;
 
 public class MailingListServerFactory {
-    public static MailingListServer createMailman2Server(URI archive, String smtp, Duration sendInterval) {
-        return new Mailman2Server(archive, smtp, sendInterval, false);
+    public static MailingListServer createMailman2Server(URI archive, EmailSender sender, Duration sendInterval) {
+        return new Mailman2Server(archive, sender, sendInterval, false);
     }
 
-    public static MailingListServer createMailman2Server(URI archive, String smtp, Duration sendInterval, boolean useEtag) {
-        return new Mailman2Server(archive, smtp, sendInterval, useEtag);
+    public static MailingListServer createMailman2Server(URI archive, EmailSender sender, Duration sendInterval, boolean useEtag) {
+        return new Mailman2Server(archive, sender, sendInterval, useEtag);
     }
 
-    public static MailingListServer createMailman3Server(URI archive, String smtp, Duration sendInterval) {
-        return new Mailman3Server(archive, smtp, sendInterval);
+    public static MailingListServer createMailman3Server(URI archive, EmailSender sender, Duration sendInterval) {
+        return new Mailman3Server(archive, sender, sendInterval);
     }
 
-    public static MailingListServer createSendOnlyServer(String smtp, Duration sendInterval) {
-        return new SendOnlyServer(smtp, sendInterval);
+    public static MailingListServer createSendOnlyServer(EmailSender sender, Duration sendInterval) {
+        return new SendOnlyServer(sender, sendInterval);
     }
 
     public static MailingListServer createMboxFileServer(Path file) {

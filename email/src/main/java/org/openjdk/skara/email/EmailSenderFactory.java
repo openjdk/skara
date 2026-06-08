@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -14,29 +14,30 @@
  *
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 94065 USA.
  *
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.mailinglist.mailman;
+package org.openjdk.skara.email;
 
-import java.time.Duration;
-import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.email.EmailSender;
-import org.openjdk.skara.mailinglist.MailingListReader;
+import org.openjdk.skara.json.JSONObject;
 
-/**
- * MailingListServer implementation that only implements the send message API.
- */
-public class SendOnlyServer extends MailmanServer {
-    public SendOnlyServer(EmailSender sender, Duration sendInterval) {
-        super(null, sender, sendInterval, false);
-    }
+import java.util.*;
 
-    @Override
-    public MailingListReader getListReader(EmailAddress... listNames) {
-        throw new UnsupportedOperationException();
+public interface EmailSenderFactory {
+    String name();
+
+    EmailSender createSender(JSONObject configuration);
+
+    static EmailSender create(JSONObject configuration) {
+        var type = configuration.get("type").asString();
+        return ServiceLoader.load(EmailSenderFactory.class).stream()
+                .map(ServiceLoader.Provider::get)
+                .filter(factory -> factory.name().equals(type))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown email sender: " + type))
+                .createSender(configuration);
     }
 }

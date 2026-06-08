@@ -173,7 +173,7 @@ class MergeTests {
 
             // pr should not be ready, because review needed for merge pull requests
             assertFalse(pr.store().labelNames().contains("ready"));
-            assertTrue(pr.store().body().contains("- [ ] Change must be properly reviewed"));
+            assertTrue(pr.store().body().contains("- \\[ \\] Change must be properly reviewed"));
 
             // Approve it as another user
             var approvalPr = integrator.pullRequest(pr.id());
@@ -181,7 +181,7 @@ class MergeTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             assertTrue(pr.store().labelNames().contains("ready"));
-            assertTrue(pr.store().body().contains("- [x] Change must be properly reviewed"));
+            assertTrue(pr.store().body().contains("- \\[x\\] Change must be properly reviewed"));
 
             // Push it
             pr.addComment("/integrate");
@@ -270,14 +270,14 @@ class MergeTests {
             TestBotRunner.runPeriodicItems(mergeBot);
             assertTrue(pr.store().labelNames().contains("clean"));
             assertFalse(pr.store().labelNames().contains("ready"));
-            assertTrue(pr.store().body().contains("[ ] Change must be properly reviewed (1 review required, with at least 1 [Reviewer](https://openjdk.org/bylaws#reviewer))"));
+            assertTrue(pr.store().body().contains("\\[ \\] Change must be properly reviewed (1 review required, with at least 1 [Reviewer](https://openjdk.org/bylaws#reviewer))"));
 
             // Approve it
             var reviewerPr = integrator.pullRequest(pr.id());
             reviewerPr.addReview(Review.Verdict.APPROVED, "LGTM");
             TestBotRunner.runPeriodicItems(mergeBot);
             assertTrue(pr.store().labelNames().contains("ready"));
-            assertTrue(pr.store().body().contains("[x] Change must be properly reviewed (1 review required, with at least 1 [Reviewer](https://openjdk.org/bylaws#reviewer))"));
+            assertTrue(pr.store().body().contains("\\[x\\] Change must be properly reviewed (1 review required, with at least 1 [Reviewer](https://openjdk.org/bylaws#reviewer))"));
 
             // Push it
             pr.addComment("/integrate");

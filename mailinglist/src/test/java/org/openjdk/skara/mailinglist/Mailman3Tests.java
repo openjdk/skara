@@ -28,6 +28,7 @@ import java.time.ZonedDateTime;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.email.Email;
 import org.openjdk.skara.email.EmailAddress;
+import org.openjdk.skara.email.SmtpEmailSender;
 import org.openjdk.skara.mailinglist.mailman.Mailman3Server;
 import org.openjdk.skara.test.TestMailmanServer;
 
@@ -38,8 +39,7 @@ class Mailman3Tests {
     void simple() throws IOException {
         try (var testServer = TestMailmanServer.createV3()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(testServer.getArchive(), testServer.getSMTP(),
-                                                                             Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(testServer.getArchive(), new SmtpEmailSender(testServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var mail = Email.create(sender, "Subject", "Body")
@@ -63,8 +63,7 @@ class Mailman3Tests {
     void replies() throws IOException {
         try (var testServer = TestMailmanServer.createV3()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(testServer.getArchive(), testServer.getSMTP(),
-                                                                             Duration.ZERO);
+            var mailmanServer = MailingListServerFactory.createMailman3Server(testServer.getArchive(), new SmtpEmailSender(testServer.getSMTP()), Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var sentParent = Email.create(sender, "Subject", "Body")
@@ -109,8 +108,7 @@ class Mailman3Tests {
     void interval() throws IOException {
         try (var testServer = TestMailmanServer.createV3()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailman3Server(testServer.getArchive(), testServer.getSMTP(),
-                                                                             Duration.ofDays(1));
+            var mailmanServer = MailingListServerFactory.createMailman3Server(testServer.getArchive(), new SmtpEmailSender(testServer.getSMTP()), Duration.ofDays(1));
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var mail1 = Email.create(sender, "Subject 1", "Body 1")
@@ -143,7 +141,7 @@ class Mailman3Tests {
             var listAddress = testServer.createList("test");
             var now = ZonedDateTime.now();
             var mailmanServer = new Mailman3Server(testServer.getArchive(),
-                    testServer.getSMTP(), Duration.ZERO, now.minusDays(2));
+                    new SmtpEmailSender(testServer.getSMTP()), Duration.ZERO, now.minusDays(2));
             var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
 
