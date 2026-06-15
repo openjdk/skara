@@ -91,6 +91,11 @@ public class PullRequestBotFactory implements BotFactory {
                     .forEach(id -> excludeCommitCommentsFrom.add(id));
         }
 
+        var workItemBatchSize = PullRequestBot.DEFAULT_WORK_ITEM_BATCH_SIZE;
+        if (specific.contains("workItemBatchSize")) {
+            workItemBatchSize = specific.get("workItemBatchSize").asInt();
+        }
+
         var readyLabels = specific.get("ready").get("labels").stream()
                                   .map(JSONValue::asString)
                                   .collect(Collectors.toSet());
@@ -138,7 +143,8 @@ public class PullRequestBotFactory implements BotFactory {
                                            .excludeCommitCommentsFrom(excludeCommitCommentsFrom)
                                            .forks(forks)
                                            .mlbridgeBotName(mlbridgeBotName)
-                                           .requiredCheckedLines(requiredCheckedLines);
+                                           .requiredCheckedLines(requiredCheckedLines)
+                                           .workItemBatchSize(workItemBatchSize);
 
             if (repo.value().contains("labels")) {
                 var labelGroup = repo.value().get("labels").asString();

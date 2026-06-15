@@ -38,7 +38,7 @@ import java.util.logging.*;
 import java.util.regex.Pattern;
 
 class PullRequestBot implements Bot {
-    private static final int PULL_REQUEST_WORK_ITEM_BATCH_SIZE = 5;
+    static final int DEFAULT_WORK_ITEM_BATCH_SIZE = 5;
 
     private final HostedRepository remoteRepo;
     private final HostedRepository censusRepo;
@@ -88,6 +88,7 @@ class PullRequestBot implements Bot {
     private final boolean checkContributorStatusForBackportCommand;
     private final List<String> requiredCheckedLines;
     private final List<TrailerCommand.TrailerConfig> trailerConfigs;
+    private final int workItemBatchSize;
 
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef, LabelConfiguration labelConfiguration,
                    Map<String, String> externalPullRequestCommands, Map<String, String> externalCommitCommands,
@@ -102,7 +103,7 @@ class PullRequestBot implements Bot {
                    boolean enableMerge, Set<String> mergeSources, boolean jcheckMerge, boolean enableBackport,
                    Map<String, List<PRRecord>> issuePRMap, Approval approval, boolean versionMismatchWarning, boolean cleanCommandEnabled,
                    boolean checkContributorStatusForBackportCommand, List<String> requiredCheckedLines,
-                   List<TrailerCommand.TrailerConfig> trailerConfigs) {
+                   List<TrailerCommand.TrailerConfig> trailerConfigs, int workItemBatchSize) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -144,6 +145,7 @@ class PullRequestBot implements Bot {
         this.checkContributorStatusForBackportCommand = checkContributorStatusForBackportCommand;
         this.requiredCheckedLines = requiredCheckedLines;
         this.trailerConfigs = trailerConfigs;
+        this.workItemBatchSize = workItemBatchSize;
 
         poller = new PullRequestPoller(repo, true);
     }
@@ -252,7 +254,7 @@ class PullRequestBot implements Bot {
             workItems.addAll(jcheckConfUpdateRelatedWorkItems);
             currentPullRequestWorkItemCount += jcheckConfUpdateRelatedWorkItems.size();
 
-            var initialPullRequestBatchSize = Math.max(0, PULL_REQUEST_WORK_ITEM_BATCH_SIZE - currentPullRequestWorkItemCount);
+            var initialPullRequestBatchSize = Math.max(0, workItemBatchSize - currentPullRequestWorkItemCount);
             var initialPullRequestBatch = nextInitialPullRequestBatch(initialPullRequestBatchSize);
             if (!initialPullRequestBatch.isEmpty()) {
                 log.info("Processing " + initialPullRequestBatch.size() + " pull requests from the initial backlog for "
@@ -473,6 +475,10 @@ class PullRequestBot implements Bot {
 
     public List<TrailerCommand.TrailerConfig> trailerConfigs() {
         return trailerConfigs;
+    }
+
+    public int workItemBatchSize() {
+        return workItemBatchSize;
     }
 
     public void addIssuePRMapping(String issueId, PRRecord prRecord) {
