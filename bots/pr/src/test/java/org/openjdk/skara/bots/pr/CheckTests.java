@@ -50,6 +50,53 @@ import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentCont
 
 class CheckTests {
     @Test
+    void initialPullRequestsAreThrottled(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var author = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder()
+                                         .repo(author)
+                                         .censusRepo(censusBuilder.build())
+                                         .processCommit(false)
+                                         .build();
+
+            var pr1 = credentials.createPullRequest(author, "master", "edit1", "PR 1");
+            var pr2 = credentials.createPullRequest(author, "master", "edit2", "PR 2");
+            var pr3 = credentials.createPullRequest(author, "master", "edit3", "PR 3");
+            var pr4 = credentials.createPullRequest(author, "master", "edit4", "PR 4");
+            var pr5 = credentials.createPullRequest(author, "master", "edit5", "PR 5");
+            var pr6 = credentials.createPullRequest(author, "master", "edit6", "PR 6");
+            var closedPr = credentials.createPullRequest(author, "master", "edit7", "Closed PR");
+            closedPr.setState(Issue.State.CLOSED);
+            pr1.store().setLastUpdate(ZonedDateTime.now().minus(Duration.ofDays(6)));
+            pr2.store().setLastUpdate(ZonedDateTime.now().minus(Duration.ofDays(5)));
+            pr3.store().setLastUpdate(ZonedDateTime.now().minus(Duration.ofDays(4)));
+            pr4.store().setLastUpdate(ZonedDateTime.now().minus(Duration.ofDays(3)));
+            pr5.store().setLastUpdate(ZonedDateTime.now().minus(Duration.ofDays(2)));
+            pr6.addComment("/touch");
+
+            var items = checkBot.getPeriodicItems();
+            assertEquals(5, items.size());
+            assertEquals("PullRequestCommandWorkItem@" + author.name() + "#" + closedPr.id(), items.get(0).toString());
+            assertEquals("CheckWorkItem@" + author.name() + "#" + pr6.id(), items.get(1).toString());
+            assertEquals("CheckWorkItem@" + author.name() + "#" + pr5.id(), items.get(2).toString());
+            assertEquals("CheckWorkItem@" + author.name() + "#" + pr4.id(), items.get(3).toString());
+            assertEquals("CheckWorkItem@" + author.name() + "#" + pr3.id(), items.get(4).toString());
+
+            pr1.addComment("/touch");
+            items = checkBot.getPeriodicItems();
+            assertEquals(3, items.size());
+            assertEquals("CheckWorkItem@" + author.name() + "#" + pr1.id(), items.get(0).toString());
+            assertEquals("CheckWorkItem@" + author.name() + "#" + pr2.id(), items.get(1).toString());
+            assertEquals("CheckWorkItem@" + author.name() + "#" + pr1.id(), items.get(2).toString());
+
+            items = checkBot.getPeriodicItems();
+            assertEquals(0, items.size());
+        }
+    }
+
+    @Test
     void simpleCommit(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {

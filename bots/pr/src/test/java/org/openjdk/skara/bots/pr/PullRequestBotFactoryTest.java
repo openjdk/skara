@@ -49,6 +49,7 @@ class PullRequestBotFactoryTest {
                           1,
                           2
                       ],
+                      "workItemBatchSize": 3,
                       "blockers": {
                         "test": "Signature needs verify"
                       },
@@ -230,6 +231,7 @@ class PullRequestBotFactoryTest {
             assertEquals("Example global trailer", trailerConfig.description());
             assertEquals(TrailerCommand.TrailerType.SINGLE, trailerConfig.type());
             assertEquals("foo.*", trailerConfig.values().getFirst().pattern());
+            assertEquals(3, pullRequestBot2.workItemBatchSize());
 
             var pullRequestBot5 = (PullRequestBot) bots.stream()
                     .filter(bot -> bot.toString().equals("PullRequestBot@repo5"))
