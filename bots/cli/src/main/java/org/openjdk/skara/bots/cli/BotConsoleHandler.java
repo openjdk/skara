@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,8 +27,9 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.logging.*;
+import org.openjdk.skara.bot.FilteredStreamHandler;
 
-class BotConsoleHandler extends StreamHandler {
+class BotConsoleHandler extends FilteredStreamHandler {
 
     private final DateTimeFormatter dateTimeFormatter;
     private final Map<Integer, String> levelAbbreviations;
@@ -55,7 +56,7 @@ class BotConsoleHandler extends StreamHandler {
 
         var level = levelAbbreviations.getOrDefault(record.getLevel().intValue(), "?");
         System.out.println("[" + dateTimeFormatter.format(record.getInstant().truncatedTo(ChronoUnit.SECONDS)) + "][" + record.getLongThreadID() + "][" +
-                level + "] " + record.getMessage());
+                level + "] " + applyReplacements(record.getMessage()));
         var exception = record.getThrown();
         if (exception != null) {
             exception.printStackTrace(System.out);

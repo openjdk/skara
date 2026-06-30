@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -127,7 +127,7 @@ class BotSlackHandler extends BotTaskAggregationHandler {
         if (prefix != null) {
             message.append(prefix);
         }
-        message.append("`").append(record.getLevel().getName()).append("` ").append(record.getMessage());
+        message.append("`").append(record.getLevel().getName()).append("` ").append(applyReplacements(record.getMessage()));
         return message.toString();
     }
 }

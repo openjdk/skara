@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.cli;
 
+import org.openjdk.skara.bot.FilteredStreamHandler;
 import org.openjdk.skara.bot.LogContextMap;
 import org.openjdk.skara.json.JSON;
 
@@ -40,16 +41,12 @@ import java.util.regex.Pattern;
  * Handles logging to logstash. Be careful not to call anything that creates new
  * log records from this class as that can cause infinite recursion.
  */
-public class BotLogstashHandler extends StreamHandler {
+public class BotLogstashHandler extends FilteredStreamHandler {
     private final URI endpoint;
     private final HttpClient httpClient;
     private final DateTimeFormatter dateTimeFormatter;
     // Optionally store all futures for testing purposes
     private Collection<Future<HttpResponse<Void>>> futures;
-
-    private record RegexReplacement(Pattern pattern, String replacement) {}
-
-    private final List<RegexReplacement> regexReplacements = new ArrayList<>();
 
     private static class ExtraField {
         String name;
@@ -85,10 +82,6 @@ public class BotLogstashHandler extends StreamHandler {
         extraFields.add(extraField);
     }
 
-    void addReplacement(String pattern, String replacement) {
-        regexReplacements.add(new RegexReplacement(Pattern.compile(pattern), replacement));
-    }
-
     private Map<String, String> getExtraFields(LogRecord record) {
         var ret = new HashMap<String, String>();
         for (var extraField : extraFields) {
@@ -103,20 +96,6 @@ public class BotLogstashHandler extends StreamHandler {
             }
         }
         return ret;
-    }
-
-    private String applyReplacements(String s) {
-        CharSequence ret = s;
-        for (RegexReplacement regexReplacement : regexReplacements) {
-            var matcher = regexReplacement.pattern.matcher(ret);
-            var sb = new StringBuilder();
-            while (matcher.find()) {
-                matcher.appendReplacement(sb, regexReplacement.replacement);
-            }
-            matcher.appendTail(sb);
-            ret = sb;
-        }
-        return ret.toString();
     }
 
     @Override

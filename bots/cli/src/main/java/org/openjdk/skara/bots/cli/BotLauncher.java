@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -54,9 +54,19 @@ public class BotLauncher {
             return;
         }
 
+        var globalReplacements = new ArrayList<FilteredStreamHandler.RegexReplacement>();
+        if (config.get("log").asObject().contains("replacements")) {
+            for (var field : config.get("log").asObject().get("replacements").asArray()) {
+                globalReplacements.add(new FilteredStreamHandler.RegexReplacement(
+                        field.get("pattern").asString(), field.get("replacement").asString()));
+            }
+        }
+
         if (config.get("log").asObject().contains("console")) {
-            var level = Level.parse(config.get("log").get("console").get("level").asString());
+            var logConf = config.get("log").get("console");
+            var level = Level.parse(logConf.get("level").asString());
             var handler = new BotConsoleHandler();
+            addReplacements(logConf, handler, globalReplacements);
             handler.setLevel(level);
             log.addHandler(handler);
         }
@@ -81,6 +91,7 @@ public class BotLauncher {
                     prefix == null ? null : prefix.asString(),
                     maxRate,
                     details);
+            addReplacements(slack, handler, globalReplacements);
             handler.setLevel(level);
             log.addHandler(handler);
         }
@@ -101,17 +112,23 @@ public class BotLauncher {
                     }
                 }
             }
-            if (logstashConf.contains("replacements")) {
-                for (var field : logstashConf.get("replacements").asArray()) {
-                    handler.addReplacement(field.get("pattern").asString(), field.get("replacement").asString());
-                }
-            }
+            addReplacements(logstashConf, handler, globalReplacements);
             handler.setLevel(level);
             var dateTimeFormatter = DateTimeFormatter.ISO_INSTANT
                     .withLocale(Locale.getDefault())
                     .withZone(ZoneId.systemDefault());
             handler.addExtraField("instance_start_time", dateTimeFormatter.format(START_TIME));
             log.addHandler(handler);
+        }
+    }
+
+    private static void addReplacements(JSONValue logstashConf, FilteredStreamHandler handler,
+            List<FilteredStreamHandler.RegexReplacement> globalReplacements) {
+        globalReplacements.forEach(handler::addReplacement);
+        if (logstashConf.contains("replacements")) {
+            for (var field : logstashConf.get("replacements").asArray()) {
+                handler.addReplacement(field.get("pattern").asString(), field.get("replacement").asString());
+            }
         }
     }
 

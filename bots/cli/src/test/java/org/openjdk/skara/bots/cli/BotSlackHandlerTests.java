@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -211,6 +211,21 @@ class BotSlackHandlerTests {
             var attachment = request.get("attachments").asArray().get(0);
             assertTrue(attachment.get("title_link").asString().contains("go.to/def"));
         }
+    }
 
+    @Test
+    void applyReplacements() throws IOException {
+
+        try (var receiver = new RestReceiver()) {
+            var handler = new BotSlackHandler(receiver.getEndpoint(), "test", "`testc` ", Duration.ofSeconds(1), new HashMap<>());
+            handler.addReplacement("Hello", "Goodbye");
+            var record = new LogRecord(Level.INFO, "Hello");
+            handler.publish(record);
+
+            var requests = receiver.getRequests();
+            assertEquals(1, requests.size(), requests.toString());
+            assertEquals("test", requests.get(0).get("username").asString());
+            assertEquals("`testc` `INFO` Goodbye", requests.get(0).get("text").asString());
+        }
     }
 }
