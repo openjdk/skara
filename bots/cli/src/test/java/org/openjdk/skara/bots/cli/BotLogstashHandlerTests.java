@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -153,6 +153,30 @@ class BotLogstashHandlerTests {
             assertEquals("ello", requests.get(0).get("optional1").asString());
             assertFalse(requests.get(0).contains("optional2"));
             assertEquals("ye", requests.get(2).get("optional3").asString());
+        }
+    }
+
+    @Test
+    void applyReplacements() throws IOException, ExecutionException, InterruptedException {
+        try (var receiver = new RestReceiver()) {
+            var handler = new BotLogstashHandler(receiver.getEndpoint());
+            handler.addReplacement("Hello", "Goodbye");
+            var futures = new ArrayList<Future<HttpResponse<Void>>>();
+            handler.setFuturesCollection(futures);
+
+            var record = new LogRecord(Level.INFO, "Hello");
+            record.setLoggerName("my.logger");
+            handler.publish(record);
+
+            for (Future<HttpResponse<Void>> future : futures) {
+                future.get();
+            }
+
+            var requests = receiver.getRequests();
+            assertEquals(1, requests.size(), requests.toString());
+            assertEquals("Goodbye", requests.get(0).get("message").asString());
+            assertEquals(Level.INFO.getName(), requests.get(0).get("level").asString());
+            assertEquals("my.logger", requests.get(0).get("logger_name").asString());
         }
     }
 }
