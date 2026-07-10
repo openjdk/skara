@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.bot.Bot;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.HostedRepository;
-import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.IssueProjectPoller;
 import org.openjdk.skara.issuetracker.IssueProject;
 
@@ -87,17 +86,26 @@ class IssueBot implements Bot {
             if (prRecords == null) {
                 continue;
             }
-            prRecords.stream()
-                    .flatMap(record -> repositories.stream()
-                            .filter(r -> r.name().equals(record.repoName()))
-                            .map(r -> r.pullRequest(record.prId()))
-                    )
-                    .filter(Issue::isOpen)
-                    // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
-                    // best we can do.
-                    .map(pr -> CheckWorkItem.fromIssueBot(pullRequestBotMap.get(pr.repository().name()), pr.id(),
-                            e -> poller.retryIssue(issue), issue.updatedAt()))
-                    .forEach(items::add);
+            for (var record : prRecords) {
+                for (var repository : repositories) {
+                    if (!repository.name().equals(record.repoName())) {
+                        continue;
+                    }
+                    try {
+                        var pr = repository.pullRequest(record.prId());
+                        if (pr.isOpen()) {
+                            // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
+                            // best we can do.
+                            items.add(CheckWorkItem.fromIssueBot(pullRequestBotMap.get(pr.repository().name()), pr.id(),
+                                    e -> poller.retryIssue(issue), issue.updatedAt()));
+                        }
+                    } catch (RuntimeException e) {
+                        log.warning("Failed to retrieve pull request " + record.prId() + " from " + repository.name()
+                                + " for issue " + issue.id() + "; will retry the issue: " + e.getMessage());
+                        poller.retryIssue(issue);
+                    }
+                }
+            }
         }
         poller.lastBatchHandled();
         return items;
