@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -442,6 +442,31 @@ public class IssueBotTests {
                             "[/approval](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/approval) command." +
                             "<!-- PullRequestBot approval needed comment -->"
                     , pr.store().comments().get(2).body());
+        }
+    }
+
+    @Test
+    void missingPullRequestDoesNotBlockOtherPullRequests(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var repository = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
+            issue.setProperty("issuetype", JSON.of("Bug"));
+
+            Map<String, List<PRRecord>> issuePRMap = new HashMap<>();
+            var issueBot = new IssueBot(issueProject, List.of(repository), Map.of(), issuePRMap);
+
+            // Initialize the poller before adding the PR records.
+            assertTrue(issueBot.getPeriodicItems().isEmpty());
+
+            var pr = credentials.createPullRequest(repository, "master", "edit", issue.id() + ": This is an issue");
+            issuePRMap.put(issue.id(), List.of(
+                    new PRRecord(repository.name(), "missing"),
+                    new PRRecord(repository.name(), pr.id())));
+            issue.setProperty("priority", JSON.of("4"));
+
+            // A disappeared PR is retried with the issue, but must not prevent work for another PR.
+            assertEquals(1, issueBot.getPeriodicItems().size());
         }
     }
 }
