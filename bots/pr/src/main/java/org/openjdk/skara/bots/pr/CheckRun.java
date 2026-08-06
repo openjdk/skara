@@ -1118,7 +1118,10 @@ class CheckRun {
         message.append("\n```\n");
 
         message.append("You can use [pull request commands](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands) ");
-        message.append("such as [/summary](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/summary), ");
+        message.append("such as ");
+        if (workItem.bot.summaryCommandEnabled()) {
+            message.append("[/summary](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/summary), ");
+        }
         message.append("[/contributor](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/contributor) and ");
         message.append("[/issue](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/issue) to adjust it as needed.");
         message.append("\n\n");

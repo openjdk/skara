@@ -85,6 +85,7 @@ class PullRequestBot implements Bot {
     private boolean initialRun = true;
     private final boolean versionMismatchWarning;
     private final boolean cleanCommandEnabled;
+    private final boolean summaryCommandEnabled;
     private final boolean checkContributorStatusForBackportCommand;
     private final List<String> requiredCheckedLines;
     private final List<TrailerCommand.TrailerConfig> trailerConfigs;
@@ -102,7 +103,7 @@ class PullRequestBot implements Bot {
                    boolean reviewCleanBackport, String mlbridgeBotName, MergePullRequestReviewConfiguration reviewMerge, boolean processPR, boolean processCommit,
                    boolean enableMerge, Set<String> mergeSources, boolean jcheckMerge, boolean enableBackport,
                    Map<String, List<PRRecord>> issuePRMap, Approval approval, boolean versionMismatchWarning, boolean cleanCommandEnabled,
-                   boolean checkContributorStatusForBackportCommand, List<String> requiredCheckedLines,
+                   boolean summaryCommandEnabled, boolean checkContributorStatusForBackportCommand, List<String> requiredCheckedLines,
                    List<TrailerCommand.TrailerConfig> trailerConfigs, int workItemBatchSize) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
@@ -142,6 +143,7 @@ class PullRequestBot implements Bot {
         this.approval = approval;
         this.versionMismatchWarning = versionMismatchWarning;
         this.cleanCommandEnabled = cleanCommandEnabled;
+        this.summaryCommandEnabled = summaryCommandEnabled;
         this.checkContributorStatusForBackportCommand = checkContributorStatusForBackportCommand;
         this.requiredCheckedLines = requiredCheckedLines;
         this.trailerConfigs = trailerConfigs;
@@ -467,6 +469,10 @@ class PullRequestBot implements Bot {
 
     public boolean cleanCommandEnabled() {
         return cleanCommandEnabled;
+    }
+
+    public boolean summaryCommandEnabled() {
+        return summaryCommandEnabled;
     }
 
     public boolean checkContributorStatusForBackportCommand() {

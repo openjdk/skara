@@ -36,6 +36,11 @@ public class SummaryCommand implements CommandHandler {
     private static final Pattern INVALID_SUMMARY_PATTERN = Pattern.compile("(^(Co-authored-by:)(.*))|(^(Reviewed-by:)(.*))|(^(Backport-of:)(.*))|(^[0-9]+:(.*))");
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, ScratchArea scratchArea, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+        if (!bot.summaryCommandEnabled()) {
+            reply.println("The `/summary` pull request command is not enabled for this repository");
+            return;
+        }
+
         if (!command.user().equals(pr.author())) {
             reply.println("Only the author (@" + pr.author().username() + ") is allowed to issue the `/summary` command.");
             return;
