@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,7 +31,6 @@ import org.junit.jupiter.api.*;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertFirstCommentContains;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
 class SummaryTests {
@@ -92,7 +91,7 @@ class SummaryTests {
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
-            assertFirstCommentContains(pr, "[/summary]");
+            assertTrue(pr.store().comments().get(1).body().contains("[/summary]"));
 
             // Now update it
             pr.addComment("/summary Third time is surely the charm");
