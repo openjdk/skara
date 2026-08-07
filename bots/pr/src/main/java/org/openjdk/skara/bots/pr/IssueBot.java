@@ -33,6 +33,7 @@ import java.time.ZonedDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 
@@ -86,26 +87,26 @@ class IssueBot implements Bot {
             if (prRecords == null) {
                 continue;
             }
-            for (var record : prRecords) {
-                for (var repository : repositories) {
-                    if (!repository.name().equals(record.repoName())) {
-                        continue;
-                    }
-                    try {
-                        var pr = repository.pullRequest(record.prId());
-                        if (pr.isOpen()) {
-                            // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
-                            // best we can do.
-                            items.add(CheckWorkItem.fromIssueBot(pullRequestBotMap.get(pr.repository().name()), pr.id(),
-                                    e -> poller.retryIssue(issue), issue.updatedAt()));
-                        }
-                    } catch (RuntimeException e) {
-                        log.warning("Failed to retrieve pull request " + record.prId() + " from " + repository.name()
-                                + " for issue " + issue.id() + "; will retry the issue: " + e.getMessage());
-                        poller.retryIssue(issue);
-                    }
-                }
-            }
+            prRecords.stream()
+                    .flatMap(record -> repositories.stream()
+                            .filter(r -> r.name().equals(record.repoName()))
+                            .map(r -> {
+                                try {
+                                    return r.pullRequest(record.prId());
+                                } catch (RuntimeException e) {
+                                    log.log(Level.WARNING, "Failed to retrieve pull request " + record.prId() + " from "
+                                            + r.name() + " for issue " + issue.id() + "; will retry the issue", e);
+                                    poller.retryIssue(issue);
+                                    return null;
+                                }
+                            })
+                    )
+                    .filter(pr -> pr != null && pr.isOpen())
+                    // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
+                    // best we can do.
+                    .map(pr -> CheckWorkItem.fromIssueBot(pullRequestBotMap.get(pr.repository().name()), pr.id(),
+                            e -> poller.retryIssue(issue), issue.updatedAt()))
+                    .forEach(items::add);
         }
         poller.lastBatchHandled();
         return items;
