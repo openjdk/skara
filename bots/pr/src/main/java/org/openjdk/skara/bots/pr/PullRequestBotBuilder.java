@@ -69,6 +69,7 @@ public class PullRequestBotBuilder {
     private Approval approval = null;
     private boolean versionMismatchWarning = false;
     private boolean cleanCommandEnabled = true;
+    private boolean summaryCommandEnabled = false;
     private boolean checkContributorStatusForBackportCommand = true;
     private List<String> requiredCheckedLines = new ArrayList<String>();
     private List<TrailerCommand.TrailerConfig> trailerConfigs = List.of();
@@ -267,6 +268,11 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder summaryCommandEnabled(boolean summaryCommandEnabled) {
+        this.summaryCommandEnabled = summaryCommandEnabled;
+        return this;
+    }
+
     public PullRequestBotBuilder checkContributorStatusForBackportCommand(boolean checkContributorStatusForBackportCommand) {
         this.checkContributorStatusForBackportCommand = checkContributorStatusForBackportCommand;
         return this;
@@ -294,6 +300,6 @@ public class PullRequestBotBuilder {
                 confOverrideName, confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom, enableCsr,
                 enableJep, reviewCleanBackport, mlbridgeBotName, reviewMerge, processPR, processCommit, enableMerge,
                 mergeSources, jcheckMerge, enableBackport, issuePRMap, approval, versionMismatchWarning, cleanCommandEnabled,
-                checkContributorStatusForBackportCommand, requiredCheckedLines, trailerConfigs, workItemBatchSize);
+                summaryCommandEnabled, checkContributorStatusForBackportCommand, requiredCheckedLines, trailerConfigs, workItemBatchSize);
     }
 }

@@ -2441,6 +2441,7 @@ class CheckTests {
             var numComments = comments.size();
             assertLastCommentContains(pr, "the full name on your profile does not match the author name");
             assertFirstCommentContains(pr, "This change now passes all *automated* pre-integration checks.");
+            assertFalse(pr.comments().getFirst().body().contains("[/summary]"));
 
             // Run the bot again, should not result in any new comments
             TestBotRunner.runPeriodicItems(mergeBot);

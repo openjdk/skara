@@ -985,7 +985,7 @@ class SponsorTests {
                     .addReviewer(reviewer2.forge().currentUser().id())
                     .addAuthor(author.forge().currentUser().id());
 
-            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).useStaleReviews(false).build();
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).useStaleReviews(false).summaryCommandEnabled(true).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());

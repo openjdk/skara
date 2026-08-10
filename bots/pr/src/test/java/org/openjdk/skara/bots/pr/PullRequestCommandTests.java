@@ -121,7 +121,7 @@ class PullRequestCommandTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
-            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).summaryCommandEnabled(true).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -323,7 +323,7 @@ class PullRequestCommandTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
-            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).summaryCommandEnabled(true).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());

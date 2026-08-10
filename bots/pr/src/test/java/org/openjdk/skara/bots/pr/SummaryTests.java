@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,7 +44,7 @@ class SummaryTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).summaryCommandEnabled(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -91,6 +91,7 @@ class SummaryTests {
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.store().comments().get(1).body().contains("[/summary]"));
 
             // Now update it
             pr.addComment("/summary Third time is surely the charm");
@@ -144,7 +145,7 @@ class SummaryTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
-            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).summaryCommandEnabled(true).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -180,7 +181,7 @@ class SummaryTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).summaryCommandEnabled(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -266,7 +267,7 @@ class SummaryTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).summaryCommandEnabled(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -312,7 +313,7 @@ class SummaryTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).summaryCommandEnabled(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -358,7 +359,7 @@ class SummaryTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).summaryCommandEnabled(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -397,7 +398,7 @@ class SummaryTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addReviewer(integrator.forge().currentUser().id())
                     .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).summaryCommandEnabled(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");

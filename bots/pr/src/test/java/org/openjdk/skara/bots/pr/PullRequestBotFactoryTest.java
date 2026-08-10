@@ -92,6 +92,7 @@ class PullRequestBotFactoryTest {
                             "integrator2"
                           ],
                           "reviewCleanBackport": true,
+                          "summaryCommandEnabled": true,
                           "mergeSources": [
                             "openjdk/playground",
                             "openjdk/skara",
@@ -223,6 +224,7 @@ class PullRequestBotFactoryTest {
             assertTrue(pullRequestBot2.mergeSources().contains("openjdk/playground"));
             assertFalse(pullRequestBot2.jcheckMerge());
             assertFalse(pullRequestBot2.enableBackport());
+            assertTrue(pullRequestBot2.summaryCommandEnabled());
             assertEquals(List.of("foo"), pullRequestBot2.requiredCheckedLines());
             assertEquals(1, pullRequestBot2.trailerConfigs().size());
             TrailerCommand.TrailerConfig trailerConfig = pullRequestBot2.trailerConfigs().getFirst();
@@ -242,6 +244,7 @@ class PullRequestBotFactoryTest {
             assertTrue(pullRequestBot5.enableBackport());
             assertFalse(pullRequestBot5.versionMismatchWarning());
             assertTrue(pullRequestBot5.cleanCommandEnabled());
+            assertFalse(pullRequestBot5.summaryCommandEnabled());
             assertEquals(List.of("bar"), pullRequestBot5.requiredCheckedLines());
             assertEquals(1, pullRequestBot5.trailerConfigs().size());
 
