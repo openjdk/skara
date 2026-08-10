@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.bot.Bot;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.IssueProjectPoller;
 import org.openjdk.skara.issuetracker.IssueProject;
 
@@ -35,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
+
 import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 
 class IssueBot implements Bot {
@@ -90,18 +93,18 @@ class IssueBot implements Bot {
             prRecords.stream()
                     .flatMap(record -> repositories.stream()
                             .filter(r -> r.name().equals(record.repoName()))
-                            .map(r -> {
+                            .flatMap(r -> {
                                 try {
-                                    return r.pullRequest(record.prId());
+                                    return Stream.of(r.pullRequest(record.prId()));
                                 } catch (RuntimeException e) {
                                     log.log(Level.WARNING, "Failed to retrieve pull request " + record.prId() + " from "
                                             + r.name() + " for issue " + issue.id() + "; will retry the issue", e);
                                     poller.retryIssue(issue);
-                                    return null;
+                                    return Stream.empty();
                                 }
                             })
                     )
-                    .filter(pr -> pr != null && pr.isOpen())
+                    .filter(Issue::isOpen)
                     // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
                     // best we can do.
                     .map(pr -> CheckWorkItem.fromIssueBot(pullRequestBotMap.get(pr.repository().name()), pr.id(),
