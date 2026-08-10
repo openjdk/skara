@@ -465,7 +465,10 @@ public class IssueBotTests {
                     new PRRecord(repository.name(), pr.id())));
             issue.setProperty("priority", JSON.of("4"));
 
-            // A disappeared PR is retried with the issue, but must not prevent work for another PR.
+            // A disappeared PR must not prevent work for another PR.
+            assertEquals(1, issueBot.getPeriodicItems().size());
+
+            // The failed lookup should cause the issue to be retried.
             assertEquals(1, issueBot.getPeriodicItems().size());
         }
     }

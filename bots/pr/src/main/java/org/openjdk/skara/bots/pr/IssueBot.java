@@ -31,9 +31,11 @@ import org.openjdk.skara.issuetracker.IssueProject;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -85,6 +87,7 @@ class IssueBot implements Bot {
         var issues = poller.updatedIssues();
         log.info("Found " + issues.size() + " updated issues(exclude CSR issues)");
         var items = new LinkedList<WorkItem>();
+        Set<IssueTrackerIssue> issuesToRetry = new HashSet<>();
         for (var issue : issues) {
             var prRecords = issuePRMap.get(issue.id());
             if (prRecords == null) {
@@ -99,7 +102,7 @@ class IssueBot implements Bot {
                                 } catch (RuntimeException e) {
                                     log.log(Level.WARNING, "Failed to retrieve pull request " + record.prId() + " from "
                                             + r.name() + " for issue " + issue.id() + "; will retry the issue", e);
-                                    poller.retryIssue(issue);
+                                    issuesToRetry.add(issue);
                                     return Stream.empty();
                                 }
                             })
@@ -112,6 +115,7 @@ class IssueBot implements Bot {
                     .forEach(items::add);
         }
         poller.lastBatchHandled();
+        issuesToRetry.forEach(poller::retryIssue);
         return items;
     }
 
