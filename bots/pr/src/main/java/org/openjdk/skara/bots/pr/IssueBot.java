@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,10 +31,15 @@ import org.openjdk.skara.issuetracker.IssueProject;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
+
 import org.openjdk.skara.issuetracker.IssueTrackerIssue;
 
 class IssueBot implements Bot {
@@ -82,6 +87,7 @@ class IssueBot implements Bot {
         var issues = poller.updatedIssues();
         log.info("Found " + issues.size() + " updated issues(exclude CSR issues)");
         var items = new LinkedList<WorkItem>();
+        Set<IssueTrackerIssue> issuesToRetry = new HashSet<>();
         for (var issue : issues) {
             var prRecords = issuePRMap.get(issue.id());
             if (prRecords == null) {
@@ -90,7 +96,16 @@ class IssueBot implements Bot {
             prRecords.stream()
                     .flatMap(record -> repositories.stream()
                             .filter(r -> r.name().equals(record.repoName()))
-                            .map(r -> r.pullRequest(record.prId()))
+                            .flatMap(r -> {
+                                try {
+                                    return Stream.of(r.pullRequest(record.prId()));
+                                } catch (RuntimeException e) {
+                                    log.log(Level.WARNING, "Failed to retrieve pull request " + record.prId() + " from "
+                                            + r.name() + " for issue " + issue.id() + "; will retry the issue", e);
+                                    issuesToRetry.add(issue);
+                                    return Stream.empty();
+                                }
+                            })
                     )
                     .filter(Issue::isOpen)
                     // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
@@ -100,6 +115,7 @@ class IssueBot implements Bot {
                     .forEach(items::add);
         }
         poller.lastBatchHandled();
+        issuesToRetry.forEach(poller::retryIssue);
         return items;
     }
 
