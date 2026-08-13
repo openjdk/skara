@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,6 +45,7 @@ public abstract class TestMailmanServer implements AutoCloseable {
     private final SMTPServer smtpServer;
     private int callCount = 0;
     private boolean lastResponseCached;
+    private boolean truncateNextResponse;
 
     public static TestMailmanServer createV2() throws IOException {
         return new TestMailman2Server();
@@ -63,6 +64,10 @@ public abstract class TestMailmanServer implements AutoCloseable {
                 exchange.sendResponseHeaders(404, 0);
                 exchange.close();
                 return;
+            }
+            if (truncateNextResponse) {
+                mboxContents = Arrays.copyOf(mboxContents, mboxContents.length - 1);
+                truncateNextResponse = false;
             }
             lastResponseCached = false;
 
@@ -148,6 +153,13 @@ public abstract class TestMailmanServer implements AutoCloseable {
 
     public int callCount() {
         return callCount;
+    }
+
+    /**
+     * Makes the next archive response invalid by omitting its final byte.
+     */
+    public void truncateNextResponse() {
+        truncateNextResponse = true;
     }
 }
 
