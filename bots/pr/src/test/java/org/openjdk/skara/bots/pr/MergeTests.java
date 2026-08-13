@@ -1766,6 +1766,12 @@ class MergeTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             assertTrue(pr.store().labelNames().contains("clean"));
+
+            // Change the title so that this is no longer a merge-style PR
+            pr.setTitle("123: Not a merge PR");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            assertFalse(pr.store().labelNames().contains("clean"));
         }
     }
 
