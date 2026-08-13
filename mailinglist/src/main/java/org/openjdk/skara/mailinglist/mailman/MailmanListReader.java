@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -219,12 +219,12 @@ class Mailman3ListReader extends MailmanListReader {
                 if (end.isBefore(now) && pageCache.containsKey(mboxUri)) {
                     var cachedResponse = pageCache.get(mboxUri);
                     if (cachedResponse != null && cachedResponse.statusCode() != 404) {
-                        emails.addAll(0, Mbox.splitMbox(gunzipToString(cachedResponse.body()), sender));
+                        emails.addAll(0, splitMbox(mboxUri, cachedResponse, sender));
                     }
                 } else {
                     var mboxResponse = getPage(mboxUri);
                     if (mboxResponse.isPresent()) {
-                        emails.addAll(0, Mbox.splitMbox(gunzipToString(mboxResponse.get().body()), sender));
+                        emails.addAll(0, splitMbox(mboxUri, mboxResponse.get(), sender));
                         newContent = true;
                     }
                 }
@@ -239,6 +239,17 @@ class Mailman3ListReader extends MailmanListReader {
         }
 
         return cachedConversations;
+    }
+
+    private List<Email> splitMbox(URI uri, HttpResponse<byte[]> response, EmailAddress sender) {
+        String mbox;
+        try {
+            mbox = gunzipToString(response.body());
+        } catch (UncheckedIOException e) {
+            pageCache.remove(uri, response);
+            throw e;
+        }
+        return Mbox.splitMbox(mbox, sender);
     }
 
     private String gunzipToString(byte[] data) {

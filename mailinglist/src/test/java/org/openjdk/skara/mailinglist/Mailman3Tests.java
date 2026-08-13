@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
 package org.openjdk.skara.mailinglist;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import org.junit.jupiter.api.Test;
@@ -101,6 +102,28 @@ class Mailman3Tests {
             assertEquals(1, replies.size());
             var reply = replies.get(0);
             assertEquals(expectedReply, reply);
+        }
+    }
+
+    @Test
+    void discardsTruncatedArchiveResponse() throws IOException {
+        try (var testServer = TestMailmanServer.createV3()) {
+            var listAddress = testServer.createList("test");
+            var startTime = ZonedDateTime.now().minusDays(1);
+            var mailmanServer = new Mailman3Server(testServer.getArchive(),
+                    new SmtpEmailSender(testServer.getSMTP()), Duration.ZERO, startTime);
+            var mailmanList = mailmanServer.getListReader(listAddress);
+            var mail = Email.create(EmailAddress.from("Test", "test@test.email"), "Subject", "Body")
+                            .recipient(listAddress)
+                            .build();
+            mailmanServer.post(mail);
+            testServer.processIncoming();
+
+            testServer.truncateNextResponse();
+            assertThrows(UncheckedIOException.class, () -> mailmanList.conversations(Duration.ofDays(1)));
+
+            var conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertEquals(1, conversations.size());
         }
     }
 
