@@ -1442,6 +1442,8 @@ class CheckRun {
             var isCleanBackport = false;
             if (original.isPresent()) {
                 isCleanBackport = updateClean(original.get());
+            } else if (!PullRequestUtils.isMerge(pr)) {
+                newLabels.remove("clean");
             }
 
             List<String> additionalErrors = List.of();
