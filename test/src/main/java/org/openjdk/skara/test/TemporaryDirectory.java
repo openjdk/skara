@@ -24,6 +24,7 @@ package org.openjdk.skara.test;
 
 import java.io.*;
 import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 
 public class TemporaryDirectory implements AutoCloseable {
@@ -50,10 +51,37 @@ public class TemporaryDirectory implements AutoCloseable {
     @Override
     public void close() {
         if (shouldRemove) {
-            try (var paths = Files.walk(p)) {
-                paths.map(Path::toFile)
-                     .sorted(Comparator.reverseOrder())
-                     .forEach(File::delete);
+            try {
+                Files.walkFileTree(p, new SimpleFileVisitor<>() {
+                    @Override
+                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                        try {
+                            Files.deleteIfExists(file);
+                        } catch (AccessDeniedException ignored) {
+                        }
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    @Override
+                    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                        if (exc != null && !(exc instanceof NoSuchFileException)) {
+                            throw exc;
+                        }
+                        try {
+                            Files.deleteIfExists(dir);
+                        } catch (AccessDeniedException | DirectoryNotEmptyException ignored) {
+                        }
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    @Override
+                    public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+                        if (!(exc instanceof NoSuchFileException)) {
+                            throw exc;
+                        }
+                        return FileVisitResult.CONTINUE;
+                    }
+                });
             } catch (IOException io) {
                 throw new RuntimeException(io);
             }

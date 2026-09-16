@@ -85,7 +85,7 @@ public class ReviewComment extends Comment {
         return line == that.line &&
                 Objects.equals(parent, that.parent) &&
                 threadId.equals(that.threadId) &&
-                hash.equals(that.hash) &&
+                Objects.equals(hash, that.hash) &&
                 path.equals(that.path);
     }
 
