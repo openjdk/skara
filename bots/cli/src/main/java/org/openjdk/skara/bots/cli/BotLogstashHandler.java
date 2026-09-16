@@ -127,7 +127,7 @@ public class BotLogstashHandler extends FilteredStreamHandler {
             var writer = new StringWriter();
             var printer = new PrintWriter(writer);
             record.getThrown().printStackTrace(printer);
-            query.put("stack_trace", writer.toString());
+            query.put("stack_trace", applyReplacements(writer.toString()));
         }
 
         for (var entry : LogContextMap.entrySet()) {
