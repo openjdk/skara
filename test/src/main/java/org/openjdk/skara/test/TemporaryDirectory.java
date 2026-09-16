@@ -55,7 +55,10 @@ public class TemporaryDirectory implements AutoCloseable {
                 Files.walkFileTree(p, new SimpleFileVisitor<>() {
                     @Override
                     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                        Files.deleteIfExists(file);
+                        try {
+                            Files.deleteIfExists(file);
+                        } catch (AccessDeniedException ignored) {
+                        }
                         return FileVisitResult.CONTINUE;
                     }
 
@@ -64,7 +67,10 @@ public class TemporaryDirectory implements AutoCloseable {
                         if (exc != null && !(exc instanceof NoSuchFileException)) {
                             throw exc;
                         }
-                        Files.deleteIfExists(dir);
+                        try {
+                            Files.deleteIfExists(dir);
+                        } catch (AccessDeniedException | DirectoryNotEmptyException ignored) {
+                        }
                         return FileVisitResult.CONTINUE;
                     }
 
