@@ -92,7 +92,7 @@ public class GitHubPullRequest implements PullRequest {
                     var reviewer = host.parseUserField(obj);
                     var commitId = obj.get("commit_id");
                     Hash hash = null;
-                    if (commitId != null) {
+                    if (commitId != null && !commitId.isNull()) {
                         hash = new Hash(commitId.asString());
                     }
                     Review.Verdict verdict;
@@ -194,7 +194,7 @@ public class GitHubPullRequest implements PullRequest {
         int line = reviewJson.get("original_line").asInt();
         var originalCommitId = reviewJson.get("original_commit_id");
         Hash hash = null;
-        if (originalCommitId != null) {
+        if (originalCommitId != null && !originalCommitId.isNull()) {
             hash = new Hash(originalCommitId.asString());
         }
         var path = reviewJson.get("path").asString();
