@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,14 +24,20 @@
 
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestInfoTests {
     @Test
@@ -131,4 +137,61 @@ public class TestInfoTests {
             assertEquals("1/1 failed", updatedPr.checks(updatedPr.headHash()).get("Pre-submit tests - ps2 - Build / test").title().orElseThrow());
         }
     }
+
+    @Test
+    void retryInterval(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = (TestHostedRepository) credentials.getHostedRepository();
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
+                    Set.of("issues"), null);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            var pr = (TestPullRequest) credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+            var retries = new ArrayList<Duration>();
+            var item = new TestInfoBotWorkItem(pr, retries::add);
+
+            item.run(tempFolder.path());
+            assertEquals(List.of(Duration.ofMinutes(2)), retries);
+
+            // The same work item must use the current update time, not its original snapshot.
+            pr.store().setLastUpdate(ZonedDateTime.now().minusDays(2));
+            retries.clear();
+            item.run(tempFolder.path());
+            assertEquals(List.of(Duration.ofMinutes(30)), retries);
+
+            pr.store().setLastUpdate(ZonedDateTime.now());
+            retries.clear();
+            item.run(tempFolder.path());
+            assertEquals(List.of(Duration.ofMinutes(2)), retries);
+        }
+    }
+
+    @Test
+    void closedRetry(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = (TestHostedRepository) credentials.getHostedRepository();
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
+                    Set.of("issues"), null);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
+            author.createCheck(CheckBuilder.create("ps1", editHash).complete(true).build());
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+            var retries = new ArrayList<Duration>();
+            var item = new TestInfoBotWorkItem(pr, retries::add);
+
+            pr.setState(Issue.State.CLOSED);
+            // The queued snapshot still says open.
+            assertTrue(pr.isOpen());
+            assertTrue(item.run(tempFolder.path()).isEmpty());
+            assertTrue(retries.isEmpty());
+            assertTrue(pr.checks(editHash).isEmpty());
+        }
+    }
+
 }
