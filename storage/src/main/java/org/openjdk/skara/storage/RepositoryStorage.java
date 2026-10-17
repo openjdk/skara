@@ -38,20 +38,15 @@ class RepositoryStorage<T> implements Storage<T> {
 
     private Set<T> current;
 
+    /**
+     * Caller is responsible for providing a properly prepared and healthy repository.
+     */
     RepositoryStorage(Repository repository, String fileName, String authorName, String authorEmail, String message, StorageSerializer<T> serializer, StorageDeserializer<T> deserializer) {
         this.repository = repository;
         this.fileName = fileName;
         this.authorEmail = authorEmail;
         this.authorName = authorName;
         this.message = message;
-
-        try {
-            if (!repository.isHealthy()) {
-                repository.reinitialize();
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
 
         try {
             fileStorage = new FileStorage<>(repository.root().resolve(fileName), serializer, deserializer);

@@ -22,7 +22,9 @@
  */
 package org.openjdk.skara.vcs;
 
+import java.io.File;
 import java.text.Normalizer;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeAll;
 import org.openjdk.skara.test.TemporaryDirectory;
 
@@ -773,6 +775,48 @@ public class RepositoryTests {
             r2.fetch(r1.root().toUri(), r1.defaultBranch().name()).orElseThrow();
 
             assertTrue(r2.isHealthy());
+        }
+    }
+
+    @Test
+    void testIsHealthyOnce() throws IOException {
+        GitRepository.ignoreConfiguration();
+        try (var dir = new TemporaryDirectory();) {
+            var repoDir = dir.path().resolve("repo");
+            var callCount = new AtomicInteger(0);
+            class CountingHealthyGitRepository extends GitRepository {
+                public CountingHealthyGitRepository(Path dir) {
+                    super(dir);
+                }
+
+                @Override
+                public boolean isHealthy() throws IOException {
+                    callCount.incrementAndGet();
+                    return super.isHealthy();
+                }
+            }
+            var r1 = new CountingHealthyGitRepository(repoDir);
+            r1.init();
+
+            assertTrue(r1.isHealthyOnce());
+            assertEquals(1, callCount.get());
+            assertTrue(r1.isHealthyOnce());
+            assertEquals(1, callCount.get());
+
+            var r2 = new CountingHealthyGitRepository(repoDir);
+            assertTrue(r2.isHealthyOnce());
+            assertEquals(1, callCount.get());
+
+            try (var paths = Files.walk(repoDir)) {
+                paths.map(Path::toFile)
+                        .sorted(Comparator.reverseOrder())
+                        .forEach(File::delete);
+            }
+
+            assertFalse(r1.isHealthyOnce());
+            assertEquals(1, callCount.get());
+            assertFalse(r2.isHealthyOnce());
+            assertEquals(1, callCount.get());
         }
     }
 
