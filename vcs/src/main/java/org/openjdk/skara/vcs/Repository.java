@@ -278,7 +278,7 @@ public interface Repository extends ReadOnlyRepository {
             Repository.init(p, VCS.GIT) : Repository.init(p, VCS.HG);
         if (!localRepo.exists()) {
             localRepo.init();
-        } else if (!localRepo.isHealthy()) {
+        } else if (!localRepo.isHealthyOnce()) {
             localRepo.reinitialize();
         } else {
             try {
