@@ -420,7 +420,9 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public Map<String, Check> checks(Hash hash) {
-        var checks = request.get("commits/" + hash.hex() + "/check-runs").execute();
+        var checks = request.get("commits/" + hash.hex() + "/check-runs")
+                .param("per_page", "100")
+                .execute();
 
         return checks.get("check_runs").stream()
                 .collect(Collectors.toMap(c -> c.get("name").asString(),

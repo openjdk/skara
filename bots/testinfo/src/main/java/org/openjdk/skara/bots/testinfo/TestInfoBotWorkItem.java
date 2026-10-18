@@ -89,12 +89,15 @@ public class TestInfoBotWorkItem implements WorkItem {
             return List.of();
         }
         var sourceRepo = optionalSourceRepository.get();
-        var sourceChecks = sourceRepo.allChecks(pr.headHash());
+        var workflowStatus = sourceRepo.workflowStatus();
+        if (workflowStatus == WorkflowStatus.DISABLED) {
+            return List.of();
+        }
 
         var targetChecks = pr.checks(pr.headHash());
         var noticeCheck = targetChecks.get("Pre-submit test status");
 
-        if (sourceRepo.workflowStatus() == WorkflowStatus.NOT_CONFIGURED) {
+        if (workflowStatus == WorkflowStatus.NOT_CONFIGURED) {
             if (noticeCheck == null) {
                 pr.createCheck(testingNotConfiguredNotice(pr));
             }
@@ -104,16 +107,20 @@ public class TestInfoBotWorkItem implements WorkItem {
             if (pr.isOpen()) {
                 retry.accept(Duration.ofMinutes(30));
             }
-        } else if (sourceRepo.workflowStatus() == WorkflowStatus.DISABLED) {
-            // Explicitly disabled - could possibly post a notice
         } else {
+            var sourceChecks = sourceRepo.allChecks(pr.headHash());
             var summarizedChecks = TestResults.summarize(sourceChecks);
             if (summarizedChecks.isEmpty()) {
                 // No test related checks found, they may not have started yet, so we'll keep
                 // looking as long as the PR is open.
                 log.fine("No checks found to summarize - waiting");
                 if (pr.isOpen()) {
-                    retry.accept(Duration.ofMinutes(2));
+                    // Check often for the first 24h, then back off as things aren't running
+                    if (pr.updatedAt().isAfter(ZonedDateTime.now().minus(Duration.ofDays(1)))) {
+                        retry.accept(Duration.ofMinutes(2));
+                    } else {
+                        retry.accept(Duration.ofMinutes(30));
+                    }
                 }
             } else {
                 Optional<Duration> expiresIn = TestResults.expiresIn(sourceChecks);
