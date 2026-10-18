@@ -139,21 +139,18 @@ public interface HostedRepository {
     void deleteBranch(String ref);
     List<CommitComment> commitComments(Hash hash);
     default List<CommitComment> recentCommitComments() {
-        return recentCommitComments(null, Set.of(), null, ZonedDateTime.now().minus(Duration.ofDays(4)));
+        return recentCommitComments(Set.of(), ZonedDateTime.now().minus(Duration.ofDays(4)));
     }
 
     /**
      * Fetch recent commit comments from the forge.
-     * @param localRepo Only needed for certain implementations. Needs to be a
-     *                  reasonably up-to-date clone of this repository
+     *
      * @param excludeAuthors Set of authors to exclude from the results
-     * @param Branches Optional list of branches to limit the search to if
-     *                 supported by the implementation.
-     * @param updatedAfter Filter out comments older than this
+     * @param updatedAfter   Filter out comments older than this
      * @return A list of CommitComments
      */
-    List<CommitComment> recentCommitComments(ReadOnlyRepository localRepo, Set<Integer> excludeAuthors,
-            List<Branch> Branches, ZonedDateTime updatedAfter);
+    List<CommitComment> recentCommitComments(Set<Integer> excludeAuthors,
+            ZonedDateTime updatedAfter);
     CommitComment addCommitComment(Hash hash, String body);
     void updateCommitComment(String id, String body);
 

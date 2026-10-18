@@ -41,6 +41,7 @@ public class GitLabHost implements Forge {
     private final boolean useSsh;
     private final Credential pat;
     private final RestRequest request;
+    private final RestRequest graphQL;
     private final Logger log = Logger.getLogger("org.openjdk.skara.forge.gitlab");
     private final List<String> groups;
     private final String mergeRequestTemplate;
@@ -58,21 +59,25 @@ public class GitLabHost implements Forge {
         var baseApi = URIBuilder.base(uri)
                                 .setPath("/api/v4/")
                                 .build();
-        request = new RestRequest(baseApi, pat.username(), (r) -> Arrays.asList("Private-Token", pat.password()));
+        var graphQLAPI = URIBuilder.base(uri)
+                .setPath("/api/graphql")
+                .build();
+
+        if (pat != null) {
+            request = new RestRequest(baseApi, pat.username(), (r) -> Arrays.asList("Private-Token", pat.password()));
+            graphQL = new RestRequest(graphQLAPI, pat.username(), (r) -> Arrays.asList("Private-Token", pat.password()));
+        } else {
+            request = new RestRequest(baseApi);
+            graphQL = new RestRequest(graphQLAPI);
+        }
     }
 
     GitLabHost(String name, URI uri, boolean useSsh, List<String> groups, String mergeRequestTemplate) {
-        this.name = name;
-        this.uri = uri;
-        this.useSsh = useSsh;
-        this.pat = null;
-        this.groups = groups;
-        this.mergeRequestTemplate = mergeRequestTemplate;
+        this(name, uri, useSsh, null, groups, mergeRequestTemplate);
+    }
 
-        var baseApi = URIBuilder.base(uri)
-                                .setPath("/api/v4/")
-                                .build();
-        request = new RestRequest(baseApi);
+    RestRequest graphQL() {
+        return graphQL;
     }
 
     public URI getUri() {

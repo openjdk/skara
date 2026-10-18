@@ -44,7 +44,6 @@ import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Hash;
-import org.openjdk.skara.vcs.ReadOnlyRepository;
 import org.openjdk.skara.vcs.Tag;
 import org.openjdk.skara.vcs.VCS;
 
@@ -241,7 +240,7 @@ public class BitbucketRepository implements HostedRepository {
     }
 
     @Override
-    public List<CommitComment> recentCommitComments(ReadOnlyRepository localRepo, Set<Integer> excludeAuthors, List<Branch> Branches, ZonedDateTime updatedAfter) {
+    public List<CommitComment> recentCommitComments(Set<Integer> excludeAuthors, ZonedDateTime updatedAfter) {
         throw new UnsupportedOperationException();
     }
 

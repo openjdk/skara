@@ -421,8 +421,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public List<CommitComment> recentCommitComments(ReadOnlyRepository unused, Set<Integer> excludeAuthors,
-            List<Branch> branches, ZonedDateTime updatedAfter) {
+    public List<CommitComment> recentCommitComments(Set<Integer> excludeAuthors, ZonedDateTime updatedAfter) {
         var parts = name().split("/");
         var owner = parts[0];
         var name = parts[1];
