@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -84,6 +84,11 @@ public class TestInfoBotWorkItem implements WorkItem {
 
     @Override
     public Collection<WorkItem> run(Path scratch) {
+        // Retries could carry an old snapshot, including a PR that has since closed.
+        var pr = this.pr.repository().pullRequest(this.pr.id());
+        if (!pr.isOpen()) {
+            return List.of();
+        }
         Optional<HostedRepository> optionalSourceRepository = pr.sourceRepository();
         if (optionalSourceRepository.isEmpty()) {
             return List.of();
@@ -113,14 +118,12 @@ public class TestInfoBotWorkItem implements WorkItem {
             if (summarizedChecks.isEmpty()) {
                 // No test related checks found, they may not have started yet, so we'll keep
                 // looking as long as the PR is open.
+                // Recheck less often if the PR hasn't been updated in the last 24h.
                 log.fine("No checks found to summarize - waiting");
-                if (pr.isOpen()) {
-                    // Check often for the first 24h, then back off as things aren't running
-                    if (pr.updatedAt().isAfter(ZonedDateTime.now().minus(Duration.ofDays(1)))) {
-                        retry.accept(Duration.ofMinutes(2));
-                    } else {
-                        retry.accept(Duration.ofMinutes(30));
-                    }
+                if (pr.updatedAt().isAfter(ZonedDateTime.now().minus(Duration.ofDays(1)))) {
+                    retry.accept(Duration.ofMinutes(2));
+                } else {
+                    retry.accept(Duration.ofMinutes(30));
                 }
             } else {
                 Optional<Duration> expiresIn = TestResults.expiresIn(sourceChecks);
