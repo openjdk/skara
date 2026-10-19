@@ -148,7 +148,7 @@ public class TestInfoTests {
             localRepo.push(masterHash, author.authenticatedUrl(), "master", true);
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.authenticatedUrl(), "edit", true);
-            var pr = (TestPullRequest) credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
             var retries = new ArrayList<Duration>();
             var item = new TestInfoBotWorkItem(pr, retries::add);
 
@@ -156,10 +156,10 @@ public class TestInfoTests {
             assertEquals(List.of(Duration.ofMinutes(2)), retries);
 
             // The same work item must use the current update time, not its original snapshot.
-            pr.store().setLastUpdate(ZonedDateTime.now().minusDays(2));
+            pr.store().setLastUpdate(ZonedDateTime.now().minusMinutes(40));
             retries.clear();
             item.run(tempFolder.path());
-            assertEquals(List.of(Duration.ofMinutes(30)), retries);
+            assertEquals(List.of(), retries);
 
             pr.store().setLastUpdate(ZonedDateTime.now());
             retries.clear();

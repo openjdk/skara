@@ -103,26 +103,24 @@ public class TestInfoBotWorkItem implements WorkItem {
             if (noticeCheck == null) {
                 pr.createCheck(testingNotConfiguredNotice(pr));
             }
-            // It's pretty unlikely that a user suddenly enables workflows. We can
-            // be pretty lax with automatically discovering this. Touching the PR
-            // will always trigger an immediate recheck anyway.
-            if (pr.isOpen()) {
-                retry.accept(Duration.ofMinutes(30));
-            }
+            // It's pretty unlikely that a user suddenly enables workflows. Touching the PR
+            // will always trigger an immediate recheck.
         } else {
             var sourceChecks = sourceRepo.allChecks(pr.headHash());
             var summarizedChecks = TestResults.summarize(sourceChecks);
             if (summarizedChecks.isEmpty()) {
                 // No test related checks found, they may not have started yet, so we'll keep
-                // looking as long as the PR is open.
-                // Recheck less often if the PR hasn't been updated in the last 24h.
-                log.fine("No checks found to summarize - waiting");
+                // looking for a bounded amount of time. After that discovery will require
+                // the PR to be touched.
                 if (pr.isOpen()) {
-                    if (pr.updatedAt().isAfter(ZonedDateTime.now().minus(Duration.ofDays(1)))) {
+                    if (pr.updatedAt().isAfter(ZonedDateTime.now().minus(Duration.ofMinutes(30)))) {
+                        log.fine("No checks found to summarize - waiting");
                         retry.accept(Duration.ofMinutes(2));
                     } else {
-                        retry.accept(Duration.ofMinutes(30));
+                        log.fine("No checks found to summarize - giving up");
                     }
+                } else {
+                    log.fine("No checks found to summarize and pr is closed - giving up");
                 }
             } else {
                 Optional<Duration> expiresIn = TestResults.expiresIn(sourceChecks);
@@ -135,11 +133,9 @@ public class TestInfoBotWorkItem implements WorkItem {
                     } else if (pr.isOpen()) {
                         retry.accept(Duration.ofMinutes(30));
                     }
-                } else if (pr.isOpen()) {
-                    // All current checks are finished, as long as PR is open, keep rechecking
-                    // at regular, but much longer intervals.
-                    retry.accept(Duration.ofMinutes(30));
                 }
+                // If all current checks are finished, stop retrying. PR will need to
+                // be touched to be checked again.
             }
 
             if (noticeCheck != null && noticeCheck.status() == CheckStatus.SKIPPED) {
