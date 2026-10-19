@@ -86,9 +86,6 @@ public class TestInfoBotWorkItem implements WorkItem {
     public Collection<WorkItem> run(Path scratch) {
         // Retries could carry an old snapshot, including a PR that has since closed.
         var pr = this.pr.repository().pullRequest(this.pr.id());
-        if (!pr.isOpen()) {
-            return List.of();
-        }
         Optional<HostedRepository> optionalSourceRepository = pr.sourceRepository();
         if (optionalSourceRepository.isEmpty()) {
             return List.of();
@@ -120,10 +117,12 @@ public class TestInfoBotWorkItem implements WorkItem {
                 // looking as long as the PR is open.
                 // Recheck less often if the PR hasn't been updated in the last 24h.
                 log.fine("No checks found to summarize - waiting");
-                if (pr.updatedAt().isAfter(ZonedDateTime.now().minus(Duration.ofDays(1)))) {
-                    retry.accept(Duration.ofMinutes(2));
-                } else {
-                    retry.accept(Duration.ofMinutes(30));
+                if (pr.isOpen()) {
+                    if (pr.updatedAt().isAfter(ZonedDateTime.now().minus(Duration.ofDays(1)))) {
+                        retry.accept(Duration.ofMinutes(2));
+                    } else {
+                        retry.accept(Duration.ofMinutes(30));
+                    }
                 }
             } else {
                 Optional<Duration> expiresIn = TestResults.expiresIn(sourceChecks);
