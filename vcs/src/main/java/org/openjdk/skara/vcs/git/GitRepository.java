@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.vcs.git;
 
+import java.util.concurrent.ConcurrentHashMap;
 import org.openjdk.skara.process.*;
 import org.openjdk.skara.process.Process;
 import org.openjdk.skara.vcs.*;
@@ -49,6 +50,7 @@ public class GitRepository implements Repository {
     private final Logger log = Logger.getLogger("org.openjdk.skara.vcs.git");
     private Path cachedRoot = null;
     private static final Hash EMPTY_TREE = new Hash("4b825dc642cb6eb9a060e54bf8d69288fbee4904");
+    private static final Set<Path> healthySet = ConcurrentHashMap.newKeySet();
 
     public static void ignoreConfiguration() {
         currentEnv = NO_CONFIG_ENV;
@@ -420,13 +422,32 @@ public class GitRepository implements Repository {
     }
 
     @Override
-
     public boolean isHealthy() throws IOException {
         try (var p = capture("git", "fsck", "--connectivity-only")) {
             if (p.await().status() != 0) {
                 return false;
             }
         }
+        return true;
+    }
+
+    /**
+     * Checks repository health once per given absolute path and JVM instance.
+     * Does not normalize symlinks.
+     */
+    @Override
+    public boolean isHealthyOnce() throws IOException {
+        if (!Files.exists(dir)) {
+            healthySet.remove(dir);
+            return false;
+        }
+        if (healthySet.contains(dir)) {
+            return true;
+        }
+        if (!isHealthy()) {
+            return false;
+        }
+        healthySet.add(dir);
         return true;
     }
 

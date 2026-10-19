@@ -22,8 +22,6 @@
  */
 package org.openjdk.skara.forge.gitlab;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.logging.Logger;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
@@ -38,7 +36,6 @@ import java.nio.file.Path;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -49,11 +46,6 @@ public class GitLabRepository implements HostedRepository {
     private final RestRequest request;
     private final JSONValue json;
     private final Pattern mergeRequestPattern;
-    private final ZonedDateTime instantiated;
-
-    private static final ZonedDateTime EPOCH = ZonedDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC);
-    private static final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Hash, Boolean>>> projectsToTitleToHashes = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, ZonedDateTime> lastCommitUpdates = new ConcurrentHashMap<>();
 
     public GitLabRepository(GitLabHost gitLabHost, String projectName) {
         this(gitLabHost, gitLabHost.getProjectInfo(projectName).orElseThrow(() -> new RuntimeException("Project not found: " + projectName)));
@@ -80,10 +72,6 @@ public class GitLabRepository implements HostedRepository {
         var urlPattern = URIBuilder.base(gitLabHost.getUri())
                                    .setPath("/" + projectName + "/merge_requests/").build();
         mergeRequestPattern = Pattern.compile(urlPattern.toString() + "(\\d+)");
-        instantiated = ZonedDateTime.now();
-
-        projectsToTitleToHashes.putIfAbsent(projectName, new ConcurrentHashMap<>());
-        lastCommitUpdates.putIfAbsent(projectName, EPOCH);
     }
 
     @Override
@@ -551,58 +539,14 @@ public class GitLabRepository implements HostedRepository {
                       .collect(Collectors.toList());
     }
 
-    private Set<Hash> commitsWithTitle(String commitTitle, Map<String, SequencedSet<Hash>> commitTitlesToHashes) {
-        if (commitTitlesToHashes.containsKey(commitTitle)) {
-            return commitTitlesToHashes.get(commitTitle);
-        }
-
-        if (commitTitle.endsWith("...")) {
-            var candidates = new HashSet<Hash>();
-            var prefix = commitTitle.substring(0, commitTitle.length() - "...".length());
-            for (var title : commitTitlesToHashes.keySet()) {
-                if (title.startsWith(prefix)) {
-                    candidates.addAll(commitTitlesToHashes.get(title));
-                }
-            }
-            return candidates;
-        }
-
-        return Set.of();
-    }
-
-    private Optional<CommitComment> findComment(String commitTitle,
-            String commentId,
-            Map<String, SequencedSet<Hash>> commitTitleToCommits) {
-        var candidates = commitsWithTitle(commitTitle, commitTitleToCommits);
-        // Even if there is only one candidate, we need to make sure the comment
-        // exists on that commit before we try to process it. If this fails it's
-        // most likely due to inconsistent data from GitLab, which should
-        // eventually clear up on subsequent tries.
-        Optional<CommitComment> found = candidates.stream()
-                .flatMap(candidate -> commitComments(candidate).stream())
-                .filter(comment -> comment.id().equals(commentId))
-                .findFirst();
-        if (found.isEmpty()) {
-            log.warning("Did not find commit with title " + commitTitle + " for repository " + projectName);
-        }
-        return found;
-    }
-
-    /**
-     * The localRepo is needed to build a map of commit title to commit hash mappings,
-     * which in turn is needed to identify commits form the GitLab notes objects. The
-     * notes only has the commit titles, not the hashes.
-     */
+    private static final int RECENT_COMMIT_COMMENTS_MAX_GRAPHQL_QUERY_SIZE = 50;
     @Override
-    public List<CommitComment> recentCommitComments(ReadOnlyRepository localRepo, Set<Integer> excludeAuthors,
-            List<Branch> branches, ZonedDateTime updatedAfter) {
-        if (localRepo == null) {
-            throw new NullPointerException("localRepo cannot be null in GitLabMergeRequest");
-        }
-
+    public List<CommitComment> recentCommitComments(Set<Integer> excludeAuthors, ZonedDateTime updatedAfter) {
         var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        var notes = request.get("events")
+        var events = request.get("events")
                 .param("after", updatedAfter.format(formatter))
+                .param("action", "commented")
+                .param("target_type", "note")
                 .execute()
                 .stream()
                 .filter(o -> o.contains("note") &&
@@ -616,78 +560,49 @@ public class GitLabRepository implements HostedRepository {
                         !excludeAuthors.contains(o.get("author").get("id").asInt()))
                 .toList();
 
-        if (notes.isEmpty()) {
+        if (events.isEmpty()) {
             return List.of();
         }
 
-        var commitTitleToCommits = getCommitTitleToCommitsMap(localRepo, branches);
-
-        return notes.stream()
-                .map(o -> findComment(o.get("target_title").asString(),
-                        o.get("note").get("id").toString(), commitTitleToCommits))
-                .flatMap(Optional::stream)
-                .toList();
-    }
-
-    /**
-     * Lazy fetching and caching of the commitTitleToCommits map. The map is only
-     * cached for one set of branches. If called with a different set, the old
-     * cache is invalidated and a new is rebuilt from scratch. In practice, an
-     * instance of this class is only ever called with the same set of branches.
-     * If that was to change we will need to rethink this.
-     * <p>
-     * The full map is built from the local repository. For incremental updates,
-     * it's refreshed until it contains the same number of commits as the local
-     * repository. The topo-order should guarantee that this gives us the same
-     * set of commits.
-     */
-    private final Map<String, SequencedSet<Hash>> commitTitleToCommits = new HashMap<>();
-    private Set<Branch> commitMapBranchSet;
-    private int commitMapCount = 0;
-
-    private Map<String, SequencedSet<Hash>> getCommitTitleToCommitsMap(ReadOnlyRepository localRepo, List<Branch> branches) {
-        try {
-            Set<Branch> branchSet = Set.copyOf(branches);
-            if (!branchSet.equals(commitMapBranchSet)) {
-                log.info("Invalidating commitTitleToCommits map for branch set: " + branchSet + " old set: " + commitMapBranchSet);
-                commitTitleToCommits.clear();
-                commitMapCount = 0;
-                commitMapBranchSet = branchSet;
+        Set<String> commitHashes = new LinkedHashSet<>();
+        for (int i = 0; i < events.size(); i+= RECENT_COMMIT_COMMENTS_MAX_GRAPHQL_QUERY_SIZE) {
+            var eventBatch = events.subList(i,
+                    Math.min(i + RECENT_COMMIT_COMMENTS_MAX_GRAPHQL_QUERY_SIZE, events.size()));
+            var notesToUrlQuery = new StringBuilder();
+            notesToUrlQuery.append("query {");
+            for (JSONValue event : eventBatch) {
+                var noteId = event.get("note").get("id").asLong();
+                notesToUrlQuery.append("n").append(noteId).append(":")
+                        .append(" note(id: \"gid://gitlab/Note/").append(noteId)
+                        .append("\") { url }");
             }
-            int newSize = localRepo.commitCount(branches);
-            if (newSize > commitMapCount) {
-                int sizeBefore = commitMapCount;
-                log.info("Adding " + (newSize - sizeBefore) + " new commit(s) to commitTitleToCommits map");
-                for (var commit : localRepo.commitMetadataFor(branches)) {
-                    var title = commit.message().stream().findFirst().orElse("");
-                    SequencedSet<Hash> hashes = commitTitleToCommits.computeIfAbsent(title, t -> new LinkedHashSet<>());
-                    if (!hashes.contains(commit.hash())) {
-                        // We want to keep newer commits at the front for quicker lookup.
-                        // Commits are iterated from newer to older so add last for the
-                        // initial run. When updating, there will generally just be a small
-                        // set of new commits in each run, so add them to the front.
-                        if (sizeBefore == 0) {
-                            hashes.add(commit.hash());
-                        } else {
-                            hashes.addFirst(commit.hash());
-                        }
-                        commitMapCount++;
-                        // Only log each addition after the initial complete build is done
-                        if (sizeBefore > 0) {
-                            log.fine("Adding " + commit.hash() + " to commitTitleToCommits map");
-                        }
-                    }
-                    if (commitMapCount >= newSize) {
-                        break;
-                    }
-                }
-            } else {
-                log.fine("No commits added to commitTitleToCommits map");
+            notesToUrlQuery.append("}");
+
+            JSONValue graphQLResponse = gitLabHost.graphQL().post()
+                    .body(JSON.object().put("query", notesToUrlQuery.toString()))
+                    // This shouldn't need to be limited to once a second
+                    .skipLimiter(true)
+                    .execute();
+            if (!graphQLResponse.contains("data") || graphQLResponse.get("data").isNull()) {
+                throw new RuntimeException("GraphQL response doesn't contain data: " + graphQLResponse);
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            graphQLResponse.get("data").fields().stream()
+                    .filter(field -> !field.value().isNull())
+                    .map(o -> {
+                        var path = URI.create(o.value().get("url").asString()).getPath();
+                        return path.substring(path.lastIndexOf('/') + 1);
+                    })
+                    .forEach(commitHashes::add);
         }
-        return commitTitleToCommits;
+
+        var noteIdSet = events.stream()
+                .map(o -> Long.toString(o.get("note").get("id").asLong()))
+                .collect(Collectors.toSet());
+
+        return commitHashes.stream()
+                .flatMap(hash -> commitComments(new Hash(hash)).stream())
+                .filter(comment -> noteIdSet.contains(comment.id()))
+                .toList();
     }
 
     /**

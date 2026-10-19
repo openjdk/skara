@@ -207,6 +207,13 @@ class PullRequestBot implements Bot {
         }
     }
 
+    private void cleanupTargetRefPRMap() {
+        var keysToRemove = targetRefPRMap.keySet().stream()
+                .filter(key -> targetRefPRMap.get(key).isEmpty())
+                .toList();
+        keysToRemove.forEach(targetRefPRMap::remove);
+    }
+
     @Override
     public List<WorkItem> getPeriodicItems() {
         var workItems = new ArrayList<WorkItem>();
@@ -237,14 +244,7 @@ class PullRequestBot implements Bot {
                 currentPullRequestWorkItemCount += updatedPullRequestWorkItems.size();
             }
 
-            var activeBranches = remoteRepo.branches().stream()
-                    .map(HostedBranch::name)
-                    .toList();
-
-            var keysToRemove = targetRefPRMap.keySet().stream()
-                    .filter(key -> targetRefPRMap.get(key).isEmpty() || !activeBranches.contains(key))
-                    .toList();
-            keysToRemove.forEach(targetRefPRMap::remove);
+            cleanupTargetRefPRMap();
 
             var jCheckConfUpdateRelatedPRs = getJCheckConfUpdateRelatedPRs();
             // Filter out duplicate prs

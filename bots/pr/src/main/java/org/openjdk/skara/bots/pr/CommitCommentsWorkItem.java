@@ -73,27 +73,30 @@ class CommitCommentsWorkItem implements WorkItem {
         log.info("Looking for recent commit comments for repository " + repo.name());
 
         try {
+            var commitComments = repo.recentCommitComments(excludeCommitCommentsFrom,
+                    ZonedDateTime.now().minus(Duration.ofDays(4))).stream()
+                    .filter(cc -> !processed.containsKey(cc.id()))
+                    .toList();
+            if (commitComments.isEmpty()) {
+                return List.of();
+            }
+            var remoteBranches = bot.repo().branches()
+                    .stream()
+                    .filter(b -> !b.name().startsWith("pr/"))
+                    .toList();
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
             // We are only reading data from this local repo, so no need to make a clone,
             // just use the seed repo directly.
             var seedRepo = hostedRepositoryPool.seedRepository(bot.repo(), false);
-            var remoteBranches = bot.repo().branches()
-                                           .stream()
-                                           .filter(b -> !b.name().startsWith("pr/"))
-                                           .toList();
-            var localBranches = remoteBranches.stream().map(b -> new Branch(b.name())).collect(Collectors.toList());
-            var commitComments = repo.recentCommitComments(seedRepo, excludeCommitCommentsFrom,
-                    localBranches, ZonedDateTime.now().minus(Duration.ofDays(4)));
             return commitComments.stream()
-                                 .filter(cc -> !processed.containsKey(cc.id()))
-                                 .filter(cc -> remoteBranches.stream()
-                                                             .anyMatch(b -> isAncestor(seedRepo, cc.commit(), b.hash())))
-                                 .map(cc -> {
-                                     processed.put(cc.id(), true);
-                                     return new CommitCommandWorkItem(bot, cc, e -> processed.remove(cc.id()));
-                                 })
-                                 .collect(Collectors.toList());
+                    .filter(cc -> remoteBranches.stream()
+                            .anyMatch(b -> isAncestor(seedRepo, cc.commit(), b.hash())))
+                    .map(cc -> {
+                        processed.put(cc.id(), true);
+                        return new CommitCommandWorkItem(bot, cc, e -> processed.remove(cc.id()));
+                    })
+                    .collect(Collectors.toList());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
