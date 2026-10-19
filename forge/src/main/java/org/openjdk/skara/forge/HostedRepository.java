@@ -151,11 +151,6 @@ public interface HostedRepository {
      */
     List<CommitComment> recentCommitComments(Set<Integer> excludeAuthors,
             ZonedDateTime updatedAfter);
-    // Keep this for backwards compatibility until all callers have been fixed
-    default List<CommitComment> recentCommitComments(ReadOnlyRepository localRepo, Set<Integer> excludeAuthors,
-            List<Branch> Branches, ZonedDateTime updatedAfter) {
-        return recentCommitComments(excludeAuthors, updatedAfter);
-    }
     CommitComment addCommitComment(Hash hash, String body);
     void updateCommitComment(String id, String body);
 
