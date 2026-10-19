@@ -44,7 +44,6 @@ public class HostedRepositoryPool {
     private class HostedRepositoryInstance {
         private final HostedRepository hostedRepository;
         private final Path seed;
-        private static Set<Path> healthySet = new HashSet<>();
 
         private HostedRepositoryInstance(HostedRepository hostedRepository) {
             this.hostedRepository = hostedRepository;
@@ -120,9 +119,6 @@ public class HostedRepositoryPool {
             }
             Repository.clone(remote, tmpClonePath, bare, seed);
             Files.move(tmpClonePath, path);
-            if (Repository.get(path).isPresent()) {
-                healthySet.add(path);
-            }
             return Repository.get(path).orElseThrow();
         }
 
@@ -140,7 +136,7 @@ public class HostedRepositoryPool {
                 return cloneSeeded(path, allowStale, bare);
             } else {
                 var localRepoInstance = localRepo.get();
-                if (!isHealthy(localRepoInstance, path)) {
+                if (!localRepoInstance.isHealthyOnce()) {
                     removeOldClone(path, "unhealthy");
                     return cloneSeeded(path, allowStale, bare);
                 } else {
@@ -155,18 +151,6 @@ public class HostedRepositoryPool {
                         return cloneSeeded(path, allowStale, bare);
                     }
                 }
-            }
-        }
-
-        private boolean isHealthy(Repository localRepoInstance, Path path) throws IOException {
-            if (healthySet.contains(path)) {
-                return true;
-            } else {
-                boolean isHealthy = localRepoInstance.isHealthy();
-                if (isHealthy) {
-                    healthySet.add(path);
-                }
-                return isHealthy;
             }
         }
     }

@@ -81,6 +81,14 @@ public interface ReadOnlyRepository {
     Path root() throws IOException;
     boolean exists() throws IOException;
     boolean isHealthy() throws IOException;
+
+    /**
+     * Allows caching of healthy results per JVM run and absolute paths for
+     * repositories. Does not normalize symlinks.
+     */
+    default boolean isHealthyOnce() throws IOException {
+        return isHealthy();
+    }
     boolean isEmpty() throws IOException;
     boolean isClean() throws IOException;
 
