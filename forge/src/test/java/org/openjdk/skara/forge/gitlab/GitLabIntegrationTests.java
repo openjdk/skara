@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.forge.gitlab;
 
-import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Set;
@@ -305,22 +304,14 @@ class GitLabIntegrationTests {
 
     @Test
     @EnabledIfTestProperties({"gitlab.user", "gitlab.pat", "gitlab.uri", "gitlab.group",
-                              "commit.comments.gitlab.repository", "commit.comments.local.repository"})
+                              "commit.comments.gitlab.repository"})
     void testRecentCommitComments() throws IOException {
         var gitLabRepo = gitLabHost.repository(props.get("commit.comments.gitlab.repository")).orElseThrow();
 
-        var localRepo = GitRepository.get(Path.of(props.get("commit.comments.local.repository"))).orElseThrow();
-
-        var comments = gitLabRepo.recentCommitComments(localRepo, Set.of(), List.of(new Branch("master")),
+        var comments = gitLabRepo.recentCommitComments(Set.of(),
                 ZonedDateTime.now().minus(Duration.ofDays(4)));
 
         assertFalse(comments.isEmpty());
-
-        // Pause here to update the local repository to trigger another code path
-        var comments2 = gitLabRepo.recentCommitComments(localRepo, Set.of(), List.of(new Branch("master")),
-                ZonedDateTime.now().minus(Duration.ofDays(4)));
-
-        assertFalse(comments2.isEmpty());
     }
 
     @Test
