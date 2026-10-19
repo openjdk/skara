@@ -613,7 +613,9 @@ public class GitHubRepository implements HostedRepository {
 
     @Override
     public List<Check> allChecks(Hash hash) {
-        var checks = request.get("commits/" + hash.hex() + "/check-runs").execute();
+        var checks = request.get("commits/" + hash.hex() + "/check-runs")
+                .param("per_page", "100")
+                .execute();
 
         return checks.get("check_runs").stream()
                      .map(c -> {

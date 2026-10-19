@@ -36,8 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TestInfoTests {
     @Test
@@ -190,8 +189,7 @@ public class TestInfoTests {
             assertTrue(pr.isOpen());
             assertTrue(item.run(tempFolder.path()).isEmpty());
             assertTrue(retries.isEmpty());
-            assertTrue(pr.checks(editHash).isEmpty());
+            assertFalse(pr.checks(editHash).isEmpty());
         }
     }
-
 }
