@@ -305,10 +305,8 @@ public class PullRequestBotFactory implements BotFactory {
                 botBuilder.requiredCheckedLines(requiredCheckedLinesOverride);
             }
 
-            var trailers = parseTrailers(repo.value().get("trailers"));
-            if (trailers.isEmpty()) {
-                trailers = globalTrailers;
-            }
+            var trailers = repo.value().contains("trailers")
+                    ? parseTrailers(repo.value().get("trailers")) : globalTrailers;
             botBuilder.trailerConfigs(trailers);
 
             var prBot = botBuilder.build();
