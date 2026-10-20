@@ -139,6 +139,7 @@ class PullRequestBotFactoryTest {
                           "processPR": false,
                           "jcheckMerge": true,
                           "versionMismatchWarning": false,
+                          "trailers": []
                         },
                         "repo7": {
                           "census": "census:master",
@@ -166,7 +167,7 @@ class PullRequestBotFactoryTest {
                             "branches": {
                               "jdk20.0.1": { "prefix": "CPU23_04" },
                               "jdk20.0.2": { "prefix": "CPU23_05" },
-                              }
+                            }
                           },
                           "versionMismatchWarning": true,
                           "cleanCommandEnabled": false,
@@ -274,7 +275,7 @@ class PullRequestBotFactoryTest {
             assertTrue(pullRequestBot6.enableBackport());
             assertFalse(pullRequestBot6.versionMismatchWarning());
             assertEquals(List.of("foo"), pullRequestBot6.requiredCheckedLines());
-            assertEquals(1, pullRequestBot6.trailerConfigs().size());
+            assertEquals(0, pullRequestBot6.trailerConfigs().size());
 
             var pullRequestBot7 = (PullRequestBot) bots.stream()
                     .filter(bot -> bot.toString().equals("PullRequestBot@repo7"))
