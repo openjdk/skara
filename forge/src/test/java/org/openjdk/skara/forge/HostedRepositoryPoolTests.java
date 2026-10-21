@@ -182,6 +182,34 @@ public class HostedRepositoryPoolTests {
         return output;
     }
 
+    private static Path seed(Path seedFolder) throws IOException {
+        try (var seeds = Files.list(seedFolder)) {
+            return seeds.filter(p -> p.getFileName().toString().endsWith(".git")).findAny().orElseThrow();
+        }
+    }
+
+    /**
+     * Removes the root tree of the given commit from the seed. If the commit is only reachable
+     * from history, a fetch will not bring the object back.
+     */
+    private static void corruptSeed(Path seedFolder, Hash commit, Path scratch) throws IOException, InterruptedException {
+        var seed = seed(seedFolder);
+        var packs = Files.createDirectory(scratch.resolve("packs"));
+        try (var packFiles = Files.list(seed.resolve("objects/pack"))) {
+            for (var packFile : packFiles.toList()) {
+                Files.move(packFile, packs.resolve(packFile.getFileName()));
+            }
+        }
+        try (var packFiles = Files.list(packs)) {
+            for (var packFile : packFiles.filter(p -> p.toString().endsWith(".pack")).toList()) {
+                git(seed, packFile, "unpack-objects", "-q");
+            }
+        }
+        var tree = git(seed, null, "rev-parse", commit.hex() + "^{tree}");
+        Files.delete(seed.resolve("objects").resolve(tree.substring(0, 2)).resolve(tree.substring(2)));
+        assertFalse(Repository.get(seed).orElseThrow().isHealthy());
+    }
+
     @Test
     void corruptSeed(TestInfo testInfo) throws IOException, InterruptedException {
         try (var credentials = new HostCredentials(testInfo);
@@ -203,26 +231,7 @@ public class HostedRepositoryPoolTests {
             clone.checkout(hash, true);
             assertTrue(CheckableRepository.hasBeenEdited(clone));
 
-            // Corrupt the seed by removing an object that is only reachable from history,
-            // a fetch will not bring it back
-            Path seed;
-            try (var seeds = Files.list(seedFolder.path())) {
-                seed = seeds.filter(p -> p.getFileName().toString().endsWith(".git")).findAny().orElseThrow();
-            }
-            var packs = Files.createDirectory(sourceFolder.path().resolve("packs"));
-            try (var packFiles = Files.list(seed.resolve("objects/pack"))) {
-                for (var packFile : packFiles.toList()) {
-                    Files.move(packFile, packs.resolve(packFile.getFileName()));
-                }
-            }
-            try (var packFiles = Files.list(packs)) {
-                for (var packFile : packFiles.filter(p -> p.toString().endsWith(".pack")).toList()) {
-                    git(seed, packFile, "unpack-objects", "-q");
-                }
-            }
-            var oldTree = git(seed, null, "rev-parse", masterHash.hex() + "^{tree}");
-            Files.delete(seed.resolve("objects").resolve(oldTree.substring(0, 2)).resolve(oldTree.substring(2)));
-            assertFalse(Repository.get(seed).orElseThrow().isHealthy());
+            corruptSeed(seedFolder.path(), masterHash, sourceFolder.path());
 
             // A new clone should still be possible
             var secondClone = pool.materialize(source, secondCloneFolder.path().resolve("clone"));
@@ -233,6 +242,105 @@ public class HostedRepositoryPoolTests {
 
             // And the corrupt seed should have been replaced
             assertTrue(pool.seedRepository(source, true).isHealthy());
+        }
+    }
+
+    @Test
+    void corruptSeedBare(TestInfo testInfo) throws IOException, InterruptedException {
+        try (var credentials = new HostCredentials(testInfo);
+             var sourceFolder = new TemporaryDirectory();
+             var seedFolder = new TemporaryDirectory();
+             var cloneFolder = new TemporaryDirectory();
+             var secondCloneFolder = new TemporaryDirectory()) {
+            var source = credentials.getHostedRepository();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(sourceFolder.path(), source.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, source.authenticatedUrl(), "master", true);
+            var hash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(hash, source.authenticatedUrl(), "master");
+
+            var pool = new HostedRepositoryPool(seedFolder.path());
+            pool.materializeBare(source, cloneFolder.path());
+
+            corruptSeed(seedFolder.path(), masterHash, sourceFolder.path());
+
+            var bareClone = pool.materializeBare(source, secondCloneFolder.path().resolve("clone"));
+            assertTrue(bareClone.isHealthy());
+            assertEquals(hash, bareClone.resolve("master").orElseThrow());
+            assertTrue(bareClone.lookup(masterHash).isPresent());
+            assertTrue(pool.seedRepository(source, true).isHealthy());
+        }
+    }
+
+    @Test
+    void corruptSeedAllowStale(TestInfo testInfo) throws IOException, InterruptedException {
+        try (var credentials = new HostCredentials(testInfo);
+             var sourceFolder = new TemporaryDirectory();
+             var seedFolder = new TemporaryDirectory();
+             var cloneFolder = new TemporaryDirectory();
+             var secondCloneFolder = new TemporaryDirectory()) {
+            var source = credentials.getHostedRepository();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(sourceFolder.path(), source.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, source.authenticatedUrl(), "master", true);
+            var hash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(hash, source.authenticatedUrl(), "master");
+
+            var pool = new HostedRepositoryPool(seedFolder.path());
+            var clone = pool.checkoutAllowStale(source, "master", cloneFolder.path());
+            assertTrue(CheckableRepository.hasBeenEdited(clone));
+
+            corruptSeed(seedFolder.path(), masterHash, sourceFolder.path());
+
+            // Here the corrupt seed is also the remote that is cloned from
+            var secondClone = pool.checkoutAllowStale(source, "master", secondCloneFolder.path().resolve("clone"));
+            assertTrue(CheckableRepository.hasBeenEdited(secondClone));
+            assertTrue(secondClone.isHealthy());
+            assertTrue(pool.seedRepository(source, true).isHealthy());
+
+            // The existing clone can still be updated
+            var updatedClone = pool.checkoutAllowStale(source, "master", cloneFolder.path());
+            assertTrue(CheckableRepository.hasBeenEdited(updatedClone));
+        }
+    }
+
+    @Test
+    void healthySeedIsKept(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var sourceFolder = new TemporaryDirectory();
+             var seedFolder = new TemporaryDirectory();
+             var cloneFolder = new TemporaryDirectory();
+             var secondCloneFolder = new TemporaryDirectory()) {
+            var source = credentials.getHostedRepository();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(sourceFolder.path(), source.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, source.authenticatedUrl(), "master", true);
+
+            var pool = new HostedRepositoryPool(seedFolder.path());
+            pool.materialize(source, cloneFolder.path());
+            var marker = Files.writeString(seed(seedFolder.path()).resolve("marker"), "marker");
+
+            // Make the source unavailable, so that cloning fails for a reason unrelated to the seed
+            var hosted = Path.of(source.authenticatedUrl());
+            var moved = hosted.resolveSibling("moved.git");
+            Files.move(hosted, moved);
+            try {
+                assertThrows(IOException.class, () -> pool.materialize(source, secondCloneFolder.path().resolve("clone")));
+            } finally {
+                Files.move(moved, hosted);
+            }
+
+            // The healthy seed must not have been discarded
+            assertTrue(Files.exists(marker));
+            try (var seeds = Files.list(seedFolder.path())) {
+                assertEquals(1, seeds.count());
+            }
         }
     }
 }
