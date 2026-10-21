@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -108,6 +108,27 @@ public class HostedRepositoryPool {
             return Repository.get(seed).orElseThrow(() -> new IOException("Existing seed is corrupt?"));
         }
 
+        private boolean isSeedHealthy() {
+            try {
+                var seedRepo = Repository.get(seed);
+                return seedRepo.isPresent() && seedRepo.get().isHealthy();
+            } catch (IOException e) {
+                return false;
+            }
+        }
+
+        private void discardSeed() {
+            // Move the seed out of the way first, so that concurrent users never see a partially deleted seed
+            var discardedSeed = seed.resolveSibling(seed.getFileName().toString() + "-discarded-" + UUID.randomUUID());
+            try {
+                Files.move(seed, discardedSeed);
+            } catch (IOException e) {
+                log.info("Failed to move away seed folder " + seed + " - perhaps due to a benign race. Ignoring..");
+                return;
+            }
+            clearDirectory(discardedSeed);
+        }
+
         private Repository cloneSeeded(Path path, boolean allowStale, boolean bare) throws IOException {
             refreshSeed(true);
             var remote = allowStale ? seedUri() : hostedRepository.authenticatedUrl();
@@ -117,7 +138,22 @@ public class HostedRepositoryPool {
                 log.fine("Found previous clone attempt " + tmpClonePath + " - deleting");
                 clearDirectory(tmpClonePath);
             }
-            Repository.clone(remote, tmpClonePath, bare, seed);
+            try {
+                Repository.clone(remote, tmpClonePath, bare, seed);
+            } catch (IOException e) {
+                // A seed that is missing objects will not be repaired by fetching, and will
+                // cause every clone that uses it as a reference to fail
+                if (isSeedHealthy()) {
+                    throw e;
+                }
+                log.severe("Corrupt seed folder " + seed + " detected - discarding it and cloning again");
+                discardSeed();
+                if (Files.exists(tmpClonePath)) {
+                    clearDirectory(tmpClonePath);
+                }
+                refreshSeed(true);
+                Repository.clone(remote, tmpClonePath, bare, seed);
+            }
             Files.move(tmpClonePath, path);
             return Repository.get(path).orElseThrow();
         }
