@@ -87,6 +87,7 @@ public class RestRequest {
         private String rawBody;
         private int maxPages;
         private ErrorTransform onError;
+        private List<Integer> expectedStatusCodes = List.of();
         private String sha256Header;
         private boolean skipLimiter = false;
         private boolean failOnEmptyResponse = false;
@@ -192,6 +193,15 @@ public class RestRequest {
          */
         public QueryBuilder onError(ErrorTransform errorTransform) {
             onError = errorTransform;
+            return this;
+        }
+
+        /**
+         * Optionally require one of the response statuses in addition to normal HTTP error handling.
+         * Applies to both execute methods after redirect and cache handling.
+         */
+        public QueryBuilder expectedStatus(Integer... statusCodes) {
+            expectedStatusCodes = List.of(statusCodes);
             return this;
         }
 
@@ -403,8 +413,13 @@ public class RestRequest {
         }
     }
 
+    private boolean isBadResponse(HttpResponse<String> response, QueryBuilder queryBuilder) {
+        return response.statusCode() >= 400 ||
+                (!queryBuilder.expectedStatusCodes.isEmpty() && !queryBuilder.expectedStatusCodes.contains(response.statusCode()));
+    }
+
     private Optional<JSONValue> transformBadResponse(HttpResponse<String> response, QueryBuilder queryBuilder) {
-        if (response.statusCode() >= 400) {
+        if (isBadResponse(response, queryBuilder)) {
             if (queryBuilder.onError != null) {
                 var transformed = queryBuilder.onError.onError(response);
                 if (transformed.isPresent()) {
@@ -585,9 +600,7 @@ public class RestRequest {
         requestCounter.labels(queryBuilder.queryType.toString()).inc();
         var response = sendRequest(request, queryBuilder.skipLimiter);
         responseCounter.labels(Integer.toString(response.statusCode()), Boolean.toString(false)).inc();
-        // A cached 304 has already been replaced with the original response by the cache
-        if (response.statusCode() >= 400 ||
-                (queryBuilder.queryType == RequestType.GET && response.statusCode() != 200)) {
+        if (isBadResponse(response, queryBuilder)) {
             String errorMessage = null;
             RuntimeException parseException = null;
             try {
