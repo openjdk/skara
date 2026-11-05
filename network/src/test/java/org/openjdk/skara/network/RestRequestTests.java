@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -262,6 +262,26 @@ class RestRequestTests {
             var request = new RestRequest(receiver.getEndpoint());
             var response = request.post("/test").executeUnparsed();
             assertEquals("{{bad", response);
+        }
+    }
+
+    @Test
+    void unparsedRedirectFails() throws IOException {
+        try (var receiver = new RestReceiver("Found", 302)) {
+            var request = new RestRequest(receiver.getEndpoint());
+            var exception = assertThrows(UncheckedRestException.class, () -> request.get("/test").executeUnparsed());
+            assertEquals(302, exception.getStatusCode());
+        }
+    }
+
+    @Test
+    void unparsedCached() throws IOException {
+        try (var receiver = new RestReceiver("File contents", 200)) {
+            var request = new RestRequest(receiver.getEndpoint());
+            assertEquals("File contents", request.get("/test").executeUnparsed());
+            assertFalse(receiver.usedCached());
+            assertEquals("File contents", request.get("/test").executeUnparsed());
+            assertTrue(receiver.usedCached());
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -585,7 +585,9 @@ public class RestRequest {
         requestCounter.labels(queryBuilder.queryType.toString()).inc();
         var response = sendRequest(request, queryBuilder.skipLimiter);
         responseCounter.labels(Integer.toString(response.statusCode()), Boolean.toString(false)).inc();
-        if (response.statusCode() >= 400) {
+        // A cached 304 has already been replaced with the original response by the cache
+        if (response.statusCode() >= 400 ||
+                (queryBuilder.queryType == RequestType.GET && response.statusCode() != 200)) {
             String errorMessage = null;
             RuntimeException parseException = null;
             try {
