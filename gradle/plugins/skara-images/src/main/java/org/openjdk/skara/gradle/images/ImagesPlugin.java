@@ -23,13 +23,13 @@
 
 package org.openjdk.skara.gradle.images;
 
+import java.net.URI;
+import java.nio.file.Path;
 import org.gradle.api.*;
-import org.gradle.api.file.Directory;
 import org.gradle.api.tasks.bundling.*;
 import org.gradle.api.artifacts.UnknownConfigurationException;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.io.File;
 
 public class ImagesPlugin implements Plugin<Project> {
@@ -102,11 +102,13 @@ public class ImagesPlugin implements Plugin<Project> {
                 var subName = isLocal ? "Local" : osAndCpuPascalCased;
 
                 var downloadTaskName = "download" + subName + "JDK";
+                Path jdkRootDir = rootDir.resolve(".jdk");
                 if (!isLocal) {
                     project.getTasks().register(downloadTaskName, DownloadJDKTask.class, (task) -> {
                         task.getUrl().set(env.getUrl());
                         task.getSha256().set(env.getSha256());
-                        task.getToDir().set(rootDir.resolve(".jdk"));
+                        task.getSha256Url().set(env.getSha256Url());
+                        task.getToDir().set(jdkRootDir);
                     });
                 }
 
@@ -125,12 +127,15 @@ public class ImagesPlugin implements Plugin<Project> {
                     } catch (UnknownConfigurationException e) {
                         // ignored
                     }
-
                     if (!isLocal) {
                         task.dependsOn(projectPath + ":" + downloadTaskName);
                         task.getUrl().set(env.getUrl());
+
+                        var filename = jdkFileName(URI.create(env.getUrl()));
+                        task.getJdkDir().set(jdkDistDir(jdkRootDir, filename).toFile());
                     } else {
                         task.getUrl().set("local");
+                        task.getJdkDir().set(new File(System.getProperty("java.home")));
                     }
                     var toDir = isLocal ? "local" : os + "-" + cpu;
                     task.getToDir().set(buildDir.resolve("images").resolve(toDir));
@@ -223,5 +228,19 @@ public class ImagesPlugin implements Plugin<Project> {
                 task.dependsOn(projectPath + ":" + name);
             }
         });
+    }
+
+    /**
+     * Generate the dist directory for use by this plugin. This directory is
+     * intentionally different from the one created by the gradlew wrapper to
+     * avoid reinstalling the JDK running Gradle.
+     */
+    static Path jdkDistDir(Path toDir, String filename) {
+        return toDir.resolve(filename.replace(".zip", "")
+                .replace(".tar.gz", "") + "_images");
+    }
+
+    static String jdkFileName(URI uri) {
+        return Path.of(uri.getPath()).getFileName().toString();
     }
 }
