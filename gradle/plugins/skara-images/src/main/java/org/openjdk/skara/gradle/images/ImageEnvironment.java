@@ -38,6 +38,7 @@ public class ImageEnvironment {
     private Property<String> man;
     private String url;
     private String sha256;
+    private String sha256Url;
 
     public ImageEnvironment(String name, ObjectFactory factory) {
         this.name = name;
@@ -106,6 +107,14 @@ public class ImageEnvironment {
 
     public void setSha256(String sha256) {
         this.sha256 = sha256;
+    }
+
+    public String getSha256Url() {
+        return sha256Url;
+    }
+
+    public void setSha256Url(String sha256Url) {
+        this.sha256Url = sha256Url;
     }
 
     public void jdk(Closure cl) {
