@@ -25,7 +25,9 @@ package org.openjdk.skara.gradle.images;
 
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
+import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Optional;
+import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.Input;
@@ -74,9 +76,31 @@ public class DownloadJDKTask extends DefaultTask {
     @Optional
     Property<String> getSha256Url() { return sha256Url; }
 
-    @OutputDirectory
+    @Internal
     Property<Path> getToDir() {
         return toDir;
+    }
+
+    @OutputFile
+    public Path getArchiveFile() {
+        var fileName = jdkFileName(URI.create(url.get()));
+        return toDir.get().resolve(fileName).toAbsolutePath();
+    }
+
+    @OutputDirectory
+    public Path getDistDir() {
+        String fileName = jdkFileName(URI.create(url.get()));
+        return toDir.get().toAbsolutePath().resolve(fileName.replace(".zip", "")
+                .replace(".tar.gz", "") + "_images");
+    }
+
+    @OutputFile
+    public Path getChecksumFile() {
+        return Path.of(getDistDir() + ".sha256");
+    }
+
+    static String jdkFileName(URI uri) {
+        return Path.of(uri.getPath()).getFileName().toString();
     }
 
     private static String checksum(Path file) throws IOException {
@@ -131,10 +155,9 @@ public class DownloadJDKTask extends DefaultTask {
         }
 
         var uri = URI.create(url.get());
-        var filename = ImagesPlugin.jdkFileName(uri);
-        var file = toDir.get().resolve(filename).toAbsolutePath();
-        var dist = ImagesPlugin.jdkDistDir(toDir.get().toAbsolutePath(), filename);
-        var sha256File = Path.of(dist + ".sha256");
+        var file = getArchiveFile();
+        var dist = getDistDir();
+        var sha256File = getChecksumFile();
 
         String sha256String;
         if (sha256.isPresent()) {

@@ -131,8 +131,8 @@ public class ImagesPlugin implements Plugin<Project> {
                         task.dependsOn(projectPath + ":" + downloadTaskName);
                         task.getUrl().set(env.getUrl());
 
-                        var filename = jdkFileName(URI.create(env.getUrl()));
-                        task.getJdkDir().set(jdkDistDir(jdkRootDir, filename).toFile());
+                        var downloadTask = project.getTasks().named(downloadTaskName, DownloadJDKTask.class);
+                        task.getJdkDir().fileProvider(downloadTask.map(t -> t.getDistDir().toFile()));
                     } else {
                         task.getUrl().set("local");
                         task.getJdkDir().set(new File(System.getProperty("java.home")));
@@ -228,19 +228,5 @@ public class ImagesPlugin implements Plugin<Project> {
                 task.dependsOn(projectPath + ":" + name);
             }
         });
-    }
-
-    /**
-     * Generate the dist directory for use by this plugin. This directory is
-     * intentionally different from the one created by the gradlew wrapper to
-     * avoid reinstalling the JDK running Gradle.
-     */
-    static Path jdkDistDir(Path toDir, String filename) {
-        return toDir.resolve(filename.replace(".zip", "")
-                .replace(".tar.gz", "") + "_images");
-    }
-
-    static String jdkFileName(URI uri) {
-        return Path.of(uri.getPath()).getFileName().toString();
     }
 }
