@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -262,6 +262,39 @@ class RestRequestTests {
             var request = new RestRequest(receiver.getEndpoint());
             var response = request.post("/test").executeUnparsed();
             assertEquals("{{bad", response);
+        }
+    }
+
+    @Test
+    void expectedStatus() throws IOException {
+        try (var receiver = new RestReceiver("{\"redirect\":true}", 302)) {
+            var request = new RestRequest(receiver.getEndpoint());
+            assertTrue(request.get("/test").execute().get("redirect").asBoolean());
+            var exception = assertThrows(UncheckedRestException.class, () -> request.get("/test").expectedStatus(200).execute());
+            assertEquals(302, exception.getStatusCode());
+            assertTrue(request.get("/test").expectedStatus(200, 302).execute().get("redirect").asBoolean());
+        }
+    }
+
+    @Test
+    void unparsedExpectedStatus() throws IOException {
+        try (var receiver = new RestReceiver("Found", 302)) {
+            var request = new RestRequest(receiver.getEndpoint());
+            assertEquals("Found", request.get("/test").executeUnparsed());
+            var exception = assertThrows(UncheckedRestException.class, () -> request.get("/test").expectedStatus(200).executeUnparsed());
+            assertEquals(302, exception.getStatusCode());
+            assertEquals("Found", request.get("/test").expectedStatus(200, 302).executeUnparsed());
+        }
+    }
+
+    @Test
+    void unparsedCached() throws IOException {
+        try (var receiver = new RestReceiver("File contents", 200)) {
+            var request = new RestRequest(receiver.getEndpoint());
+            assertEquals("File contents", request.get("/test").expectedStatus(200).executeUnparsed());
+            assertFalse(receiver.usedCached());
+            assertEquals("File contents", request.get("/test").expectedStatus(200).executeUnparsed());
+            assertTrue(receiver.usedCached());
         }
     }
 

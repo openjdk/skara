@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -290,6 +290,7 @@ public class GitHubRepository implements HostedRepository {
             var content = request.get("contents/" + filename)
                     .param("ref", ref)
                     .header("Accept", "application/vnd.github.raw+json")
+                    .expectedStatus(200)
                     .executeUnparsed();
             return Optional.of(content);
         } catch (UncheckedRestException e) {

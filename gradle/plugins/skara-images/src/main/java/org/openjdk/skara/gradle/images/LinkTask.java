@@ -47,6 +47,7 @@ public class LinkTask extends DefaultTask {
     private final ListProperty<String> modules;
     private final SetProperty<RegularFile> modulePath;
     private final SetProperty<FileSystemLocation> runtimeModules;
+    private final DirectoryProperty jdkDir;
 
     @Inject
     public LinkTask(ObjectFactory factory) {
@@ -57,6 +58,7 @@ public class LinkTask extends DefaultTask {
         modules = factory.listProperty(String.class);
         modulePath = factory.setProperty(RegularFile.class);
         runtimeModules = factory.setProperty(FileSystemLocation.class);
+        jdkDir = factory.directoryProperty();
     }
 
     @OutputDirectory
@@ -94,6 +96,13 @@ public class LinkTask extends DefaultTask {
         return runtimeModules;
     }
 
+    @InputDirectory
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public DirectoryProperty getJdkDir() {
+        return jdkDir;
+    }
+
+
     private static void clearDirectory(Path directory) {
         try (var paths = Files.walk(directory)) {
             paths.map(Path::toFile)
@@ -116,14 +125,7 @@ public class LinkTask extends DefaultTask {
             modularJars.add(jar.getAsFile().toString());
         }
 
-        Path jdk = null;
-        if (!url.get().equals("local")) {
-            var filename = Path.of(URI.create(url.get()).getPath()).getFileName().toString();
-            var dirname = filename.replace(".zip", "").replace(".tar.gz", "");
-            jdk = project.getRootDir().toPath().toAbsolutePath().resolve(".jdk").resolve(dirname);
-        } else {
-            jdk = Path.of(System.getProperty("java.home"));
-        }
+        Path jdk = jdkDir.get().getAsFile().toPath();
         List<Path> dirs;
         try (var paths = Files.walk(jdk)) {
             dirs = paths.filter(Files::isDirectory)
