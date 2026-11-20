@@ -92,7 +92,7 @@ public class MailingListBridgeBot implements Bot {
 
         webrevStorage = new WebrevStorage(webrevStorageHTMLRepository, webrevStorageJSONRepository, webrevStorageRef,
                                           webrevStorageBase, webrevStorageBaseUri, from,
-                                          webrevGenerateHTML, webrevGenerateJSON);
+                                          webrevGenerateHTML, webrevGenerateJSON, issueTracker);
         poller = new PullRequestPoller(codeRepo, true);
     }
 
